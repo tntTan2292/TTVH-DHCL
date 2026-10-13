@@ -20,73 +20,95 @@ const LARGE_CUSTOMER_OFFICE = '531120';
 const RANKED_OFFICES = ` AND COALESCE(ma_bc_chap_nhan, '') <> '${LARGE_CUSTOMER_OFFICE}'`;
 
 const defaultDb = require('../config/db').db;
+const aggReadPolicy = require('../services/aggReadPolicy');
+const { makeSources } = require('./aggSqlSource');
+
+// PERF-LOAD-01 Phase 2: reads are built once from a "source" (detail table or pre-aggregated day
+// table), see aggSqlSource.js. F1.2: volume = every row, failed = not passed (blank counts as failed).
+const SOURCES = makeSources({
+    factTable: 'fact_f12',
+    aggTable: 'agg_f12_day',
+    evaluationColumn: 'danh_gia',
+    nameColumn: 'ten_huyen',
+});
 
 class FactF12Repository {
     constructor(db = defaultDb) {
         this.db = db;
     }
 
+    // Source selection for every aggregate read (off | shadow | on, with the row-count fuse).
+    async _read(method, build) {
+        const mode = aggReadPolicy.modeFor('F1.2');
+        if (mode === 'off') return build(SOURCES.fact);
+        const useAgg = await aggReadPolicy.aggUsable('F1.2', this.db);
+        if (mode === 'on') return build(useAgg ? SOURCES.agg : SOURCES.fact);
+        const factResult = await build(SOURCES.fact);
+        if (useAgg) aggReadPolicy.shadowCompare('F1.2', method, factResult, () => build(SOURCES.agg));
+        return factResult;
+    }
+
     getKpiMetrics(startDate, endDate, filters = {}) {
-        return new Promise((resolve, reject) => {
+        return this._read('getKpiMetrics', (src) => new Promise((resolve, reject) => {
             const params = [startDate, endDate];
             // a unit filter is a ranked-unit view: the large-customer office never belongs to it (PD-F12-8)
             const bcvhClause = filters.bcvhId ? ` AND ma_huyen = ?${RANKED_OFFICES}` : '';
             if (filters.bcvhId) params.push(filters.bcvhId);
             const sql = `
                 SELECT
-                    COUNT(*) AS total_rows,
-                    SUM(CASE WHEN danh_gia = 'Đạt' THEN 1 ELSE 0 END) AS total_passed,
-                    SUM(CASE WHEN danh_gia = 'Không đạt' THEN 1 ELSE 0 END) AS total_failed,
-                    SUM(CASE WHEN danh_gia IS NULL OR TRIM(danh_gia) = '' THEN 1 ELSE 0 END) AS total_blank,
+                    ${src.count()} AS total_rows,
+                    ${src.passed()} AS total_passed,
+                    ${src.strictFailed()} AS total_failed,
+                    ${src.blank()} AS total_blank,
                     CASE
-                        WHEN COUNT(*) = 0 THEN NULL
-                        ELSE ROUND((SUM(CASE WHEN danh_gia = 'Đạt' THEN 1 ELSE 0 END) * 100.0) / COUNT(*), 2)
+                        WHEN ${src.count()} = 0 THEN NULL
+                        ELSE ROUND((${src.passed()} * 100.0) / ${src.count()}, 2)
                     END AS rate_percent
-                FROM fact_f12
+                FROM ${src.table}
                 WHERE ngay_do_kiem BETWEEN ? AND ?${bcvhClause}
             `;
             this.db.get(sql, params, (err, row) => {
                 if (err) reject(err);
                 else resolve(row);
             });
-        });
+        }));
     }
 
     getMeta() {
-        return new Promise((resolve, reject) => {
+        return this._read('getMeta', (src) => new Promise((resolve, reject) => {
             const sql = `
                 SELECT MIN(ngay_do_kiem) AS min_date, MAX(ngay_do_kiem) AS max_date
-                FROM fact_f12
+                FROM ${src.table}
                 WHERE ngay_do_kiem <= date('now', 'localtime')
             `;
             this.db.get(sql, [], (err, row) => {
                 if (err) reject(err);
                 else resolve(row || { min_date: null, max_date: null });
             });
-        });
+        }));
     }
 
     // The units that are ranked: every accepting unit with at least one office other than the large-customer
     // office, named from the data (a unit that only holds 531120 is not ranked).
     getRankedUnits() {
-        return this._all(`
+        return this._read('getRankedUnits', (src) => this._all(`
             SELECT ma_huyen AS ma_bcvh, MAX(ten_huyen) AS ten_bcvh
-            FROM fact_f12
+            FROM ${src.table}
             WHERE ma_huyen IS NOT NULL AND TRIM(ma_huyen) <> ''${RANKED_OFFICES}
             GROUP BY ma_huyen
             ORDER BY MAX(ten_huyen) ASC, ma_huyen ASC
-        `);
+        `));
     }
 
     // True when rows of the large-customer office exist (they are in the module total, not in the ranking).
     hasLargeCustomerRows() {
-        return new Promise((resolve, reject) => {
+        return this._read('hasLargeCustomerRows', (src) => new Promise((resolve, reject) => {
             this.db.get(
-                `SELECT EXISTS(SELECT 1 FROM fact_f12 WHERE ma_bc_chap_nhan = '${LARGE_CUSTOMER_OFFICE}' LIMIT 1) AS present`,
+                `SELECT EXISTS(SELECT 1 FROM ${src.table} WHERE ma_bc_chap_nhan = '${LARGE_CUSTOMER_OFFICE}' LIMIT 1) AS present`,
                 [],
                 (err, row) => (err ? reject(err) : resolve(Boolean(row && row.present)))
             );
-        });
+        }));
     }
 
     // ---------------------------------------------------------------------
@@ -135,12 +157,16 @@ class FactF12Repository {
 
     _getBcvhOverviewAggregate(kind, anchorCeiling, canonicalCodes = []) {
         if (!canonicalCodes.length) return Promise.resolve([]);
+        return this._read(`getBcvhOverview:${kind}`, (src) => this._overviewSql(src, kind, anchorCeiling, canonicalCodes));
+    }
+
+    _overviewSql(src, kind, anchorCeiling, canonicalCodes) {
 
         const placeholders = canonicalCodes.map(() => '?').join(', ');
         const bounds = `
             WITH bounds AS (
                 SELECT MAX(ngay_do_kiem) AS anchor_date
-                FROM fact_f12
+                FROM ${src.table}
                 WHERE ngay_do_kiem <= date(?)
                   AND ma_huyen IN (${placeholders})${RANKED_OFFICES}
             )
@@ -155,10 +181,10 @@ class FactF12Repository {
                     SELECT ngay_do_kiem,
                            ma_huyen AS ma_bcvh,
                            MAX(ten_huyen) AS ten_bcvh,
-                           COUNT(*) AS volume,
-                           SUM(CASE WHEN danh_gia = 'Đạt' THEN 1 ELSE 0 END) AS passed,
-                           SUM(CASE WHEN danh_gia = 'Đạt' THEN 0 ELSE 1 END) AS failed
-                    FROM fact_f12, bounds
+                           ${src.count()} AS volume,
+                           ${src.passed()} AS passed,
+                           ${src.failed()} AS failed
+                    FROM ${src.table}, bounds
                     WHERE ngay_do_kiem BETWEEN substr(bounds.anchor_date, 1, 4) || '-01-01' AND bounds.anchor_date
                       AND ma_huyen IN (${placeholders})${RANKED_OFFICES}
                     GROUP BY ngay_do_kiem, ma_huyen
@@ -191,7 +217,7 @@ class FactF12Repository {
             sql = `${bounds},
                 prev_bounds AS (
                     SELECT MAX(ngay_do_kiem) AS prev_anchor_date
-                    FROM fact_f12, bounds
+                    FROM ${src.table}, bounds
                     WHERE ngay_do_kiem < date(bounds.anchor_date)
                       AND ma_huyen IN (${placeholders})${RANKED_OFFICES}
                 ),
@@ -202,13 +228,13 @@ class FactF12Repository {
                 SELECT ngay_do_kiem AS date,
                        ma_huyen AS ma_bcvh,
                        MAX(ten_huyen) AS ten_bcvh,
-                       COUNT(*) AS volume,
-                       SUM(CASE WHEN danh_gia = 'Đạt' THEN 1 ELSE 0 END) AS passed,
-                       SUM(CASE WHEN danh_gia = 'Đạt' THEN 0 ELSE 1 END) AS failed,
+                       ${src.count()} AS volume,
+                       ${src.passed()} AS passed,
+                       ${src.failed()} AS failed,
                        bounds.anchor_date,
                        prev_bounds.prev_anchor_date,
                        week_bounds.week_ago_date
-                FROM fact_f12, bounds, prev_bounds, week_bounds
+                FROM ${src.table}, bounds, prev_bounds, week_bounds
                 WHERE (
                     ngay_do_kiem BETWEEN substr(bounds.anchor_date, 1, 7) || '-01' AND bounds.anchor_date
                     OR ngay_do_kiem = prev_bounds.prev_anchor_date
@@ -236,10 +262,10 @@ class FactF12Repository {
                     SELECT ngay_do_kiem,
                            ma_huyen AS ma_bcvh,
                            MAX(ten_huyen) AS ten_bcvh,
-                           COUNT(*) AS volume,
-                           SUM(CASE WHEN danh_gia = 'Đạt' THEN 1 ELSE 0 END) AS passed,
-                           SUM(CASE WHEN danh_gia = 'Đạt' THEN 0 ELSE 1 END) AS failed
-                    FROM fact_f12, periods
+                           ${src.count()} AS volume,
+                           ${src.passed()} AS passed,
+                           ${src.failed()} AS failed
+                    FROM ${src.table}, periods
                     WHERE ngay_do_kiem BETWEEN periods.previous_start AND periods.anchor_date
                       AND ma_huyen IN (${placeholders})${RANKED_OFFICES}
                     GROUP BY ngay_do_kiem, ma_huyen
@@ -289,13 +315,13 @@ class FactF12Repository {
     // ---- accepting OFFICE level (PO 2026-10-12: the Dashboard operations table lists every accepting office) ----
     // Every office with a code, large-customer office included, so the table total equals the module total.
     getOfficeList() {
-        return this._all(`
+        return this._read('getOfficeList', (src) => this._all(`
             SELECT ma_bc_chap_nhan AS ma_bcvh, MAX(ten_bc_chap_nhan) AS ten_bcvh, MAX(ma_huyen) AS ma_huyen
-            FROM fact_f12
+            FROM ${src.table}
             WHERE ma_bc_chap_nhan IS NOT NULL AND TRIM(ma_bc_chap_nhan) <> ''
             GROUP BY ma_bc_chap_nhan
             ORDER BY MAX(ten_bc_chap_nhan) ASC, ma_bc_chap_nhan ASC
-        `);
+        `));
     }
 
     // One row per accepting office for an inclusive date range (same shape as getBcvhOperationMetricsBetween):
@@ -303,26 +329,30 @@ class FactF12Repository {
     getOfficeOperationMetricsBetween(startDate, endDate, officeCodes = []) {
         if (!officeCodes.length) return Promise.resolve([]);
         const placeholders = officeCodes.map(() => '?').join(', ');
-        return this._all(`
+        return this._read('getOfficeOperationMetricsBetween', (src) => this._all(`
             SELECT
                 ma_bc_chap_nhan AS ma_bcvh,
                 MAX(ten_bc_chap_nhan) AS ten_bcvh,
-                COUNT(*) AS sl_bg_ptc,
-                SUM(CASE WHEN danh_gia = 'Đạt' THEN 1 ELSE 0 END) AS dat_kpi_2026,
-                SUM(CASE WHEN danh_gia = 'Đạt' THEN 0 ELSE 1 END) AS khong_dat_kpi_2026
-            FROM fact_f12
+                ${src.count()} AS sl_bg_ptc,
+                ${src.passed()} AS dat_kpi_2026,
+                ${src.failed()} AS khong_dat_kpi_2026
+            FROM ${src.table}
             WHERE ngay_do_kiem BETWEEN ? AND ?
               AND ma_bc_chap_nhan IN (${placeholders})
             GROUP BY ma_bc_chap_nhan
-        `, [startDate, endDate, ...officeCodes]);
+        `, [startDate, endDate, ...officeCodes]));
     }
 
     // Same row shapes as _getBcvhOverviewAggregate('mtd' | 'daily') with the accepting office as the unit.
     getOfficeOverviewAggregate(kind, anchorCeiling) {
+        return this._read(`getOfficeOverviewAggregate:${kind}`, (src) => this._officeOverviewSql(src, kind, anchorCeiling));
+    }
+
+    _officeOverviewSql(src, kind, anchorCeiling) {
         const bounds = `
             WITH bounds AS (
                 SELECT MAX(ngay_do_kiem) AS anchor_date
-                FROM fact_f12
+                FROM ${src.table}
                 WHERE ngay_do_kiem <= date(?)
                   AND ma_bc_chap_nhan IS NOT NULL AND TRIM(ma_bc_chap_nhan) <> ''
             )
@@ -332,7 +362,7 @@ class FactF12Repository {
             sql = `${bounds},
                 prev_bounds AS (
                     SELECT MAX(ngay_do_kiem) AS prev_anchor_date
-                    FROM fact_f12, bounds
+                    FROM ${src.table}, bounds
                     WHERE ngay_do_kiem < date(bounds.anchor_date)
                       AND ma_bc_chap_nhan IS NOT NULL AND TRIM(ma_bc_chap_nhan) <> ''
                 ),
@@ -343,13 +373,13 @@ class FactF12Repository {
                 SELECT ngay_do_kiem AS date,
                        ma_bc_chap_nhan AS ma_bcvh,
                        MAX(ten_bc_chap_nhan) AS ten_bcvh,
-                       COUNT(*) AS volume,
-                       SUM(CASE WHEN danh_gia = 'Đạt' THEN 1 ELSE 0 END) AS passed,
-                       SUM(CASE WHEN danh_gia = 'Đạt' THEN 0 ELSE 1 END) AS failed,
+                       ${src.count()} AS volume,
+                       ${src.passed()} AS passed,
+                       ${src.failed()} AS failed,
                        bounds.anchor_date,
                        prev_bounds.prev_anchor_date,
                        week_bounds.week_ago_date
-                FROM fact_f12, bounds, prev_bounds, week_bounds
+                FROM ${src.table}, bounds, prev_bounds, week_bounds
                 WHERE (
                     ngay_do_kiem BETWEEN substr(bounds.anchor_date, 1, 7) || '-01' AND bounds.anchor_date
                     OR ngay_do_kiem = prev_bounds.prev_anchor_date
@@ -376,10 +406,10 @@ class FactF12Repository {
                     SELECT ngay_do_kiem,
                            ma_bc_chap_nhan AS ma_bcvh,
                            MAX(ten_bc_chap_nhan) AS ten_bcvh,
-                           COUNT(*) AS volume,
-                           SUM(CASE WHEN danh_gia = 'Đạt' THEN 1 ELSE 0 END) AS passed,
-                           SUM(CASE WHEN danh_gia = 'Đạt' THEN 0 ELSE 1 END) AS failed
-                    FROM fact_f12, periods
+                           ${src.count()} AS volume,
+                           ${src.passed()} AS passed,
+                           ${src.failed()} AS failed
+                    FROM ${src.table}, periods
                     WHERE ngay_do_kiem BETWEEN periods.previous_start AND periods.anchor_date
                       AND ma_bc_chap_nhan IS NOT NULL AND TRIM(ma_bc_chap_nhan) <> ''
                     GROUP BY ngay_do_kiem, ma_bc_chap_nhan
@@ -423,65 +453,65 @@ class FactF12Repository {
     getBcvhWeeksList(canonicalCodes = []) {
         if (!canonicalCodes.length) return Promise.resolve([]);
         const placeholders = canonicalCodes.map(() => '?').join(', ');
-        return this._all(`
+        return this._read('getBcvhWeeksList', (src) => this._all(`
             SELECT
                 date(ngay_do_kiem, '-' || ((CAST(strftime('%w', ngay_do_kiem) AS INTEGER) - 4 + 7) % 7) || ' days') AS week_start,
                 MIN(ngay_do_kiem) AS first_date,
                 MAX(ngay_do_kiem) AS last_date,
                 COUNT(DISTINCT ngay_do_kiem) AS days_with_data
-            FROM fact_f12
+            FROM ${src.table}
             WHERE ma_huyen IN (${placeholders})${RANKED_OFFICES}
             GROUP BY week_start
             ORDER BY week_start ASC
-        `, canonicalCodes);
+        `, canonicalCodes));
     }
 
     getBcvhMonthsList(canonicalCodes = []) {
         if (!canonicalCodes.length) return Promise.resolve([]);
         const placeholders = canonicalCodes.map(() => '?').join(', ');
-        return this._all(`
+        return this._read('getBcvhMonthsList', (src) => this._all(`
             SELECT
                 strftime('%Y-%m-01', ngay_do_kiem) AS month_start,
                 MIN(ngay_do_kiem) AS first_date,
                 MAX(ngay_do_kiem) AS last_date,
                 COUNT(DISTINCT ngay_do_kiem) AS days_with_data
-            FROM fact_f12
+            FROM ${src.table}
             WHERE ma_huyen IN (${placeholders})${RANKED_OFFICES}
             GROUP BY month_start
             ORDER BY month_start ASC
-        `, canonicalCodes);
+        `, canonicalCodes));
     }
 
     getBcvhWeeklyTrendAggregate(fromDate, toDate, canonicalCodes = []) {
         if (!canonicalCodes.length) return Promise.resolve([]);
         const placeholders = canonicalCodes.map(() => '?').join(', ');
-        return this._all(`
+        return this._read('getBcvhWeeklyTrendAggregate', (src) => this._all(`
             SELECT
                 date(ngay_do_kiem, '-' || ((CAST(strftime('%w', ngay_do_kiem) AS INTEGER) - 4 + 7) % 7) || ' days') AS week_start,
                 ma_huyen AS ma_bcvh,
-                COUNT(*) AS volume,
-                SUM(CASE WHEN danh_gia = 'Đạt' THEN 1 ELSE 0 END) AS passed
-            FROM fact_f12
+                ${src.count()} AS volume,
+                ${src.passed()} AS passed
+            FROM ${src.table}
             WHERE ma_huyen IN (${placeholders})${RANKED_OFFICES}
               AND ngay_do_kiem BETWEEN ? AND ?
             GROUP BY week_start, ma_huyen
             ORDER BY week_start ASC, ma_huyen ASC
-        `, [...canonicalCodes, fromDate, toDate]);
+        `, [...canonicalCodes, fromDate, toDate]));
     }
 
     // weekABounds/weekBBounds: { from, to } inclusive ISO dates already resolved by the service.
     getBcvhWeeklyComparisonAggregate(weekABounds, weekBBounds, canonicalCodes = []) {
         if (!canonicalCodes.length) return Promise.resolve([]);
         const placeholders = canonicalCodes.map(() => '?').join(', ');
-        return this._all(`
+        return this._read('getBcvhWeeklyComparisonAggregate', (src) => this._all(`
             SELECT
                 ma_huyen AS ma_bcvh,
                 MAX(ten_huyen) AS ten_bcvh,
-                SUM(CASE WHEN ngay_do_kiem BETWEEN ? AND ? THEN 1 ELSE 0 END) AS volume_a,
-                SUM(CASE WHEN ngay_do_kiem BETWEEN ? AND ? AND danh_gia = 'Đạt' THEN 1 ELSE 0 END) AS passed_a,
-                SUM(CASE WHEN ngay_do_kiem BETWEEN ? AND ? THEN 1 ELSE 0 END) AS volume_b,
-                SUM(CASE WHEN ngay_do_kiem BETWEEN ? AND ? AND danh_gia = 'Đạt' THEN 1 ELSE 0 END) AS passed_b
-            FROM fact_f12
+                ${src.count('ngay_do_kiem BETWEEN ? AND ?')} AS volume_a,
+                ${src.passed('ngay_do_kiem BETWEEN ? AND ?')} AS passed_a,
+                ${src.count('ngay_do_kiem BETWEEN ? AND ?')} AS volume_b,
+                ${src.passed('ngay_do_kiem BETWEEN ? AND ?')} AS passed_b
+            FROM ${src.table}
             WHERE ma_huyen IN (${placeholders})${RANKED_OFFICES}
               AND (ngay_do_kiem BETWEEN ? AND ? OR ngay_do_kiem BETWEEN ? AND ?)
             GROUP BY ma_huyen
@@ -493,7 +523,7 @@ class FactF12Repository {
             ...canonicalCodes,
             weekABounds.from, weekABounds.to,
             weekBBounds.from, weekBBounds.to,
-        ]);
+        ]));
     }
 
     // One row per canonical BCVH for an inclusive date range (same shape idea as
@@ -502,18 +532,18 @@ class FactF12Repository {
     getBcvhOperationMetricsBetween(startDate, endDate, canonicalCodes = []) {
         if (!canonicalCodes.length) return Promise.resolve([]);
         const placeholders = canonicalCodes.map(() => '?').join(', ');
-        return this._all(`
+        return this._read('getBcvhOperationMetricsBetween', (src) => this._all(`
             SELECT
                 ma_huyen AS ma_bcvh,
                 MAX(ten_huyen) AS ten_bcvh,
-                COUNT(*) AS sl_bg_ptc,
-                SUM(CASE WHEN danh_gia = 'Đạt' THEN 1 ELSE 0 END) AS dat_kpi_2026,
-                SUM(CASE WHEN danh_gia = 'Đạt' THEN 0 ELSE 1 END) AS khong_dat_kpi_2026
-            FROM fact_f12
+                ${src.count()} AS sl_bg_ptc,
+                ${src.passed()} AS dat_kpi_2026,
+                ${src.failed()} AS khong_dat_kpi_2026
+            FROM ${src.table}
             WHERE ngay_do_kiem BETWEEN ? AND ?
               AND ma_huyen IN (${placeholders})${RANKED_OFFICES}
             GROUP BY ma_huyen
-        `, [startDate, endDate, ...canonicalCodes]);
+        `, [startDate, endDate, ...canonicalCodes]));
     }
 
     // Module-level daily series (all rows, PO-2 total-rows denominator) or one BCVH.
@@ -521,7 +551,7 @@ class FactF12Repository {
         const bcvhClause = filters.bcvhId ? ` AND ma_huyen = ?${RANKED_OFFICES}` : '';
         const params = [fromDate, toDate, fromDate, toDate];
         if (filters.bcvhId) params.push(filters.bcvhId);
-        return this._all(`
+        return this._read('getDailyTrendData', (src) => this._all(`
             WITH RECURSIVE dates(date_value) AS (
                 SELECT date(?)
                 UNION ALL
@@ -532,10 +562,10 @@ class FactF12Repository {
             agg AS (
                 SELECT
                     ngay_do_kiem AS date_value,
-                    COUNT(*) AS total_volume,
-                    SUM(CASE WHEN danh_gia = 'Đạt' THEN 1 ELSE 0 END) AS passed,
-                    SUM(CASE WHEN danh_gia = 'Đạt' THEN 0 ELSE 1 END) AS failed
-                FROM fact_f12
+                    ${src.count()} AS total_volume,
+                    ${src.passed()} AS passed,
+                    ${src.failed()} AS failed
+                FROM ${src.table}
                 WHERE ngay_do_kiem BETWEEN date(?) AND date(?)
                 ${bcvhClause}
                 GROUP BY ngay_do_kiem
@@ -553,7 +583,7 @@ class FactF12Repository {
             FROM dates d
             LEFT JOIN agg a ON a.date_value = d.date_value
             ORDER BY d.date_value ASC
-        `, params);
+        `, params));
     }
 
     getLatestImportMeta() {
@@ -570,55 +600,55 @@ class FactF12Repository {
     // 'Đạt'. The large-customer office is included here (flagged by the service) so the grid sums to the
     // module total.
     getOfficeGrid(startDate, endDate) {
-        return this._all(`
+        return this._read('getOfficeGrid', (src) => this._all(`
             SELECT
                 COALESCE(ma_huyen, '') AS ma_huyen,
                 MAX(ten_huyen) AS ten_huyen,
                 COALESCE(ma_bc_chap_nhan, '') AS ma_chap_nhan,
                 MAX(ten_bc_chap_nhan) AS ten_chap_nhan,
-                COUNT(*) AS volume,
-                SUM(CASE WHEN danh_gia = 'Đạt' THEN 1 ELSE 0 END) AS passed
-            FROM fact_f12
+                ${src.count()} AS volume,
+                ${src.passed()} AS passed
+            FROM ${src.table}
             WHERE ngay_do_kiem BETWEEN ? AND ?
             GROUP BY ma_huyen, ma_bc_chap_nhan
-        `, [startDate, endDate]);
+        `, [startDate, endDate]));
     }
 
     // One row per (month, unit, large-customer flag) for the rolling 12-month block: sums of the daily rows.
     getMonthlyUnitGrid(startDate, endDate) {
-        return this._all(`
+        return this._read('getMonthlyUnitGrid', (src) => this._all(`
             SELECT
                 substr(ngay_do_kiem, 1, 7) AS month,
                 COALESCE(ma_huyen, '') AS ma_bcvh,
                 MAX(ten_huyen) AS ten_bcvh,
                 CASE WHEN COALESCE(ma_bc_chap_nhan, '') = '${LARGE_CUSTOMER_OFFICE}' THEN 1 ELSE 0 END AS large_customer,
                 COUNT(DISTINCT ngay_do_kiem) AS days_with_data,
-                COUNT(*) AS volume,
-                SUM(CASE WHEN danh_gia = 'Đạt' THEN 1 ELSE 0 END) AS passed
-            FROM fact_f12
+                ${src.count()} AS volume,
+                ${src.passed()} AS passed
+            FROM ${src.table}
             WHERE ngay_do_kiem BETWEEN ? AND ?
             GROUP BY substr(ngay_do_kiem, 1, 7), ma_huyen, large_customer
-        `, [startDate, endDate]);
+        `, [startDate, endDate]));
     }
 
     // Distinct days with data per month (module level), for the rolling 12-month block.
     getDaysByMonth(startDate, endDate) {
-        return this._all(`
+        return this._read('getDaysByMonth', (src) => this._all(`
             SELECT substr(ngay_do_kiem, 1, 7) AS month, COUNT(DISTINCT ngay_do_kiem) AS days_with_data
-            FROM fact_f12
+            FROM ${src.table}
             WHERE ngay_do_kiem BETWEEN ? AND ?
             GROUP BY substr(ngay_do_kiem, 1, 7)
-        `, [startDate, endDate]);
+        `, [startDate, endDate]));
     }
 
     getDaysWithData(startDate, endDate) {
-        return new Promise((resolve, reject) => {
+        return this._read('getDaysWithData', (src) => new Promise((resolve, reject) => {
             this.db.get(
-                'SELECT COUNT(DISTINCT ngay_do_kiem) AS days FROM fact_f12 WHERE ngay_do_kiem BETWEEN ? AND ?',
+                `SELECT COUNT(DISTINCT ngay_do_kiem) AS days FROM ${src.table} WHERE ngay_do_kiem BETWEEN ? AND ?`,
                 [startDate, endDate],
                 (err, row) => (err ? reject(err) : resolve(Number(row?.days || 0)))
             );
-        });
+        }));
     }
 }
 

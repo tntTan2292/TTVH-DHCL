@@ -280,3 +280,16 @@ Khác biệt so với thiết kế ban đầu (đã chủ động, ghi để Opu
 - `scripts/agg_compare.js --indicator F1.1` trên DB thật: **297 lời gọi, 0 sai khác** (gồm lưới cặp chấp nhận-phát), cộng dồn 26,7 s so với 1,3 s.
 - `test_aggReadF11.js` 6/6 trên dữ liệu có cặp bưu cục nhận × đơn vị phát, đánh giá NULL / khoảng trắng / giá trị lạ, ngày và đơn vị thiếu, đổi tên, nhập bổ sung; ma trận > 500 lời gọi, dấu hiệu "đang đọc bảng tổng hợp", cầu chì lệch tổng và thiếu bảng, shadow.
 - Hồi quy: `F11RankingService` 10/10, `F11NationalRankService` 7/7; `F11RankingRealBaseline` (DB thật, service đầy đủ) 1/1 ở `off` và ở `QIS_AGG_READ_F11=on`.
+
+## 16. Ghi nhận triển khai P2.4 - F1.2 (2026-10-13)
+
+**Nguồn F1.2** (`aggSqlSource` mặc định: khối lượng = mọi dòng `n_rows`, `failed` = không phải đạt = `n_rows - n_dat`; `strictFailed`/`blank` cho KPI). Bưu cục khách lớn `531120` giữ nguyên bằng điều kiện `RANKED_OFFICES` trên cột khóa `ma_bc_chap_nhan` có sẵn trong bảng tổng hợp, nên bảng tổng hợp phục vụ cả tổng module (gồm 531120) lẫn xếp hạng (loại 531120). Tên đơn vị/bưu cục lấy bằng `MAX(ten_huyen)` / `MAX(ten_bc_chap_nhan)` trực tiếp trên bảng tổng hợp (cả hai cột đều là cột nhớ của khóa).
+
+**Đã chuyển (FactF12Repository, 18 phương thức):** KPI, meta, `getRankedUnits`, `hasLargeCustomerRows`, `getBcvhOverview{Monthly,Daily,Mtd}`, `getOfficeList`, `getOfficeOperationMetricsBetween`, `getOfficeOverviewAggregate`, `getBcvhWeeksList`, `getBcvhMonthsList`, `getBcvhWeeklyTrendAggregate`, `getBcvhWeeklyComparisonAggregate`, `getBcvhOperationMetricsBetween`, `getDailyTrendData`, `getOfficeGrid`, `getMonthlyUnitGrid`, `getDaysByMonth`, `getDaysWithData`. Giữ trên bảng chi tiết: `getLatestImportMeta`.
+
+### 16.1 Bằng chứng
+- `scripts/agg_compare.js --indicator F1.2` trên DB thật: **337 lời gọi, 0 sai khác** (gồm khối bưu cục, lưới bưu cục, lưới tháng theo đơn vị, ngày theo tháng).
+- `test_aggReadF12.js` 6/6 với bưu cục `531120`, NULL, rỗng, đơn vị NULL / rỗng / ngoài danh sách, đánh giá NULL / khoảng trắng, ngày và đơn vị thiếu, nhập bổ sung; ma trận > 500 lời gọi.
+- Hồi quy: `F12RankingService` 12/12, `F12NationalRankService` 3/3, `test_f12ImportPipeline` 6/6, `test_f12PortalAdapter` 24/24 ở `off` và ở `QIS_AGG_READ_F12=on`.
+- Toàn bộ bộ test agg (`test_aggMaintenance` 10, `test_aggReadF41` 6, `test_aggReadF13` 5, `test_aggReadF11` 6, `test_aggReadF12` 6) cùng xanh.
+- Lưu ý: dữ liệu F1.2 thật hiện mới 10 ngày (từ 2026-10-02) nên mức giảm thời gian chưa lớn (2,2 s → 0,3 s toàn bộ ma trận); lợi ích tăng theo lượng backfill.

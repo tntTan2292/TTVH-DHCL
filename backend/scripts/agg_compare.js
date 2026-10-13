@@ -103,6 +103,29 @@ async function compareIndicator(repo, indicator, data, opts = {}) {
         add('getPairGrid empty window', () => repo.getPairGrid('1999-01-01', '1999-01-31'));
         add('getDaysWithData full range', () => repo.getDaysWithData(min, max));
     }
+    // F1.2 only: office level, grids, ranked units, 12-month helpers.
+    if (typeof repo.getOfficeGrid === 'function') {
+        const offices = data.officeCodes || [];
+        add('getRankedUnits', () => repo.getRankedUnits());
+        add('hasLargeCustomerRows', () => repo.hasLargeCustomerRows());
+        add('getOfficeList', () => repo.getOfficeList());
+        for (const anchor of heavyAnchors) {
+            add(`getOfficeOverviewAggregate daily ${anchor}`, () => repo.getOfficeOverviewAggregate('daily', anchor));
+            add(`getOfficeOverviewAggregate mtd ${anchor}`, () => repo.getOfficeOverviewAggregate('mtd', anchor));
+        }
+        for (const anchor of lightAnchors) {
+            const from = addDays(anchor, -12);
+            add(`getOfficeOperationMetricsBetween ${from}..${anchor}`, () => repo.getOfficeOperationMetricsBetween(from, anchor, offices));
+            add(`getOfficeGrid ${from}..${anchor}`, () => repo.getOfficeGrid(from, anchor));
+            add(`getMonthlyUnitGrid ${from}..${anchor}`, () => repo.getMonthlyUnitGrid(from, anchor));
+            add(`getDaysByMonth ${from}..${anchor}`, () => repo.getDaysByMonth(from, anchor));
+            add(`getDaysWithData ${from}..${anchor}`, () => repo.getDaysWithData(from, anchor));
+        }
+        add('getOfficeGrid full range', () => repo.getOfficeGrid(min, max));
+        add('getMonthlyUnitGrid full range', () => repo.getMonthlyUnitGrid(min, max));
+        add('getDaysByMonth full range', () => repo.getDaysByMonth(min, max));
+        add('getOfficeOperationMetricsBetween empty window', () => repo.getOfficeOperationMetricsBetween('1999-01-01', '1999-01-31', offices));
+    }
     add('getBcvhOverviewMonthly beyond max', () => repo.getBcvhOverviewMonthly(addDays(max, 40), data.codes));
     add('getBcvhOverviewMonthly before min', () => repo.getBcvhOverviewMonthly(addDays(min, -40), data.codes));
     add('getBcvhOperationMetricsBetween empty window', () => repo.getBcvhOperationMetricsBetween('1999-01-01', '1999-01-31', data.codes));
@@ -170,6 +193,10 @@ async function main() {
             table: 'fact_f41', unit: 'ma_bc_phat',
             load: () => require('../src/repositories/FactF41Repository').factF41Repository,
         },
+        'F1.2': {
+            table: 'fact_f12', unit: 'ma_huyen',
+            load: () => require('../src/repositories/FactF12Repository').factF12Repository,
+        },
         'F1.1': {
             table: 'fact_f11', unit: 'ma_bc_phat',
             load: () => require('../src/repositories/FactF11Repository').factF11Repository,
@@ -190,9 +217,12 @@ async function main() {
     const codes = (await all(
         `SELECT ${config.unit} AS c, COUNT(*) AS n FROM ${config.table} WHERE ${config.unit} IS NOT NULL AND TRIM(${config.unit}) <> '' GROUP BY ${config.unit} ORDER BY n DESC LIMIT 7`
     )).map((r) => r.c);
+    const officeCodes = indicator === 'F1.2'
+        ? (await all(`SELECT DISTINCT ma_bc_chap_nhan AS c FROM fact_f12 WHERE ma_bc_chap_nhan IS NOT NULL AND TRIM(ma_bc_chap_nhan) <> ''`)).map((r) => r.c)
+        : [];
     await policy.aggUsable(indicator, require('../src/config/db').db, { force: true });
     console.log(`Comparing ${indicator}: ${dates.length} days ${dates[0]}..${dates[dates.length - 1]}, ${codes.length} units, heavy anchors ${heavy}`);
-    const report = await compareIndicator(repository, indicator, { dates, codes, unitFor: codes[0] }, { heavy, light: 10 });
+    const report = await compareIndicator(repository, indicator, { dates, codes, unitFor: codes[0], officeCodes }, { heavy, light: 10 });
     console.log(`\nCompared ${report.compared} calls: ${report.mismatches.length} mismatch(es)`);
     console.log(`Total time  detail ${(report.factMs / 1000).toFixed(1)} s   aggregate ${(report.aggMs / 1000).toFixed(1)} s\n`);
     console.log('method'.padEnd(36), 'calls', 'detail avg ms', 'agg avg ms');

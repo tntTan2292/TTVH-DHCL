@@ -2325,3 +2325,7 @@ F1.3 aggregate reads switchable to the day aggregate (QIS_AGG_READ_F13 off|shado
 ## 2026-10-13 - PERF-LOAD-01 PHASE 2 STEP P2.3 DELIVERED (F1.1)
 
 F1.1 aggregate reads switchable (QIS_AGG_READ_F11 off|shadow|on, fuse); evaluated-rows volume preserved; real-DB comparison 297 calls / 0 differences, 26.7 s -> 1.3 s; tests 6/6. Next P2.4 F1.2. docs/10_TICKETS/PERF-LOAD-01_MANIFEST.md Section 10; design Section 15.
+
+## 2026-10-13 - PERF-LOAD-01 PHASE 2 STEP P2.4 DELIVERED (F1.2)
+
+F1.2 aggregate reads switchable (QIS_AGG_READ_F12 off|shadow|on, fuse); 531120 handled; real-DB comparison 337 calls / 0 differences; tests 6/6. Implementation P2.0-P2.4 complete; next P2.5 supervised enablement + Opus review. docs/10_TICKETS/PERF-LOAD-01_MANIFEST.md Section 11; design Section 16.

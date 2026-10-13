@@ -56,3 +56,7 @@ Same switch as F4.1, env `QIS_AGG_READ_F13` (`off` default | `shadow` | `on`), r
 ## 10. Phase 2 step P2.3 delivered - F1.1 read path (2026-10-13)
 
 Same switch (`QIS_AGG_READ_F11`, `off` default | `shadow` | `on`, row-count fuse). F1.1 volume = evaluated rows (n_dat + n_khong_dat). 13 aggregate methods of `FactF11Repository` converted incl. the pair grid; reconciliation of one day and latest-import meta stay on the detail table. Evidence: real-DB comparison 297 calls / 0 differences (26.7 s -> 1.3 s); `test_aggReadF11.js` 6/6; F1.1 ranking suites and the real-DB baseline identical in `off` and `on`. Details: design Section 15. Next: P2.4 (F1.2).
+
+## 11. Phase 2 step P2.4 delivered - F1.2 read path (2026-10-13)
+
+Same switch (`QIS_AGG_READ_F12`, `off` default | `shadow` | `on`, fuse). 18 methods of `FactF12Repository` converted incl. office level and the 12-month helpers; large-customer office 531120 handled by the existing key-column predicate. Evidence: real-DB comparison 337 calls / 0 differences; `test_aggReadF12.js` 6/6; F1.2 service/pipeline suites identical in `off` and `on`; all five agg test files green. Details: design Section 16. Implementation of Phase 2 steps P2.0-P2.4 is complete; P2.5 = supervised enablement (shadow one working day, then on) + independent Opus review (prompt to be written).
