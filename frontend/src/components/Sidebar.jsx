@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
+import CollapsedFlyout from './CollapsedFlyout';
 import { Target, Activity, Settings, Database, Info, FileSpreadsheet, ChevronLeft, ChevronRight, BarChart2, ChevronDown, MapPin, Users, Pin, Search } from 'lucide-react';
 
 function normalizeNavText(text = '') {
@@ -355,7 +356,7 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
                     </div>
                   ) : (
                     /* Collapsed Icon with Floating Flyout */
-                    <div className="relative group/collapsed">
+                    <CollapsedFlyout>
                       <div
                         className={`flex items-center justify-center py-2.5 mx-2 rounded-xl text-blue-200/80 hover:text-white hover:bg-white/10 transition-all cursor-pointer ${
                           isGroupActive ? 'bg-white/10 text-white' : ''
@@ -367,8 +368,7 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
                       </div>
 
                       {/* Floating Glass Flyout Popover */}
-                      <div className="absolute left-[calc(100%+8px)] top-0 z-50 hidden group-hover/collapsed:block min-w-[240px] max-w-[280px] rounded-2xl glass-sidebar border border-white/20 p-2 shadow-2xl backdrop-blur-2xl">
-                        <div className="px-3 py-1.5 border-b border-white/10 mb-1.5 flex items-center justify-between">
+                      <div className="px-3 py-1.5 border-b border-white/10 mb-1.5 flex items-center justify-between">
                           <span className="text-[11px] font-bold uppercase tracking-wider text-amber-400">{item.title}</span>
                         </div>
                         <ul className="space-y-1 max-h-[360px] overflow-y-auto sidebar-scrollbar pr-1">
@@ -422,8 +422,7 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
                             );
                           })}
                         </ul>
-                      </div>
-                    </div>
+                    </CollapsedFlyout>
                   )}
 
                   {/* Sub items */}
