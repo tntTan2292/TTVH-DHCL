@@ -130,3 +130,9 @@ Add or extend unit tests for 2, 3 and 4 (pure helpers). Stop at `READY FOR PO CH
   - Gắn nhãn chuẩn "hạng lũy kế tháng" cho dải diễn biến tháng (`MonthlyRankProgressionBlock.jsx`).
   - Xóa biến `targetRate` không dùng trong `LowestUnitsBlock.jsx` và import `RANKING_TEXT_FIELDS` không dùng trong `homeTableSort.test.js`.
   - Mở rộng bộ kiểm thử tự động `homeTableSort.test.js` và `dashboardHome.test.js` kiểm tra lỗi 1, 2, 3, 4. Toàn bộ 690 tests pass xanh.
+
+## Điều chỉnh 2026-10-13 (PO) — bảng 34 tỉnh, "Biến động" và bố cục
+
+- Bảng xếp hạng 34 tỉnh bỏ cột "Chênh MT" (chênh mục tiêu vẫn còn ở thẻ "Tỷ lệ Huế"), chữ to hơn, bỏ tiền tố "Bưu điện " trong tên để một dòng.
+- "Biến động" của kỳ Tuần/Tháng nay so với **tuần trước / cả tháng trước đầy đủ** (trước đây so với *một ngày* cuối kỳ trước, nên F1.3 tháng 10 hiện +1 trong khi khối "Diễn biến hạng lũy kế tháng" hiện +3: 25 → 22). `HomeExecutiveService.getNationalRanking` trả thêm `movement_basis` (`day|week|month`); kỳ Ngày giữ nguyên (so với ngày dữ liệu liền trước). Đã đối chiếu dữ liệu thật: F1.1 +9, F1.2 +15, F1.3 +3, F4.1 +5, đều bằng chênh hạng T9 → T10 ở khối lũy kế.
+- Bố cục: hai cột 7/5 (≥ 2xl: 8/4), cột phải giãn bằng chiều cao bảng 34 tỉnh nên chân hai khối luôn thẳng hàng khi đổi chỉ tiêu; bảng cặp F1.1 một dòng/cặp, bỏ tiền tố "BCVH " và cột "Chênh MT".

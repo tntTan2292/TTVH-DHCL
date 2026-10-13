@@ -15,6 +15,7 @@ import {
   classifyF13HeatmapRate,
   F13_HEATMAP_TONE_CLASS,
 } from '../../../components/f13/f13HeatmapBandCatalog.js';
+import { shortProvinceName } from '../homeNames.js';
 import { INDICATORS, indicatorTheme } from '../../indicator/indicatorConfig.js';
 import { IndicatorProvider } from '../../indicator/IndicatorContext.js';
 import {
@@ -57,6 +58,7 @@ export default function NationalRankingBlock({
     return filterProvincesByMode(sortedItems, viewMode);
   }, [sortedItems, viewMode]);
 
+  const movementBasisLabel = { week: 'tuần trước', month: 'tháng trước' }[rankingData?.movement_basis] || 'ngày trước';
   const periodLabel = period === 'day' ? 'Ngày' : period === 'week' ? 'Tuần' : 'Tháng';
   const periodRangeLabel = rankingData?.period_start && rankingData?.period_end
     ? `${rankingData.period_start} → ${rankingData.period_end}`
@@ -66,7 +68,7 @@ export default function NationalRankingBlock({
     <IndicatorProvider indicator={indConfig}>
       <section
         ref={blockRef}
-        className="rounded-2xl border border-slate-200/90 bg-white shadow-sm hover:shadow-md transition-[box-shadow,border-color] duration-150"
+        className="h-full rounded-2xl border border-slate-200/90 bg-white shadow-sm hover:shadow-md transition-[box-shadow,border-color] duration-150"
       >
         {/* Header */}
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-2 border-b border-slate-200/80 px-4 py-2.5 bg-slate-50/70 rounded-t-2xl">
@@ -144,7 +146,7 @@ export default function NationalRankingBlock({
         <div className="px-4 py-2.5 border-b border-slate-100 bg-gradient-to-r from-slate-50/50 via-white to-slate-50/50">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             {/* Huế Rank */}
-            <div className="rounded-xl border border-rose-200/90 bg-rose-50/40 px-3 py-1.5 flex items-center justify-between">
+            <div className="rounded-xl border border-rose-200/90 bg-rose-50/40 px-2 py-1.5 flex items-center justify-between">
               <div>
                 <span className="text-[11px] font-bold text-rose-800 uppercase tracking-wide">
                   Vị thứ BĐTP Huế
@@ -162,7 +164,7 @@ export default function NationalRankingBlock({
             </div>
 
             {/* Huế Rate (Theo báo cáo toàn quốc) */}
-            <div className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 flex items-center justify-between">
+            <div className="rounded-xl border border-slate-200 bg-white px-2 py-1.5 flex items-center justify-between">
               <div>
                 <div className="flex items-center gap-1">
                   <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wide">
@@ -185,7 +187,7 @@ export default function NationalRankingBlock({
             </div>
 
             {/* Gap to province above (Crucial for leaders to overtake!) */}
-            <div className="rounded-xl border border-amber-200/90 bg-amber-50/30 px-3 py-1.5 flex flex-col justify-between">
+            <div className="rounded-xl border border-amber-200/90 bg-amber-50/30 px-2 py-1.5 flex flex-col justify-between">
               <span className="text-[11px] font-bold text-amber-800 uppercase tracking-wide">
                 Vượt tỉnh liền trên
               </span>
@@ -210,7 +212,7 @@ export default function NationalRankingBlock({
             </div>
 
             {/* National Average */}
-            <div className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 flex items-center justify-between">
+            <div className="rounded-xl border border-slate-200 bg-white px-2 py-1.5 flex items-center justify-between">
               <div>
                 <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wide">
                   Bình quân 34 tỉnh
@@ -280,29 +282,35 @@ export default function NationalRankingBlock({
               {rankingData?.message || 'Chưa có dữ liệu xếp hạng kỳ này.'}
             </div>
           ) : (
-            <table className="w-full text-left text-xs border-collapse">
-              <thead className="bg-slate-100/90 text-slate-700 font-bold border-b border-slate-200 uppercase tracking-wider text-[11px]">
+            <table className="w-full text-left text-sm border-collapse">
+              <thead className="bg-slate-100/90 text-slate-700 font-bold border-b border-slate-200 uppercase tracking-wider text-xs">
                 <tr>
-                  <SortableTh field="rank" sort={sort} onSort={handleSort} className="px-3 py-1 text-center w-16">
+                  <SortableTh field="rank" sort={sort} onSort={handleSort} className="px-2 py-1.5 text-center w-12 whitespace-nowrap">
                     Hạng
                   </SortableTh>
-                  <SortableTh field="ten_tinh" sort={sort} onSort={handleSort} className="px-3 py-1 text-left">
+                  <SortableTh field="ten_tinh" sort={sort} onSort={handleSort} className="px-2 py-1.5 text-left">
                     Tỉnh / Thành phố
                   </SortableTh>
-                  <SortableTh field="rate" sort={sort} onSort={handleSort} className="px-3 py-1 text-right w-28">
+                  <SortableTh field="rate" sort={sort} onSort={handleSort} className="px-2 py-1.5 text-right w-20 whitespace-nowrap">
                     Tỷ lệ (%)
                   </SortableTh>
-                  <SortableTh field="gap_to_target" sort={sort} onSort={handleSort} className="px-3 py-1 text-right w-28">
-                    Chênh MT
-                  </SortableTh>
-                  <SortableTh field="volume" sort={sort} onSort={handleSort} className="px-3 py-1 text-right w-28">
+                  <SortableTh field="volume" sort={sort} onSort={handleSort} className="px-2 py-1.5 text-right w-20 whitespace-nowrap">
                     Sản lượng
                   </SortableTh>
-                  <SortableTh field="failed" sort={sort} onSort={handleSort} className="px-3 py-1 text-right w-24">
+                  <SortableTh field="failed" sort={sort} onSort={handleSort} className="px-2 py-1.5 text-right w-20 whitespace-nowrap">
                     Không đạt
                   </SortableTh>
-                  <SortableTh field="movement" sort={sort} onSort={handleSort} className="px-3 py-1 text-center w-28">
+                  <SortableTh
+                    field="movement"
+                    sort={sort}
+                    onSort={handleSort}
+                    className="px-2 py-1.5 text-center w-28 whitespace-nowrap"
+                    title={`Thay đổi hạng so với ${movementBasisLabel}`}
+                  >
                     Biến động
+                    <span className="block text-[10px] font-semibold normal-case tracking-normal text-slate-500">
+                      so với {movementBasisLabel}
+                    </span>
                   </SortableTh>
                 </tr>
               </thead>
@@ -322,9 +330,9 @@ export default function NationalRankingBlock({
                       }`}
                     >
                       {/* Rank */}
-                      <td className="px-3 py-1 text-center tabular-nums">
+                      <td className="px-2 py-1.5 text-center tabular-nums">
                         <span
-                          className={`inline-flex items-center justify-center h-5 w-5 rounded-full font-black text-xs ${
+                          className={`inline-flex items-center justify-center h-7 w-7 rounded-full font-black text-sm ${
                             isHue
                               ? 'bg-[var(--color-vnpost-blue)] text-white shadow-2xs'
                               : isTop3
@@ -337,13 +345,13 @@ export default function NationalRankingBlock({
                       </td>
 
                       {/* Province Name */}
-                      <td className="px-3 py-1">
+                      <td className="px-2 py-1.5">
                         <div className="flex items-center gap-2">
-                          <span className="font-bold text-slate-900">
-                            {item.ten_tinh}
+                          <span className="whitespace-nowrap font-bold text-slate-900">
+                            {shortProvinceName(item.ten_tinh)}
                           </span>
                           {isHue && (
-                            <span className="inline-flex items-center gap-0.5 rounded-full bg-[var(--color-vnpost-blue)] px-2 py-0.5 text-[10px] font-black text-white shadow-2xs">
+                            <span className="inline-flex shrink-0 items-center gap-0.5 whitespace-nowrap rounded-full bg-[var(--color-vnpost-blue)] px-2 py-0.5 text-[11px] font-black text-white shadow-2xs">
                               ★ Huế
                             </span>
                           )}
@@ -351,13 +359,13 @@ export default function NationalRankingBlock({
                       </td>
 
                       {/* Rate */}
-                      <td className="px-3 py-1 text-right tabular-nums">
+                      <td className="px-2 py-1.5 text-right tabular-nums">
                         {(() => {
                           const band = classifyF13HeatmapRate(item.rate, indConfig.heatmapBands);
                           const toneClass = F13_HEATMAP_TONE_CLASS[band.tone] || F13_HEATMAP_TONE_CLASS.unavailable;
                           return (
                             <span
-                              className={`font-black text-xs px-2 py-0.5 rounded-md border ${toneClass}`}
+                              className={`font-black text-sm px-2.5 py-0.5 rounded-md border ${toneClass}`}
                             >
                               {itemRate != null && Number.isFinite(itemRate) ? `${itemRate.toFixed(1)}%` : '—'}
                             </span>
@@ -365,36 +373,29 @@ export default function NationalRankingBlock({
                         })()}
                       </td>
 
-                      {/* Gap to target */}
-                      <td className="px-3 py-1 text-right tabular-nums font-bold">
-                        <span className={item.gap_to_target >= 0 ? 'text-emerald-700' : 'text-rose-600'}>
-                          {formatGap(item.gap_to_target)}
-                        </span>
-                      </td>
-
                       {/* Volume */}
-                      <td className="px-3 py-1 text-right tabular-nums text-slate-600 font-semibold">
+                      <td className="px-2 py-1.5 text-right tabular-nums text-slate-600 font-semibold">
                         {Number(item.volume || 0).toLocaleString('vi-VN')}
                       </td>
 
                       {/* Failed */}
-                      <td className="px-3 py-1 text-right tabular-nums text-rose-600 font-bold">
+                      <td className="px-2 py-1.5 text-right tabular-nums text-rose-600 font-bold">
                         {Number(item.failed || 0).toLocaleString('vi-VN')}
                       </td>
 
                       {/* Rank Movement */}
-                      <td className="px-3 py-1 text-center tabular-nums font-bold">
+                      <td className="px-2 py-1.5 text-center tabular-nums font-bold">
                         {item.movement != null && item.movement > 0 ? (
                           <span className="inline-flex items-center gap-0.5 text-emerald-700">
-                            <ArrowUp size={12} /> +{item.movement}
+                            <ArrowUp size={14} /> +{item.movement}
                           </span>
                         ) : item.movement != null && item.movement < 0 ? (
                           <span className="inline-flex items-center gap-0.5 text-rose-600">
-                            <ArrowDown size={12} /> {item.movement}
+                            <ArrowDown size={14} /> {item.movement}
                           </span>
                         ) : item.movement === 0 ? (
                           <span className="text-slate-500 inline-flex items-center gap-0.5">
-                            <Minus size={12} /> 0
+                            <Minus size={14} /> 0
                           </span>
                         ) : (
                           <span className="text-slate-400">

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ExternalLink } from 'lucide-react';
 import BlockCaptureButton from '../../../components/common/BlockCaptureButton.jsx';
 import SortableTh from '../../../components/common/SortableTh.jsx';
+import { shortBcvhName } from '../homeNames.js';
 import { INDICATORS, indicatorTheme } from '../../indicator/indicatorConfig.js';
 import { IndicatorProvider } from '../../indicator/IndicatorContext.js';
 import {
@@ -24,14 +25,14 @@ const KINDS = Object.freeze({
     defaultSort: { field: 'rate', direction: 'asc' },
   },
   pairs: {
-    title: 'CẶP BƯU CỤC CHẤP NHẬN – PHÁT CẦN HÀNH ĐỘNG',
-    badge: (threshold) => `5 cặp sản lượng lớn, tỷ lệ dưới ${threshold}%`,
-    nameHeader: 'Bưu cục chấp nhận',
+    title: 'CẶP BƯU CỤC CHẤP NHẬN – PHÁT',
+    badge: (threshold) => `5 cặp sản lượng lớn, dưới ${threshold}%`,
+    nameHeader: 'Chấp nhận',
     defaultSort: { field: 'volume', direction: 'desc' },
   },
   offices: {
-    title: 'BƯU CỤC CHẤP NHẬN CẦN HÀNH ĐỘNG',
-    badge: (threshold) => `5 bưu cục sản lượng lớn, tỷ lệ dưới ${threshold}%`,
+    title: 'BƯU CỤC CHẤP NHẬN',
+    badge: (threshold) => `5 bưu cục sản lượng lớn, dưới ${threshold}%`,
     nameHeader: 'Bưu cục chấp nhận',
     defaultSort: { field: 'volume', direction: 'desc' },
   },
@@ -75,7 +76,7 @@ export default function ActionUnitsBlock({
     <IndicatorProvider indicator={indConfig}>
       <section
         ref={blockRef}
-        className="rounded-2xl border border-slate-200/90 bg-white p-3.5 shadow-sm"
+        className="flex-1 rounded-2xl border border-slate-200/90 bg-white p-3.5 shadow-sm"
       >
         <div className="flex items-center justify-between gap-2 border-b border-slate-100 pb-2">
           <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5">
@@ -111,27 +112,29 @@ export default function ActionUnitsBlock({
               {emptyText}
             </div>
           ) : (
-            <table className="w-full border-collapse text-left text-xs">
+            <table className="w-full whitespace-nowrap border-collapse text-left text-xs">
               <thead className="border-b border-slate-200 text-[10px] font-bold uppercase tracking-wider text-slate-600">
                 <tr>
-                  <SortableTh field="ten_bcvh" sort={sort} onSort={handleSort} className="px-2 py-1.5 text-left">
+                  <SortableTh field="ten_bcvh" sort={sort} onSort={handleSort} className="px-1 py-1.5 text-left">
                     {spec.nameHeader}
                   </SortableTh>
                   {kind === 'pairs' && (
-                    <SortableTh field="ten_phat" sort={sort} onSort={handleSort} className="px-2 py-1.5 text-left">
-                      Bưu cục phát
+                    <SortableTh field="ten_phat" sort={sort} onSort={handleSort} className="px-1 py-1.5 text-left">
+                      Phát
                     </SortableTh>
                   )}
-                  <SortableTh field="rate" sort={sort} onSort={handleSort} className="w-20 px-2 py-1.5 text-right">
+                  <SortableTh field="rate" sort={sort} onSort={handleSort} className="w-16 px-1 py-1.5 text-right">
                     Tỷ lệ
                   </SortableTh>
-                  <SortableTh field="gap_to_target" sort={sort} onSort={handleSort} className="w-20 px-2 py-1.5 text-right">
-                    Chênh MT
-                  </SortableTh>
-                  <SortableTh field="failed" sort={sort} onSort={handleSort} className="w-20 px-2 py-1.5 text-right">
+                  {kind !== 'pairs' && (
+                    <SortableTh field="gap_to_target" sort={sort} onSort={handleSort} className="w-16 px-1 py-1.5 text-right">
+                      Chênh MT
+                    </SortableTh>
+                  )}
+                  <SortableTh field="failed" sort={sort} onSort={handleSort} className="w-16 px-1 py-1.5 text-right">
                     Không đạt
                   </SortableTh>
-                  <SortableTh field="volume" sort={sort} onSort={handleSort} className="w-20 px-2 py-1.5 text-right">
+                  <SortableTh field="volume" sort={sort} onSort={handleSort} className="w-16 px-1 py-1.5 text-right">
                     Sản lượng
                   </SortableTh>
                 </tr>
@@ -146,11 +149,11 @@ export default function ActionUnitsBlock({
                       className="cursor-pointer transition-colors hover:bg-slate-50/80"
                       title="Đi tới bảng xếp hạng chi tiết"
                     >
-                      <td className="px-2 py-1.5 font-bold text-slate-900">{u.ten_bcvh}</td>
+                      <td className="px-1 py-1.5 font-bold text-slate-900">{u.ten_bcvh}</td>
                       {kind === 'pairs' && (
-                        <td className="px-2 py-1.5 font-bold text-slate-900">{u.ten_phat}</td>
+                        <td className="px-1 py-1.5 font-bold text-slate-900">{shortBcvhName(u.ten_phat)}</td>
                       )}
-                      <td className="px-2 py-1.5 text-right tabular-nums">
+                      <td className="px-1 py-1.5 text-right tabular-nums">
                         <span
                           className={`rounded-md border px-1.5 py-0.5 font-black ${below
                             ? 'border-rose-200 bg-rose-50 text-rose-700'
@@ -159,13 +162,15 @@ export default function ActionUnitsBlock({
                           {Number(u.rate).toFixed(1)}%
                         </span>
                       </td>
-                      <td className={`px-2 py-1.5 text-right font-bold tabular-nums ${below ? 'text-rose-600' : 'text-emerald-600'}`}>
-                        {formatGap(u.gap_to_target)}
-                      </td>
-                      <td className="px-2 py-1.5 text-right font-black tabular-nums text-rose-600">
+                      {kind !== 'pairs' && (
+                        <td className={`px-1 py-1.5 text-right font-bold tabular-nums ${below ? 'text-rose-600' : 'text-emerald-600'}`}>
+                          {formatGap(u.gap_to_target)}
+                        </td>
+                      )}
+                      <td className="px-1 py-1.5 text-right font-black tabular-nums text-rose-600">
                         {Number(u.failed || 0).toLocaleString('vi-VN')}
                       </td>
-                      <td className="px-2 py-1.5 text-right font-semibold tabular-nums text-slate-600">
+                      <td className="px-1 py-1.5 text-right font-semibold tabular-nums text-slate-600">
                         {Number(u.volume || 0).toLocaleString('vi-VN')}
                       </td>
                     </tr>

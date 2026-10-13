@@ -363,6 +363,11 @@ class HomeExecutiveService {
         const table = await adapter.rank.getNationalRanking(range.from, range.to);
         if (!table?.available) return this._emptyRanking(indicator, table?.message || 'Chưa có dữ liệu xếp hạng toàn quốc', range);
 
+        // The movement is read against the same kind of period: the previous day, the previous Thursday-Wednesday
+        // week or the previous calendar month IN FULL - the figure the "Diễn biến hạng lũy kế tháng" block shows
+        // for that month - so the two blocks never give a leader two different movements.
+        const movementBasis = await this._movementBasis(adapter, range, table);
+
         const target = TARGETS[indicator];
         const volume = table.items.reduce((sum, item) => sum + item.volume, 0);
         const passed = table.items.reduce((sum, item) => sum + item.passed, 0);
@@ -378,7 +383,8 @@ class HomeExecutiveService {
             period: range.period || period,
             period_start: range.from,
             period_end: range.to,
-            previous_period: table.previous_period,
+            previous_period: movementBasis.previous_period,
+            movement_basis: movementBasis.basis,
             total: table.total,
             national_rate: nationalRate,
             hue: hue ? {
@@ -395,12 +401,39 @@ class HomeExecutiveService {
                 rate: item.rate,
                 volume: item.volume,
                 failed: item.failed,
-                previous_rank: item.previous_rank,
-                movement: item.movement,
+                previous_rank: movementBasis.ranks ? (movementBasis.ranks.get(String(item.ma_tinh)) || null) : item.previous_rank,
+                movement: movementBasis.ranks
+                    ? (movementBasis.ranks.get(String(item.ma_tinh)) ? movementBasis.ranks.get(String(item.ma_tinh)) - item.rank : null)
+                    : item.movement,
                 gap_to_target: round1(item.rate - target),
                 is_hue: item.is_hue,
             })),
         };
+    }
+
+    // Previous comparable period of a week / month view: { basis, previous_period, ranks: Map(ma_tinh -> rank) }.
+    // A day view (or an explicit range) keeps the service's own "previous loaded day" movement (ranks = null).
+    async _movementBasis(adapter, range, table) {
+        const dayBasis = { basis: 'day', previous_period: table.previous_period, ranks: null };
+        if (range.period !== 'week' && range.period !== 'month') return dayBasis;
+        let from;
+        let to;
+        if (range.period === 'week') {
+            from = shiftDate(range.from, -7);
+            to = shiftDate(range.from, -1);
+        } else {
+            to = shiftDate(range.from, -1);
+            from = `${to.slice(0, 7)}-01`;
+        }
+        let previous = null;
+        try {
+            previous = await adapter.rank.getNationalRanking(from, to);
+        } catch {
+            previous = null;
+        }
+        const ranks = new Map();
+        if (previous?.available) previous.items.forEach((item) => ranks.set(String(item.ma_tinh), item.rank));
+        return { basis: range.period, previous_period: previous?.available ? `${from}..${to}` : null, ranks };
     }
 
     _emptyRanking(indicator, message, range = null) {

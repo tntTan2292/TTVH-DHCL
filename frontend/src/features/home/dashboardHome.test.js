@@ -90,3 +90,10 @@ test('HOME-BI-01: ActionUnitsBlock shows the per-indicator action list (all BCVH
   assert.match(lowestSrc, /CHẤT LƯỢNG CÁC BCVH/);
   assert.doesNotMatch(lowestSrc, /ĐƠN VỊ CẦN HÀNH ĐỘNG/);
 });
+
+test('HOME-BI-01: province table has no "Chênh MT" column and names its movement basis', () => {
+  const rankingSrc = readSource('./components/NationalRankingBlock.jsx');
+  assert.doesNotMatch(rankingSrc, /field="gap_to_target"/);
+  assert.match(rankingSrc, /movement_basis/);
+  assert.match(rankingSrc, /so với \{movementBasisLabel\}/);
+});

@@ -185,6 +185,38 @@ test('national ranking: Hue flagged, gap to the province just above and to the n
     assert.equal(out.items[1].gap_to_target, 0);
 });
 
+test('national ranking, month view: movement is read against the whole previous month, same as the monthly rank block', async () => {
+    const calls = [];
+    const a = adapter();
+    const base = a.rank.getNationalRanking;
+    a.rank.getNationalRanking = async (from, to) => {
+        calls.push([from, to]);
+        const table = await base(from, to);
+        if (from === '2026-09-01') {
+            // previous month: Hue was 3rd (now 2nd -> +1), Gamma was 2nd (now 3rd -> -1)
+            return { ...table, previous_period: '2026-08-31', items: [
+                { ...table.items[0], rank: 1 }, { ...table.items[2], rank: 2 }, { ...table.items[1], rank: 3 },
+            ] };
+        }
+        return table;
+    };
+    const out = await service(all4(a)).getNationalRanking({ indicator: 'f13', period: 'month', anchorDate: '2026-10-11' });
+    assert.deepEqual(calls.map((c) => c.join('..')), ['2026-10-01..2026-10-11', '2026-09-01..2026-09-30']);
+    assert.equal(out.movement_basis, 'month');
+    assert.equal(out.previous_period, '2026-09-01..2026-09-30');
+    const hue = out.items.find((i) => i.is_hue);
+    assert.equal(hue.previous_rank, 3);
+    assert.equal(hue.movement, 1);
+    const gamma = out.items.find((i) => i.ma_tinh === 'C');
+    assert.equal(gamma.movement, -1); // was 2nd, now 3rd
+});
+
+test('national ranking, day view keeps the previous-day movement', async () => {
+    const out = await service(all4(adapter())).getNationalRanking({ indicator: 'f13', period: 'day', anchorDate: '2026-10-11' });
+    assert.equal(out.movement_basis, 'day');
+    assert.equal(out.items[1].movement, 1);
+});
+
 test('national ranking rejects an unknown indicator and a bad date', async () => {
     const s = service(all4(adapter()));
     await assert.rejects(() => s.getNationalRanking({ indicator: 'f99' }), { code: 'INVALID_INDICATOR' });
