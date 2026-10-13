@@ -60,3 +60,7 @@ Same switch (`QIS_AGG_READ_F11`, `off` default | `shadow` | `on`, row-count fuse
 ## 11. Phase 2 step P2.4 delivered - F1.2 read path (2026-10-13)
 
 Same switch (`QIS_AGG_READ_F12`, `off` default | `shadow` | `on`, fuse). 18 methods of `FactF12Repository` converted incl. office level and the 12-month helpers; large-customer office 531120 handled by the existing key-column predicate. Evidence: real-DB comparison 337 calls / 0 differences; `test_aggReadF12.js` 6/6; F1.2 service/pipeline suites identical in `off` and `on`; all five agg test files green. Details: design Section 16. Implementation of Phase 2 steps P2.0-P2.4 is complete; P2.5 = supervised enablement (shadow one working day, then on) + independent Opus review (prompt to be written).
+
+## 12. Independent review
+
+Prompt written: docs/10_TICKETS/PERF-LOAD-01_OPUS_REVIEW_PROMPT.md (2026-10-13). Enablement of `on` waits for the review verdict and one supervised `shadow` working day.
