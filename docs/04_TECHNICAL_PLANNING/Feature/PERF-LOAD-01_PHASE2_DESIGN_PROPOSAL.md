@@ -238,3 +238,20 @@ Khác biệt so với thiết kế ban đầu (đã chủ động, ghi để Opu
 - `verify`: 4/4 OK; `SUM(n_rows)` = `COUNT(*)` ở cả bốn bảng; số ngày bằng nhau.
 - Đối chiếu độc lập với truy vấn sản xuất hiện có (`getBcvhOverviewMonthly` của từng repository, neo cuối lịch sử, mọi tháng × đơn vị): khối lượng và số đạt **giống hệt** ở F1.3 (79 nhóm), F4.1 (87), F1.1 (86), F1.2 (37).
 - Test mới `test_aggMaintenance.js` 10/10 (đường ghi, nhập bổ sung, force reimport, rollback khi dựng agg lỗi, NULL/rỗng, verify bắt lệch, đường ghi cũ F4.1). Các suite import hiện có giữ nguyên.
+
+## 13. Ghi nhận triển khai P2.1 - F4.1 (2026-10-13)
+
+**Cấu trúc.** `aggSqlSource.js` là nơi duy nhất dịch biểu thức đếm (bảng quy đổi 5.2): `count/passed/failed/strictFailed/blank/name` cho nguồn `fact` và `agg`. `FactF41Repository` dựng mỗi truy vấn **một lần** từ nguồn rồi chạy trên bảng chi tiết hoặc bảng tổng hợp, nên không có hai bản SQL song song để lệch nhau. `aggReadPolicy.js` quyết định nguồn (`off | shadow | on`, mặc định `off`, biến `QIS_AGG_READ_F41`/`QIS_AGG_READ`) và giữ cầu chì `SUM(n_rows)` = `COUNT(*)` (kiểm lại tối đa mỗi 60 giây; thiếu bảng hoặc lệch thì đọc bảng chi tiết và cảnh báo một lần).
+
+**Đã chuyển (F4.1):** `getKpiMetrics`, `getMeta`, `hasNonCanonicalBcvhRows`, `getBcvhOverview{Monthly,Daily,Mtd}`, `getBcvhWeeksList`, `getBcvhMonthsList`, `getBcvhWeeklyTrendAggregate`, `getBcvhWeeklyComparisonAggregate`, `getBcvhOperationMetricsBetween`, `getDailyTrendData`. **Giữ trên bảng chi tiết:** `getBcvhReconciliation` (một ngày), `getLatestImportMeta` (cần `created_at`/`id`).
+
+**Điểm tinh tế đã xử lý:** `COUNT(*)` ⇒ `COALESCE(SUM(n_rows),0)` (tổng rỗng là NULL, `COUNT(*)` là 0); `failed` kiểu dashboard ⇒ `SUM(n_rows) - SUM(n_dat)` (đánh giá trống tính là không đạt) còn `total_failed` của KPI là `SUM(n_khong_dat)`; tổng điều kiện theo tuần ⇒ `SUM(CASE WHEN ... THEN n_rows/n_dat ELSE 0 END)`.
+
+### 13.1 Bằng chứng
+
+- `scripts/agg_compare.js` trên DB thật: **274 lời gọi, 0 sai khác** (mọi phương thức, nhiều neo/khoảng/tập đơn vị gồm tập rỗng và đơn vị không tồn tại, khoảng không có dữ liệu). Thời gian cộng dồn bảng chi tiết 64,5 s so với bảng tổng hợp 0,2 s (trung bình mỗi lời gọi 0-2 ms).
+- `test_aggReadF41.js` 6/6 trên dữ liệu tổng hợp có chủ ý khó: 80 ngày qua 4 tháng, ngày thiếu dữ liệu, đơn vị thiếu theo ngày, NULL / rỗng / ngoài danh sách, đánh giá NULL / khoảng trắng, đổi tên đơn vị theo ngày, nhập bổ sung. Gồm: ma trận so sánh sâu (>500 lời gọi), bảng tổng hợp thật sự trả lời ở chế độ `on` (dấu hiệu), cầu chì khi lệch tổng, cầu chì khi thiếu bảng, `shadow` trả số cũ và báo sai khác, mặc định `off`.
+- `test_f41RankingReconciliation.js` (DB thật, service đầy đủ) với `QIS_AGG_READ_F41=on`: kết quả như chế độ `off` (8 đạt, 1 hỏng); thời gian: overview 3 516 → 46 ms, danh sách tuần 1 474 → 3 ms, xu hướng tuần 3 988 → 44 ms, danh sách tháng 1 439 → 3 ms. Mục hỏng là giả định cứng của chính script (kỳ vọng DB chỉ có 3 tháng 07-09; DB nay có từ 2026-01) và hỏng như nhau ở cả hai chế độ.
+- Hồi quy: `FactF41Repository.test.js` 4/4, `F41RankingController` 5/5, `F41DashboardController` 14/14, `F41RankingService` 11/11, `test_f41DashboardMinimum.js` qua; bộ test cache Phase 1 qua (vân tay cache thêm bốn bảng `agg_*`).
+
+**Mặc định vẫn là `off`**: giao mã này không đổi hành vi cho đến khi đặt `QIS_AGG_READ_F41=shadow` rồi `on`.

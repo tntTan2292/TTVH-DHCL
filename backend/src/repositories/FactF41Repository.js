@@ -2,6 +2,17 @@
 
 const defaultDb = require('../config/db').db;
 const { rebuildAggForDate } = require('../services/aggMaintenance');
+const aggReadPolicy = require('../services/aggReadPolicy');
+const { makeSources } = require('./aggSqlSource');
+
+// PERF-LOAD-01 Phase 2: the read side builds each query once from a "source" (detail table or
+// pre-aggregated day table); see aggSqlSource.js for the expression conversion table.
+const SOURCES = makeSources({
+    factTable: 'fact_f41',
+    aggTable: 'agg_f41_day',
+    evaluationColumn: 'danh_gia_co_tms_ptc_8h',
+    nameColumn: 'ten_bc_phat',
+});
 
 const INSERT_COLUMNS = [
     'ngay_do_kiem',
@@ -112,43 +123,54 @@ class FactF41Repository {
         });
     }
 
+    // Source selection for every aggregate read (off | shadow | on, with the row-count fuse).
+    async _read(method, build) {
+        const mode = aggReadPolicy.modeFor('F4.1');
+        if (mode === 'off') return build(SOURCES.fact);
+        const useAgg = await aggReadPolicy.aggUsable('F4.1', this.db);
+        if (mode === 'on') return build(useAgg ? SOURCES.agg : SOURCES.fact);
+        const factResult = await build(SOURCES.fact);
+        if (useAgg) aggReadPolicy.shadowCompare('F4.1', method, factResult, () => build(SOURCES.agg));
+        return factResult;
+    }
+
     getKpiMetrics(startDate, endDate, filters = {}) {
-        return new Promise((resolve, reject) => {
+        return this._read('getKpiMetrics', (src) => new Promise((resolve, reject) => {
             const params = [startDate, endDate];
             const bcvhClause = filters.bcvhId ? ' AND ma_bc_phat = ?' : '';
             if (filters.bcvhId) params.push(filters.bcvhId);
             const sql = `
                 SELECT
-                    COUNT(*) AS total_rows,
-                    SUM(CASE WHEN danh_gia_co_tms_ptc_8h = 'Đạt' THEN 1 ELSE 0 END) AS total_passed,
-                    SUM(CASE WHEN danh_gia_co_tms_ptc_8h = 'Không đạt' THEN 1 ELSE 0 END) AS total_failed,
-                    SUM(CASE WHEN danh_gia_co_tms_ptc_8h IS NULL OR TRIM(danh_gia_co_tms_ptc_8h) = '' THEN 1 ELSE 0 END) AS total_blank,
+                    ${src.count()} AS total_rows,
+                    ${src.passed()} AS total_passed,
+                    ${src.strictFailed()} AS total_failed,
+                    ${src.blank()} AS total_blank,
                     CASE
-                        WHEN COUNT(*) = 0 THEN NULL
-                        ELSE ROUND((SUM(CASE WHEN danh_gia_co_tms_ptc_8h = 'Đạt' THEN 1 ELSE 0 END) * 100.0) / COUNT(*), 2)
+                        WHEN ${src.count()} = 0 THEN NULL
+                        ELSE ROUND((${src.passed()} * 100.0) / ${src.count()}, 2)
                     END AS rate_percent
-                FROM fact_f41
+                FROM ${src.table}
                 WHERE ngay_do_kiem BETWEEN ? AND ?${bcvhClause}
             `;
             this.db.get(sql, params, (err, row) => {
                 if (err) reject(err);
                 else resolve(row);
             });
-        });
+        }));
     }
 
     getMeta() {
-        return new Promise((resolve, reject) => {
+        return this._read('getMeta', (src) => new Promise((resolve, reject) => {
             const sql = `
                 SELECT MIN(ngay_do_kiem) AS min_date, MAX(ngay_do_kiem) AS max_date
-                FROM fact_f41
+                FROM ${src.table}
                 WHERE ngay_do_kiem <= date('now', 'localtime')
             `;
             this.db.get(sql, [], (err, row) => {
                 if (err) reject(err);
                 else resolve(row || { min_date: null, max_date: null });
             });
-        });
+        }));
     }
 
     // ITR-F41-NB-04 remediation (PO decision, Phương án A): the KPI aggregate
@@ -157,11 +179,11 @@ class FactF41Repository {
     // outside the 6-code canonical BCVH filter exist, so Phase F1 can show
     // an accurate scope caveat without guessing.
     hasNonCanonicalBcvhRows(canonicalCodes) {
-        return new Promise((resolve, reject) => {
+        return this._read('hasNonCanonicalBcvhRows', (src) => new Promise((resolve, reject) => {
             const placeholders = canonicalCodes.map(() => '?').join(', ');
             const sql = `
                 SELECT EXISTS(
-                    SELECT 1 FROM fact_f41
+                    SELECT 1 FROM ${src.table}
                     WHERE ma_bc_phat IS NULL OR ma_bc_phat NOT IN (${placeholders})
                     LIMIT 1
                 ) AS has_non_canonical
@@ -170,7 +192,7 @@ class FactF41Repository {
                 if (err) reject(err);
                 else resolve(!!(row && row.has_non_canonical));
             });
-        });
+        }));
     }
 
     getBcvhReconciliation(date) {
@@ -245,12 +267,18 @@ class FactF41Repository {
 
     _getBcvhOverviewAggregate(kind, anchorCeiling, canonicalCodes = []) {
         if (!canonicalCodes.length) return Promise.resolve([]);
+        if (!['monthly', 'daily', 'mtd'].includes(kind)) {
+            return Promise.reject(new Error(`Unsupported BCVH overview aggregate: ${kind}`));
+        }
+        return this._read(`getBcvhOverview:${kind}`, (src) => this._overviewSql(src, kind, anchorCeiling, canonicalCodes));
+    }
 
+    _overviewSql(src, kind, anchorCeiling, canonicalCodes) {
         const placeholders = canonicalCodes.map(() => '?').join(', ');
         const bounds = `
             WITH bounds AS (
                 SELECT MAX(ngay_do_kiem) AS anchor_date
-                FROM fact_f41
+                FROM ${src.table}
                 WHERE ngay_do_kiem <= date(?)
                   AND ma_bc_phat IN (${placeholders})
             )
@@ -264,11 +292,11 @@ class FactF41Repository {
                 day_bcvh AS MATERIALIZED (
                     SELECT ngay_do_kiem,
                            ma_bc_phat AS ma_bcvh,
-                           MAX(ten_bc_phat) AS ten_bcvh,
-                           COUNT(*) AS volume,
-                           SUM(CASE WHEN danh_gia_co_tms_ptc_8h = 'Đạt' THEN 1 ELSE 0 END) AS passed,
-                           SUM(CASE WHEN danh_gia_co_tms_ptc_8h = 'Đạt' THEN 0 ELSE 1 END) AS failed
-                    FROM fact_f41, bounds
+                           ${src.name()} AS ten_bcvh,
+                           ${src.count()} AS volume,
+                           ${src.passed()} AS passed,
+                           ${src.failed()} AS failed
+                    FROM ${src.table}, bounds
                     WHERE ngay_do_kiem BETWEEN substr(bounds.anchor_date, 1, 4) || '-01-01' AND bounds.anchor_date
                       AND ma_bc_phat IN (${placeholders})
                     GROUP BY ngay_do_kiem, ma_bc_phat
@@ -301,7 +329,7 @@ class FactF41Repository {
             sql = `${bounds},
                 prev_bounds AS (
                     SELECT MAX(ngay_do_kiem) AS prev_anchor_date
-                    FROM fact_f41, bounds
+                    FROM ${src.table}, bounds
                     WHERE ngay_do_kiem < date(bounds.anchor_date)
                       AND ma_bc_phat IN (${placeholders})
                 ),
@@ -311,14 +339,14 @@ class FactF41Repository {
                 )
                 SELECT ngay_do_kiem AS date,
                        ma_bc_phat AS ma_bcvh,
-                       MAX(ten_bc_phat) AS ten_bcvh,
-                       COUNT(*) AS volume,
-                       SUM(CASE WHEN danh_gia_co_tms_ptc_8h = 'Đạt' THEN 1 ELSE 0 END) AS passed,
-                       SUM(CASE WHEN danh_gia_co_tms_ptc_8h = 'Đạt' THEN 0 ELSE 1 END) AS failed,
+                       ${src.name()} AS ten_bcvh,
+                       ${src.count()} AS volume,
+                       ${src.passed()} AS passed,
+                       ${src.failed()} AS failed,
                        bounds.anchor_date,
                        prev_bounds.prev_anchor_date,
                        week_bounds.week_ago_date
-                FROM fact_f41, bounds, prev_bounds, week_bounds
+                FROM ${src.table}, bounds, prev_bounds, week_bounds
                 WHERE (
                     ngay_do_kiem BETWEEN substr(bounds.anchor_date, 1, 7) || '-01' AND bounds.anchor_date
                     OR ngay_do_kiem = prev_bounds.prev_anchor_date
@@ -329,7 +357,7 @@ class FactF41Repository {
                 ORDER BY ngay_do_kiem ASC, ma_bc_phat ASC
             `;
             params = [...baseParams, ...canonicalCodes, ...canonicalCodes];
-        } else if (kind === 'mtd') {
+        } else {
             sql = `${bounds},
                 periods AS (
                     SELECT anchor_date,
@@ -345,11 +373,11 @@ class FactF41Repository {
                 day_bcvh AS MATERIALIZED (
                     SELECT ngay_do_kiem,
                            ma_bc_phat AS ma_bcvh,
-                           MAX(ten_bc_phat) AS ten_bcvh,
-                           COUNT(*) AS volume,
-                           SUM(CASE WHEN danh_gia_co_tms_ptc_8h = 'Đạt' THEN 1 ELSE 0 END) AS passed,
-                           SUM(CASE WHEN danh_gia_co_tms_ptc_8h = 'Đạt' THEN 0 ELSE 1 END) AS failed
-                    FROM fact_f41, periods
+                           ${src.name()} AS ten_bcvh,
+                           ${src.count()} AS volume,
+                           ${src.passed()} AS passed,
+                           ${src.failed()} AS failed
+                    FROM ${src.table}, periods
                     WHERE ngay_do_kiem BETWEEN periods.previous_start AND periods.anchor_date
                       AND ma_bc_phat IN (${placeholders})
                     GROUP BY ngay_do_kiem, ma_bc_phat
@@ -389,8 +417,6 @@ class FactF41Repository {
                 ORDER BY current_agg.ma_bcvh ASC
             `;
             params = [...baseParams, ...canonicalCodes];
-        } else {
-            return Promise.reject(new Error(`Unsupported BCVH overview aggregate: ${kind}`));
         }
 
         return this._all(sql, params);
@@ -401,65 +427,65 @@ class FactF41Repository {
     getBcvhWeeksList(canonicalCodes = []) {
         if (!canonicalCodes.length) return Promise.resolve([]);
         const placeholders = canonicalCodes.map(() => '?').join(', ');
-        return this._all(`
+        return this._read('getBcvhWeeksList', (src) => this._all(`
             SELECT
                 date(ngay_do_kiem, '-' || ((CAST(strftime('%w', ngay_do_kiem) AS INTEGER) - 4 + 7) % 7) || ' days') AS week_start,
                 MIN(ngay_do_kiem) AS first_date,
                 MAX(ngay_do_kiem) AS last_date,
                 COUNT(DISTINCT ngay_do_kiem) AS days_with_data
-            FROM fact_f41
+            FROM ${src.table}
             WHERE ma_bc_phat IN (${placeholders})
             GROUP BY week_start
             ORDER BY week_start ASC
-        `, canonicalCodes);
+        `, canonicalCodes));
     }
 
     getBcvhMonthsList(canonicalCodes = []) {
         if (!canonicalCodes.length) return Promise.resolve([]);
         const placeholders = canonicalCodes.map(() => '?').join(', ');
-        return this._all(`
+        return this._read('getBcvhMonthsList', (src) => this._all(`
             SELECT
                 strftime('%Y-%m-01', ngay_do_kiem) AS month_start,
                 MIN(ngay_do_kiem) AS first_date,
                 MAX(ngay_do_kiem) AS last_date,
                 COUNT(DISTINCT ngay_do_kiem) AS days_with_data
-            FROM fact_f41
+            FROM ${src.table}
             WHERE ma_bc_phat IN (${placeholders})
             GROUP BY month_start
             ORDER BY month_start ASC
-        `, canonicalCodes);
+        `, canonicalCodes));
     }
 
     getBcvhWeeklyTrendAggregate(fromDate, toDate, canonicalCodes = []) {
         if (!canonicalCodes.length) return Promise.resolve([]);
         const placeholders = canonicalCodes.map(() => '?').join(', ');
-        return this._all(`
+        return this._read('getBcvhWeeklyTrendAggregate', (src) => this._all(`
             SELECT
                 date(ngay_do_kiem, '-' || ((CAST(strftime('%w', ngay_do_kiem) AS INTEGER) - 4 + 7) % 7) || ' days') AS week_start,
                 ma_bc_phat AS ma_bcvh,
-                COUNT(*) AS volume,
-                SUM(CASE WHEN danh_gia_co_tms_ptc_8h = 'Đạt' THEN 1 ELSE 0 END) AS passed
-            FROM fact_f41
+                ${src.count()} AS volume,
+                ${src.passed()} AS passed
+            FROM ${src.table}
             WHERE ma_bc_phat IN (${placeholders})
               AND ngay_do_kiem BETWEEN ? AND ?
             GROUP BY week_start, ma_bc_phat
             ORDER BY week_start ASC, ma_bc_phat ASC
-        `, [...canonicalCodes, fromDate, toDate]);
+        `, [...canonicalCodes, fromDate, toDate]));
     }
 
     // weekABounds/weekBBounds: { from, to } inclusive ISO dates already resolved by the service.
     getBcvhWeeklyComparisonAggregate(weekABounds, weekBBounds, canonicalCodes = []) {
         if (!canonicalCodes.length) return Promise.resolve([]);
         const placeholders = canonicalCodes.map(() => '?').join(', ');
-        return this._all(`
+        return this._read('getBcvhWeeklyComparisonAggregate', (src) => this._all(`
             SELECT
                 ma_bc_phat AS ma_bcvh,
-                MAX(ten_bc_phat) AS ten_bcvh,
-                SUM(CASE WHEN ngay_do_kiem BETWEEN ? AND ? THEN 1 ELSE 0 END) AS volume_a,
-                SUM(CASE WHEN ngay_do_kiem BETWEEN ? AND ? AND danh_gia_co_tms_ptc_8h = 'Đạt' THEN 1 ELSE 0 END) AS passed_a,
-                SUM(CASE WHEN ngay_do_kiem BETWEEN ? AND ? THEN 1 ELSE 0 END) AS volume_b,
-                SUM(CASE WHEN ngay_do_kiem BETWEEN ? AND ? AND danh_gia_co_tms_ptc_8h = 'Đạt' THEN 1 ELSE 0 END) AS passed_b
-            FROM fact_f41
+                ${src.name()} AS ten_bcvh,
+                ${src.count('ngay_do_kiem BETWEEN ? AND ?')} AS volume_a,
+                ${src.passed('ngay_do_kiem BETWEEN ? AND ?')} AS passed_a,
+                ${src.count('ngay_do_kiem BETWEEN ? AND ?')} AS volume_b,
+                ${src.passed('ngay_do_kiem BETWEEN ? AND ?')} AS passed_b
+            FROM ${src.table}
             WHERE ma_bc_phat IN (${placeholders})
               AND (ngay_do_kiem BETWEEN ? AND ? OR ngay_do_kiem BETWEEN ? AND ?)
             GROUP BY ma_bc_phat
@@ -471,7 +497,7 @@ class FactF41Repository {
             ...canonicalCodes,
             weekABounds.from, weekABounds.to,
             weekBBounds.from, weekBBounds.to,
-        ]);
+        ]));
     }
 
     // One row per canonical BCVH for an inclusive date range (same shape idea as
@@ -480,18 +506,18 @@ class FactF41Repository {
     getBcvhOperationMetricsBetween(startDate, endDate, canonicalCodes = []) {
         if (!canonicalCodes.length) return Promise.resolve([]);
         const placeholders = canonicalCodes.map(() => '?').join(', ');
-        return this._all(`
+        return this._read('getBcvhOperationMetricsBetween', (src) => this._all(`
             SELECT
                 ma_bc_phat AS ma_bcvh,
-                MAX(ten_bc_phat) AS ten_bcvh,
-                COUNT(*) AS sl_bg_ptc,
-                SUM(CASE WHEN danh_gia_co_tms_ptc_8h = 'Đạt' THEN 1 ELSE 0 END) AS dat_kpi_2026,
-                SUM(CASE WHEN danh_gia_co_tms_ptc_8h = 'Đạt' THEN 0 ELSE 1 END) AS khong_dat_kpi_2026
-            FROM fact_f41
+                ${src.name()} AS ten_bcvh,
+                ${src.count()} AS sl_bg_ptc,
+                ${src.passed()} AS dat_kpi_2026,
+                ${src.failed()} AS khong_dat_kpi_2026
+            FROM ${src.table}
             WHERE ngay_do_kiem BETWEEN ? AND ?
               AND ma_bc_phat IN (${placeholders})
             GROUP BY ma_bc_phat
-        `, [startDate, endDate, ...canonicalCodes]);
+        `, [startDate, endDate, ...canonicalCodes]));
     }
 
     // Module-level daily series (all rows, PO-2 total-rows denominator) or one BCVH.
@@ -499,7 +525,7 @@ class FactF41Repository {
         const bcvhClause = filters.bcvhId ? ' AND ma_bc_phat = ?' : '';
         const params = [fromDate, toDate, fromDate, toDate];
         if (filters.bcvhId) params.push(filters.bcvhId);
-        return this._all(`
+        return this._read('getDailyTrendData', (src) => this._all(`
             WITH RECURSIVE dates(date_value) AS (
                 SELECT date(?)
                 UNION ALL
@@ -510,10 +536,10 @@ class FactF41Repository {
             agg AS (
                 SELECT
                     ngay_do_kiem AS date_value,
-                    COUNT(*) AS total_volume,
-                    SUM(CASE WHEN danh_gia_co_tms_ptc_8h = 'Đạt' THEN 1 ELSE 0 END) AS passed,
-                    SUM(CASE WHEN danh_gia_co_tms_ptc_8h = 'Đạt' THEN 0 ELSE 1 END) AS failed
-                FROM fact_f41
+                    ${src.count()} AS total_volume,
+                    ${src.passed()} AS passed,
+                    ${src.failed()} AS failed
+                FROM ${src.table}
                 WHERE ngay_do_kiem BETWEEN date(?) AND date(?)
                 ${bcvhClause}
                 GROUP BY ngay_do_kiem
@@ -531,7 +557,7 @@ class FactF41Repository {
             FROM dates d
             LEFT JOIN agg a ON a.date_value = d.date_value
             ORDER BY d.date_value ASC
-        `, params);
+        `, params));
     }
 
     getLatestImportMeta() {

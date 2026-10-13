@@ -2313,3 +2313,7 @@ Dashboard read cache (invalidated by import fingerprint + TTL), gzip, SQLite cac
 ## 2026-10-13 - PERF-LOAD-01 PHASE 2 STEP P2.0 DELIVERED
 
 agg_*_day tables created, maintained inside the import transactions, built and verified on the real DB (4/4 OK, monthly overview identical to production queries); no read path switched yet, numbers unchanged. Backup taken. Next P2.1 F4.1 read path + fuse. docs/10_TICKETS/PERF-LOAD-01_MANIFEST.md Section 7; design Section 12.
+
+## 2026-10-13 - PERF-LOAD-01 PHASE 2 STEP P2.1 DELIVERED (F4.1)
+
+F4.1 reads switchable to the day aggregate (off default, shadow, on; row-count fuse). Real-DB comparison 274 calls / 0 differences, 64.5 s -> 0.2 s; tests 6/6; behaviour unchanged while off. Next P2.2 F1.3. docs/10_TICKETS/PERF-LOAD-01_MANIFEST.md Section 8; design Section 13.
