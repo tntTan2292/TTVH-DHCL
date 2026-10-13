@@ -85,7 +85,7 @@ test('HOME-BI-01: ActionUnitsBlock shows the per-indicator action list (all BCVH
   assert.match(lowestSrc, /SortableTh/);
   assert.match(lowestSrc, /BlockCaptureButton/);
   assert.match(lowestSrc, /ranking/);
-  assert.match(lowestSrc, /gap_to_target/);
+  assert.doesNotMatch(lowestSrc, /Chênh MT/);
   assert.match(lowestSrc, /focus_units/);
   assert.match(lowestSrc, /CHẤT LƯỢNG CÁC BCVH/);
   assert.doesNotMatch(lowestSrc, /ĐƠN VỊ CẦN HÀNH ĐỘNG/);
