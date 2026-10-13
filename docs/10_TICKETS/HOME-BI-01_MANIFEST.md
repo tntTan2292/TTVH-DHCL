@@ -1,6 +1,6 @@
 # HOME-BI-01 Manifest
 
-Status: `B1 DONE (backend); U1 OPEN for Antigravity` (2026-10-13). Executive Home page (Trang chủ điều hành) for the leadership of Bưu điện tỉnh: current quality rate and national rank of the four indicators F1.1, F1.2, F1.3, F4.1.
+Status: `READY FOR PO CHECK` (2026-10-13). Executive Home page (Trang chủ điều hành) for the leadership of Bưu điện tỉnh: current quality rate and national rank of the four indicators F1.1, F1.2, F1.3, F4.1.
 
 ## 1. Ticket Information
 
@@ -82,3 +82,24 @@ Read-only, admin + viewer, cached by `cachedRead()` (invalidated by the data fin
 - **Two Huế rates can differ by a few tenths** (e.g. F1.1 on 2026-10-11: dashboard 68.7 vs national report 68.3) because the detail export and the portal national report are separate sources. Card = dashboard `rate` (what leaders see on the F1.x dashboards). The Huế row of the 34-province table = the national-report rate the rank is computed from; label the table "theo báo cáo toàn quốc" (or show `rank_basis_rate`) and do not mix the two in one comparison.
 - Indicators have different latest days (F4.1 detail was 2026-10-10 while its national report held 10-11). Show each card's `data_date`.
 - Cold `executive` response about 1 s, the table a few ms; both are cached.
+
+### 7.5 Delivery (U1, 2026-10-13, Antigravity)
+
+Trang chủ điều hành (`/`, `frontend/src/pages/DashboardHome.jsx`) hoàn tất và đạt chuẩn khối báo cáo (`report_block_ui_standard.md`):
+- **Executive Date Bar (`ExecutiveDateBar.jsx`)**: Cho phép chọn ngày chốt (mặc định N-1), hiển thị trạng thái và `data_date` riêng của từng chỉ tiêu F1.1, F1.2, F1.3, F4.1. Nút camera chụp toàn bộ khối.
+- **Thẻ chỉ tiêu điều hành (`ExecutiveIndicatorCard.jsx`)**: Hiển thị nổi bật đầu tiên: Tỷ lệ chất lượng (theo báo cáo chi tiết), Vị thứ toàn quốc x/34, Chênh mục tiêu (F1.1: 95%, F1.2: 95%, F1.3: 90%, F4.1: 90%), Biến động so với hôm trước (DoD tỷ lệ & biến động bậc vị thứ). Thẻ dùng màu theme chuẩn của từng chỉ tiêu; không nhãn giờ 24h/48h; hiển thị rõ `data_date` của riêng thẻ. Trạng thái chưa có dữ liệu hiển thị thông báo rõ ràng, không bao giờ hiển thị 0%. Bấm thẻ để đổi chỉ tiêu xem chi tiết ở các khối dưới. Nút camera trên từng thẻ.
+- **Bảng xếp hạng 34 tỉnh toàn quốc (`NationalRankingBlock.jsx`)**: Chuyển đổi giữa 4 chỉ tiêu, 3 kỳ (Ngày/Tuần/Tháng). Callout chiến lược hiển thị vị thứ Huế, tỷ lệ Huế theo báo cáo toàn quốc, khoảng cách điểm % cần thêm để vượt tỉnh đứng ngay trên (hoặc cờ dẫn đầu nếu hạng 1), so sánh với bình quân toàn quốc. Hàng BĐTP Huế nổi bật cố định. Cho phép chuyển đổi chế độ xem Tất cả 34 tỉnh hoặc Huế & lân cận. Sắp xếp click-to-order qua `SortableTh`. Nút camera.
+- **Diễn biến vị thứ theo tháng (`MonthlyRankProgressionBlock.jsx`)**: Vị trí xếp hạng toàn quốc từ T1 đến tháng hiện tại cho chỉ tiêu đang chọn. Nút camera.
+- **Đơn vị cần hành động (`LowestUnitsBlock.jsx`)**: Top 5 đơn vị tỷ lệ thấp nhất (BCVH hoặc đơn vị chấp nhận) kèm tỷ lệ, chênh mục tiêu, bưu gửi không đạt, liên kết trực tiếp tới trang xếp hạng của chỉ tiêu đó. Sắp xếp click-to-order qua `SortableTh`. Nút camera.
+- **Diễn biến xu hướng từng chỉ tiêu độc lập (`IndicatorTrendsGrid.jsx`)**: 4 biểu đồ riêng biệt cho 4 chỉ tiêu, mỗi chỉ tiêu có trục đo, đường tỷ lệ đạt và vạch mục tiêu độc lập (95% hoặc 90%), không gộp chung trục. Chuyển đổi 7 ngày / 30 ngày. Nút camera trên từng biểu đồ và toàn khối.
+- **Pure sorting & helpers (`homeTableSort.js`)**: Kiểm thử đầy đủ qua `homeTableSort.test.js` và `dashboardHome.test.js`.
+
+### 7.6 PO Check List
+- [ ] Truy cập `/`: Nhìn thấy ngay 4 thẻ chỉ tiêu (F1.1, F1.2, F1.3, F4.1) với tỷ lệ đạt và vị thứ toàn quốc x/34.
+- [ ] Mỗi thẻ hiển thị đúng màu họ chỉ tiêu (F1.1 xanh lá, F1.2 xanh ngọc, F1.3 xanh dương, F4.1 cam), có nhãn ngày số liệu riêng.
+- [ ] Bảng 34 tỉnh hiển thị đúng Huế được highlight, tỷ lệ Huế ghi chú rõ "theo báo cáo toàn quốc".
+- [ ] Khối vượt hạng hiển thị đúng tên tỉnh và điểm % cần thêm để vượt tỉnh xếp trên (hoặc thông báo dẫn đầu nếu hạng 1).
+- [ ] Click tiêu đề cột bảng 34 tỉnh và bảng top 5 đơn vị để đảo chiều sắp xếp bình thường.
+- [ ] Chuyển đổi các tab chỉ tiêu và kỳ Ngày/Tuần/Tháng phản hồi mượt mà.
+- [ ] 4 biểu đồ xu hướng độc lập hiển thị đúng vạch mục tiêu (95% cho F1.1, F1.2; 90% cho F1.3, F4.1).
+- [ ] Nút Camera trên các khối hoạt động sao chép / lưu ảnh PNG theo chuẩn.
