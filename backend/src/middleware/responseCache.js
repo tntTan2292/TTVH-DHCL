@@ -7,6 +7,7 @@
 // A TTL bounds staleness for edits the fingerprint cannot see (in-place UPDATE).
 
 const { get, all } = require('../config/db');
+const aggReadPolicy = require('../services/aggReadPolicy');
 
 const DEFAULT_TTL_MS = 10 * 60 * 1000;
 const FINGERPRINT_TTL_MS = 1500;
@@ -139,5 +140,8 @@ function expireFingerprintMemo() {
     fingerprintValue = null;
     fingerprintAt = 0;
 }
+
+// A response computed from the aggregate must not outlive the fuse that allowed it (and the other way round).
+aggReadPolicy.onFuseChange(() => clearResponseCache());
 
 module.exports = { cachedRead, clearResponseCache, computeFingerprint, expireFingerprintMemo };

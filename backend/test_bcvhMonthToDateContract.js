@@ -20,7 +20,8 @@ test('BCVH month-to-date repository does not fabricate zero dates or read after 
     const methodEnd = repositorySource.indexOf('getRouteRanking', methodStart);
     const monthToDateMethod = repositorySource.slice(methodStart, methodEnd);
 
-    assert.match(monthToDateMethod, /date\(ngay_do_kiem\) BETWEEN date\(\?\) AND date\(\?\)/);
+    // PERF-LOAD-01 Phase 1: the stored ISO date is compared directly (no date() wrapper) so the index is usable.
+    assert.match(monthToDateMethod, /ngay_do_kiem BETWEEN date\(\?\) AND date\(\?\)/);
     assert.match(monthToDateMethod, /GROUP BY ma_bcvh/);
     assert.doesNotMatch(monthToDateMethod, /WITH RECURSIVE/);
 });

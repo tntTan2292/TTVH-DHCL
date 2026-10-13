@@ -6,7 +6,7 @@
  *   node scripts/agg_tool.js status  [--db path]
  *   node scripts/agg_tool.js build   [--indicator F4.1] [--from 2026-01-01] [--to 2026-10-12] [--missing-only] [--db path]
  *   node scripts/agg_tool.js verify  [--indicator F4.1] [--db path]
- *   node scripts/agg_tool.js rebuild [--indicator F4.1] [--db path]     (delete the agg rows, then build)
+ *   node scripts/agg_tool.js rebuild [--indicator F4.1] [--db path]     (full build; never empties the table first)
  *
  * build works day by day, one short transaction per day (WAL keeps readers running) and is safe to
  * repeat or to run beside an import: every day is rebuilt from the detail rows, never added up.
@@ -103,9 +103,13 @@ async function buildIndicator(helpers, indicator, { from, to, missingOnly }) {
         if (built % 50 === 0) console.log(`  ${indicator}: ${built}/${dates.length} days...`);
     }
 
-    // A day that no longer exists in the detail table must not linger in the aggregate.
+    // A day that no longer exists in the detail table must not linger in the aggregate or its signature.
     const orphan = await helpers.run(
         `DELETE FROM ${def.aggTable} WHERE ngay_do_kiem NOT IN (SELECT DISTINCT ngay_do_kiem FROM ${def.factTable})`
+    );
+    await helpers.run(
+        `DELETE FROM agg_day_sig WHERE indicator = ? AND ngay_do_kiem NOT IN (SELECT DISTINCT ngay_do_kiem FROM ${def.factTable})`,
+        [indicator]
     );
     const complete = !from && !to && !missingOnly;
     if (complete) await setState(helpers, indicator, { last_full_build_at: new Date().toISOString() });
@@ -127,7 +131,20 @@ async function verifyIndicator(helpers, indicator) {
                 (SELECT COUNT(DISTINCT ngay_do_kiem) FROM ${def.aggTable}) AS agg_days,
                 (SELECT COUNT(*) FROM ${def.aggTable}) AS agg_keys`
     );
-    const ok = missingInAgg.length === 0 && extraInAgg.length === 0
+    // Day signatures (the fuse of the read side): detail (rows, MAX(id)) per day must equal what was stored.
+    const sigDiff = await helpers.all(
+        `SELECT d FROM (
+            SELECT ngay_do_kiem AS d, COUNT(*) AS c, MAX(id) AS m FROM ${def.factTable} GROUP BY ngay_do_kiem
+            EXCEPT
+            SELECT ngay_do_kiem, fact_rows, fact_max_id FROM agg_day_sig WHERE indicator = ?
+         ) UNION SELECT d FROM (
+            SELECT ngay_do_kiem AS d, fact_rows AS c, fact_max_id AS m FROM agg_day_sig WHERE indicator = ?
+            EXCEPT
+            SELECT ngay_do_kiem, COUNT(*), MAX(id) FROM ${def.factTable} GROUP BY ngay_do_kiem
+         ) ORDER BY 1 LIMIT 50`,
+        [indicator, indicator]
+    );
+    const ok = missingInAgg.length === 0 && extraInAgg.length === 0 && sigDiff.length === 0
         && totals.fact_rows === totals.agg_rows && totals.fact_days === totals.agg_days;
     await setState(helpers, indicator, { last_verified_at: new Date().toISOString(), last_verify_ok: ok ? 1 : 0 });
 
@@ -136,6 +153,7 @@ async function verifyIndicator(helpers, indicator) {
     if (!ok) {
         if (missingInAgg.length) console.log(`  days whose detail group is missing or different in agg: ${missingInAgg.map((r) => r.ngay_do_kiem).join(', ')}`);
         if (extraInAgg.length) console.log(`  days whose agg group has no equal detail group: ${extraInAgg.map((r) => r.ngay_do_kiem).join(', ')}`);
+        if (sigDiff.length) console.log(`  days whose detail signature (rows, MAX(id)) differs from the stored one: ${sigDiff.map((r) => r.d).join(', ')}`);
     }
     return ok;
 }
@@ -181,10 +199,8 @@ async function main() {
             }
         } else {
             for (const indicator of indicators) {
-                if (args.command === 'rebuild') {
-                    await helpers.run(`DELETE FROM ${AGG_DEFINITIONS[indicator].aggTable}`);
-                    console.log(`[rebuild] ${indicator}: aggregate emptied`);
-                }
+                // `rebuild` = a full build. It must NOT empty the table first: a running backend with the
+                // aggregate switched on would answer from an empty table until every day is rebuilt.
                 await buildIndicator(helpers, indicator, {
                     from: args.values.from,
                     to: args.values.to,

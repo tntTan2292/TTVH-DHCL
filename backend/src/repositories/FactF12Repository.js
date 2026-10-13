@@ -43,8 +43,10 @@ class FactF12Repository {
         if (mode === 'off') return build(SOURCES.fact);
         const useAgg = await aggReadPolicy.aggUsable('F1.2', this.db);
         if (mode === 'on') return build(useAgg ? SOURCES.agg : SOURCES.fact);
+        // token BEFORE the detail query: a comparison that overlaps an import is skipped, not reported
+        const token = aggReadPolicy.writeToken();
         const factResult = await build(SOURCES.fact);
-        if (useAgg) aggReadPolicy.shadowCompare('F1.2', method, factResult, () => build(SOURCES.agg));
+        if (useAgg) aggReadPolicy.shadowCompare('F1.2', method, factResult, () => build(SOURCES.agg), token);
         return factResult;
     }
 

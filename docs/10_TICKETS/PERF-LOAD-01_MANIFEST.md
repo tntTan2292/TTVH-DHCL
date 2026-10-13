@@ -64,3 +64,7 @@ Same switch (`QIS_AGG_READ_F12`, `off` default | `shadow` | `on`, fuse). 18 meth
 ## 12. Independent review
 
 Prompt written: docs/10_TICKETS/PERF-LOAD-01_OPUS_REVIEW_PROMPT.md (2026-10-13). Enablement of `on` waits for the review verdict and one supervised `shadow` working day.
+
+## 13. Opus review verdict and fixes (2026-10-13)
+
+Verdict: numbers identical `on` vs `off` when synchronised; do not enable `on` before C1/C2. Fixed C1, C2, S1-S4, G2, G3 (design Section 17): no pre-emptying on rebuild; shadow skips comparisons overlapping an import transaction, richer logs and an admin `GET /api/f13/dashboard/agg-status`; per-day detail signatures (`agg_day_sig`) in the fuse so a same-row-count reimport by an old process opens it; response cache cleared on fuse change; `agg_compare` aborts when the fuse is open; two stale source-regex tests updated; role check before the cache. Required once after deploy: `node scripts/agg_tool.js build`. Enablement conditions in Section 17.

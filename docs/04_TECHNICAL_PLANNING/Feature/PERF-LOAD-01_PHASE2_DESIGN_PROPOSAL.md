@@ -293,3 +293,23 @@ Khác biệt so với thiết kế ban đầu (đã chủ động, ghi để Opu
 - Hồi quy: `F12RankingService` 12/12, `F12NationalRankService` 3/3, `test_f12ImportPipeline` 6/6, `test_f12PortalAdapter` 24/24 ở `off` và ở `QIS_AGG_READ_F12=on`.
 - Toàn bộ bộ test agg (`test_aggMaintenance` 10, `test_aggReadF41` 6, `test_aggReadF13` 5, `test_aggReadF11` 6, `test_aggReadF12` 6) cùng xanh.
 - Lưu ý: dữ liệu F1.2 thật hiện mới 10 ngày (từ 2026-10-02) nên mức giảm thời gian chưa lớn (2,2 s → 0,3 s toàn bộ ma trận); lợi ích tăng theo lượng backfill.
+
+## 17. Kết quả review độc lập (Opus) và xử lý (2026-10-13)
+
+Kết luận review: khi bảng tổng hợp đồng bộ, số liệu `on` giống hệt `off` (4/4 chỉ tiêu, đối chiếu EXCEPT hai chiều mọi ngày mọi cột, 0 lệch); chưa nên bật `on` trước khi xử lý C1, C2. Đã xử lý như sau.
+
+| Mã | Phát hiện | Xử lý |
+| --- | --- | --- |
+| C1 | `agg_tool rebuild` xóa sạch bảng rồi mới dựng, trong lúc cầu chì còn nhớ "ok" 60 s | `rebuild` không còn xóa trước (dựng theo ngày đã là thay thế; dòng mồ côi được dọn sau). |
+| C2 | shadow báo `MISMATCH` giả khi đọc rơi vào giữa giao dịch import; log không có tham số; bộ đếm không lộ ra | `config/db.js` theo dõi giao dịch (`txState`); so sánh shadow bị **bỏ qua** (đếm `skipped`) nếu có giao dịch mở ở lúc bắt đầu hoặc vừa commit trong lúc so sánh; log `MISMATCH` kèm đoạn kết quả hai phía; log tổng kết mỗi 100 lần/10 phút; endpoint admin `GET /api/f13/dashboard/agg-status` (chế độ, trạng thái cầu chì, bộ đếm theo chỉ tiêu). |
+| S1 | Cầu chì mù với lệch cùng số dòng | Bảng `agg_day_sig(indicator, ngày, fact_rows, fact_max_id)` được ghi cùng lúc dựng ngày; cầu chì so từng ngày `(COUNT, MAX(id))` giữa bảng chi tiết và chữ ký (kèm tổng `n_rows`). Bảng AUTOINCREMENT nên mọi lần xóa-chèn lại một ngày đều đổi `MAX(id)`. `UPDATE` tại chỗ vẫn chỉ `verify` bắt được (đã ghi rõ). Cầu chì kiểm lại ngay sau mỗi giao dịch của tiến trình (không chờ 60 s); đo trên DB thật 3–154 ms. `verify` cũng so chữ ký. |
+| S2 | Cache phản hồi kéo dài cửa sổ sai | `responseCache` đăng ký `onFuseChange` và tự xóa cache khi cầu chì đổi trạng thái. |
+| S3 | `agg_compare` có thể so bảng chi tiết với chính nó | Thoát mã 3 nếu cầu chì mở ở đầu hoặc mở **trong lúc** so sánh. |
+| S4 | Hai test đỏ mới do regex tìm `date(ngay_do_kiem)` | `F13DashboardService.recovery.test.js` và `test_bcvhMonthToDateContract.js` chấp nhận dạng so sánh trực tiếp (23/23 và ca "does not fabricate zero dates" xanh; các ca còn lại của file đó đỏ từ trước). |
+| G2 | cache HIT trước `requireRole` | `router.use(requireAuth, requireRole(['admin','viewer']), cachedRead(...))` ở cả bốn router. |
+| G3 | `rebuildAggForDate` bỏ qua im lặng | cảnh báo một lần cho mỗi bảng; coi bảng chưa sẵn sàng khi thiếu `agg_day_sig`. |
+| G1, G4 | `MAX(rowid)` của `agg_*` không đổi khi dựng lại ngày mới nhất; `ORDER BY rank` đồng hạng không xác định | Ghi nhận; G1 vô hại vì vân tay cache còn `MAX(id)` bảng chi tiết và `import_log`; G4 giống nhau ở hai nguồn. |
+
+Kiểm chứng sau xử lý: bộ agg 11 + 9 + 5 + 6 + 6 = 37 test xanh (thêm: chữ ký theo ngày, thay ngày cùng số dòng làm cầu chì mở, thông báo đổi trạng thái cầu chì, shadow bỏ qua trong giao dịch mở); `agg_tool build` + `verify` 4/4 OK trên DB thật; `agg_compare` F4.1 244 lời gọi 0 sai khác (46,6 s → 0,1 s); hồi quy route/repository/service/import giữ nguyên.
+
+**Điều kiện bật (đã bổ sung theo review):** chạy `agg_tool.js build` một lần sau khi cập nhật (tạo `agg_day_sig`); ngày shadow phải có ít nhất một import thường và một force-reimport cho mỗi chỉ tiêu (do tiến trình backend đã khởi động lại); cuối ngày: `verify` 4/4, `agg-status` có `compared > 0` mỗi chỉ tiêu, `shadowMismatches = 0`, `fuseTrips = 0`.

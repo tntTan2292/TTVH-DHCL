@@ -60,7 +60,7 @@ async function assertAggEqualsFact(indicator) {
 }
 
 async function wipe() {
-    for (const table of ['fact_f13', 'fact_f41', 'fact_f11', 'fact_f12', 'agg_f13_day', 'agg_f41_day', 'agg_f11_day', 'agg_f12_day', 'import_log']) {
+    for (const table of ['fact_f13', 'fact_f41', 'fact_f11', 'fact_f12', 'agg_f13_day', 'agg_f41_day', 'agg_f11_day', 'agg_f12_day', 'agg_day_sig', 'import_log']) {
         await run(`DELETE FROM ${table}`);
     }
 }
@@ -75,7 +75,7 @@ test.beforeEach(async () => { await wipe(); });
 test('migration creates the agg tables and is idempotent', async () => {
     const first = await applyPerfLoad01AggSchema(sandbox.dbPath);
     const second = await applyPerfLoad01AggSchema(sandbox.dbPath);
-    assert.deepEqual(first, ['agg_f11_day', 'agg_f12_day', 'agg_f13_day', 'agg_f41_day', 'agg_state']);
+    assert.deepEqual(first, ['agg_day_sig', 'agg_f11_day', 'agg_f12_day', 'agg_f13_day', 'agg_f41_day', 'agg_state']);
     assert.deepEqual(second, first);
 });
 
@@ -237,4 +237,16 @@ test('an unmigrated database (no agg table) is skipped by the rebuild instead of
     const result = await rebuildAggForDate(run, get, 'F4.1', D1);
     assert.deepEqual(result, { skipped: true });
     await applyPerfLoad01AggSchema(sandbox.dbPath);
+});
+
+test('day signatures follow every rebuild (rows, MAX(id)) and disappear with the day', async () => {
+    await importF41ParsedData({ ngay_do_kiem: D1, filename: 'a.xlsx', parsedData: [f41({ ma_bg: 'A1', ma_bc_phat: 'U1', danh_gia_co_tms_ptc_8h: 'Đạt' }), f41({ ma_bg: 'A2', ma_bc_phat: 'U1', danh_gia_co_tms_ptc_8h: 'Không đạt' })] });
+    const first = await get(`SELECT fact_rows, fact_max_id FROM agg_day_sig WHERE indicator = 'F4.1' AND ngay_do_kiem = ?`, [D1]);
+    assert.equal(first.fact_rows, 2);
+    await importF41ParsedData({ ngay_do_kiem: D1, filename: 'b.xlsx', forceReimport: true, parsedData: [f41({ ma_bg: 'Z1', ma_bc_phat: 'U9', danh_gia_co_tms_ptc_8h: 'Đạt' }), f41({ ma_bg: 'Z2', ma_bc_phat: 'U9', danh_gia_co_tms_ptc_8h: 'Đạt' })] });
+    const second = await get(`SELECT fact_rows, fact_max_id FROM agg_day_sig WHERE indicator = 'F4.1' AND ngay_do_kiem = ?`, [D1]);
+    assert.equal(second.fact_rows, 2, 'same row count after the reimport');
+    assert.ok(second.fact_max_id > first.fact_max_id, 'but MAX(id) moved (AUTOINCREMENT), which is what the fuse watches');
+    const live = await get(`SELECT COUNT(*) AS c, MAX(id) AS m FROM fact_f41 WHERE ngay_do_kiem = ?`, [D1]);
+    assert.deepEqual({ c: second.fact_rows, m: second.fact_max_id }, live);
 });

@@ -2329,3 +2329,7 @@ F1.1 aggregate reads switchable (QIS_AGG_READ_F11 off|shadow|on, fuse); evaluate
 ## 2026-10-13 - PERF-LOAD-01 PHASE 2 STEP P2.4 DELIVERED (F1.2)
 
 F1.2 aggregate reads switchable (QIS_AGG_READ_F12 off|shadow|on, fuse); 531120 handled; real-DB comparison 337 calls / 0 differences; tests 6/6. Implementation P2.0-P2.4 complete; next P2.5 supervised enablement + Opus review. docs/10_TICKETS/PERF-LOAD-01_MANIFEST.md Section 11; design Section 16.
+
+## 2026-10-13 - PERF-LOAD-01 REVIEW FIXES
+
+Opus review (no blocker once C1/C2 fixed): rebuild no longer empties the aggregate; shadow ignores comparisons overlapping import transactions and exposes stats (admin agg-status); fuse now compares per-day signatures (rows, MAX(id)); cache cleared on fuse change; stale regex tests updated. 37 agg tests green, real DB build/verify 4/4. Next: supervised shadow day, then on. docs/10_TICKETS/PERF-LOAD-01_MANIFEST.md Section 13; design Section 17.

@@ -220,9 +220,19 @@ async function main() {
     const officeCodes = indicator === 'F1.2'
         ? (await all(`SELECT DISTINCT ma_bc_chap_nhan AS c FROM fact_f12 WHERE ma_bc_chap_nhan IS NOT NULL AND TRIM(ma_bc_chap_nhan) <> ''`)).map((r) => r.c)
         : [];
-    await policy.aggUsable(indicator, require('../src/config/db').db, { force: true });
+    const usable = await policy.aggUsable(indicator, require('../src/config/db').db, { force: true });
+    if (!usable) {
+        console.error(`[agg_compare] ${indicator}: the read fuse is OPEN (aggregate missing or different from the detail table). `
+            + `A comparison now would compare the detail table with itself. Run: node scripts/agg_tool.js build --indicator ${indicator}`);
+        process.exit(3);
+    }
     console.log(`Comparing ${indicator}: ${dates.length} days ${dates[0]}..${dates[dates.length - 1]}, ${codes.length} units, heavy anchors ${heavy}`);
     const report = await compareIndicator(repository, indicator, { dates, codes, unitFor: codes[0], officeCodes }, { heavy, light: 10 });
+    const stillUsable = await policy.aggUsable(indicator, require('../src/config/db').db, { force: true });
+    if (!stillUsable) {
+        console.error(`[agg_compare] ${indicator}: the fuse opened DURING the comparison (data changed); results are not valid, re-run.`);
+        process.exit(3);
+    }
     console.log(`\nCompared ${report.compared} calls: ${report.mismatches.length} mismatch(es)`);
     console.log(`Total time  detail ${(report.factMs / 1000).toFixed(1)} s   aggregate ${(report.aggMs / 1000).toFixed(1)} s\n`);
     console.log('method'.padEnd(36), 'calls', 'detail avg ms', 'agg avg ms');

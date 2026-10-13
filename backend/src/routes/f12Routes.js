@@ -13,7 +13,7 @@ const f12RankingController = require('../controllers/F12RankingController');
 const allowViewerRead = [requireAuth, requireRole(['admin', 'viewer'])];
 
 // PERF-LOAD-01: every route here is a viewer-level read, so all GETs are cacheable.
-router.use(requireAuth, cachedRead());
+router.use(requireAuth, requireRole(['admin', 'viewer']), cachedRead());
 
 router.get('/dashboard/summary', ...allowViewerRead, f12RankingController.getSummary);
 router.get('/dashboard/daily-trend', ...allowViewerRead, f12RankingController.getDailyTrend);

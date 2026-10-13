@@ -983,3 +983,12 @@ CREATE TABLE IF NOT EXISTS agg_state (
     last_verified_at TEXT,
     last_verify_ok INTEGER
 );
+
+-- Signature of the detail rows of a day when its aggregate was built (read fuse).
+CREATE TABLE IF NOT EXISTS agg_day_sig (
+    indicator TEXT NOT NULL,
+    ngay_do_kiem TEXT NOT NULL,
+    fact_rows INTEGER NOT NULL,
+    fact_max_id INTEGER NOT NULL,
+    PRIMARY KEY (indicator, ngay_do_kiem)
+);

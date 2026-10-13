@@ -907,5 +907,6 @@ test('BCVH ranking total-row delayed-cash summary preserves genuine zero and SSO
 test('latest import freshness ignores future-dated recovery artifacts', () => {
   const source = fs.readFileSync(require.resolve('../repositories/FactBuuGuiRepository'), 'utf8');
 
-  assert.match(source, /WHERE status = 'SUCCESS'\s+AND date\(ngay_do_kiem\) <= date\('now', 'localtime'\)/);
+  // PERF-LOAD-01 Phase 1 compares the stored ISO date directly (no date() wrapper) so the index is usable.
+  assert.match(source, /WHERE status = 'SUCCESS'\s+AND (?:date\(ngay_do_kiem\)|ngay_do_kiem) <= date\('now', 'localtime'\)/);
 });

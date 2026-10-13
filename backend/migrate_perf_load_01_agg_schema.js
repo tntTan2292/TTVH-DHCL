@@ -77,9 +77,20 @@ CREATE TABLE IF NOT EXISTS agg_state (
     last_verified_at TEXT,
     last_verify_ok INTEGER
 );
+
+-- Signature of the detail rows of a day at the time its aggregate was built (row count and MAX(id)).
+-- The read fuse compares it with the live detail table, so a day replaced by a process that does not
+-- maintain the aggregate is noticed even when the row count is unchanged.
+CREATE TABLE IF NOT EXISTS agg_day_sig (
+    indicator TEXT NOT NULL,
+    ngay_do_kiem TEXT NOT NULL,
+    fact_rows INTEGER NOT NULL,
+    fact_max_id INTEGER NOT NULL,
+    PRIMARY KEY (indicator, ngay_do_kiem)
+);
 `;
 
-const AGG_TABLE_NAMES = ['agg_f13_day', 'agg_f41_day', 'agg_f11_day', 'agg_f12_day', 'agg_state'];
+const AGG_TABLE_NAMES = ['agg_f13_day', 'agg_f41_day', 'agg_f11_day', 'agg_f12_day', 'agg_state', 'agg_day_sig'];
 
 function resolveDbPath(argv) {
     const flagIndex = argv.indexOf('--db');

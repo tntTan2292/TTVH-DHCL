@@ -48,9 +48,23 @@ if (process.env.NODE_ENV !== 'test' && String(process.env.QIS_SQLITE_WAL || 'on'
     });
 }
 
+// PERF-LOAD-01: the import transactions run on this shared connection, so a dashboard read issued
+// while one is open sees half-written detail rows. txState lets the aggregate shadow comparison
+// recognise (and ignore) such reads: `active` > 0 while a transaction is open, `generation` moves on
+// every COMMIT / ROLLBACK.
+const txState = { active: 0, generation: 0 };
+
 // Utility wrappers for async/await
 const run = (sql, params = []) => new Promise((resolve, reject) => {
+    const head = typeof sql === 'string' ? sql.trimStart().slice(0, 12).toUpperCase() : '';
+    const isBegin = head.startsWith('BEGIN');
+    const isEnd = head.startsWith('COMMIT') || head.startsWith('ROLLBACK') || head.startsWith('END');
     db.run(sql, params, function(err) {
+        if (isBegin && !err) txState.active += 1;
+        if (isEnd && !err) {
+            txState.active = Math.max(0, txState.active - 1);
+            txState.generation += 1;
+        }
         if (err) reject(err);
         else resolve(this);
     });
@@ -70,4 +84,4 @@ const all = (sql, params = []) => new Promise((resolve, reject) => {
     });
 });
 
-module.exports = { db, run, get, all, dbPath, operationalDbPath };
+module.exports = { db, run, get, all, dbPath, operationalDbPath, txState };

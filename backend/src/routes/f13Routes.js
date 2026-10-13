@@ -13,7 +13,7 @@ const allowAdminOnly = [requireAuth, requireRole(['admin'])];
 
 // PERF-LOAD-01: cache read-only viewer GETs only; admin-only reads (rca, messages) stay uncached.
 const CACHEABLE_PATH = /^\/(dashboard\/(kpi|daily-trend|quality-timeline|top|meta)|ranking\/|recommendations|evidence)/;
-router.use(requireAuth, cachedRead({ shouldCache: (req) => CACHEABLE_PATH.test(req.path) }));
+router.use(requireAuth, requireRole(['admin', 'viewer']), cachedRead({ shouldCache: (req) => CACHEABLE_PATH.test(req.path) }));
 
 router.post('/import/preview', ...allowAdminOnly, importController.preview);
 router.post('/import/confirm', ...allowAdminOnly, importController.confirm);
@@ -38,6 +38,10 @@ router.get('/rca/pareto', ...allowAdminOnly, dashboardController.getPareto);
 router.get('/evidence-list', ...allowViewerRead, dashboardController.getEvidence);
 router.get('/evidence', ...allowViewerRead, dashboardController.getEvidenceDrilldown);
 router.get('/dashboard/message', ...allowAdminOnly, kpiController.getDashboardMessage);
+// PERF-LOAD-01: aggregate read mode, fuse state and shadow counters (admin only, never cached).
+router.get('/dashboard/agg-status', ...allowAdminOnly, (req, res) => {
+    res.json({ success: true, data: require('../services/aggReadPolicy').status() });
+});
 router.get('/messages', ...allowAdminOnly, recommendationController.getMsgs);
 
 module.exports = router;

@@ -174,3 +174,57 @@ test('mode defaults to off and ignores unknown values', () => {
     assert.equal(policy.modeFor('F4.1'), 'shadow', 'indicator setting wins over the global one');
     delete process.env.QIS_AGG_READ;
 });
+
+test('fuse: a day replaced with the SAME row count by a process that does not maintain the aggregate trips it', async () => {
+    process.env.QIS_AGG_READ_F41 = 'on';
+    const day = dates[15];
+    const before = await all(`SELECT ma_bg, ma_bc_phat FROM fact_f41 WHERE ngay_do_kiem = ? ORDER BY ma_bg LIMIT 10`, [day]);
+    assert.equal(before.length, 10);
+    // an old process: delete 10 rows and insert 10 different ones (same count, other evaluations), no aggregate refresh
+    for (const r of before) await run(`DELETE FROM fact_f41 WHERE ngay_do_kiem = ? AND ma_bg = ?`, [day, r.ma_bg]);
+    for (const r of before) {
+        await run(`INSERT INTO fact_f41 (ngay_do_kiem, ma_bg, ma_bc_phat, ten_bc_phat, danh_gia_co_tms_ptc_8h) VALUES (?, ?, ?, 'x', 'Không đạt')`, [day, `${r.ma_bg}-swap`, r.ma_bc_phat]);
+    }
+    policy.resetForTests();
+    const on = await repo.getBcvhOperationMetricsBetween(day, day, UNITS);
+    process.env.QIS_AGG_READ_F41 = 'off';
+    const off = await repo.getBcvhOperationMetricsBetween(day, day, UNITS);
+    assert.deepEqual(on, off, 'with the fuse open the answer comes from the detail table');
+    assert.equal(policy.stats.fuseTrips, 1);
+});
+
+test('fuse state changes are announced (the response cache clears itself on them)', async () => {
+    process.env.QIS_AGG_READ_F41 = 'on';
+    const events = [];
+    policy.onFuseChange((event) => events.push(event));
+    policy.resetForTests();
+    await repo.getBcvhMonthsList(UNITS); // first check: signature of dates[15] is stale from the previous test -> open
+    // repair that day through the maintenance code, then force a re-check
+    const { rebuildAggForDate } = require('./src/services/aggMaintenance');
+    const get = (sql, params = []) => new Promise((res, rej) => db.get(sql, params, (e, r) => (e ? rej(e) : res(r))));
+    await rebuildAggForDate(run, get, 'F4.1', dates[15]);
+    await policy.aggUsable('F4.1', db, { force: true });
+    assert.ok(events.some((e) => e.indicator === 'F4.1' && e.ok === true), JSON.stringify(events));
+});
+
+test('shadow comparisons that overlap an open import transaction are skipped, not reported', async () => {
+    process.env.QIS_AGG_READ_F41 = 'shadow';
+    policy.resetForTests();
+    await policy.aggUsable('F4.1', db, { force: true });
+    const warn = console.warn;
+    const warnings = [];
+    console.warn = (...a) => warnings.push(a.join(' '));
+    try {
+        await run('BEGIN TRANSACTION');
+        // half-written day: detail changes, aggregate not yet refreshed
+        await run(`INSERT INTO fact_f41 (ngay_do_kiem, ma_bg, ma_bc_phat, danh_gia_co_tms_ptc_8h) VALUES (?, 'HALF', 'U1', 'Đạt')`, [dates[2]]);
+        await repo.getBcvhOperationMetricsBetween(dates[2], dates[2], ['U1']);
+        await new Promise((resolve) => setTimeout(resolve, 150));
+        await run('ROLLBACK');
+        assert.equal(policy.stats.shadowMismatches, 0, JSON.stringify(policy.stats));
+        assert.ok(policy.stats.shadowSkipped >= 1, JSON.stringify(policy.stats));
+        assert.ok(!warnings.some((w) => w.includes('MISMATCH')));
+    } finally {
+        console.warn = warn;
+    }
+});

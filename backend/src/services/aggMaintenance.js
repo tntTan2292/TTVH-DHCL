@@ -87,13 +87,19 @@ function aggColumnList(indicator) {
 }
 
 const provisionedTables = new Set();
+const warnedUnprovisioned = new Set();
 
+// Both the day table and the signature table must exist (migration creates them together).
 async function isAggProvisioned(getFn, indicator) {
     const { aggTable } = getDefinition(indicator);
     if (provisionedTables.has(aggTable)) return true;
-    const row = await getFn(`SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?`, [aggTable]);
-    if (row) provisionedTables.add(aggTable);
-    return Boolean(row);
+    const row = await getFn(
+        `SELECT COUNT(*) AS n FROM sqlite_master WHERE type = 'table' AND name IN (?, 'agg_day_sig')`,
+        [aggTable]
+    );
+    const ok = Boolean(row && row.n === 2);
+    if (ok) provisionedTables.add(aggTable);
+    return ok;
 }
 
 /**
@@ -105,7 +111,13 @@ async function isAggProvisioned(getFn, indicator) {
  */
 async function rebuildAggForDate(runFn, getFn, indicator, ngayDoKiem) {
     const def = getDefinition(indicator);
-    if (!(await isAggProvisioned(getFn, indicator))) return { skipped: true };
+    if (!(await isAggProvisioned(getFn, indicator))) {
+        if (!warnedUnprovisioned.has(def.aggTable)) {
+            warnedUnprovisioned.add(def.aggTable);
+            console.warn(`[agg-maintenance] ${def.aggTable} (or agg_day_sig) is missing: imports of ${indicator} are NOT refreshing the aggregate. Run the migration, then scripts/agg_tool.js build.`);
+        }
+        return { skipped: true };
+    }
 
     await runFn(`DELETE FROM ${def.aggTable} WHERE ngay_do_kiem = ?`, [ngayDoKiem]);
     const columns = aggColumnList(indicator).join(', ');
@@ -113,6 +125,16 @@ async function rebuildAggForDate(runFn, getFn, indicator, ngayDoKiem) {
         `INSERT INTO ${def.aggTable} (${columns}) ${buildAggSelectSql(indicator)}`,
         [ngayDoKiem]
     );
+
+    // Signature of the day's detail rows: the read fuse compares it with the live table.
+    const sig = await getFn(`SELECT COUNT(*) AS c, MAX(id) AS m FROM ${def.factTable} WHERE ngay_do_kiem = ?`, [ngayDoKiem]);
+    await runFn(`DELETE FROM agg_day_sig WHERE indicator = ? AND ngay_do_kiem = ?`, [indicator, ngayDoKiem]);
+    if (sig && sig.c > 0) {
+        await runFn(
+            `INSERT INTO agg_day_sig (indicator, ngay_do_kiem, fact_rows, fact_max_id) VALUES (?, ?, ?, ?)`,
+            [indicator, ngayDoKiem, sig.c, sig.m]
+        );
+    }
     return { skipped: false, rows: result && result.changes !== undefined ? result.changes : null };
 }
 
