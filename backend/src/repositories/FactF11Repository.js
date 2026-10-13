@@ -61,7 +61,7 @@ class FactF11Repository {
             const sql = `
                 SELECT MIN(ngay_do_kiem) AS min_date, MAX(ngay_do_kiem) AS max_date
                 FROM fact_f11
-                WHERE date(ngay_do_kiem) <= date('now', 'localtime')
+                WHERE ngay_do_kiem <= date('now', 'localtime')
             `;
             this.db.get(sql, [], (err, row) => {
                 if (err) reject(err);
@@ -167,7 +167,7 @@ class FactF11Repository {
             WITH bounds AS (
                 SELECT MAX(ngay_do_kiem) AS anchor_date
                 FROM fact_f11
-                WHERE date(ngay_do_kiem) <= date(?)
+                WHERE ngay_do_kiem <= date(?)
                   AND ma_bc_phat IN (${placeholders})
             )
         `;
@@ -218,7 +218,7 @@ class FactF11Repository {
                 prev_bounds AS (
                     SELECT MAX(ngay_do_kiem) AS prev_anchor_date
                     FROM fact_f11, bounds
-                    WHERE date(ngay_do_kiem) < date(bounds.anchor_date)
+                    WHERE ngay_do_kiem < date(bounds.anchor_date)
                       AND ma_bc_phat IN (${placeholders})
                 ),
                 week_bounds AS (

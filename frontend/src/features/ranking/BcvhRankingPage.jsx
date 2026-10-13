@@ -148,7 +148,7 @@ export default function BcvhRankingPage() {
   useEffect(() => {
     let active = true;
     setMetaState((prev) => ({ ...prev, status: 'loading', error: null }));
-    api.get('/f13/dashboard/meta', { params: { _ts: Date.now() } })
+    api.get('/f13/dashboard/meta')
       .then((res) => {
         if (!active) return;
         const units = res.data?.data?.bcvh_units || [];

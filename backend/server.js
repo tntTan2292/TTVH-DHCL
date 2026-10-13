@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const compression = require('compression');
 const { loadLocalEnv } = require('./src/config/env');
 const { getViewerConfigStatus } = require('./src/services/auth/runtimeUsers');
 
@@ -109,6 +110,8 @@ process.on('exit', (code) => {
 });
 
 app.use(cors());
+// PERF-LOAD-01 Phase 1: gzip JSON responses (ranking/overview payloads are large and repetitive).
+app.use(compression());
 app.use(express.json());
 
 app.use('/api/auth', authRoutes);

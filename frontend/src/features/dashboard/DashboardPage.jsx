@@ -50,7 +50,6 @@ export default function DashboardPage() {
   const loadDashboardMeta = () => {
     setMetadataState((prev) => ({ ...prev, status: 'loading', error: null }));
     api.get('/f13/dashboard/meta', {
-      params: { _ts: Date.now() },
       headers: {
         'Cache-Control': 'no-cache',
         Pragma: 'no-cache',

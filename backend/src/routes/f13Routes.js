@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { requireAuth, requireRole } = require('../middleware/authMiddleware');
+const { cachedRead } = require('../middleware/responseCache');
 
 const importController = require('../controllers/ImportController');
 const dashboardController = require('../controllers/DashboardController');
@@ -9,6 +10,10 @@ const kpiController = require('../controllers/kpiController');
 
 const allowViewerRead = [requireAuth, requireRole(['admin', 'viewer'])];
 const allowAdminOnly = [requireAuth, requireRole(['admin'])];
+
+// PERF-LOAD-01: cache read-only viewer GETs only; admin-only reads (rca, messages) stay uncached.
+const CACHEABLE_PATH = /^\/(dashboard\/(kpi|daily-trend|quality-timeline|top|meta)|ranking\/|recommendations|evidence)/;
+router.use(requireAuth, cachedRead({ shouldCache: (req) => CACHEABLE_PATH.test(req.path) }));
 
 router.post('/import/preview', ...allowAdminOnly, importController.preview);
 router.post('/import/confirm', ...allowAdminOnly, importController.confirm);

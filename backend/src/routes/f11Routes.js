@@ -6,10 +6,14 @@
 const express = require('express');
 const router = express.Router();
 const { requireAuth, requireRole } = require('../middleware/authMiddleware');
+const { cachedRead } = require('../middleware/responseCache');
 
 const f11RankingController = require('../controllers/F11RankingController');
 
 const allowViewerRead = [requireAuth, requireRole(['admin', 'viewer'])];
+
+// PERF-LOAD-01: every route here is a viewer-level read, so all GETs are cacheable.
+router.use(requireAuth, cachedRead());
 
 router.get('/dashboard/summary', ...allowViewerRead, f11RankingController.getSummary);
 router.get('/dashboard/daily-trend', ...allowViewerRead, f11RankingController.getDailyTrend);

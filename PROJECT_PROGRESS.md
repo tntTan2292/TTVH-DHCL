@@ -2305,3 +2305,7 @@ PO ran the supervised DRY probe for HUE and TCT (10/10): both reconcile exactly 
 ## 2026-10-12 - F12-DASHBOARD-RANKING-01 BACKEND IMPLEMENTED
 
 /api/f12 delivered (summary, trend, unit ranking, overview, weekly/monthly, office table, rolling 12 months, national rank); large customer 531120 counted in the total and shown apart; shared F4.1 service made unit-list aware without changing F1.1/F4.1. Tests 9/9 incl. the real 10/10 file. Backend restart needed. UI manifest and Antigravity prompt written (F12-DASHBOARD-UI-01). docs/10_TICKETS/F12-DASHBOARD-RANKING-01_MANIFEST.md.
+
+## 2026-10-13 - PERF-LOAD-01 PHASE 1 IMPLEMENTED
+
+Dashboard read cache (invalidated by import fingerprint + TTL), gzip, SQLite cache_size 256 MB + WAL, `_ts` cache-busters removed, date() removed from 16 WHERE predicates. Repeat loads served from memory; first load unchanged (needs Phase 2 aggregate tables). Backend restart needed. docs/10_TICKETS/PERF-LOAD-01_MANIFEST.md.

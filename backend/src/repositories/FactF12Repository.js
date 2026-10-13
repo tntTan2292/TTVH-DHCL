@@ -57,7 +57,7 @@ class FactF12Repository {
             const sql = `
                 SELECT MIN(ngay_do_kiem) AS min_date, MAX(ngay_do_kiem) AS max_date
                 FROM fact_f12
-                WHERE date(ngay_do_kiem) <= date('now', 'localtime')
+                WHERE ngay_do_kiem <= date('now', 'localtime')
             `;
             this.db.get(sql, [], (err, row) => {
                 if (err) reject(err);
@@ -141,7 +141,7 @@ class FactF12Repository {
             WITH bounds AS (
                 SELECT MAX(ngay_do_kiem) AS anchor_date
                 FROM fact_f12
-                WHERE date(ngay_do_kiem) <= date(?)
+                WHERE ngay_do_kiem <= date(?)
                   AND ma_huyen IN (${placeholders})${RANKED_OFFICES}
             )
         `;
@@ -192,7 +192,7 @@ class FactF12Repository {
                 prev_bounds AS (
                     SELECT MAX(ngay_do_kiem) AS prev_anchor_date
                     FROM fact_f12, bounds
-                    WHERE date(ngay_do_kiem) < date(bounds.anchor_date)
+                    WHERE ngay_do_kiem < date(bounds.anchor_date)
                       AND ma_huyen IN (${placeholders})${RANKED_OFFICES}
                 ),
                 week_bounds AS (
@@ -323,7 +323,7 @@ class FactF12Repository {
             WITH bounds AS (
                 SELECT MAX(ngay_do_kiem) AS anchor_date
                 FROM fact_f12
-                WHERE date(ngay_do_kiem) <= date(?)
+                WHERE ngay_do_kiem <= date(?)
                   AND ma_bc_chap_nhan IS NOT NULL AND TRIM(ma_bc_chap_nhan) <> ''
             )
         `;
@@ -333,7 +333,7 @@ class FactF12Repository {
                 prev_bounds AS (
                     SELECT MAX(ngay_do_kiem) AS prev_anchor_date
                     FROM fact_f12, bounds
-                    WHERE date(ngay_do_kiem) < date(bounds.anchor_date)
+                    WHERE ngay_do_kiem < date(bounds.anchor_date)
                       AND ma_bc_chap_nhan IS NOT NULL AND TRIM(ma_bc_chap_nhan) <> ''
                 ),
                 week_bounds AS (

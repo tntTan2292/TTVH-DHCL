@@ -144,7 +144,6 @@ export default function F12Cumulative12Block({ anchorDate = null }) {
     api.get(endpoint, {
       params: {
         month: selectedMonth,
-        _ts: Date.now(),
       },
     })
       .then((res) => {

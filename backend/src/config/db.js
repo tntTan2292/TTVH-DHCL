@@ -32,6 +32,22 @@ db.exec('PRAGMA mmap_size = 268435456; PRAGMA threads = 4; PRAGMA busy_timeout =
     if (err) console.warn('SQLite read-performance PRAGMA unavailable:', err.message);
 });
 
+// PERF-LOAD-01 Phase 1: the dashboards aggregate over a multi-GB file; the default 2 MB page cache
+// forces re-reading it from disk on every request. 256 MB is an upper bound (pages are cached lazily).
+db.exec('PRAGMA cache_size = -262144;', (err) => {
+    if (err) console.warn('SQLite cache_size PRAGMA unavailable:', err.message);
+});
+
+// PERF-LOAD-01 Phase 1: WAL lets dashboard reads continue while an import/backfill commits (rollback
+// journal mode blocks readers during a write). The mode is persistent in the file. Kept off for tests
+// (isolated throw-away DBs) and switchable with QIS_SQLITE_WAL=off. NORMAL sync is the documented WAL
+// pairing: a power cut can lose the last commit but never corrupts the database.
+if (process.env.NODE_ENV !== 'test' && String(process.env.QIS_SQLITE_WAL || 'on').toLowerCase() !== 'off') {
+    db.exec('PRAGMA journal_mode = WAL; PRAGMA synchronous = NORMAL;', (err) => {
+        if (err) console.warn('SQLite WAL PRAGMA unavailable (database stays in its current journal mode):', err.message);
+    });
+}
+
 // Utility wrappers for async/await
 const run = (sql, params = []) => new Promise((resolve, reject) => {
     db.run(sql, params, function(err) {

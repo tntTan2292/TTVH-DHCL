@@ -171,7 +171,7 @@ class FactBuuGuiRepository {
             const sql = `
                 SELECT MAX(ngay_do_kiem) as latest_date
                 FROM fact_f13
-                WHERE date(ngay_do_kiem) BETWEEN date(?) AND date(?)
+                WHERE ngay_do_kiem BETWEEN date(?) AND date(?)
                   AND ma_bcvh IS NOT NULL
             `;
 
@@ -193,7 +193,7 @@ class FactBuuGuiRepository {
                     SUM(CASE WHEN danh_gia_2026 = 'Đạt' THEN 1 ELSE 0 END) as dat_kpi_2026,
                     SUM(CASE WHEN danh_gia_2026 = 'Không đạt' THEN 1 ELSE 0 END) as khong_dat_kpi_2026
                 FROM fact_f13
-                WHERE date(ngay_do_kiem) BETWEEN date(?) AND date(?)
+                WHERE ngay_do_kiem BETWEEN date(?) AND date(?)
                   AND ma_bcvh IS NOT NULL
                 GROUP BY ma_bcvh
             `;
@@ -230,7 +230,7 @@ class FactBuuGuiRepository {
                 WITH bounds AS (
                     SELECT MAX(ngay_do_kiem) AS anchor_date
                     FROM fact_f13
-                    WHERE date(ngay_do_kiem) <= date(?)
+                    WHERE ngay_do_kiem <= date(?)
                       AND ma_bcvh IN (${placeholders})
                 )
             `;
@@ -281,7 +281,7 @@ class FactBuuGuiRepository {
                     prev_bounds AS (
                         SELECT MAX(ngay_do_kiem) AS prev_anchor_date
                         FROM fact_f13, bounds
-                        WHERE date(ngay_do_kiem) < date(bounds.anchor_date)
+                        WHERE ngay_do_kiem < date(bounds.anchor_date)
                           AND ma_bcvh IN (${placeholders})
                     ),
                     week_bounds AS (
@@ -1111,7 +1111,7 @@ class FactBuuGuiRepository {
                     skipped_records
                 FROM import_log
                 WHERE status = 'SUCCESS'
-                  AND date(ngay_do_kiem) <= date('now', 'localtime')
+                  AND ngay_do_kiem <= date('now', 'localtime')
                 ORDER BY date(ngay_do_kiem) DESC, datetime(created_at) DESC, id DESC
                 LIMIT 1
             `;
