@@ -2345,3 +2345,7 @@ F1.2 TCT parser no longer fails on files with code-less rows (parcels TCT could 
 ## 2026-10-13 - AUTO-BACKFILL FAILED-IMPORT-ONLY DAYS + BUSY_TIMEOUT
 
 A day whose only import_log rows are FAILED and that holds no data (e.g. F4.1 HUE 2026-10-11, bulk insert hit SQLITE_BUSY) is now MISSING/queue-eligible (ONLY_FAILED_IMPORT_ATTEMPTS) instead of DATA_ERROR that Auto Backfill could never retry; a SUCCESS log without data still needs review. busy_timeout 5000 -> 30000 on the shared connection and the queue store. Backend restart needed.
+
+## 2026-10-14 - DKCL LEFTOVER PROFILE RECLAIM
+
+Background session preflight now ends a DKCL browser left over from a previous backend run (exact profile dir, not owned by this process) and removes the stale profile lock before checking the session, instead of failing with PROFILE_LOCKED ("cannot verify the process using the browser profile") and parking the Auto Backfill until the hidden window was closed by hand. Saved login in the profile is kept. Backend restart needed.

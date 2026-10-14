@@ -109,6 +109,10 @@ function getSourceLock(source) {
 
 const globalRegistry = new Map();
 
+// Background (non-interactive) preflight clients currently alive per source; a leftover-profile cleanup must
+// never run while one of them may be holding the profile.
+const headlessProbesInFlight = new Map();
+
 function getOrCreateRegistryEntry(source) {
     if (!globalRegistry.has(source)) {
         globalRegistry.set(source, {
@@ -300,6 +304,45 @@ class DkclSessionPreflightService {
             }
         }
         processManager.cleanupStaleLocks(profileDir);
+    }
+
+    // A backend that was restarted or closed leaves its DKCL browser (often with the window hidden after login) and/or
+    // its `<profile>.lock` folder behind. The new backend cannot adopt that browser (it holds no handle to it), and the
+    // background preflight used to stop at PROFILE_LOCKED, which the Auto Backfill showed as "cannot verify the process
+    // using the browser profile" and parked the run until someone closed the window by hand. Nothing in THIS process
+    // owns the profile at that point, so the leftover is reclaimed here: orphaned browser processes launched with
+    // exactly this profile directory are ended and the stale lock removed. The saved login in the profile is kept.
+    async reclaimLeftoverProfile(sourceConfig, entry, profileDir) {
+        if (this.coordinatorEnabled) return false;
+        if (entry.client || entry.openingPromise || entry.activeOperation) return false;
+        if ((headlessProbesInFlight.get(sourceConfig.source) || 0) > 0) return false;
+
+        const inspection = await processManager.findBrowserProcessByProfile(profileDir).catch(() => null);
+        if (!inspection || inspection.inspectionStatus !== 'SUCCESS') return false;
+        const matching = inspection.matchingProcesses || [];
+        // a browser started by this very process is live, not left over
+        if (matching.some((proc) => proc?.exactProfileMatch && Number(proc.parentPid) === process.pid)) return false;
+
+        if (matching.length > 0) {
+            const rootPids = selectExactProfileRootPids(matching);
+            if (rootPids.length === 0) return false;
+            for (const pid of rootPids) {
+                try {
+                    await processManager.terminateProcessTree(pid);
+                } catch (error) {
+                    if (!(typeof processManager.isProcessDead === 'function' && processManager.isProcessDead(pid))) throw error;
+                }
+            }
+            console.warn(`[DKCL][${sourceConfig.source}] Ended ${rootPids.length} browser left over from a previous backend run (profile ${profileDir}).`);
+            processManager.cleanupStaleLocks(profileDir);
+            return true;
+        }
+        if (require('fs').existsSync(`${profileDir}.lock`)) {
+            processManager.cleanupStaleLocks(profileDir);
+            console.warn(`[DKCL][${sourceConfig.source}] Removed a stale profile lock left over from a previous backend run.`);
+            return true;
+        }
+        return false;
     }
 
     async recoverStaleHueInProgressEntry(sourceConfig, entry) {
@@ -594,6 +637,13 @@ class DkclSessionPreflightService {
                 message: `Đang khôi phục phiên đăng nhập DKCL ${sourceConfig.displayName}.`
             };
         }
+        // Reclaim + register the probe under the source lock so two background checks never reclaim each other's browser.
+        await this.withSourceLock(sourceConfig.source, async () => {
+            await this.reclaimLeftoverProfile(sourceConfig, entry, profileDir).catch((error) => {
+                console.warn(`[DKCL][${sourceConfig.source}] Leftover profile cleanup failed: ${error.message}`);
+            });
+            headlessProbesInFlight.set(sourceConfig.source, (headlessProbesInFlight.get(sourceConfig.source) || 0) + 1);
+        });
         const client = this.portalClientFactory(sourceConfig);
 
         try {
@@ -669,6 +719,7 @@ class DkclSessionPreflightService {
                 }
             };
         } finally {
+            headlessProbesInFlight.set(sourceConfig.source, Math.max(0, (headlessProbesInFlight.get(sourceConfig.source) || 1) - 1));
             if (client?.close) {
                 await client.close().catch(() => {});
             }
