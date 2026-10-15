@@ -2349,3 +2349,7 @@ A day whose only import_log rows are FAILED and that holds no data (e.g. F4.1 HU
 ## 2026-10-14 - DKCL LEFTOVER PROFILE RECLAIM
 
 Background session preflight now ends a DKCL browser left over from a previous backend run (exact profile dir, not owned by this process) and removes the stale profile lock before checking the session, instead of failing with PROFILE_LOCKED ("cannot verify the process using the browser profile") and parking the Auto Backfill until the hidden window was closed by hand. Saved login in the profile is kept. Backend restart needed.
+
+## 2026-10-15 - REFRESH WINDOW FOR F1.3 AND F4.1
+
+PO decision: unscoped Auto Backfill runs now also re-import the 3 days before the newest day for F1.3 and F4.1 (F1.1 and F1.2 already did), to pick up TCT figures revised after the first fetch. refreshWindowDays: 3 in importIndicatorRegistry.js. Takes effect for runs created after a backend restart.

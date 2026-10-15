@@ -215,10 +215,11 @@ test('a refresh job executes with forceReimport:true and records the row count i
     } finally { fixture.cleanup(); }
 });
 
-test('registry: refreshWindowDays is validated; only F1.1 declares it', () => {
+test('registry: refreshWindowDays is validated; F1.1, F1.2, F1.3 and F4.1 declare 3', () => {
     assert.equal(INDICATORS['F1.1'].refreshWindowDays, 3);
-    assert.equal(INDICATORS['F1.3'].refreshWindowDays, undefined);
-    assert.equal(INDICATORS['F4.1'].refreshWindowDays, undefined);
+    assert.equal(INDICATORS['F1.2'].refreshWindowDays, 3);
+    assert.equal(INDICATORS['F1.3'].refreshWindowDays, 3);
+    assert.equal(INDICATORS['F4.1'].refreshWindowDays, 3);
     for (const bad of [-1, 15, 1.5, '3']) {
         assert.throws(() => validateIndicatorRegistration({ ...INDICATORS['F1.1'], refreshWindowDays: bad }), /refreshWindowDays/);
     }
