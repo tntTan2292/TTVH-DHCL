@@ -21,7 +21,7 @@ const { AutoBackfillHolidayCalendarService } = require('./autoBackfillHolidayCal
 const { currentCoverageVersion } = require('./coverageVersion');
 
 // A scan result is reused for this long unless a writer bumps the coverage version first.
-const DEFAULT_SCAN_CACHE_TTL_MS = 20000;
+const DEFAULT_SCAN_CACHE_TTL_MS = 5 * 60 * 1000;
 
 // AB-CALENDAR-01: the 4 canonical, PO-facing coverage statuses that replace
 // the frozen 6-state model (AUTO-BACKFILL-UI_PLAN.md Section 4, amended under

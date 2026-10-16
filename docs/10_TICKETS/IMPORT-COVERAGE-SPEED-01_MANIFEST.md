@@ -12,11 +12,11 @@ Opening the import page waited a long time. Measured on the real database (2.6 G
 | Part | What | Where |
 | --- | --- | --- |
 | A | Completion policy gains `evaluateBatch`: one grouped read per table, one `import_log` read, one directory listing per lane, same pure result builder as the per-date path | `autoBackfillCompletionPolicies.js`, `autoBackfillCoverageService.js` |
-| B | `scan()` is single-flight (overlapping identical scans share one run) and cached 20 s per (day, indicator, lane, roles). Dropped at once by `coverageVersion` bumps: every `import_log` write, end of `executeImport`, end of a queue job attempt, coverage exception and holiday create/revoke. The queue planner (`createRun`, anchor run) uses `fresh: true` and never reads the cache. | `coverageVersion.js`, `importLogAudit.js`, `importPipeline.js`, `autoBackfillQueueService.js`, exception and holiday services |
+| B | `scan()` is single-flight (overlapping identical scans share one run) and cached 5 min per (day, indicator, lane, roles). Dropped at once by `coverageVersion` bumps: every `import_log` write, end of `executeImport`, end of a queue job attempt, coverage exception and holiday create/revoke. The queue planner (`createRun`, anchor run) uses `fresh: true` and never reads the cache. | `coverageVersion.js`, `importLogAudit.js`, `importPipeline.js`, `autoBackfillQueueService.js`, exception and holiday services |
 | C | `GET /import/status`: the page of 20/50/100 log rows is cut first, fact counts are taken only for those rows through `ngay_do_kiem` + `import_log_id` | `importController.js` |
 | D | Timing on the real server: `Server-Timing: scan;dur=..;desc="miss|hit|joined|fresh"` on `GET /import/auto-backfill/coverage` (browser Network > Timing) and a `[coverage-scan] computed ... ms` log line per computed scan | controller, service |
 
-Cache note: a write that bypasses all the hooks above (direct SQL) shows after at most 20 s. The cached object is shared; callers only read it.
+Cache note: a write that bypasses all the hooks above (direct SQL) shows after at most 5 min. The cached object is shared; callers only read it.
 
 ## 3. Validation
 
