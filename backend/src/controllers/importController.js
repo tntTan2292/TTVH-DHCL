@@ -172,7 +172,10 @@ class ImportController {
     // columns existed have actor / mode null (the screen shows "chưa ghi nhận").
     async log(req, res) {
         try {
-            const { page, pageSize } = resolvePagination(req.query);
+            const resolved = resolvePagination(req.query);
+            const latestRequested = ['1', 'true'].includes(String(req.query.latest || '').toLowerCase());
+            const page = latestRequested ? 1 : resolved.page;
+            const pageSize = latestRequested ? 5000 : resolved.pageSize;
             const columns = new Set((await all('PRAGMA table_info(import_log)')).map((column) => column.name));
             const audit = (name) => (columns.has(name) ? `log.${name}` : 'NULL');
             const where = [];
@@ -194,6 +197,12 @@ class ImportController {
             if (actor && columns.has('actor')) { where.push('log.actor = ?'); params.push(actor); }
             const mode = String(req.query.import_mode || '').trim().toUpperCase();
             if (mode && columns.has('import_mode')) { where.push('log.import_mode = ?'); params.push(mode); }
+            // latest=1: only the newest row per (data date, indicator, lane) -- feeds the "last import" tooltips
+            // without paging through the whole history.
+            const latestOnly = ['1', 'true'].includes(String(req.query.latest || '').toLowerCase());
+            if (latestOnly) {
+                where.push("log.id IN (SELECT MAX(id) FROM import_log GROUP BY ngay_do_kiem, COALESCE(indicator, 'F1.3'), source_lane)");
+            }
             const clause = where.length ? `WHERE ${where.join(' AND ')}` : '';
 
             const total = Number((await get(`SELECT COUNT(*) AS n FROM import_log log ${clause}`, params))?.n || 0);

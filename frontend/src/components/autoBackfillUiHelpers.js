@@ -850,7 +850,8 @@ export function calculateAnchorOverwrites(
  * @returns {Object} { anchor_date: string }
  */
 export function buildAnchorRunPayload(anchorDate) {
-  return { anchor_date: anchorDate };
+  // The backend asks for the same confirmation as Nhập lại when a completed day would be overwritten.
+  return { anchor_date: anchorDate, confirm_replace_completed: true };
 }
 
 /**

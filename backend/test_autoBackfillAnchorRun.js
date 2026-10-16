@@ -117,7 +117,7 @@ test('anchor run holds D, D-1, D-2 for every active indicator; missing days load
         },
     });
     try {
-        const created = await fixture.serviceAt(DAY_11).createRun({ anchorDate: '2026-01-09', actor: 'binh', roles: ['admin'] });
+        const created = await fixture.serviceAt(DAY_11).createRun({ anchorDate: '2026-01-09', actor: 'binh', roles: ['admin'], confirmReplaceCompleted: true });
         assert.deepEqual(created.anchor.window_dates, ['2026-01-09', '2026-01-08', '2026-01-07']);
         const rows = created.jobs.map((job) => [job.indicator, job.business_date, Number(job.force_reimport), job.import_mode]).sort();
         assert.deepEqual(rows, [
@@ -143,7 +143,7 @@ test('the executor sees actor, run, job, mode and the replaced row count', async
     });
     try {
         const service = fixture.serviceAt(DAY_11);
-        const created = await service.createRun({ anchorDate: '2026-01-09', actor: 'binh', roles: ['admin'] });
+        const created = await service.createRun({ anchorDate: '2026-01-09', actor: 'binh', roles: ['admin'], confirmReplaceCompleted: true });
         while (await service.processNext()) { /* drain */ }
         const byDate = Object.fromEntries(fixture.calls.map((call) => [call.businessDate, call]));
         const replaced = byDate['2026-01-09'];
@@ -173,13 +173,24 @@ test('guards: admin only, no mixing with other scope fields, no future day, paus
         const service = fixture.serviceAt(DAY_11);
         await assert.rejects(service.createRun({ anchorDate: '2026-01-09', actor: 'x', roles: ['viewer'] }), (e) => e.code === 'AUTO_BACKFILL_ADMIN_REQUIRED');
         await assert.rejects(service.createRun({ anchorDate: '2026-01-09', indicator: 'F9.A', actor: 'x', roles: ['admin'] }), (e) => e.code === 'AUTO_BACKFILL_ANCHOR_DATE_EXCLUSIVE');
-        await assert.rejects(service.createRun({ anchorDate: '2026-01-09', confirmReplaceCompleted: true, actor: 'x', roles: ['admin'] }), (e) => e.code === 'AUTO_BACKFILL_ANCHOR_DATE_EXCLUSIVE');
+        await assert.rejects(service.createRun({ anchorDate: '2026-01-09', fromDate: '2026-01-08', actor: 'x', roles: ['admin'] }), (e) => e.code === 'AUTO_BACKFILL_ANCHOR_DATE_EXCLUSIVE');
+        // a completed day (8 Jan) would be overwritten: the API itself asks for the confirmation
+        await assert.rejects(service.createRun({ anchorDate: '2026-01-09', actor: 'x', roles: ['admin'] }), (e) => e.code === 'AUTO_BACKFILL_ANCHOR_CONFIRM_REQUIRED' && e.statusCode === 409);
         await assert.rejects(service.createRun({ anchorDate: '2026-01-11', actor: 'x', roles: ['admin'] }), (e) => e.code === 'AUTO_BACKFILL_ANCHOR_DATE_IN_FUTURE');
         await assert.rejects(service.createRun({ anchorDate: '09/01/2026', actor: 'x', roles: ['admin'] }), (e) => e.statusCode === 400);
 
-        const created = await service.createRun({ anchorDate: '2026-01-09', actor: 'x', roles: ['admin'] });
+        const created = await service.createRun({ anchorDate: '2026-01-09', actor: 'x', roles: ['admin'], confirmReplaceCompleted: true });
         assert.deepEqual([...new Set(created.jobs.map((job) => job.indicator))], ['F9.A']);
-        assert.ok(Array.isArray(created.anchor.skipped));
+        assert.equal(created.anchor.job_count, 3);
+        assert.equal(created.anchor.replace_count, 1);
+        // paused / manual-only tuples are either left out of coverage or reported as skipped, never queued
+        for (const entry of created.anchor.skipped) assert.ok(['F9.PAUSED', 'F9.MANUAL'].includes(entry.indicator));
+
+        // the same request while the run is still open creates nothing and says so
+        const again = await service.createRun({ anchorDate: '2026-01-09', actor: 'x', roles: ['admin'], confirmReplaceCompleted: true });
+        assert.equal(again.creation.created, false);
+        assert.equal(again.anchor.job_count, 0);
+        assert.equal(again.anchor.replace_count, 0);
         // nothing of a paused indicator or a manual-only lane ever becomes a job
         assert.equal(created.jobs.some((job) => job.indicator !== 'F9.A'), false);
     } finally { fixture.cleanup(); }

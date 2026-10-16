@@ -590,25 +590,48 @@ export default function AutoBackfillOperatorPanel() {
 
   // Fetch overview of latest import logs to power cell tooltips (GET /import/log)
   const fetchImportLogOverview = useCallback(async () => {
+    if (!isAdmin) return;
     try {
-      const res = await api.get('/import/log', { params: { pageSize: 100 } });
+      // latest=1: newest row per (data date, indicator, lane), not the 100 newest rows of the whole system
+      const res = await api.get('/import/log', { params: { latest: 1 } });
       if (res?.data?.success && Array.isArray(res.data.data?.items)) {
         setImportLogMap(buildLatestImportLogMap(res.data.data.items));
       }
     } catch {
       // Best-effort for tooltips
     }
-  }, []);
+  }, [isAdmin]);
 
   useEffect(() => {
     fetchImportLogOverview();
   }, [fetchImportLogOverview]);
 
   // Compute anchor window & completed overwrites dynamically
+  // The screen filters (indicator / lane) narrow `coverageData`, but the backend run covers every indicator and
+  // lane, so the overwrite count is taken from an unfiltered coverage read made when the box opens.
+  const [anchorCoverageItems, setAnchorCoverageItems] = useState(null);
+  useEffect(() => {
+    if (!anchorModalDate) {
+      setAnchorCoverageItems(null);
+      return undefined;
+    }
+    let cancelled = false;
+    api.get('/import/auto-backfill/coverage')
+      .then((res) => {
+        if (cancelled) return;
+        if (res?.data?.success) setAnchorCoverageItems(res.data.data?.items || []);
+        else setAnchorError('Không đọc được dữ liệu bao phủ để tính số ô bị ghi đè.');
+      })
+      .catch(() => {
+        if (!cancelled) setAnchorError('Không đọc được dữ liệu bao phủ để tính số ô bị ghi đè.');
+      });
+    return () => { cancelled = true; };
+  }, [anchorModalDate]);
+
   const anchorOverwriteInfo = useMemo(() => {
-    if (!anchorModalDate) return null;
-    return calculateAnchorOverwrites(coverageData?.items || [], anchorModalDate);
-  }, [coverageData, anchorModalDate]);
+    if (!anchorModalDate || !anchorCoverageItems) return null;
+    return calculateAnchorOverwrites(anchorCoverageItems, anchorModalDate);
+  }, [anchorCoverageItems, anchorModalDate]);
 
   useEffect(() => {
     if (activeRunId) {
@@ -887,11 +910,13 @@ export default function AutoBackfillOperatorPanel() {
         }
 
         const winStr = anchorData?.window_dates?.join(', ') || anchorModalDate;
-        const jobCount = anchorData?.job_count ?? res.data.data?.jobs?.length ?? 0;
+        const jobCount = anchorData?.job_count ?? 0;
         const replaceCount = anchorData?.replace_count ?? 0;
 
         showToast(
-          `Đã khởi tạo yêu cầu nạp cho 3 ngày (${winStr}) với ${jobCount} jobs (${replaceCount} ghi đè)`
+          jobCount === 0
+            ? `Không tạo yêu cầu mới cho 3 ngày (${winStr}): đã có yêu cầu đang chạy cho các ngày này.`
+            : `Đã khởi tạo yêu cầu nạp cho 3 ngày (${winStr}) với ${jobCount} jobs (${replaceCount} ghi đè)`
         );
 
         setAnchorModalDate(null);
@@ -1870,11 +1895,11 @@ export default function AutoBackfillOperatorPanel() {
                       <td className="px-5 py-3.5">
                         <div
                           className="flex flex-col gap-1 items-start"
-                          title={formatLastImportTooltip(importLogMap?.get(key) || importLogMap?.get(`${item.indicator}::${item.business_date}`))}
+                          title={formatLastImportTooltip(importLogMap?.get(key))}
                         >
                           <span
                             className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium border cursor-help ${statusInfo.badgeClass}`}
-                            title={formatLastImportTooltip(importLogMap?.get(key) || importLogMap?.get(`${item.indicator}::${item.business_date}`))}
+                            title={formatLastImportTooltip(importLogMap?.get(key))}
                           >
                             <span className="h-1.5 w-1.5 rounded-full bg-current" />
                             {statusInfo.label}

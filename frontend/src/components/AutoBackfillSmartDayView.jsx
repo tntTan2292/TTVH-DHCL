@@ -646,7 +646,7 @@ function LaneSourceCell({
   const menuKey = `${key}::menu`;
   const isMenuOpen = activeMenuKey === menuKey;
 
-  const logEntry = importLogMap?.get(key) || importLogMap?.get(`${item.indicator}::${item.business_date}`);
+  const logEntry = importLogMap?.get(key);
   const lastImportTooltip = formatLastImportTooltip(logEntry);
 
   return (

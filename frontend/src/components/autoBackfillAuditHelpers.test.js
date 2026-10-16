@@ -78,8 +78,8 @@ console.log('Running IMPORT-LOG-AUDIT-01 anchor & audit helpers test suite...');
 // ==========================================
 {
   const payload = buildAnchorRunPayload('2026-04-10');
-  assert.deepEqual(payload, { anchor_date: '2026-04-10' });
-  assert.equal(Object.keys(payload).length, 1, 'Payload must strictly contain only anchor_date');
+  assert.deepEqual(payload, { anchor_date: '2026-04-10', confirm_replace_completed: true });
+  assert.equal(Object.keys(payload).length, 2, 'Payload must contain only anchor_date and the replace confirmation');
 
   console.log('✔ 3. buildAnchorRunPayload payload exclusivity tests PASSED!');
 }

@@ -37,7 +37,7 @@ const MODES = [
 ];
 const STATUSES = [
   { value: 'ALL', label: 'Tất cả trạng thái' },
-  { value: 'COMPLETED', label: 'Thành công (COMPLETED)' },
+  { value: 'SUCCESS', label: 'Thành công (SUCCESS)' },
   { value: 'FAILED', label: 'Thất bại (FAILED)' },
 ];
 

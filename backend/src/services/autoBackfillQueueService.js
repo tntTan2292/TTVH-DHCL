@@ -268,10 +268,10 @@ class AutoBackfillQueueService {
     // (EXCLUDED), MANUAL_ONLY lanes, lanes without a verified executor, future days. A tuple that already has an open
     // job is skipped by the store, as for any run.
     async createAnchorRun({ anchorDate, indicator, lane, fromDate, toDate, includeExcluded, confirmReplaceCompleted, actor }) {
-        if (indicator || lane || fromDate || toDate || includeExcluded || confirmReplaceCompleted) {
+        if (indicator || lane || fromDate || toDate || includeExcluded) {
             throw queueError(
                 'AUTO_BACKFILL_ANCHOR_DATE_EXCLUSIVE',
-                'anchor_date cannot be combined with indicator, lane, from_date, to_date, include_excluded or confirm_replace_completed.',
+                'anchor_date cannot be combined with indicator, lane, from_date, to_date or include_excluded (confirm_replace_completed is the only extra field allowed).',
                 400,
             );
         }
@@ -313,6 +313,15 @@ class AutoBackfillQueueService {
                 409,
             );
         }
+        // Same rule as Nhập lại: overwriting a completed day needs the caller's explicit confirmation on the API too.
+        const replaceCount = jobs.filter((job) => job.forceReimport).length;
+        if (replaceCount > 0 && !confirmReplaceCompleted) {
+            throw queueError(
+                'AUTO_BACKFILL_ANCHOR_CONFIRM_REQUIRED',
+                `${replaceCount} completed day(s) would be overwritten; resend with confirm_replace_completed=true to confirm.`,
+                409,
+            );
+        }
         sortJobs(jobs);
         const requestKey = stableRequestKey({
             registry_version: coverage.registry_version || this.registryVersion,
@@ -331,13 +340,16 @@ class AutoBackfillQueueService {
             jobs,
         });
         this.notifyWorkAvailable('run-created');
+        // Counts describe what was really created: a duplicate request, or tuples that already had an open
+        // job, create fewer (or no) jobs than were planned.
+        const created = result.creation?.created ? result.jobs : [];
         return {
             ...result,
             anchor: {
                 anchor_date: anchor,
                 window_dates: windowDates,
-                job_count: jobs.length,
-                replace_count: jobs.filter((job) => job.forceReimport).length,
+                job_count: created.length,
+                replace_count: created.filter((job) => Number(job.force_reimport) === 1).length,
                 skipped,
             },
         };

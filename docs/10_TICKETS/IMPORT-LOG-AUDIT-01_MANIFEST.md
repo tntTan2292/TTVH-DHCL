@@ -58,3 +58,13 @@ Every job has `import_mode = REFRESH_DAY` and the run carries the user in `reque
 - Backend restart needed (new migration runs at start-up).
 - Old log rows keep blank user; no inference was made.
 - `GET /import/log` is not yet used by any screen; no PO UI check possible until Antigravity delivers.
+
+## 7. Independent review (Opus, 2026-10-16) and fixes
+
+Result FAIL on the screens, backend PASS. Fixed by Claude Code:
+- Blocker: the confirmation box counted overwrites on the filtered coverage; it now reads an unfiltered coverage when the box opens.
+- Tooltips: no fallback to another lane's log; `GET /import/log?latest=1` returns the newest row per (data date, indicator, lane) instead of the 100 newest rows; the call is made for admins only.
+- API now asks for the same confirmation as Nhập lại: `anchor_date` with completed days needs `confirm_replace_completed=true` (409 `AUTO_BACKFILL_ANCHOR_CONFIRM_REQUIRED`); the screen sends it after the tick.
+- `anchor.job_count/replace_count` count the jobs really created (0 for a duplicate request); the toast says so.
+- Status filter constant in the history screen corrected to SUCCESS (the list is not rendered yet: a status filter is still to add if wanted).
+Not covered by tests: `GET /import/log`, migration re-run, real `insertImportLog` write, holiday days inside an anchor run.
