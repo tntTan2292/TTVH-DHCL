@@ -29,11 +29,14 @@ class AutoBackfillCoverageController {
         }
 
         try {
-            const data = await this.getService().scan({
+            const startedAt = Date.now();
+            const { result: data, meta } = await this.getService().scanWithMeta({
                 indicator: req.query?.indicator || null,
                 lane: req.query?.lane || null,
                 roles: [req.auth?.user?.role],
             });
+            // Visible in the browser's Network > Timing tab, so slow opens can be measured on the real server.
+            res.set('Server-Timing', `scan;dur=${meta.ms};desc="${meta.cache}", total;dur=${Date.now() - startedAt}`);
             return res.status(200).json({ success: true, data });
         } catch (error) {
             return res.status(error.statusCode || 400).json({

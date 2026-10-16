@@ -1,5 +1,7 @@
 'use strict';
 
+const { bumpCoverageVersion } = require('./coverageVersion');
+
 const crypto = require('node:crypto');
 const {
     REGISTRY_VERSION,
@@ -274,6 +276,8 @@ class AutoBackfillCoverageExceptionService {
             );
         });
 
+        bumpCoverageVersion(); // exceptions / holidays change what a scan reports
+
         return this.getById(id, { roles });
     }
 
@@ -306,6 +310,8 @@ class AutoBackfillCoverageExceptionService {
                 [exceptionId, row.exception_type, indicatorConfig.code, laneConfig.code, row.business_date, trimmedReason, actor, now],
             );
         });
+
+        bumpCoverageVersion(); // exceptions / holidays change what a scan reports
 
         return this.getById(exceptionId, { roles });
     }

@@ -18,6 +18,10 @@ const {
 } = require('./autoBackfillBusinessCalendar');
 const { AutoBackfillCoverageExceptionService, COVERAGE_EXCEPTION_TYPES } = require('./autoBackfillCoverageExceptionService');
 const { AutoBackfillHolidayCalendarService } = require('./autoBackfillHolidayCalendarService');
+const { currentCoverageVersion } = require('./coverageVersion');
+
+// A scan result is reused for this long unless a writer bumps the coverage version first.
+const DEFAULT_SCAN_CACHE_TTL_MS = 20000;
 
 // AB-CALENDAR-01: the 4 canonical, PO-facing coverage statuses that replace
 // the frozen 6-state model (AUTO-BACKFILL-UI_PLAN.md Section 4, amended under
@@ -135,7 +139,15 @@ class AutoBackfillCoverageService {
         businessTimezone = BUSINESS_TIMEZONE,
         exceptionService = null,
         holidayCalendarService = null,
+        batchEvaluation = true,
+        cacheTtlMs = DEFAULT_SCAN_CACHE_TTL_MS,
+        logger = console,
     } = {}) {
+        this.batchEvaluation = batchEvaluation;
+        this.cacheTtlMs = cacheTtlMs;
+        this.logger = logger;
+        this.scanCache = new Map();
+        this.scanInFlight = new Map();
         this.db = db || require('../config/db');
         this.fs = fsImpl;
         this.clock = clock;
@@ -157,7 +169,56 @@ class AutoBackfillCoverageService {
         });
     }
 
-    async scan({ asOf = null, indicator = null, lane = null, roles = null } = {}) {
+    // Scan with single-flight and a short cache. `fresh: true` (the queue planner) always recomputes: a run must be
+    // planned from what the database holds now. Returns the shared result object -- callers must not mutate it.
+    async scan(options = {}) {
+        return (await this.scanWithMeta(options)).result;
+    }
+
+    async scanWithMeta({ asOf = null, indicator = null, lane = null, roles = null, fresh = false } = {}) {
+        const startedAt = Date.now();
+        const asOfBusinessDate = typeof asOf === 'string' && ISO_DATE.test(asOf)
+            ? normalizeBusinessDate(asOf, 'as_of')
+            : formatDateInTimezone(asOf || this.clock(), this.businessTimezone);
+        const requesterRoles = normalizeRoles(roles);
+        const key = JSON.stringify([
+            asOfBusinessDate,
+            indicator ? String(indicator).trim().toUpperCase() : null,
+            lane ? String(lane).trim().toUpperCase() : null,
+            requesterRoles === null ? null : [...requesterRoles].sort(),
+        ]);
+        const version = currentCoverageVersion();
+        const meta = (cache) => ({ cache, ms: Date.now() - startedAt, items: 0 });
+
+        if (!fresh && this.cacheTtlMs > 0) {
+            const hit = this.scanCache.get(key);
+            if (hit && hit.version === version && Date.now() - hit.at < this.cacheTtlMs) {
+                return { result: hit.result, meta: { ...meta('hit'), items: hit.result.total_items } };
+            }
+            const pending = this.scanInFlight.get(key);
+            if (pending && pending.version === version) {
+                const result = await pending.promise;
+                return { result, meta: { ...meta('joined'), items: result.total_items } };
+            }
+        }
+
+        const promise = this.computeScan({ asOf, indicator, lane, roles });
+        if (!fresh && this.cacheTtlMs > 0) this.scanInFlight.set(key, { version, promise });
+        try {
+            const result = await promise;
+            if (!fresh && this.cacheTtlMs > 0 && currentCoverageVersion() === version) {
+                this.scanCache.set(key, { version, at: Date.now(), result });
+            }
+            const info = { ...meta(fresh ? 'fresh' : 'miss'), items: result.total_items };
+            this.logger.log?.(`[coverage-scan] computed ${info.ms} ms, ${info.items} items, batch=${this.batchEvaluation}, indicator=${indicator || 'ALL'}, lane=${lane || 'ALL'}, mode=${info.cache}`);
+            return { result, meta: info };
+        } finally {
+            const current = this.scanInFlight.get(key);
+            if (current && current.promise === promise) this.scanInFlight.delete(key);
+        }
+    }
+
+    async computeScan({ asOf = null, indicator = null, lane = null, roles = null } = {}) {
         const asOfBusinessDate = typeof asOf === 'string' && ISO_DATE.test(asOf)
             ? normalizeBusinessDate(asOf, 'as_of')
             : formatDateInTimezone(asOf || this.clock(), this.businessTimezone);
@@ -218,15 +279,37 @@ class AutoBackfillCoverageService {
             toDate,
         });
 
+        // Fast path: a policy that can answer for many dates at once is asked once per (indicator, lane).
+        const batched = new Map();
+        if (this.batchEvaluation) {
+            const groups = new Map();
+            for (const tuple of tuples) {
+                if (typeof tuple.lane.completionPolicy.evaluateBatch !== 'function') continue;
+                const groupKey = tuple.indicator.code + '|' + tuple.lane.code;
+                if (!groups.has(groupKey)) groups.set(groupKey, { tuple, dates: [] });
+                groups.get(groupKey).dates.push(tuple.businessDate);
+            }
+            for (const [groupKey, group] of groups) {
+                batched.set(groupKey, await group.tuple.lane.completionPolicy.evaluateBatch({
+                    db: this.db,
+                    fs: this.fs,
+                    indicator: group.tuple.indicator,
+                    lane: group.tuple.lane,
+                    dates: group.dates,
+                }));
+            }
+        }
+
         const items = [];
         for (const tuple of tuples) {
-            const completion = await tuple.lane.completionPolicy.evaluate({
-                db: this.db,
-                fs: this.fs,
-                indicator: tuple.indicator,
-                lane: tuple.lane,
-                businessDate: tuple.businessDate,
-            });
+            const completion = batched.get(tuple.indicator.code + '|' + tuple.lane.code)?.get(tuple.businessDate)
+                || await tuple.lane.completionPolicy.evaluate({
+                    db: this.db,
+                    fs: this.fs,
+                    indicator: tuple.indicator,
+                    lane: tuple.lane,
+                    businessDate: tuple.businessDate,
+                });
             if (!Object.values(COMPLETION_STATUSES).includes(completion.status)) {
                 throw createCoverageError('INVALID_COMPLETION_STATUS', `${tuple.lane.completionPolicy.id} returned an invalid status.`);
             }

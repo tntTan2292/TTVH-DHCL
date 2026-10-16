@@ -1,5 +1,7 @@
 'use strict';
 
+const { bumpCoverageVersion } = require('./coverageVersion');
+
 const crypto = require('node:crypto');
 const { BUSINESS_TIMEZONE } = require('./importIndicatorRegistry');
 const { normalizeBusinessDate, formatDateInTimezone, addUtcDays } = require('./autoBackfillBusinessCalendar');
@@ -130,6 +132,8 @@ class AutoBackfillHolidayCalendarService {
             );
         });
 
+        bumpCoverageVersion(); // exceptions / holidays change what a scan reports
+
         return this.getById(id);
     }
 
@@ -159,6 +163,8 @@ class AutoBackfillHolidayCalendarService {
                 [holidayId, row.business_date, trimmedReason, actor, now],
             );
         });
+
+        bumpCoverageVersion(); // exceptions / holidays change what a scan reports
 
         return this.getById(holidayId);
     }

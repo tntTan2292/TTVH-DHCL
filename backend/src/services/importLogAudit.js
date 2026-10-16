@@ -15,6 +15,8 @@
 
 const { AsyncLocalStorage } = require('node:async_hooks');
 
+const { bumpCoverageVersion } = require('./coverageVersion');
+
 const storage = new AsyncLocalStorage();
 
 const IMPORT_MODES = Object.freeze({
@@ -71,10 +73,14 @@ async function withAuditColumns(allFn, columns, values) {
 async function insertImportLogRow({ run, all, columns, values }) {
     const merged = await withAuditColumns(all, columns, values);
     const placeholders = merged.columns.map(() => '?').join(', ');
-    return run(
-        `INSERT INTO import_log (${merged.columns.join(', ')}) VALUES (${placeholders})`,
-        merged.values,
-    );
+    try {
+        return await run(
+            `INSERT INTO import_log (${merged.columns.join(', ')}) VALUES (${placeholders})`,
+            merged.values,
+        );
+    } finally {
+        bumpCoverageVersion(); // a log row changes what a coverage scan reports
+    }
 }
 
 module.exports = {

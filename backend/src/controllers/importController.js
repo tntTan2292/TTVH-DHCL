@@ -280,7 +280,12 @@ class ImportController {
                     log.total_records,
                     log.error_records,
                     log.skipped_records,
-                    COUNT(fact.id) AS hue_fact_count,
+                    (
+                        SELECT COUNT(*)
+                        FROM fact_f13 fact
+                        WHERE fact.ngay_do_kiem = log.ngay_do_kiem
+                          AND fact.import_log_id = log.id
+                    ) AS hue_fact_count,
                     (
                         SELECT COUNT(*)
                         FROM fact_f13_national national
@@ -302,22 +307,12 @@ class ImportController {
                               WHERE fact_same_date.ngay_do_kiem = log.ngay_do_kiem
                           )
                     ) AS matching_hue_import_count
-                 FROM import_log log
-                 LEFT JOIN fact_f13 fact ON fact.import_log_id = log.id
-                 GROUP BY
-                    log.id,
-                    log.file_name,
-                    log.ngay_do_kiem,
-                    COALESCE(log.indicator, 'F1.3'),
-                    log.source_lane,
-                    log.trigger_source,
-                    log.created_at,
-                    log.status,
-                    log.total_records,
-                    log.error_records,
-                    log.skipped_records
-                 ORDER BY datetime(log.created_at) DESC, log.id DESC
-                 LIMIT ? OFFSET ?`,
+                 FROM (
+                    SELECT * FROM import_log
+                    ORDER BY datetime(created_at) DESC, id DESC
+                    LIMIT ? OFFSET ?
+                 ) log
+                 ORDER BY datetime(log.created_at) DESC, log.id DESC`,
                 [requested.pageSize, offset]
             );
 

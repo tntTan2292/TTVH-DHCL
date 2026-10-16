@@ -13,6 +13,7 @@ const { COMPLETION_STATUSES } = require('./autoBackfillCompletionPolicies');
 const { AutoBackfillSafetyCoordinator, scopeKey } = require('./autoBackfillSafetyCoordinator');
 const { normalizeBusinessDate } = require('./autoBackfillBusinessCalendar');
 const { runWithImportContext } = require('./importLogAudit');
+const { bumpCoverageVersion } = require('./coverageVersion');
 
 function normalizeRoles(roles) {
     const values = Array.isArray(roles) ? roles : [roles];
@@ -145,7 +146,7 @@ class AutoBackfillQueueService {
                 400,
             );
         }
-        const coverage = await this.coverageService.scan({ indicator, lane, roles: ['admin'] });
+        const coverage = await this.coverageService.scan({ indicator, lane, roles: ['admin'], fresh: true });
         const inRange = (item) => (!range.fromDate || item.business_date >= range.fromDate)
             && (!range.toDate || item.business_date <= range.toDate);
         const isReadmissibleExcluded = (item) => {
@@ -277,7 +278,7 @@ class AutoBackfillQueueService {
         }
         const anchor = normalizeBusinessDate(anchorDate, 'anchor_date');
         const windowDates = Array.from({ length: REFRESH_DAY_SPAN }, (_, index) => addDays(anchor, -index));
-        const coverage = await this.coverageService.scan({ roles: ['admin'] });
+        const coverage = await this.coverageService.scan({ roles: ['admin'], fresh: true });
         if (anchor > coverage.to_date) {
             throw queueError(
                 'AUTO_BACKFILL_ANCHOR_DATE_IN_FUTURE',
@@ -653,6 +654,7 @@ class AutoBackfillQueueService {
             throw error;
         } finally {
             if (heartbeat) clearInterval(heartbeat);
+            bumpCoverageVersion(); // a job attempt ended: its day may have changed state
         }
     }
 

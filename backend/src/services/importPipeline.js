@@ -4,6 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const { get, run, all } = require('../config/db');
 const { insertImportLogRow } = require('./importLogAudit');
+const { bumpCoverageVersion } = require('./coverageVersion');
 const {
     getIndicatorConfig,
     resolveContextFromFilePath,
@@ -156,7 +157,15 @@ function quarantineStaleProcessedEvidence({ indicatorConfig = getIndicatorConfig
  * @param {boolean} forceReimport - Whether to overwrite existing data
  * @param {string} source - 'AUTO' or 'MANUAL'
  */
-async function executeImport({ filePath, forceReimport = false, source = 'AUTO', indicator = null, lane = null }) {
+async function executeImport(options) {
+    try {
+        return await executeImportInner(options);
+    } finally {
+        bumpCoverageVersion(); // files moved and fact rows committed: cached coverage is stale
+    }
+}
+
+async function executeImportInner({ filePath, forceReimport = false, source = 'AUTO', indicator = null, lane = null }) {
     const context = resolveContextFromFilePath(filePath, { indicator, lane });
     const { indicatorConfig, laneConfig } = context;
     const claim = claimIncomingFile(filePath, indicatorConfig, context.relativePath);
