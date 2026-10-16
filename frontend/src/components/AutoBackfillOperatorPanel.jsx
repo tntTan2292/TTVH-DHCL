@@ -24,7 +24,8 @@ import {
   ShieldAlert,
   Square,
   UserCheck,
-  X
+  X,
+  Zap
 } from 'lucide-react';
 import api from '../api/client';
 import { useAuth } from '../auth/AuthContext';
@@ -48,10 +49,16 @@ import {
   resolveRunIdleState,
   resolveWaitingAuthLanes,
   splitReimportItems,
-  summarizeMonthDays
+  summarizeMonthDays,
+  buildAnchorRunPayload,
+  calculateAnchorOverwrites,
+  formatAnchorSkippedSummary,
+  buildLatestImportLogMap,
+  formatLastImportTooltip
 } from './autoBackfillUiHelpers';
 import AutoBackfillIndicatorMatrix from './AutoBackfillIndicatorMatrix';
 import AutoBackfillSmartDayView from './AutoBackfillSmartDayView';
+import AutoBackfillImportHistory from './AutoBackfillImportHistory';
 
 const getApiErrorMessage = (error, fallback = 'Đã xảy ra lỗi khi gọi API.') => (
   error?.response?.data?.error?.message ||
@@ -186,6 +193,16 @@ export default function AutoBackfillOperatorPanel() {
   const [bulkReimportLoading, setBulkReimportLoading] = useState(false);
   const [bulkReimportReport, setBulkReimportReport] = useState(null);
   const [bulkReimportAck, setBulkReimportAck] = useState(false);
+
+  // Anchor Run State (IMPORT-LOG-AUDIT-01: "Import cả ngày + bù 3 ngày")
+  const [anchorModalDate, setAnchorModalDate] = useState(null);
+  const [anchorAck, setAnchorAck] = useState(false);
+  const [anchorLoading, setAnchorLoading] = useState(false);
+  const [anchorError, setAnchorError] = useState(null);
+  const [anchorSkippedSummary, setAnchorSkippedSummary] = useState(null);
+
+  // Import Log Tooltip Map
+  const [importLogMap, setImportLogMap] = useState(new Map());
 
   // Notification Toast
   const [toast, setToast] = useState(null);
@@ -571,6 +588,28 @@ export default function AutoBackfillOperatorPanel() {
     fetchCoverage();
   }, [fetchCoverage]);
 
+  // Fetch overview of latest import logs to power cell tooltips (GET /import/log)
+  const fetchImportLogOverview = useCallback(async () => {
+    try {
+      const res = await api.get('/import/log', { params: { pageSize: 100 } });
+      if (res?.data?.success && Array.isArray(res.data.data?.items)) {
+        setImportLogMap(buildLatestImportLogMap(res.data.data.items));
+      }
+    } catch {
+      // Best-effort for tooltips
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchImportLogOverview();
+  }, [fetchImportLogOverview]);
+
+  // Compute anchor window & completed overwrites dynamically
+  const anchorOverwriteInfo = useMemo(() => {
+    if (!anchorModalDate) return null;
+    return calculateAnchorOverwrites(coverageData?.items || [], anchorModalDate);
+  }, [coverageData, anchorModalDate]);
+
   useEffect(() => {
     if (activeRunId) {
       fetchRunStatus(activeRunId);
@@ -821,6 +860,61 @@ export default function AutoBackfillOperatorPanel() {
       setReimportLoading(false);
     }
   };
+
+  // IMPORT-LOG-AUDIT-01: "Import cả ngày + bù 3 ngày" Handlers
+  const handleOpenAnchorModal = useCallback((date) => {
+    if (!isAdmin) return;
+    setAnchorModalDate(date);
+    setAnchorAck(false);
+    setAnchorError(null);
+  }, [isAdmin]);
+
+  const handleConfirmAnchorRun = useCallback(async () => {
+    if (!isAdmin || !anchorModalDate || !anchorAck) return;
+    setAnchorLoading(true);
+    setAnchorError(null);
+    try {
+      const payload = buildAnchorRunPayload(anchorModalDate);
+      const res = await api.post('/import/auto-backfill/runs', payload);
+      if (res?.data?.success) {
+        const anchorData = res.data.data?.anchor;
+        const skipped = anchorData?.skipped || [];
+        const skippedFormatted = formatAnchorSkippedSummary(skipped);
+        if (skippedFormatted && skippedFormatted.length > 0) {
+          setAnchorSkippedSummary(skippedFormatted);
+        } else {
+          setAnchorSkippedSummary(null);
+        }
+
+        const winStr = anchorData?.window_dates?.join(', ') || anchorModalDate;
+        const jobCount = anchorData?.job_count ?? res.data.data?.jobs?.length ?? 0;
+        const replaceCount = anchorData?.replace_count ?? 0;
+
+        showToast(
+          `Đã khởi tạo yêu cầu nạp cho 3 ngày (${winStr}) với ${jobCount} jobs (${replaceCount} ghi đè)`
+        );
+
+        setAnchorModalDate(null);
+        setAnchorAck(false);
+
+        if (res.data.data?.run?.id) {
+          setActiveRunId(res.data.data.run.id);
+          fetchRunStatus(res.data.data.run.id);
+        }
+
+        fetchCoverage();
+        fetchOpenRuns();
+        fetchImportLogOverview();
+      } else {
+        setAnchorError(res?.data?.error?.message || 'Khởi tạo nạp bù 3 ngày thất bại.');
+      }
+    } catch (err) {
+      console.error('[AutoBackfillOperatorPanel] anchor run error:', err);
+      setAnchorError(getApiErrorMessage(err, 'Khởi tạo nạp bù 3 ngày thất bại.'));
+    } finally {
+      setAnchorLoading(false);
+    }
+  }, [isAdmin, anchorModalDate, anchorAck, fetchCoverage, fetchOpenRuns, fetchRunStatus, fetchImportLogOverview]);
 
   // Real Single PO Exception Confirmation API Call
   const handleConfirmExemption = async () => {
@@ -1146,6 +1240,33 @@ export default function AutoBackfillOperatorPanel() {
         </div>
       )}
 
+      {/* Anchor Skipped Items Notification Banner */}
+      {anchorSkippedSummary && anchorSkippedSummary.length > 0 && (
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 shadow-sm flex items-start justify-between gap-3">
+          <div className="flex items-start gap-2.5">
+            <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+            <div>
+              <p className="text-xs font-bold text-amber-950">
+                Thông báo Bù dữ liệu 3 ngày: Có {anchorSkippedSummary.length} mục được tự động bỏ qua (nguồn thủ công hoặc ngày nghỉ):
+              </p>
+              <ul className="mt-1.5 text-xs text-amber-900 space-y-0.5">
+                {anchorSkippedSummary.map((item, idx) => (
+                  <li key={idx}>• {item}</li>
+                ))}
+              </ul>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setAnchorSkippedSummary(null)}
+            className="text-amber-600 hover:text-amber-800 p-1 cursor-pointer"
+            title="Đóng thông báo"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      )}
+
       {/* HERO CONTROL HEADER */}
       <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -1192,6 +1313,19 @@ export default function AutoBackfillOperatorPanel() {
               <History className="h-4 w-4 text-purple-600" />
               <span>Lịch sử Ngoại lệ PO</span>
             </button>
+
+            {isAdmin && (
+              <button
+                type="button"
+                onClick={() => setViewMode('HISTORY')}
+                className={`inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 ${
+                  viewMode === 'HISTORY' ? 'ring-2 ring-indigo-400 bg-indigo-50/50 font-bold text-indigo-900' : ''
+                }`}
+              >
+                <History className="h-4 w-4 text-indigo-600" />
+                <span>Lịch sử Import</span>
+              </button>
+            )}
           </div>
         </div>
 
@@ -1582,6 +1716,17 @@ export default function AutoBackfillOperatorPanel() {
                 <List className="h-3.5 w-3.5" />
                 <span>Bảng Chi tiết</span>
               </button>
+              {isAdmin && (
+                <button
+                  onClick={() => setViewMode('HISTORY')}
+                  className={`flex items-center gap-1.5 rounded-lg px-3 py-1 text-xs font-semibold transition-[color,background-color,box-shadow] duration-150 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 ${
+                    viewMode === 'HISTORY' ? 'bg-white text-slate-900 shadow-xs font-bold ring-1 ring-indigo-200' : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <History className="h-3.5 w-3.5 text-indigo-600" />
+                  <span>Lịch sử Import</span>
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -1630,7 +1775,14 @@ export default function AutoBackfillOperatorPanel() {
             setRevokeHolidayReason('');
             setRevokeHolidayError(null);
           }}
+          onAnchorRunClick={handleOpenAnchorModal}
+          importLogMap={importLogMap}
         />
+      )}
+
+      {/* VIEW MODE 3: IMPORT AUDIT LOG HISTORY (GET /import/log - ADMIN ONLY) */}
+      {viewMode === 'HISTORY' && isAdmin && (
+        <AutoBackfillImportHistory isAdmin={isAdmin} />
       )}
 
       {/* VIEW MODE 2: TABLE VIEW WITH BULK CHECKBOXES & PER-ROW REIMPORT */}
@@ -1690,7 +1842,23 @@ export default function AutoBackfillOperatorPanel() {
                           )}
                         </td>
                       )}
-                      <td className="px-5 py-3.5 font-bold text-slate-900">{item.business_date}</td>
+                      <td className="px-5 py-3.5">
+                        <div className="font-bold text-slate-900">{item.business_date}</div>
+                        {isAdmin && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleOpenAnchorModal(item.business_date);
+                            }}
+                            className="mt-1 inline-flex items-center gap-1 rounded-md border border-blue-200 bg-blue-50 px-1.5 py-0.5 text-[10px] font-bold text-[var(--color-vnpost-blue)] hover:bg-blue-100 transition shadow-2xs cursor-pointer whitespace-nowrap"
+                            title={`Import cả ngày + bù 3 ngày (${item.business_date}, D-1, D-2)`}
+                          >
+                            <Zap className="h-2.5 w-2.5 text-amber-500 fill-amber-400" />
+                            <span>+ Bù 3 ngày</span>
+                          </button>
+                        )}
+                      </td>
                       <td className="px-5 py-3.5">
                         <span className="font-semibold text-slate-700">{item.indicator}</span>
                       </td>
@@ -1700,8 +1868,14 @@ export default function AutoBackfillOperatorPanel() {
                         </span>
                       </td>
                       <td className="px-5 py-3.5">
-                        <div className="flex flex-col gap-1 items-start">
-                          <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium border ${statusInfo.badgeClass}`}>
+                        <div
+                          className="flex flex-col gap-1 items-start"
+                          title={formatLastImportTooltip(importLogMap?.get(key) || importLogMap?.get(`${item.indicator}::${item.business_date}`))}
+                        >
+                          <span
+                            className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium border cursor-help ${statusInfo.badgeClass}`}
+                            title={formatLastImportTooltip(importLogMap?.get(key) || importLogMap?.get(`${item.indicator}::${item.business_date}`))}
+                          >
                             <span className="h-1.5 w-1.5 rounded-full bg-current" />
                             {statusInfo.label}
                           </span>
@@ -2120,6 +2294,143 @@ export default function AutoBackfillOperatorPanel() {
                 className="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 disabled:opacity-50"
               >
                 {bulkReimportLoading ? `Đang gửi ${selectedReimportKeys.size} yêu cầu...` : `Xác nhận Nhập lại ${distinctReimportDates} ngày (${selectedReimportKeys.size} nguồn)`}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ======================================================== */}
+      {/* IMPORT-LOG-AUDIT-01: CONFIRMATION MODAL "Import cả ngày + bù 3 ngày" */}
+      {/* ======================================================== */}
+      {isAdmin && anchorModalDate && anchorOverwriteInfo && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
+          <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl border border-slate-200">
+            <div className="flex items-start justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="rounded-full bg-blue-100 p-2 text-[var(--color-vnpost-blue)]">
+                  <Zap className="h-5 w-5 text-amber-500 fill-amber-400" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-slate-900">
+                    Import cả ngày + bù 3 ngày
+                  </h3>
+                  <span className="text-xs font-semibold text-blue-700">
+                    Nạp toàn bộ chỉ tiêu & nguồn cho 3 ngày liên tiếp
+                  </span>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setAnchorModalDate(null)}
+                className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 cursor-pointer"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Scope Summary Box */}
+            <div className="mt-4 rounded-xl bg-slate-50 p-4 border border-slate-200 text-xs text-slate-700 space-y-2 font-medium">
+              <div className="flex items-center justify-between">
+                <span>Ngày mốc (D):</span>
+                <strong className="text-slate-900 text-sm">{anchorOverwriteInfo.anchorDate}</strong>
+              </div>
+              <div className="flex items-center justify-between">
+                <span>Cửa sổ 3 ngày (D, D-1, D-2):</span>
+                <strong className="text-slate-900">
+                  {anchorOverwriteInfo.windowDates.join(' · ')}
+                </strong>
+              </div>
+              <div className="flex items-center justify-between">
+                <span>Chỉ tiêu áp dụng (4 chỉ tiêu):</span>
+                <strong className="text-slate-900">
+                  {anchorOverwriteInfo.targetIndicators.join(', ')}
+                </strong>
+              </div>
+              <div className="flex items-center justify-between">
+                <span>Nguồn áp dụng (2 nguồn):</span>
+                <strong className="text-slate-900">
+                  {anchorOverwriteInfo.targetLanes.join(', ')} (Huế & TCT)
+                </strong>
+              </div>
+            </div>
+
+            {/* Overwrite Warning Box */}
+            <div className="mt-3 rounded-xl bg-amber-50 p-3.5 border border-amber-300 text-xs text-amber-900 space-y-1.5">
+              <div className="font-bold flex items-center gap-1.5 text-amber-950">
+                <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0" />
+                <span>CẢNH BÁO GHI ĐÈ DỮ LIỆU ĐÃ HOÀN TẤT</span>
+              </div>
+              <p>
+                Số ô đã hoàn tất sẽ bị ghi đè:{' '}
+                <strong className="text-amber-950 font-extrabold text-sm">
+                  {anchorOverwriteInfo.overwriteCount} ô
+                </strong>{' '}
+                (tính trên dữ liệu coverage đang hiển thị trên màn hình).
+              </p>
+              {anchorOverwriteInfo.completedItems.length > 0 && (
+                <div className="max-h-24 overflow-y-auto rounded-lg bg-amber-100/60 p-2 text-[11px] font-semibold space-y-0.5">
+                  {anchorOverwriteInfo.completedItems.map((ci, idx) => (
+                    <div key={idx} className="flex items-center justify-between">
+                      <span>• {ci.indicator} ({ci.source_lane}) ngày {ci.business_date}</span>
+                      <span className="text-amber-950 font-bold">sẽ ghi đè</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <p className="text-[11px] text-amber-800">
+                Dữ liệu hiện tại của các ô hoàn tất trong 3 ngày này sẽ bị <strong>XÓA VÀ THAY THẾ</strong> bằng dữ liệu mới nhất từ Portal.
+              </p>
+            </div>
+
+            {/* Mandatory Consent Checkbox (như luồng Nhập lại) */}
+            <label className="flex items-start gap-2.5 mt-3 p-3 bg-amber-50/70 border border-amber-200 rounded-xl cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={anchorAck}
+                onChange={(e) => setAnchorAck(e.target.checked)}
+                className="mt-0.5 h-4 w-4 rounded border-amber-400 text-amber-600 focus:ring-amber-500 cursor-pointer"
+              />
+              <span className="text-xs font-semibold text-amber-950 leading-tight">
+                Tôi hiểu và xác nhận các ô đã hoàn tất trong 3 ngày này ({anchorOverwriteInfo.windowDates.join(', ')}) sẽ bị xóa và thay thế bằng dữ liệu mới.
+              </span>
+            </label>
+
+            {/* Error Message */}
+            {anchorError && (
+              <div className="mt-3 text-xs font-semibold text-red-600 bg-red-50 p-2.5 rounded-lg border border-red-100 flex items-center gap-1.5">
+                <AlertCircle className="h-4 w-4 shrink-0" />
+                <span>{anchorError}</span>
+              </div>
+            )}
+
+            {/* Action Buttons */}
+            <div className="mt-6 flex items-center justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setAnchorModalDate(null)}
+                disabled={anchorLoading}
+                className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50 cursor-pointer"
+              >
+                Hủy bỏ
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmAnchorRun}
+                disabled={anchorLoading || !anchorAck}
+                className="inline-flex items-center gap-1.5 rounded-xl bg-[var(--color-vnpost-blue)] px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 disabled:opacity-50 cursor-pointer"
+              >
+                {anchorLoading ? (
+                  <>
+                    <RefreshCw className="h-4 w-4 animate-spin" />
+                    <span>Đang khởi tạo...</span>
+                  </>
+                ) : (
+                  <>
+                    <Zap className="h-4 w-4 text-amber-300 fill-amber-300" />
+                    <span>Bắt đầu Import cả ngày + bù 3 ngày</span>
+                  </>
+                )}
               </button>
             </div>
           </div>

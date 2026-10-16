@@ -771,6 +771,189 @@ export function resolveCrossIndicatorSummary(indicatorsList = []) {
   });
 }
 
+// ==========================================
+// IMPORT-LOG-AUDIT-01: Anchor Run & Import Audit Log Helpers
+// ==========================================
 
+export const ANCHOR_TARGET_INDICATORS = Object.freeze(['F1.1', 'F1.2', 'F1.3', 'F4.1']);
+export const ANCHOR_TARGET_LANES = Object.freeze(['HUE', 'TCT']);
 
+/**
+ * Computes window of dates [D, D-1, D-2] for a chosen anchor date D.
+ * Uses Date.UTC to guarantee daylight-savings-safe, timezone-independent calculations.
+ * @param {string} anchorDate - ISO date 'YYYY-MM-DD'
+ * @param {number} span - Number of days in window (default 3)
+ * @returns {string[]} Array of date strings [D, D-1, D-2]
+ */
+export function computeAnchorDates(anchorDate, span = 3) {
+  if (!anchorDate || typeof anchorDate !== 'string') return [];
+  const parts = anchorDate.split('-');
+  if (parts.length !== 3) return [];
+  const [y, m, d] = parts.map(Number);
+  if (Number.isNaN(y) || Number.isNaN(m) || Number.isNaN(d)) return [];
 
+  const dates = [];
+  for (let i = 0; i < span; i++) {
+    const dt = new Date(Date.UTC(y, m - 1, d - i));
+    const year = dt.getUTCFullYear();
+    const month = String(dt.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(dt.getUTCDate()).padStart(2, '0');
+    dates.push(`${year}-${month}-${day}`);
+  }
+  return dates;
+}
+
+/**
+ * Calculates completed cells that will be overwritten for anchor date D.
+ * Uses coverage items currently present on screen.
+ * @param {Array} coverageItems - Array of items from coverage scan
+ * @param {string} anchorDate - ISO date 'YYYY-MM-DD'
+ * @param {string[]} targetIndicators - Indicators targeted (default F1.1, F1.2, F1.3, F4.1)
+ * @param {string[]} targetLanes - Lanes targeted (default HUE, TCT)
+ * @returns {Object} { anchorDate, windowDates, targetIndicators, targetLanes, overwriteCount, completedItems }
+ */
+export function calculateAnchorOverwrites(
+  coverageItems = [],
+  anchorDate,
+  targetIndicators = ANCHOR_TARGET_INDICATORS,
+  targetLanes = ANCHOR_TARGET_LANES
+) {
+  const windowDates = computeAnchorDates(anchorDate, 3);
+  const windowSet = new Set(windowDates);
+  const targetIndSet = new Set(targetIndicators.map((i) => i.toUpperCase()));
+  const targetLaneSet = new Set(targetLanes.map((l) => l.toUpperCase()));
+
+  const completedItems = (coverageItems || []).filter((item) => {
+    if (!item) return false;
+    const itemDate = item.business_date || '';
+    if (!windowSet.has(itemDate)) return false;
+    const itemInd = (item.indicator || '').toUpperCase();
+    const itemLane = (item.source_lane || item.lane || '').toUpperCase();
+    if (!targetIndSet.has(itemInd) || !targetLaneSet.has(itemLane)) return false;
+    return item.status === 'COMPLETED';
+  });
+
+  return {
+    anchorDate,
+    windowDates,
+    targetIndicators,
+    targetLanes,
+    overwriteCount: completedItems.length,
+    completedItems,
+  };
+}
+
+/**
+ * Builds payload for POST /import/auto-backfill/runs with anchor_date.
+ * Strictly sends only anchor_date.
+ * @param {string} anchorDate - ISO date 'YYYY-MM-DD'
+ * @returns {Object} { anchor_date: string }
+ */
+export function buildAnchorRunPayload(anchorDate) {
+  return { anchor_date: anchorDate };
+}
+
+/**
+ * Formats skipped list from anchor run response.
+ * @param {Array} skippedList - Array of { indicator, source_lane, business_date, reason }
+ * @returns {string[]|null}
+ */
+export function formatAnchorSkippedSummary(skippedList = []) {
+  if (!Array.isArray(skippedList) || skippedList.length === 0) return null;
+  return skippedList.map((s) => {
+    const key = `${s.indicator || ''} (${s.source_lane || ''}) ngày ${s.business_date || ''}`;
+    let reasonText = s.reason;
+    if (s.reason === 'NOT_AUTOMATED_OR_NOT_ACTIVE') {
+      reasonText = 'Nguồn thủ công hoặc chưa kích hoạt tự động';
+    } else if (s.reason === 'EXCLUDED') {
+      reasonText = 'Ngày nghỉ / được loại trừ';
+    }
+    return `${key}: ${reasonText}`;
+  });
+}
+
+/**
+ * Returns audit value with "chưa ghi nhận" fallback for blank/null values.
+ * Never infers or guesses historical values.
+ * @param {*} val
+ * @param {string} fallback
+ * @returns {string}
+ */
+export function formatAuditValue(val, fallback = 'chưa ghi nhận') {
+  if (val === null || val === undefined || val === '') {
+    return fallback;
+  }
+  return String(val);
+}
+
+/**
+ * Builds lookup map for latest import logs by lane-key and indicator-date key.
+ * @param {Array} logItems - Array of items from GET /import/log
+ * @returns {Map} Map keyed by '${ind}::${lane}::${date}' and '${ind}::${date}'
+ */
+export function buildLatestImportLogMap(logItems = []) {
+  const map = new Map();
+  if (!Array.isArray(logItems)) return map;
+
+  for (const item of logItems) {
+    if (!item) continue;
+    const date = item.ngay_do_kiem;
+    const ind = (item.indicator || '').trim().toUpperCase();
+    const lane = (item.source_lane || '').trim().toUpperCase();
+
+    if (date && ind && lane) {
+      const laneKey = `${ind}::${lane}::${date}`;
+      if (!map.has(laneKey)) {
+        map.set(laneKey, item);
+      }
+    }
+    if (date && ind) {
+      const indKey = `${ind}::${date}`;
+      if (!map.has(indKey)) {
+        map.set(indKey, item);
+      }
+    }
+    if (date) {
+      const dateKey = `DATE::${date}`;
+      if (!map.has(dateKey)) {
+        map.set(dateKey, item);
+      }
+    }
+  }
+  return map;
+}
+
+/**
+ * Formats tooltip for day x indicator cell: "lần import cuối: giờ, người dùng, chế độ".
+ * Fallback values are "chưa ghi nhận".
+ * @param {Object|null} logEntry
+ * @returns {string}
+ */
+export function formatLastImportTooltip(logEntry) {
+  if (!logEntry) {
+    return 'Lần import cuối: chưa ghi nhận';
+  }
+  const time = formatAuditValue(logEntry.created_at_vn || logEntry.created_at);
+  const user = formatAuditValue(logEntry.actor);
+  const mode = formatAuditValue(logEntry.import_mode);
+  return `Lần import cuối: ${time}, người dùng: ${user}, chế độ: ${mode}`;
+}
+
+/**
+ * Cleans query parameters for GET /import/log.
+ * @param {Object} filters
+ * @returns {Object}
+ */
+export function buildImportLogQueryParams(filters = {}) {
+  const params = {};
+  if (filters.date_from) params.date_from = filters.date_from.trim();
+  if (filters.date_to) params.date_to = filters.date_to.trim();
+  if (filters.indicator && filters.indicator !== 'ALL') params.indicator = filters.indicator.trim();
+  if (filters.lane && filters.lane !== 'ALL') params.lane = filters.lane.trim();
+  if (filters.actor && filters.actor.trim()) params.actor = filters.actor.trim();
+  if (filters.import_mode && filters.import_mode !== 'ALL') params.import_mode = filters.import_mode.trim();
+  if (filters.status && filters.status !== 'ALL') params.status = filters.status.trim();
+  if (filters.page) params.page = Number(filters.page);
+  if (filters.pageSize) params.pageSize = Number(filters.pageSize);
+  return params;
+}

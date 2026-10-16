@@ -23,7 +23,8 @@ import {
   isReimportSelectable,
   resolveNoCodeStatus,
   paginateItems,
-  filterDaysByMissingOnly
+  filterDaysByMissingOnly,
+  formatLastImportTooltip
 } from './autoBackfillUiHelpers';
 
 /**
@@ -55,7 +56,9 @@ export default function AutoBackfillSmartDayView({
   onRevokeClick,
   onReimportClick,
   onMarkHolidayClick,
-  onRevokeHolidayClick
+  onRevokeHolidayClick,
+  onAnchorRunClick = null,
+  importLogMap = null
 }) {
   const [onlyMissingDays, setOnlyMissingDays] = useState(false);
   const [accordionPage, setAccordionPage] = useState(1);
@@ -316,8 +319,8 @@ export default function AutoBackfillSmartDayView({
                     </th>
                   )}
 
-                  {/* Col 2: Business Date (w-28 fixed) */}
-                  <th className="w-28 px-3 py-3.5">Ngày Nghiệp vụ</th>
+                  {/* Col 2: Business Date (w-44 fixed layout with anchor button) */}
+                  <th className="min-w-[150px] w-44 px-3 py-3.5">Ngày Nghiệp vụ</th>
 
                   {/* Col 3: Indicator Code (w-20 fixed, shown when viewing all) */}
                   {indicatorFilter === 'ALL' && (
@@ -421,15 +424,32 @@ export default function AutoBackfillSmartDayView({
                         </td>
                       )}
 
-                      {/* Col 2: Business Date */}
-                      <td className="w-28 px-3 py-3 font-bold text-slate-900 whitespace-nowrap align-middle">
-                        {day.date}
+                      {/* Col 2: Business Date + Button "Import cả ngày + bù 3 ngày" ở đầu cột/hàng của mỗi ngày D */}
+                      <td className="min-w-[150px] w-44 px-3 py-3 align-middle">
+                        <div className="font-bold text-slate-900 whitespace-nowrap">{day.date}</div>
+                        {isAdmin && onAnchorRunClick && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onAnchorRunClick(day.date);
+                            }}
+                            className="mt-1 inline-flex items-center gap-1 rounded-md border border-blue-200 bg-blue-50/90 px-1.5 py-0.5 text-[10px] font-bold text-[var(--color-vnpost-blue)] hover:bg-blue-100 hover:border-blue-300 transition shadow-2xs whitespace-nowrap cursor-pointer"
+                            title={`Import cả ngày + bù 3 ngày (${day.date}, D-1, D-2)`}
+                          >
+                            <Zap className="h-2.5 w-2.5 text-amber-500 fill-amber-400" />
+                            <span>Import cả ngày + bù 3 ngày</span>
+                          </button>
+                        )}
                       </td>
 
-                      {/* Col 3: Indicator Code (if viewing ALL) */}
+                      {/* Col 3: Indicator Code (if viewing ALL) with tooltip */}
                       {indicatorFilter === 'ALL' && (
                         <td className="w-20 px-3 py-3 whitespace-nowrap align-middle">
-                          <span className="rounded-md bg-slate-100 px-2 py-0.5 text-xs font-bold text-slate-700">
+                          <span
+                            className="rounded-md bg-slate-100 px-2 py-0.5 text-xs font-bold text-slate-700 cursor-help"
+                            title={formatLastImportTooltip(importLogMap?.get(`${day.indicator}::${day.date}`))}
+                          >
                             {day.indicator}
                           </span>
                         </td>
@@ -468,6 +488,7 @@ export default function AutoBackfillSmartDayView({
                             onRevokeClick={onRevokeClick}
                             activeMenuKey={activeMenuKey}
                             setActiveMenuKey={setActiveMenuKey}
+                            importLogMap={importLogMap}
                           />
                         ) : (
                           <span className="text-xs text-slate-400" title="Không có dữ liệu nguồn này (hoặc đang bị bộ lọc ẩn)">—</span>
@@ -490,6 +511,7 @@ export default function AutoBackfillSmartDayView({
                             onRevokeClick={onRevokeClick}
                             activeMenuKey={activeMenuKey}
                             setActiveMenuKey={setActiveMenuKey}
+                            importLogMap={importLogMap}
                           />
                         ) : (
                           <span className="text-xs text-slate-400" title="Không có dữ liệu nguồn này (hoặc đang bị bộ lọc ẩn)">—</span>
@@ -607,7 +629,8 @@ function LaneSourceCell({
   onConfirmClick,
   onRevokeClick,
   activeMenuKey,
-  setActiveMenuKey
+  setActiveMenuKey,
+  importLogMap = null
 }) {
   const statusInfo = resolveNoCodeStatus(item.status);
   const key = getItemKey(item);
@@ -623,8 +646,12 @@ function LaneSourceCell({
   const menuKey = `${key}::menu`;
   const isMenuOpen = activeMenuKey === menuKey;
 
+  const logEntry = importLogMap?.get(key) || importLogMap?.get(`${item.indicator}::${item.business_date}`);
+  const lastImportTooltip = formatLastImportTooltip(logEntry);
+
   return (
     <div
+      title={lastImportTooltip}
       className={`flex items-center justify-between gap-2 rounded-xl border px-2.5 py-1.5 transition ${
         isLaneSelected
           ? isReimportMode
@@ -661,9 +688,10 @@ function LaneSourceCell({
           </div>
         )}
 
-        {/* Sub-col 2: Status Chip (fixed w-28 text-center) */}
+        {/* Sub-col 2: Status Chip (fixed w-28 text-center) with tooltip: lần import cuối */}
         <span
-          className={`w-28 text-center truncate inline-flex items-center justify-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold border ${statusInfo.badgeClass}`}
+          title={lastImportTooltip}
+          className={`w-28 text-center truncate inline-flex items-center justify-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold border cursor-help ${statusInfo.badgeClass}`}
         >
           <span className="h-1.5 w-1.5 rounded-full bg-current shrink-0" />
           <span className="truncate">{statusInfo.label}</span>

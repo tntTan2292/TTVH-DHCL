@@ -1,0 +1,212 @@
+import assert from 'node:assert/strict';
+import {
+  ANCHOR_TARGET_INDICATORS,
+  ANCHOR_TARGET_LANES,
+  computeAnchorDates,
+  calculateAnchorOverwrites,
+  buildAnchorRunPayload,
+  formatAnchorSkippedSummary,
+  formatAuditValue,
+  buildLatestImportLogMap,
+  formatLastImportTooltip,
+  buildImportLogQueryParams
+} from './autoBackfillUiHelpers.js';
+
+console.log('Running IMPORT-LOG-AUDIT-01 anchor & audit helpers test suite...');
+
+// ==========================================
+// 1. computeAnchorDates: 3-day window [D, D-1, D-2]
+// ==========================================
+{
+  // Test case 1.1: Standard mid-month anchor date
+  const window1 = computeAnchorDates('2026-04-10', 3);
+  assert.deepEqual(window1, ['2026-04-10', '2026-04-09', '2026-04-08']);
+
+  // Test case 1.2: Month rollover (beginning of month March -> February 2026 non-leap year)
+  const window2 = computeAnchorDates('2026-03-01', 3);
+  assert.deepEqual(window2, ['2026-03-01', '2026-02-28', '2026-02-27']);
+
+  // Test case 1.3: Year rollover (beginning of year 2026 -> end of 2025)
+  const window3 = computeAnchorDates('2026-01-01', 3);
+  assert.deepEqual(window3, ['2026-01-01', '2025-12-31', '2025-12-30']);
+
+  // Test case 1.4: Invalid date input returns empty array
+  assert.deepEqual(computeAnchorDates('invalid-date'), []);
+  assert.deepEqual(computeAnchorDates(null), []);
+  assert.deepEqual(computeAnchorDates(''), []);
+
+  console.log('✔ 1. computeAnchorDates window calculation tests PASSED!');
+}
+
+// ==========================================
+// 2. calculateAnchorOverwrites: Completed cells overwrite count
+// ==========================================
+{
+  const mockCoverageItems = [
+    // 2026-04-10: 2 completed, 1 incomplete
+    { indicator: 'F1.3', source_lane: 'HUE', business_date: '2026-04-10', status: 'COMPLETED' },
+    { indicator: 'F1.3', source_lane: 'TCT', business_date: '2026-04-10', status: 'INCOMPLETE' },
+    { indicator: 'F1.1', source_lane: 'HUE', business_date: '2026-04-10', status: 'COMPLETED' },
+    // 2026-04-09: 1 completed
+    { indicator: 'F4.1', source_lane: 'HUE', business_date: '2026-04-09', status: 'COMPLETED' },
+    // 2026-04-08: 0 completed, 1 data error
+    { indicator: 'F1.2', source_lane: 'HUE', business_date: '2026-04-08', status: 'DATA_ERROR' },
+    // 2026-04-07 (outside window): 1 completed
+    { indicator: 'F1.3', source_lane: 'HUE', business_date: '2026-04-07', status: 'COMPLETED' },
+    // Non-targeted indicator (e.g. F9.9): completed inside window but not targeted
+    { indicator: 'F9.9', source_lane: 'HUE', business_date: '2026-04-10', status: 'COMPLETED' }
+  ];
+
+  const result = calculateAnchorOverwrites(mockCoverageItems, '2026-04-10');
+  assert.equal(result.anchorDate, '2026-04-10');
+  assert.deepEqual(result.windowDates, ['2026-04-10', '2026-04-09', '2026-04-08']);
+  assert.equal(result.overwriteCount, 3, 'Must count exactly 3 COMPLETED cells in the 3-day window for target indicators/lanes');
+  assert.equal(result.completedItems.length, 3);
+  assert.deepEqual(result.targetIndicators, ANCHOR_TARGET_INDICATORS);
+  assert.deepEqual(result.targetLanes, ANCHOR_TARGET_LANES);
+
+  // When no completed items exist in window
+  const emptyResult = calculateAnchorOverwrites([], '2026-04-10');
+  assert.equal(emptyResult.overwriteCount, 0);
+  assert.deepEqual(emptyResult.completedItems, []);
+
+  console.log('✔ 2. calculateAnchorOverwrites completed cells calculation tests PASSED!');
+}
+
+// ==========================================
+// 3. buildAnchorRunPayload: Strictly anchor_date only
+// ==========================================
+{
+  const payload = buildAnchorRunPayload('2026-04-10');
+  assert.deepEqual(payload, { anchor_date: '2026-04-10' });
+  assert.equal(Object.keys(payload).length, 1, 'Payload must strictly contain only anchor_date');
+
+  console.log('✔ 3. buildAnchorRunPayload payload exclusivity tests PASSED!');
+}
+
+// ==========================================
+// 4. formatAnchorSkippedSummary: Formats skipped list
+// ==========================================
+{
+  const skippedList = [
+    { indicator: 'F1.1', source_lane: 'TCT', business_date: '2026-04-10', reason: 'NOT_AUTOMATED_OR_NOT_ACTIVE' },
+    { indicator: 'F1.3', source_lane: 'HUE', business_date: '2026-04-09', reason: 'EXCLUDED' }
+  ];
+
+  const summary = formatAnchorSkippedSummary(skippedList);
+  assert.equal(summary.length, 2);
+  assert.ok(summary[0].includes('F1.1 (TCT) ngày 2026-04-10'));
+  assert.ok(summary[0].includes('thủ công'));
+  assert.ok(summary[1].includes('F1.3 (HUE) ngày 2026-04-09'));
+  assert.ok(summary[1].includes('loại trừ'));
+
+  assert.equal(formatAnchorSkippedSummary([]), null);
+  assert.equal(formatAnchorSkippedSummary(null), null);
+
+  console.log('✔ 4. formatAnchorSkippedSummary tests PASSED!');
+}
+
+// ==========================================
+// 5. formatAuditValue: "chưa ghi nhận" fallback for blank/null values
+// ==========================================
+{
+  assert.equal(formatAuditValue(null), 'chưa ghi nhận');
+  assert.equal(formatAuditValue(undefined), 'chưa ghi nhận');
+  assert.equal(formatAuditValue(''), 'chưa ghi nhận');
+  assert.equal(formatAuditValue('admin'), 'admin');
+  assert.equal(formatAuditValue('REFRESH_DAY'), 'REFRESH_DAY');
+  assert.equal(formatAuditValue(0), '0');
+  assert.equal(formatAuditValue(120), '120');
+
+  console.log('✔ 5. formatAuditValue historical non-inference tests PASSED!');
+}
+
+// ==========================================
+// 6. buildLatestImportLogMap & formatLastImportTooltip
+// ==========================================
+{
+  const mockLogItems = [
+    {
+      id: 10,
+      ngay_do_kiem: '2026-04-10',
+      indicator: 'F1.3',
+      source_lane: 'HUE',
+      status: 'COMPLETED',
+      created_at_vn: '2026-04-10 14:35:00',
+      actor: 'admin',
+      import_mode: 'REFRESH_DAY',
+      replaced_row_count: 50
+    },
+    {
+      id: 9,
+      ngay_do_kiem: '2026-04-10',
+      indicator: 'F1.3',
+      source_lane: 'TCT',
+      status: 'FAILED',
+      created_at_vn: '2026-04-10 14:30:00',
+      actor: null, // old row
+      import_mode: null, // old row
+      replaced_row_count: null
+    }
+  ];
+
+  const map = buildLatestImportLogMap(mockLogItems);
+  assert.ok(map.has('F1.3::HUE::2026-04-10'));
+  assert.ok(map.has('F1.3::TCT::2026-04-10'));
+  assert.ok(map.has('F1.3::2026-04-10'));
+
+  // Test tooltip with all audit fields present
+  const hueLog = map.get('F1.3::HUE::2026-04-10');
+  const tooltipHue = formatLastImportTooltip(hueLog);
+  assert.equal(
+    tooltipHue,
+    'Lần import cuối: 2026-04-10 14:35:00, người dùng: admin, chế độ: REFRESH_DAY'
+  );
+
+  // Test tooltip with old row (actor and mode null -> "chưa ghi nhận")
+  const tctLog = map.get('F1.3::TCT::2026-04-10');
+  const tooltipTct = formatLastImportTooltip(tctLog);
+  assert.equal(
+    tooltipTct,
+    'Lần import cuối: 2026-04-10 14:30:00, người dùng: chưa ghi nhận, chế độ: chưa ghi nhận'
+  );
+
+  // Test tooltip when no log entry exists
+  const tooltipNull = formatLastImportTooltip(null);
+  assert.equal(tooltipNull, 'Lần import cuối: chưa ghi nhận');
+
+  console.log('✔ 6. buildLatestImportLogMap & formatLastImportTooltip tests PASSED!');
+}
+
+// ==========================================
+// 7. buildImportLogQueryParams: Filter parameter formatting
+// ==========================================
+{
+  const params = buildImportLogQueryParams({
+    date_from: '2026-04-01',
+    date_to: '2026-04-10',
+    indicator: 'F1.3',
+    lane: 'ALL',
+    actor: 'admin',
+    import_mode: 'REFRESH_DAY',
+    status: 'ALL',
+    page: 2,
+    pageSize: 50
+  });
+
+  assert.deepEqual(params, {
+    date_from: '2026-04-01',
+    date_to: '2026-04-10',
+    indicator: 'F1.3',
+    actor: 'admin',
+    import_mode: 'REFRESH_DAY',
+    page: 2,
+    pageSize: 50
+  });
+  assert.equal(params.lane, undefined, 'Lane ALL must be omitted');
+  assert.equal(params.status, undefined, 'Status ALL must be omitted');
+
+  console.log('✔ 7. buildImportLogQueryParams filter formatting tests PASSED!');
+}
+
+console.log('ALL IMPORT-LOG-AUDIT-01 helper tests PASSED SUCCESSFULLY! (7/7 Suites)');

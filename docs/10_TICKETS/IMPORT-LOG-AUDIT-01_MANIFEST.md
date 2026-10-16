@@ -1,6 +1,6 @@
 # IMPORT-LOG-AUDIT-01 - Import log with user, and "Import cả ngày + bù 3 ngày"
 
-Status: BACKEND IMPLEMENTED / READY FOR UI (Antigravity) / PO UI CHECK PENDING
+Status: IMPLEMENTED / READY FOR PO UI CHECK
 Owner: Claude Code (backend, migration, tests) - Antigravity (screens)
 Date: 2026-10-16
 
@@ -41,12 +41,12 @@ One run: for D, D-1, D-2 and every ACTIVE indicator on every AUTOMATED lane with
 Response adds `anchor`: { anchor_date, window_dates[3], job_count, replace_count, skipped[] { indicator, source_lane, business_date, reason } }.
 Every job has `import_mode = REFRESH_DAY` and the run carries the user in `requested_by`.
 
-## 4. Screen work for Antigravity (not started)
+## 4. Screen work for Antigravity (DELIVERED — READY FOR PO UI CHECK)
 
-- A confirmation box before the call: the 3 dates, the indicators and lanes, how many days will be overwritten (use coverage already on screen); checkbox of consent as in Nhập lại. Button "Import cả ngày + bù 3 ngày" at the head of a day column; the call sends only `anchor_date`.
-- Import history (Bảng Chi tiết or its own tab): columns user, mode, replaced rows, time in Vietnam time, filters by data date / indicator / lane / user; source `GET /import/log`.
-- Day x indicator cell tooltip: last import time, user, mode (from the same endpoint).
-- No change to existing API fields; no browser, screenshot or dev server in the executor prompt.
+- Button "Import cả ngày + bù 3 ngày" placed at the head of each day column/row (in `AutoBackfillSmartDayView` Col 2 and `TABLE` view). Clicking opens confirmation modal listing the 3 dates (D, D-1, D-2), 4 indicators (F1.1, F1.2, F1.3, F4.1), 2 lanes (HUE, TCT), completed cell overwrite count calculated from screen coverage, consent checkbox, and calling `POST /import/auto-backfill/runs` with `{ anchor_date }` only. Displays `anchor.skipped` summary banner if present. Admin-only.
+- Import history dedicated tab / view mode (`AutoBackfillImportHistory.jsx`) powered by `GET /import/log` with columns: ID, Vietnamese time (`created_at_vn`), data date (`ngay_do_kiem`), indicator, lane, actor, mode, replaced rows count, status, total/error records, file/trigger; filter controls (date from/to, indicator, lane, actor, mode, status); pagination (20/50/100); displaying "chưa ghi nhận" for null/legacy rows without speculation. Admin-only.
+- Day x indicator cell tooltips: formatted "Lần import cuối: giờ, người dùng, chế độ" powered by `GET /import/log` with "chưa ghi nhận" fallbacks.
+- Logic placed in pure helpers (`autoBackfillUiHelpers.js`) with dedicated unit test suite (`autoBackfillAuditHelpers.test.js`, 7/7 suites passed). Existing test suites ran 100% untouched. No change to existing APIs or payloads. Admin gating enforced.
 
 ## 5. Validation
 
