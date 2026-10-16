@@ -213,3 +213,15 @@ test('withAuditColumns appends audit values only for columns the table has', asy
     const unmigrated = await runWithImportContext({ actor: 'binh' }, () => withAuditColumns(old, ['file_name'], ['a.xlsx']));
     assert.deepEqual(unmigrated, { columns: ['file_name'], values: ['a.xlsx'] });
 });
+
+test('a window with no completed day needs no confirmation and replaces nothing', async () => {
+    const fixture = await createFixture({
+        indicators: (statuses) => [createIndicator({ code: 'F9.A', priority: 10, startDate: '2026-01-05', statuses })],
+    });
+    try {
+        const created = await fixture.serviceAt(DAY_11).createRun({ anchorDate: '2026-01-09', actor: 'x', roles: ['admin'] });
+        assert.equal(created.anchor.job_count, 3);
+        assert.equal(created.anchor.replace_count, 0);
+        assert.ok(created.jobs.every((job) => Number(job.force_reimport) === 0));
+    } finally { fixture.cleanup(); }
+});

@@ -68,3 +68,7 @@ Result FAIL on the screens, backend PASS. Fixed by Claude Code:
 - `anchor.job_count/replace_count` count the jobs really created (0 for a duplicate request); the toast says so.
 - Status filter constant in the history screen corrected to SUCCESS (the list is not rendered yet: a status filter is still to add if wanted).
 Not covered by tests: `GET /import/log`, migration re-run, real `insertImportLog` write, holiday days inside an anchor run.
+
+## 8. Re-review (Opus) and fixes
+
+Points 2-4 PASS. Fixed: the confirmation box now opens at once with a loading line and shows a coverage-read error with a Close button (no stuck day button); `latest=1` cap raised to 50 000 rows; test added for a window without completed days (no confirmation, no replace). Still untested: `GET /import/log?latest=1` (needs the shared database), and the unfiltered count inside the component (covered by the pure helper test only).

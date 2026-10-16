@@ -175,7 +175,7 @@ class ImportController {
             const resolved = resolvePagination(req.query);
             const latestRequested = ['1', 'true'].includes(String(req.query.latest || '').toLowerCase());
             const page = latestRequested ? 1 : resolved.page;
-            const pageSize = latestRequested ? 5000 : resolved.pageSize;
+            const pageSize = latestRequested ? 50000 : resolved.pageSize;
             const columns = new Set((await all('PRAGMA table_info(import_log)')).map((column) => column.name));
             const audit = (name) => (columns.has(name) ? `log.${name}` : 'NULL');
             const where = [];

@@ -2328,6 +2328,32 @@ export default function AutoBackfillOperatorPanel() {
       {/* ======================================================== */}
       {/* IMPORT-LOG-AUDIT-01: CONFIRMATION MODAL "Import cả ngày + bù 3 ngày" */}
       {/* ======================================================== */}
+      {isAdmin && anchorModalDate && !anchorOverwriteInfo && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
+          <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl border border-slate-200">
+            {anchorError ? (
+              <div className="text-xs font-semibold text-red-600 bg-red-50 p-2.5 rounded-lg border border-red-100 flex items-center gap-1.5">
+                <AlertCircle className="h-4 w-4 shrink-0" />
+                <span>{anchorError}</span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 text-sm font-semibold text-slate-600">
+                <RefreshCw className="h-4 w-4 animate-spin" />
+                <span>Đang đọc dữ liệu bao phủ để tính số ô bị ghi đè...</span>
+              </div>
+            )}
+            <div className="mt-4 flex justify-end">
+              <button
+                type="button"
+                onClick={() => { setAnchorModalDate(null); setAnchorError(null); }}
+                className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50 cursor-pointer"
+              >
+                Đóng
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {isAdmin && anchorModalDate && anchorOverwriteInfo && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
           <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl border border-slate-200">
