@@ -6,6 +6,15 @@ const { all, get } = require('../config/db');
 const { executeImport, BASE_INCOMING } = require('../services/importPipeline');
 const { getIndicatorConfig, normalizeIndicator, normalizeLane } = require('../services/importIndicatorRegistry');
 const { presentImportHistoryRow } = require('../services/importHistoryPresenter');
+const { runWithImportContext, IMPORT_MODES, AUDIT_COLUMNS } = require('../services/importLogAudit');
+
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+const vnTimeFormatter = new Intl.DateTimeFormat('sv-SE', {
+    timeZone: 'Asia/Ho_Chi_Minh',
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit',
+    hourCycle: 'h23',
+});
 
 const ensureDir = (dir) => fs.mkdirSync(dir, { recursive: true });
 const ALLOWED_PAGE_SIZES = [20, 50, 100];
@@ -102,13 +111,21 @@ class ImportController {
         fs.writeFileSync(tmpPath, file.buffer);
 
         try {
-            const result = await executeImport({
-                filePath: tmpPath,
-                forceReimport: req.query.force === 'true',
-                source: 'MANUAL',
-                indicator,
-                lane
-            });
+            const forceReimport = req.query.force === 'true';
+            // IMPORT-LOG-AUDIT-01: the import_log row records who uploaded the file and how.
+            const result = await runWithImportContext(
+                {
+                    actor: req.auth?.user?.username || req.auth?.user?.id || null,
+                    importMode: forceReimport ? IMPORT_MODES.MANUAL_REIMPORT : IMPORT_MODES.MANUAL_UPLOAD,
+                },
+                () => executeImport({
+                    filePath: tmpPath,
+                    forceReimport,
+                    source: 'MANUAL',
+                    indicator,
+                    lane
+                })
+            );
 
             if (result?.requiresConfirmation) {
                 return res.status(409).json({
@@ -147,6 +164,73 @@ class ImportController {
             if (fs.existsSync(tmpPath)) {
                 try { fs.unlinkSync(tmpPath); } catch (_) {}
             }
+        }
+    }
+
+    // IMPORT-LOG-AUDIT-01: GET /import/log -- who imported what and when, filterable. Admin only (route).
+    // Times are returned as UTC ISO plus the Asia/Ho_Chi_Minh wall clock; rows written before the audit
+    // columns existed have actor / mode null (the screen shows "chưa ghi nhận").
+    async log(req, res) {
+        try {
+            const { page, pageSize } = resolvePagination(req.query);
+            const columns = new Set((await all('PRAGMA table_info(import_log)')).map((column) => column.name));
+            const audit = (name) => (columns.has(name) ? `log.${name}` : 'NULL');
+            const where = [];
+            const params = [];
+            const from = String(req.query.date_from || '').trim();
+            const to = String(req.query.date_to || '').trim();
+            if ((from && !ISO_DATE.test(from)) || (to && !ISO_DATE.test(to))) {
+                return res.status(400).json({ success: false, error: { code: 'INVALID_DATE', message: 'date_from/date_to must be YYYY-MM-DD.' } });
+            }
+            if (from) { where.push('log.ngay_do_kiem >= ?'); params.push(from); }
+            if (to) { where.push('log.ngay_do_kiem <= ?'); params.push(to); }
+            const indicator = String(req.query.indicator || '').trim().toUpperCase();
+            if (indicator) { where.push("COALESCE(log.indicator, 'F1.3') = ?"); params.push(indicator); }
+            const lane = String(req.query.lane || req.query.source || '').trim().toUpperCase();
+            if (lane) { where.push('log.source_lane = ?'); params.push(lane); }
+            const status = String(req.query.status || '').trim().toUpperCase();
+            if (status) { where.push('log.status = ?'); params.push(status); }
+            const actor = String(req.query.actor || '').trim();
+            if (actor && columns.has('actor')) { where.push('log.actor = ?'); params.push(actor); }
+            const mode = String(req.query.import_mode || '').trim().toUpperCase();
+            if (mode && columns.has('import_mode')) { where.push('log.import_mode = ?'); params.push(mode); }
+            const clause = where.length ? `WHERE ${where.join(' AND ')}` : '';
+
+            const total = Number((await get(`SELECT COUNT(*) AS n FROM import_log log ${clause}`, params))?.n || 0);
+            const totalPages = Math.max(1, Math.ceil(total / pageSize));
+            const safePage = Math.min(page, totalPages);
+            const rows = await all(
+                `SELECT log.id, log.file_name, log.ngay_do_kiem,
+                        COALESCE(log.indicator, 'F1.3') AS indicator, log.source_lane, log.trigger_source,
+                        log.status, log.created_at, log.total_records, log.error_records, log.skipped_records,
+                        ${audit('actor')} AS actor, ${audit('run_id')} AS run_id, ${audit('job_id')} AS job_id,
+                        ${audit('import_mode')} AS import_mode, ${audit('replaced_row_count')} AS replaced_row_count
+                 FROM import_log log ${clause}
+                 ORDER BY datetime(log.created_at) DESC, log.id DESC
+                 LIMIT ? OFFSET ?`,
+                [...params, pageSize, (safePage - 1) * pageSize]
+            );
+            const items = rows.map((row) => {
+                const iso = normalizeSqliteUtcTimestamp(row.created_at);
+                return {
+                    ...row,
+                    created_at: iso,
+                    created_at_vn: iso ? vnTimeFormatter.format(new Date(iso)) : null,
+                };
+            });
+            return res.status(200).json({
+                success: true,
+                data: {
+                    items,
+                    audit_columns_present: AUDIT_COLUMNS.every((name) => columns.has(name)),
+                    pagination: {
+                        page: safePage, pageSize, totalItems: total, totalPages,
+                        hasPrevious: safePage > 1, hasNext: safePage < totalPages,
+                    },
+                },
+            });
+        } catch (error) {
+            return res.status(500).json({ success: false, error: { code: 'IMPORT_LOG_READ_FAILED', message: error.message } });
         }
     }
 

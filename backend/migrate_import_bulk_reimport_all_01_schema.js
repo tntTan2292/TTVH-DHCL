@@ -16,6 +16,8 @@ const sqlite3 = require('sqlite3').verbose();
 const REQUIRED_COLUMNS = Object.freeze({
     auto_backfill_job: Object.freeze({
         force_reimport: 'INTEGER NOT NULL DEFAULT 0',
+        // IMPORT-LOG-AUDIT-01: NEW | REIMPORT | REFRESH_WINDOW | REFRESH_DAY (NULL on older jobs).
+        import_mode: 'TEXT',
     }),
 });
 

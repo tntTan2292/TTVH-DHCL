@@ -20,7 +20,8 @@
 const fs   = require('fs');
 const path = require('path');
 
-const { run, get }                                       = require('../config/db');
+const { run, get, all }                                  = require('../config/db');
+const { insertImportLogRow }                             = require('./importLogAudit');
 const { rebuildAggForDate }                              = require('./aggMaintenance');
 const { extractDateFromFilename, parseF13Excel, DB_COLUMNS } = require('./excelParser');
 const { NATIONAL_DB_COLUMNS } = require('./nationalExcelParser');
@@ -58,13 +59,23 @@ function buildInsertSpec(dbColumns) {
 }
 
 async function insertImportLog({ filename, ngay_do_kiem, status, totalRecords, errorRecords = 0, skippedRecords = 0, indicator = 'F1.3', sourceLane = null, triggerSource = 'AUTO' }) {
-    const result = await run(
-        `INSERT INTO import_log
-            (file_name, ngay_do_kiem, indicator, source_lane, trigger_source, status, total_records, error_records, skipped_records)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [filename, ngay_do_kiem, indicator, sourceLane, triggerSource, status, totalRecords, errorRecords, skippedRecords]
-    );
+    const result = await insertImportLogRow({
+        run,
+        all,
+        columns: ['file_name', 'ngay_do_kiem', 'indicator', 'source_lane', 'trigger_source', 'status', 'total_records', 'error_records', 'skipped_records'],
+        values: [filename, ngay_do_kiem, indicator, sourceLane, triggerSource, status, totalRecords, errorRecords, skippedRecords],
+    });
     return result.lastID;
+}
+
+// FAILED log written outside the rolled-back transaction; shares the audit columns with insertImportLog().
+async function insertFailedImportLog({ filename, ngay_do_kiem, indicator, sourceLane, triggerSource, totalParsed }) {
+    return insertImportLogRow({
+        run,
+        all,
+        columns: ['file_name', 'ngay_do_kiem', 'indicator', 'source_lane', 'trigger_source', 'status', 'total_records', 'error_records', 'skipped_records'],
+        values: [filename, ngay_do_kiem, indicator, sourceLane, triggerSource, 'FAILED', totalParsed, totalParsed, 0],
+    });
 }
 
 function isIsoCalendarDate(value) {
@@ -366,12 +377,7 @@ async function importParsedData({
 
         // Write FAILED log in a new, autonomous statement (outside the rolled-back txn).
         try {
-            await run(
-                `INSERT INTO import_log
-                    (file_name, ngay_do_kiem, indicator, source_lane, trigger_source, status, total_records, error_records, skipped_records)
-                 VALUES (?, ?, ?, ?, ?, 'FAILED', ?, ?, 0)`,
-                [filename, ngay_do_kiem, indicator, sourceLane, triggerSource, totalParsed, totalParsed]
-            );
+            await insertFailedImportLog({ filename, ngay_do_kiem, indicator, sourceLane, triggerSource, totalParsed });
         } catch (logErr) {
             console.error('[importProcessor] Could not write FAILED log:', logErr.message);
         }
@@ -473,12 +479,7 @@ async function importNationalParsedData({ parsedData, ngay_do_kiem, filename, fo
         try { await run('ROLLBACK'); } catch (e) {}
 
         try {
-            await run(
-                `INSERT INTO import_log
-                    (file_name, ngay_do_kiem, indicator, source_lane, trigger_source, status, total_records, error_records, skipped_records)
-                 VALUES (?, ?, ?, ?, ?, 'FAILED', ?, ?, 0)`,
-                [filename, ngay_do_kiem, indicator, sourceLane, triggerSource, totalParsed, totalParsed]
-            );
+            await insertFailedImportLog({ filename, ngay_do_kiem, indicator, sourceLane, triggerSource, totalParsed });
         } catch (e) {}
 
         throw error;

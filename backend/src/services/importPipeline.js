@@ -2,7 +2,8 @@
 
 const fs = require('fs');
 const path = require('path');
-const { get, run } = require('../config/db');
+const { get, run, all } = require('../config/db');
+const { insertImportLogRow } = require('./importLogAudit');
 const {
     getIndicatorConfig,
     resolveContextFromFilePath,
@@ -281,12 +282,12 @@ async function executeImport({ filePath, forceReimport = false, source = 'AUTO',
         console.error(`[importPipeline][${source}] FAILED | ${filename} | ${error.message}`);
         if (ngay_do_kiem && !importStarted) {
             try {
-                await run(
-                    `INSERT INTO import_log
-                        (file_name, ngay_do_kiem, indicator, source_lane, trigger_source, status, total_records, error_records, skipped_records)
-                     VALUES (?, ?, ?, ?, ?, 'FAILED', ?, ?, 0)`,
-                    [filename, ngay_do_kiem, laneConfig.indicator, laneConfig.lane, source, totalParsed, totalParsed || 1]
-                );
+                await insertImportLogRow({
+                    run,
+                    all,
+                    columns: ['file_name', 'ngay_do_kiem', 'indicator', 'source_lane', 'trigger_source', 'status', 'total_records', 'error_records', 'skipped_records'],
+                    values: [filename, ngay_do_kiem, laneConfig.indicator, laneConfig.lane, source, 'FAILED', totalParsed, totalParsed || 1, 0],
+                });
             } catch (logErr) {
                 console.error(`[importPipeline] Could not write FAILED log for '${filename}': ${logErr.message}`);
             }

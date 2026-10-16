@@ -211,8 +211,8 @@ class AutoBackfillQueueStore {
                     `INSERT INTO auto_backfill_job
                         (id, run_id, indicator, source_lane, business_date, state,
                          indicator_priority, lane_priority, completion_policy_id, executor_id,
-                         resource_identity, circuit_scope_key, registry_version, force_reimport, created_at, updated_at)
-                     VALUES (?, ?, ?, ?, ?, 'QUEUED', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                         resource_identity, circuit_scope_key, registry_version, force_reimport, import_mode, created_at, updated_at)
+                     VALUES (?, ?, ?, ?, ?, 'QUEUED', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
                     [
                         jobId,
                         runId,
@@ -227,6 +227,7 @@ class AutoBackfillQueueStore {
                         job.circuitScopeKey,
                         spec.registryVersion,
                         forceReimport ? 1 : 0,
+                        job.importMode || (forceReimport ? 'REIMPORT' : 'NEW'),
                         now,
                         now,
                     ],
@@ -253,6 +254,14 @@ class AutoBackfillQueueStore {
             };
         });
         return { ...(await this.getRun(result.runId)), creation: result };
+    }
+
+    // IMPORT-LOG-AUDIT-01: who requested the run, for the import_log actor column.
+    async getRunRequestedBy(runId) {
+        return this.withDb(async (db) => {
+            const record = await get(db, 'SELECT requested_by FROM auto_backfill_run WHERE id = ?', [runId]);
+            return record?.requested_by || null;
+        });
     }
 
     async getRun(runId) {

@@ -39,7 +39,12 @@ CREATE TABLE IF NOT EXISTS import_log (
     status TEXT NOT NULL, -- 'SUCCESS', 'FAILED'
     total_records INTEGER DEFAULT 0,
     error_records INTEGER DEFAULT 0,
-    skipped_records INTEGER DEFAULT 0
+    skipped_records INTEGER DEFAULT 0,
+    actor TEXT,
+    run_id TEXT,
+    job_id TEXT,
+    import_mode TEXT,
+    replaced_row_count INTEGER
 );
 
 -- 3. fact_f13
@@ -755,6 +760,7 @@ CREATE TABLE IF NOT EXISTS auto_backfill_job (
     last_error_signature TEXT,
     action_required TEXT,
     force_reimport INTEGER NOT NULL DEFAULT 0,
+    import_mode TEXT,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL,
     started_at TEXT,

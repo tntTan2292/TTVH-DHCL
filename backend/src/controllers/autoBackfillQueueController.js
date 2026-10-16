@@ -49,6 +49,8 @@ class AutoBackfillQueueController {
                 includeExcluded: Boolean(req.body?.include_excluded),
                 // IMPORT-BULK-REIMPORT-ALL-01 Part A (Design of Record v2 §7.2)
                 confirmReplaceCompleted: Boolean(req.body?.confirm_replace_completed),
+                // IMPORT-LOG-AUDIT-01 Part B: chosen day + the two days before it, all indicators, both lanes.
+                anchorDate: req.body?.anchor_date || null,
                 actor: requestActor(req),
                 roles: requestRoles(req),
             });

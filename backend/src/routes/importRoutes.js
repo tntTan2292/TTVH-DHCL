@@ -16,6 +16,7 @@ const adminOnly = [requireAuth, requireRole(['admin'])];
 router.post('/upload', ...adminOnly, upload.single('file'), importController.upload.bind(importController));
 router.get('/f13/status', ...adminOnly, importController.status.bind(importController));
 router.get('/status', ...adminOnly, importController.status.bind(importController));
+router.get('/log', ...adminOnly, importController.log.bind(importController));
 router.get('/auto-backfill/coverage', requireAuth, autoBackfillCoverageController.getCoverage.bind(autoBackfillCoverageController));
 router.get('/auto-backfill/coverage/exceptions', requireAuth, autoBackfillCoverageExceptionController.list.bind(autoBackfillCoverageExceptionController));
 router.post('/auto-backfill/coverage/exceptions', ...adminOnly, autoBackfillCoverageExceptionController.create.bind(autoBackfillCoverageExceptionController));

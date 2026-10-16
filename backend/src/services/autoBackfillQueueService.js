@@ -12,6 +12,7 @@ const {
 const { COMPLETION_STATUSES } = require('./autoBackfillCompletionPolicies');
 const { AutoBackfillSafetyCoordinator, scopeKey } = require('./autoBackfillSafetyCoordinator');
 const { normalizeBusinessDate } = require('./autoBackfillBusinessCalendar');
+const { runWithImportContext } = require('./importLogAudit');
 
 function normalizeRoles(roles) {
     const values = Array.isArray(roles) ? roles : [roles];
@@ -28,6 +29,18 @@ function addDays(isoDate, delta) {
     const date = new Date(`${isoDate}T00:00:00Z`);
     date.setUTCDate(date.getUTCDate() + delta);
     return date.toISOString().slice(0, 10);
+}
+
+// PO decision 2026-10-16: the chosen day plus the two days before it (D, D-1, D-2).
+const REFRESH_DAY_SPAN = 3;
+
+function sortJobs(jobs) {
+    return jobs.sort((left, right) =>
+        right.businessDate.localeCompare(left.businessDate)
+        || left.indicatorPriority - right.indicatorPriority
+        || left.lanePriority - right.lanePriority
+        || left.indicator.localeCompare(right.indicator)
+        || left.sourceLane.localeCompare(right.sourceLane));
 }
 
 function stableRequestKey(value) {
@@ -103,8 +116,11 @@ class AutoBackfillQueueService {
         return { indicator, lane };
     }
 
-    async createRun({ indicator = null, lane = null, fromDate = null, toDate = null, includeExcluded = false, confirmReplaceCompleted = false, actor, roles }) {
+    async createRun({ indicator = null, lane = null, fromDate = null, toDate = null, includeExcluded = false, confirmReplaceCompleted = false, anchorDate = null, actor, roles }) {
         assertAdmin(roles);
+        // IMPORT-LOG-AUDIT-01 Part B (PO decision 2026-10-16): one chosen day D plus the two days before it
+        // (D, D-1, D-2 = REFRESH_DAY_SPAN days), every ACTIVE indicator on every AUTOMATED lane.
+        if (anchorDate) return this.createAnchorRun({ anchorDate, indicator, lane, fromDate, toDate, includeExcluded, confirmReplaceCompleted, actor });
         const range = normalizeOptionalDateRange(fromDate, toDate);
         // AB-CALENDAR-01 D1 (design Section 4.2): include_excluded is accepted only
         // when the request resolves to exactly one indicator, one source lane and one
@@ -182,44 +198,18 @@ class AutoBackfillQueueService {
         }
 
         const jobs = eligible.map((item) => {
-            const registration = this.findRegistration(item.indicator, item.source_lane);
-            const adapter = registration.lane.portalAdapter;
-            if (registration.lane.automationMode !== 'AUTOMATED' || !adapter?.verified) {
-                throw queueError('AUTO_BACKFILL_EXECUTOR_NOT_VERIFIED', `Portal adapter for ${item.indicator}/${item.source_lane} is not verified.`, 409);
-            }
-            if (!this.executorRegistry.getVerified(adapter.id)) {
-                throw queueError('AUTO_BACKFILL_EXECUTOR_NOT_AVAILABLE', `Verified executor '${adapter.id}' is not available in this runtime.`, 503);
-            }
-            if (registration.lane.completionPolicy.id !== item.completion_policy_id) {
-                throw queueError('AUTO_BACKFILL_COMPLETION_POLICY_MISMATCH', `Completion policy changed for ${item.indicator}/${item.source_lane}.`, 409);
-            }
-            return {
-                indicator: item.indicator,
-                sourceLane: item.source_lane,
-                businessDate: item.business_date,
-                indicatorPriority: registration.indicator.priority,
-                lanePriority: registration.lane.priority,
-                completionPolicyId: item.completion_policy_id,
-                executorId: adapter.id,
-                resourceIdentity: adapter.resourceIdentity,
-                circuitScopeKey: scopeKey({
-                    adapterId: adapter.id,
-                    sourceLane: item.source_lane,
-                    resourceIdentity: adapter.resourceIdentity,
-                }),
-                // IMPORT-BULK-REIMPORT-ALL-01 Part A (Design of Record v2 §7.4):
-                // the single source of truth for "this is a confirmed Nhập lại
-                // job" -- set only here, through isReadmissibleCompleted(), never
-                // re-derived downstream.
-                forceReimport: isReadmissibleCompleted(item) || isRefreshCandidate(item),
-            };
+            // IMPORT-BULK-REIMPORT-ALL-01 Part A (Design of Record v2 §7.4):
+            // the single source of truth for "this is a confirmed Nhập lại
+            // job" -- set only here, through isReadmissibleCompleted(), never
+            // re-derived downstream.
+            const replaced = isReadmissibleCompleted(item);
+            const refreshed = !replaced && isRefreshCandidate(item);
+            return this.buildJobSpec(item, {
+                forceReimport: replaced || refreshed,
+                importMode: replaced ? 'REIMPORT' : (refreshed ? 'REFRESH_WINDOW' : 'NEW'),
+            });
         });
-        jobs.sort((left, right) =>
-            right.businessDate.localeCompare(left.businessDate)
-            || left.indicatorPriority - right.indicatorPriority
-            || left.lanePriority - right.lanePriority
-            || left.indicator.localeCompare(right.indicator)
-            || left.sourceLane.localeCompare(right.sourceLane));
+        sortJobs(jobs);
 
         const requestKey = stableRequestKey({
             registry_version: coverage.registry_version || this.registryVersion,
@@ -239,6 +229,118 @@ class AutoBackfillQueueService {
         });
         this.notifyWorkAvailable('run-created');
         return result;
+    }
+
+    buildJobSpec(item, { forceReimport, importMode }) {
+        const registration = this.findRegistration(item.indicator, item.source_lane);
+        const adapter = registration.lane.portalAdapter;
+        if (registration.lane.automationMode !== 'AUTOMATED' || !adapter?.verified) {
+            throw queueError('AUTO_BACKFILL_EXECUTOR_NOT_VERIFIED', `Portal adapter for ${item.indicator}/${item.source_lane} is not verified.`, 409);
+        }
+        if (!this.executorRegistry.getVerified(adapter.id)) {
+            throw queueError('AUTO_BACKFILL_EXECUTOR_NOT_AVAILABLE', `Verified executor '${adapter.id}' is not available in this runtime.`, 503);
+        }
+        if (registration.lane.completionPolicy.id !== item.completion_policy_id) {
+            throw queueError('AUTO_BACKFILL_COMPLETION_POLICY_MISMATCH', `Completion policy changed for ${item.indicator}/${item.source_lane}.`, 409);
+        }
+        return {
+            indicator: item.indicator,
+            sourceLane: item.source_lane,
+            businessDate: item.business_date,
+            indicatorPriority: registration.indicator.priority,
+            lanePriority: registration.lane.priority,
+            completionPolicyId: item.completion_policy_id,
+            executorId: adapter.id,
+            resourceIdentity: adapter.resourceIdentity,
+            circuitScopeKey: scopeKey({
+                adapterId: adapter.id,
+                sourceLane: item.source_lane,
+                resourceIdentity: adapter.resourceIdentity,
+            }),
+            forceReimport,
+            importMode,
+        };
+    }
+
+    // IMPORT-LOG-AUDIT-01 Part B: "Import cả ngày + bù 3 ngày". One run holding the chosen day D and the days
+    // D-1, D-2 for every ACTIVE indicator on every AUTOMATED lane. A day with no data is loaded; a COMPLETED day is
+    // replaced (admin-only, one confirmation, same as Nhập lại). Every existing guard stays: holiday / exception days
+    // (EXCLUDED), MANUAL_ONLY lanes, lanes without a verified executor, future days. A tuple that already has an open
+    // job is skipped by the store, as for any run.
+    async createAnchorRun({ anchorDate, indicator, lane, fromDate, toDate, includeExcluded, confirmReplaceCompleted, actor }) {
+        if (indicator || lane || fromDate || toDate || includeExcluded || confirmReplaceCompleted) {
+            throw queueError(
+                'AUTO_BACKFILL_ANCHOR_DATE_EXCLUSIVE',
+                'anchor_date cannot be combined with indicator, lane, from_date, to_date, include_excluded or confirm_replace_completed.',
+                400,
+            );
+        }
+        const anchor = normalizeBusinessDate(anchorDate, 'anchor_date');
+        const windowDates = Array.from({ length: REFRESH_DAY_SPAN }, (_, index) => addDays(anchor, -index));
+        const coverage = await this.coverageService.scan({ roles: ['admin'] });
+        if (anchor > coverage.to_date) {
+            throw queueError(
+                'AUTO_BACKFILL_ANCHOR_DATE_IN_FUTURE',
+                `anchor_date ${anchor} is after the newest importable day ${coverage.to_date}.`,
+                400,
+            );
+        }
+        const windowSet = new Set(windowDates);
+        const jobs = [];
+        const skipped = [];
+        for (const item of coverage.items.filter((entry) => windowSet.has(entry.business_date))) {
+            const { indicator: registeredIndicator, lane: registeredLane } = this.findRegistration(item.indicator, item.source_lane);
+            const runnable = registeredIndicator.status === 'ACTIVE'
+                && registeredLane.automationMode === 'AUTOMATED'
+                && registeredLane.portalAdapter?.verified
+                && Boolean(this.executorRegistry.getVerified(registeredLane.portalAdapter.id));
+            const replaceable = item.status === 'COMPLETED' && runnable;
+            if (runnable && (item.queue_eligible || replaceable)) {
+                jobs.push(this.buildJobSpec(item, { forceReimport: replaceable && !item.queue_eligible, importMode: 'REFRESH_DAY' }));
+            } else {
+                skipped.push({
+                    indicator: item.indicator,
+                    source_lane: item.source_lane,
+                    business_date: item.business_date,
+                    reason: !runnable ? 'NOT_AUTOMATED_OR_NOT_ACTIVE' : String(item.status || 'NOT_ELIGIBLE'),
+                });
+            }
+        }
+        if (jobs.length === 0) {
+            throw queueError(
+                'AUTO_BACKFILL_NO_EXECUTABLE_COVERAGE',
+                'No day in the requested window has a verified Portal executor.',
+                409,
+            );
+        }
+        sortJobs(jobs);
+        const requestKey = stableRequestKey({
+            registry_version: coverage.registry_version || this.registryVersion,
+            as_of_business_date: coverage.as_of_business_date,
+            mode: 'REFRESH_DAY',
+            anchor_date: anchor,
+            identities: jobs.map((job) => [job.indicator, job.sourceLane, job.businessDate]),
+        });
+        const result = await this.store.createRunWithJobs({
+            requestKey,
+            registryVersion: coverage.registry_version || this.registryVersion,
+            asOfBusinessDate: coverage.as_of_business_date,
+            requestedIndicator: null,
+            requestedLane: null,
+            requestedBy: String(actor || 'unknown'),
+            jobs,
+        });
+        this.notifyWorkAvailable('run-created');
+        return {
+            ...result,
+            anchor: {
+                anchor_date: anchor,
+                window_dates: windowDates,
+                job_count: jobs.length,
+                replace_count: jobs.filter((job) => job.forceReimport).length,
+                skipped,
+            },
+        };
     }
 
     async getRun(runId, { roles, permissionField = 'coverageReadRoles' }) {
@@ -448,7 +550,18 @@ class AutoBackfillQueueService {
                 this.store.renewLease(job.id, job.lease_token).catch(() => clearInterval(heartbeat));
             }, this.heartbeatMs);
             heartbeat.unref?.();
-            await executor.execute({
+            // IMPORT-LOG-AUDIT-01: the import_log rows written under this call carry who asked, the run, the
+            // job, the mode and (for a replace) how many rows the day held before.
+            const auditContext = {
+                actor: typeof this.store.getRunRequestedBy === 'function'
+                    ? await this.store.getRunRequestedBy(job.run_id).catch(() => null)
+                    : null,
+                runId: job.run_id,
+                jobId: job.id,
+                importMode: job.import_mode || (forceReimport ? 'REIMPORT' : 'NEW'),
+                replacedRowCount: forceReimport ? (before.evidence?.row_count ?? null) : null,
+            };
+            await runWithImportContext(auditContext, () => executor.execute({
                 indicator: job.indicator,
                 sourceLane: job.source_lane,
                 businessDate: job.business_date,
@@ -457,7 +570,7 @@ class AutoBackfillQueueService {
                 // chain's forceReimport/refreshRequested literal can become
                 // true. Every other Auto-Backfill call path keeps this false.
                 forceReimport,
-            });
+            }));
             if (simulateCrashAfterExecutor) return { jobId: job.id, state: 'SIMULATED_CRASH' };
 
             const after = await this.evaluateCompletion(job);

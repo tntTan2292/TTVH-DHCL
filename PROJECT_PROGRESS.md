@@ -2353,3 +2353,7 @@ Background session preflight now ends a DKCL browser left over from a previous b
 ## 2026-10-15 - REFRESH WINDOW FOR F1.3 AND F4.1
 
 PO decision: unscoped Auto Backfill runs now also re-import the 3 days before the newest day for F1.3 and F4.1 (F1.1 and F1.2 already did), to pick up TCT figures revised after the first fetch. refreshWindowDays: 3 in importIndicatorRegistry.js. Takes effect for runs created after a backend restart.
+
+## 2026-10-16 - IMPORT-LOG-AUDIT-01 BACKEND (AUDIT COLUMNS + ANCHOR DAY RUN)
+
+PO decisions: indicators F1.1, F1.2, F1.3, F4.1; "bù 3 ngày" = the chosen day D plus D-1, D-2 (3 days in all); completed days are replaced after one confirmation, as in Nhập lại. Backend delivered: import_log gains actor, run_id, job_id, import_mode, replaced_row_count (additive migration, carried by an AsyncLocalStorage context from the queue job and from the manual upload); `GET /import/log` (admin, filters by data date, indicator, lane, status, actor, mode; times in UTC and Asia/Ho_Chi_Minh); `POST /import/auto-backfill/runs` accepts `anchor_date` (one run, up to 3 days x 4 indicators x 2 lanes, mode REFRESH_DAY, skipped tuples reported). Screens go to Antigravity. Backend restart needed. Manifest: docs/10_TICKETS/IMPORT-LOG-AUDIT-01_MANIFEST.md.
