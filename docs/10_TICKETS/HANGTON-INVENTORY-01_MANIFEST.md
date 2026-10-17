@@ -28,6 +28,8 @@ Group: Quản lý chất lượng (cùng nhóm các chỉ tiêu F). Executor: Cl
 | D11 | Colour: RED, deeper with longer stock age (as hangton shows). |
 | D12 | Slots are never merged into one day. Comparison is slot against the same slot of the previous day (default 07:30 today vs 07:30 yesterday), or any two snapshots the PO picks. Stock is a moving set: a parcel leaves it when it reaches a final status, and enters/ages up when its stock age reaches the next level. |
 
+| D13 | Alert thresholds (O2): measured in parcels (not %), applied per office and for the Huế total. Levels ≥5, ≥7, ≥14 ngày: any count > 0 is an alert (heavier at ≥7, heaviest at ≥14). Levels <5 ngày (≥1, ≥1.5, ≥2, ≥3, ≥4): colour only, no alert for now. No numeric tolerance. |
+
 ## 2a. Derived measures (parcel level, between snapshot A (earlier) and B (later), keyed by `ItemCode`)
 
 - Resolved: in A, not in B (left the stock; B-side status may be unknown since the portal no longer lists it).
@@ -38,7 +40,7 @@ Group: Quản lý chất lượng (cùng nhóm các chỉ tiêu F). Executor: Cl
 
 ## 3. Open points
 
-- O2: numeric alert thresholds per level (counts or rates; per office or Huế total).
+- O2: RESOLVED 2026-10-17 by D13.
 - O3: RESOLVED by phase 1 (automatic login works).
 - O5: how often the portal refreshes its data (`timestamp`) vs the 07:30 / 11:30 / 21:00 slots; to measure by probing a few times in a day.
 - O4: indicator code/name in the menu (F-number or plain name).
@@ -123,3 +125,5 @@ Tests: frontend 27/27 (hangton, navigation, role routing), backend `test_hangton
 ## 8. PO status
 
 2026-10-17: PO checked the Hàng tồn screens after the Section 7 fixes and backend restart — PO UI PASS for phase 3. Ticket stays open for O2 (alert thresholds), O5 (portal refresh cadence) and the Import Center integration (not built yet).
+
+2026-10-17 (D13): O2 closed. The delivered screens already follow it (alert styling only when the count is > 0 and the level is ≥5 ngày, per office row and in the total row); no code change needed. Remaining open: O5 (portal refresh cadence), tighter catch-up window, Import Center integration.
