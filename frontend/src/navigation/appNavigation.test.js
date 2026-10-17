@@ -34,12 +34,12 @@ test('ROOT_ITEMS defines exactly 03 top-level modules in strict order', () => {
   assert.match(ROOT_ITEMS[2].title, /quản trị hệ thống/i, 'Module 3 must be SYSTEM ADMINISTRATION');
 });
 
-test('Module 1 (Quản lý chất lượng) contains F1.1, F1.2, F1.3, F4.1 in strict required order', () => {
+test('Module 1 (Quản lý chất lượng) contains F1.1, F1.2, F1.3, F4.1, Hàng tồn in strict required order', () => {
   const { ROOT_ITEMS } = loadNavigationModule();
   const qualityModule = ROOT_ITEMS[0];
-  assert.equal(qualityModule.subItems.length, 4, 'Quality module must contain 4 items');
+  assert.equal(qualityModule.subItems.length, 5, 'Quality module must contain 5 items');
 
-  const [f11, f12, f13, f41] = qualityModule.subItems;
+  const [f11, f12, f13, f41, hangton] = qualityModule.subItems;
 
   assert.equal(f11.title, 'F1.1 – Chất lượng toàn trình nội tỉnh');
   assert.deepEqual(toPlain(f11.subItems.map((item) => [item.name, item.path])), [
@@ -65,6 +65,10 @@ test('Module 1 (Quản lý chất lượng) contains F1.1, F1.2, F1.3, F4.1 in s
   ]);
   // F4.1 has no Tuyến Ranking / Evidence yet, and (PO-10) admin and viewer may both read it.
   assert.equal(f41.roles, undefined);
+
+  assert.equal(hangton.title, 'Chỉ số rà soát Hàng tồn');
+  assert.equal(hangton.path, '/hangton');
+  assert.equal(hangton.roles, undefined);
 });
 
 test('Module 2 (Quản lý mạng lưới) retains all 5 network map sub-menus including postman catalog', () => {
@@ -106,24 +110,26 @@ test('role-based visibility: ADMIN sees all 3 modules, Viewer sees only Module 1
   assert.match(adminNav[1].title, /quản lý mạng lưới/i);
   assert.match(adminNav[2].title, /quản trị hệ thống/i);
 
-  // In Module 1, ADMIN sees all 4 items
-  assert.equal(adminNav[0].subItems.length, 4);
+  // In Module 1, ADMIN sees all 5 items
+  assert.equal(adminNav[0].subItems.length, 5);
   assert.equal(adminNav[0].subItems[0].title, 'F1.1 – Chất lượng toàn trình nội tỉnh');
   assert.equal(adminNav[0].subItems[1].title, 'F1.2 – Thu gom liên tỉnh');
   assert.equal(adminNav[0].subItems[2].title, 'F1.3 – Chất lượng phát liên tỉnh');
   assert.equal(adminNav[0].subItems[3].title, 'F4.1 – Chất lượng phát thành công bưu cục');
+  assert.equal(adminNav[0].subItems[4].title, 'Chỉ số rà soát Hàng tồn');
 
   const viewerNav = getNavigationForRole('viewer');
   assert.equal(viewerNav.length, 2, 'User thường (viewer) must only see Module 1 + Module 2');
   assert.match(viewerNav[0].title, /quản lý chất lượng/i);
   assert.match(viewerNav[1].title, /quản lý mạng lưới/i);
 
-  // In Module 1, viewer sees the four read-only report modules: F1.1, F1.2, F1.3 and F4.1
-  assert.equal(viewerNav[0].subItems.length, 4);
+  // In Module 1, viewer sees the five read-only report modules: F1.1, F1.2, F1.3, F4.1 and Hàng tồn
+  assert.equal(viewerNav[0].subItems.length, 5);
   assert.equal(viewerNav[0].subItems[0].title, 'F1.1 – Chất lượng toàn trình nội tỉnh');
   assert.equal(viewerNav[0].subItems[1].title, 'F1.2 – Thu gom liên tỉnh');
   assert.equal(viewerNav[0].subItems[2].title, 'F1.3 – Chất lượng phát liên tỉnh');
   assert.equal(viewerNav[0].subItems[3].title, 'F4.1 – Chất lượng phát thành công bưu cục');
+  assert.equal(viewerNav[0].subItems[4].title, 'Chỉ số rà soát Hàng tồn');
 
   // Module 3 is not present for viewer
   assert.equal(viewerNav.find((m) => /quản trị hệ thống/i.test(m.title)), undefined);
@@ -176,7 +182,7 @@ test('Sidebar.jsx is synchronized with exact 3 modules and F1.1 -> F1.2 -> F1.3 
 
   // Verify Quality Management ordering in Sidebar.jsx
   const qualityItems = menuItems[0].subItems;
-  assert.equal(qualityItems.length, 4, 'Quản lý chất lượng in Sidebar.jsx must have 4 items');
+  assert.equal(qualityItems.length, 5, 'Quản lý chất lượng in Sidebar.jsx must have 5 items');
 
   assert.equal(qualityItems[0].title, 'F1.1 – Chất lượng toàn trình nội tỉnh');
   assert.deepEqual(toPlain(qualityItems[0].subItems.map((item) => item.path)), ['/f11/dashboard', '/f11/ranking/bcvh']);
@@ -195,6 +201,9 @@ test('Sidebar.jsx is synchronized with exact 3 modules and F1.1 -> F1.2 -> F1.3 
 
   assert.equal(qualityItems[3].title, 'F4.1 – Chất lượng phát thành công bưu cục');
   assert.deepEqual(toPlain(qualityItems[3].subItems.map((item) => item.path)), ['/f41/dashboard', '/f41/ranking/bcvh']);
+
+  assert.equal(qualityItems[4].title, 'Chỉ số rà soát Hàng tồn');
+  assert.equal(qualityItems[4].path, '/hangton');
 
   // Verify Pareto and Message Center remain excluded
   const subItemsText = JSON.stringify(qualityItems);

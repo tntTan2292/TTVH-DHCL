@@ -1,4 +1,4 @@
-import { Activity, BarChart2, Database, FileSpreadsheet, Info, LayoutDashboard, MapPin, Settings, Target, Users } from 'lucide-react';
+import { Activity, BarChart2, Database, FileSpreadsheet, Info, LayoutDashboard, MapPin, Package, Settings, Target, Users } from 'lucide-react';
 import { ROLE_ADMIN, normalizeRole } from '../auth/roles';
 
 const F11_GROUP = {
@@ -43,6 +43,13 @@ const F41_GROUP = {
   ],
 };
 
+const HANGTON_ITEM = {
+  title: 'Chỉ số rà soát Hàng tồn',
+  name: 'Chỉ số rà soát Hàng tồn',
+  path: '/hangton',
+  icon: <Package size={18} />,
+};
+
 const QUALITY_MANAGEMENT_GROUP = {
   title: 'Quản lý chất lượng',
   icon: <Activity size={20} />,
@@ -51,6 +58,7 @@ const QUALITY_MANAGEMENT_GROUP = {
     F12_GROUP,
     F13_GROUP,
     F41_GROUP,
+    HANGTON_ITEM,
   ],
 };
 

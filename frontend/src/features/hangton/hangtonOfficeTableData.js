@@ -1,0 +1,127 @@
+// HANGTON-INVENTORY-01 Phase 3: Pure data transformer and sorter for the "Theo bưu cục" table.
+// Decisions:
+// D5: Show only offices that have stock (API already filters for these).
+// D10: Alert per level, heavier from >=5 ngày up.
+// D12: Single snapshot data, compare columns from compare endpoint.
+
+import { TON_LEVELS, tonRank } from './hangtonLevels.js';
+import { compareSortValues } from '../../components/common/tableSort.js';
+
+export const OFFICE_TABLE_TEXT_FIELDS = Object.freeze(['office']);
+
+/**
+ * Builds table rows for the "Theo bưu cục" tab.
+ * @param {Array} byOffice - from overview API [{ office, n, cod, n_ge5 }]
+ * @param {Array} byOfficeLevel - from overview API [{ office, ton_level, ton_rank, n }]
+ * @param {Array} compareByOffice - from compare API [{ office, change, n }]
+ * @returns {Array} rows ready for display and sorting
+ */
+export function buildOfficeTableRows(byOffice = [], byOfficeLevel = [], compareByOffice = []) {
+  if (!Array.isArray(byOffice) || byOffice.length === 0) return [];
+
+  // Index level counts by office + ton_level
+  const levelMap = new Map();
+  for (const entry of byOfficeLevel || []) {
+    if (!entry?.office) continue;
+    const key = `${entry.office}:::${entry.ton_level}`;
+    levelMap.set(key, (levelMap.get(key) || 0) + (Number(entry.n) || 0));
+  }
+
+  // Index compare changes by office: resolved, aged_up, new
+  const compareMap = new Map();
+  for (const comp of compareByOffice || []) {
+    if (!comp?.office) continue;
+    if (!compareMap.has(comp.office)) {
+      compareMap.set(comp.office, { resolved: 0, aged_up: 0, new: 0 });
+    }
+    const current = compareMap.get(comp.office);
+    if (comp.change === 'resolved') current.resolved += Number(comp.n) || 0;
+    else if (comp.change === 'aged_up') current.aged_up += Number(comp.n) || 0;
+    else if (comp.change === 'new') current.new += Number(comp.n) || 0;
+  }
+
+  return byOffice.map((off) => {
+    const officeName = off.office || 'Chưa xác định';
+    const row = {
+      office: officeName,
+      total: Number(off.n) || 0,
+      cod: Number(off.cod) || 0,
+      ge5: Number(off.n_ge5) || 0,
+    };
+
+    // Fill each ton_level count
+    for (const lvl of TON_LEVELS) {
+      const count = levelMap.get(`${officeName}:::${lvl}`) || 0;
+      row[lvl] = count;
+    }
+
+    // If ge5 wasn't calculated from backend, compute it directly
+    if (row.ge5 === 0) {
+      row.ge5 = TON_LEVELS
+        .filter((lvl) => (tonRank(lvl) ?? 0) >= 5)
+        .reduce((sum, lvl) => sum + (row[lvl] || 0), 0);
+    }
+
+    // Attach compare values
+    const compData = compareMap.get(officeName) || { resolved: 0, aged_up: 0, new: 0 };
+    row.resolved = compData.resolved;
+    row.aged_up = compData.aged_up;
+    row.new = compData.new;
+
+    return row;
+  });
+}
+
+/**
+ * Calculates sum totals row across all offices.
+ * The totals row never moves during sorting.
+ */
+export function calculateOfficeTotals(rows = []) {
+  const totals = {
+    office: 'TỔNG CỘNG',
+    total: 0,
+    ge5: 0,
+    cod: 0,
+    resolved: 0,
+    aged_up: 0,
+    new: 0,
+  };
+
+  for (const lvl of TON_LEVELS) {
+    totals[lvl] = 0;
+  }
+
+  for (const r of rows) {
+    totals.total += Number(r.total) || 0;
+    totals.ge5 += Number(r.ge5) || 0;
+    totals.cod += Number(r.cod) || 0;
+    totals.resolved += Number(r.resolved) || 0;
+    totals.aged_up += Number(r.aged_up) || 0;
+    totals.new += Number(r.new) || 0;
+
+    for (const lvl of TON_LEVELS) {
+      totals[lvl] += Number(r[lvl]) || 0;
+    }
+  }
+
+  return totals;
+}
+
+/**
+ * Stable sorting of office rows by field and direction.
+ */
+export function sortOfficeRows(rows = [], sort = { field: 'total', direction: 'desc' }) {
+  if (!Array.isArray(rows) || rows.length <= 1) return rows;
+  const { field, direction = 'desc' } = sort;
+  if (!field) return rows;
+
+  return rows
+    .map((row, index) => ({ row, index }))
+    .sort((a, b) => {
+      const valA = a.row[field];
+      const valB = b.row[field];
+      const diff = compareSortValues(valA, valB, direction);
+      return diff !== 0 ? diff : a.index - b.index;
+    })
+    .map((entry) => entry.row);
+}

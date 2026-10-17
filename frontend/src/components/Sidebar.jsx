@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
 import CollapsedFlyout from './CollapsedFlyout';
-import { Target, Activity, Settings, Database, Info, FileSpreadsheet, ChevronLeft, ChevronRight, BarChart2, ChevronDown, MapPin, Users, Pin, Search } from 'lucide-react';
+import { Target, Activity, Settings, Database, Info, FileSpreadsheet, ChevronLeft, ChevronRight, BarChart2, ChevronDown, MapPin, Users, Pin, Search, Package } from 'lucide-react';
 
 function normalizeNavText(text = '') {
   return text
@@ -108,6 +108,12 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
             { name: 'Bảng điều hành', path: '/f41/dashboard', icon: <Target size={18} /> },
             { name: 'Phân tích BCVH', path: '/f41/ranking/bcvh', icon: <BarChart2 size={18} /> },
           ],
+        },
+        {
+          name: 'Chỉ số rà soát Hàng tồn',
+          title: 'Chỉ số rà soát Hàng tồn',
+          path: '/hangton',
+          icon: <Package size={18} />,
         },
       ],
     },

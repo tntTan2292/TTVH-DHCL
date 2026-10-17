@@ -87,3 +87,27 @@ Screens (tabs in one page):
 Rules: Huế only, no national rank (D6). Colour RED, deeper with longer stock age (≥1 lightest … ≥14 darkest); from ≥5 ngày the cell/row is visibly heavier, again at ≥7 and ≥14 (D10); no numeric alert thresholds yet (O2 open) — do not invent any. Slots are never merged into one day (D12): every figure belongs to one snapshot (date + slot). Follow `docs/05_DEVELOPMENT/Implementation/report_block_ui_standard.md` (camera button, click-to-order titles, target line, undefined-identifier check); the "date filter" of that standard is the snapshot picker here. Vietnamese labels.
 
 Required Reading for the executor: this manifest and `docs/05_DEVELOPMENT/Implementation/report_block_ui_standard.md`.
+
+## 6. Phase 3 result (2026-10-17, Antigravity) — frontend delivered, READY FOR PO UI CHECK
+
+- Navigation & routing:
+  - Added new menu item "Chỉ số rà soát Hàng tồn" (`/hangton`) at the end of Module 1 (Quản lý chất lượng), after F4.1, in both `frontend/src/navigation/appNavigation.jsx` and `frontend/src/components/Sidebar.jsx`.
+  - Registered route in `frontend/src/App.jsx` gated for `[ROLE_ADMIN, ROLE_VIEWER]`.
+  - Updated `frontend/src/navigation/appNavigation.test.js` to assert the 5th item as permitted by Section 5.
+- Screens & 4 tabs in `frontend/src/features/hangton/HangTonPage.jsx`:
+  1. **Tổng quan**: KPI cards (Tổng tồn vs mốc trước, Tồn ≥5 ngày với mục tiêu TCT: 0 bưu gửi, Đã xử lý khỏi tồn, Tăng loại tồn, Mới vào tồn); column chart cơ cấu theo 9 mức `Loại Tồn` tăng dần với thang màu đỏ đậm dần; bảng chi tiết 9 mức và phân bổ theo 5 trạng thái TMS; camera button trên từng khối.
+  2. **Theo bưu cục**: bảng tổng hợp theo từng bưu cục có tồn (D5); 9 cột `Loại Tồn`, cột Tổng tồn, Tồn ≥5 ngày, Tiền COD, và 3 cột so sánh biến động (Đã xử lý / Tăng loại / Mới vào); tiêu đề cột click-to-order (`SortableTh`); bấm vào tên bưu cục để chuyển sang tab Chi tiết lọc theo bưu cục đó; hàng TỔNG CỘNG cố định ở chân bảng; camera button.
+  3. **So sánh hai mốc**: bộ chọn 2 mốc snapshot (Mốc xem xét vs Mốc cơ sở); 5 thẻ tóm tắt biến động (Đã xử lý, Tăng loại, Mới vào, Không đổi, Giảm mức); bộ lọc bưu cục; 3 danh sách chi tiết bưu gửi với chuyển mức Loại tồn (Trước → Sau); camera button và nút xuất CSV.
+  4. **Chi tiết**: bảng phân trang bưu gửi (`/items`); bộ lọc bưu cục, ngưỡng loại tồn (`min_rank`), trạng thái TMS; sắp xếp theo Loại tồn / Bưu cục / Tiền COD; điều khiển phân trang (50/100/200); xuất dữ liệu trang ra CSV có UTF-8 BOM; camera button.
+- Pure helpers & tests:
+  - `hangtonLevels.js`: 9 mức tồn, hàm `tonRank`, cấu hình thang màu ĐỎ đậm dần (D10, D11), không tự đặt ngưỡng cảnh báo bằng số; định dạng slot, snapshot label, số và tiền VND.
+  - `hangtonOfficeTableData.js`: tổng hợp dữ liệu bưu cục và tính dòng TỔNG CỘNG, hàm sắp xếp ổn định `sortOfficeRows`.
+  - `hangtonExport.js`: sinh nội dung CSV có UTF-8 BOM (`\uFEFF`) để mở tiếng Việt không lỗi font trong Excel.
+  - `api/hangtonClient.js`: đóng gói 4 API `/api/hangton/*`.
+  - Tests: `node --test src/features/hangton/hangtonHelpers.test.js src/features/hangton/hangtonPage.test.js src/features/hangton/api/hangtonClient.test.js src/navigation/appNavigation.test.js src/App.role-routing.test.js` (23/23 PASS).
+- Quality gates:
+  - `npm run build` (vite build): clean (1.27s).
+  - `npm run lint` (oxlint on `src/features/hangton`): 0 warnings, 0 errors.
+  - `oxlint -D no-undef`: clean on all new/touched identifiers.
+  - No browser/Playwright/dev server/login executed; stopped at `READY FOR PO UI CHECK`.
+
