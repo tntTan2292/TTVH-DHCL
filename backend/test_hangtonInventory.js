@@ -102,8 +102,11 @@ test('scheduler decides the due slot with catch-up window and retry back-off', (
     assert.equal(dueSlot({ now: at(7, 29), stored: none }), null);
     assert.equal(dueSlot({ now: at(7, 30), stored: none }), '0730');
     assert.equal(dueSlot({ now: at(8, 0), stored: new Set(['2026-10-17|0730']) }), null);
-    assert.equal(dueSlot({ now: at(10, 0), stored: none }), '0730', 'catch-up of a missed slot inside 3 h');
-    assert.equal(dueSlot({ now: at(10, 31), stored: none }), null, 'older than the catch-up window');
+    assert.equal(dueSlot({ now: at(7, 55), stored: none }), '0730', 'catch-up of a missed slot inside 30 minutes');
+    assert.equal(dueSlot({ now: at(8, 0), stored: none }), '0730', 'exactly 30 minutes late is still caught up');
+    assert.equal(dueSlot({ now: at(8, 1), stored: none }), null, 'older than the catch-up window');
+    assert.equal(dueSlot({ now: at(9, 41), stored: none }), null, 'a restart at 09:41 must not label its data 07:30');
+    assert.equal(dueSlot({ now: at(11, 50), stored: none }), '1130', 'the next slot is still taken when due');
     const attempt = { '2026-10-17|1130': at(11, 35).getTime() };
     assert.equal(dueSlot({ now: at(11, 40), stored: none, lastAttempt: attempt }), null);
     assert.equal(dueSlot({ now: at(11, 46), stored: none, lastAttempt: attempt }), '1130');

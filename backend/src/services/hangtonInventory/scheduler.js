@@ -1,12 +1,13 @@
 'use strict';
 
 // HANGTON-INVENTORY-01 phase 2: three fixed daily slots (07:30, 11:30, 21:00, local time).
-// A tick every minute runs a slot that is due (now >= slot time, within the catch-up window) and not yet
+// A tick every minute runs a slot that is due (now >= slot time, within the 30-minute catch-up window) and not yet
 // stored for today; a failed attempt is retried after RETRY_MS. One run at a time.
 const { SLOTS } = require('./scope');
 const { takeSnapshot, localDate } = require('./snapshotService');
 
-const CATCH_UP_MS = 3 * 60 * 60 * 1000;
+// A slot label means "data taken at that time": a missed slot is only caught up within 30 minutes, later it stays empty.
+const CATCH_UP_MS = 30 * 60 * 1000;
 const RETRY_MS = 10 * 60 * 1000;
 const TICK_MS = 60 * 1000;
 
