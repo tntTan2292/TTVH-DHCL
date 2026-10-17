@@ -135,3 +135,13 @@ Tests: frontend 27/27 (hangton, navigation, role routing), backend `test_hangton
 3. **Column hiding** on Theo bưu cục: presets "Tất cả mức / Từ ≥3 ngày / Từ ≥5 ngày" plus a toggle per level; the choice is remembered in the browser; the picker is outside the captured picture; Tổng tồn still counts hidden levels (stated on screen). Also fixed a `<th>` inside `<th>`.
 4. **Module prominence.** Hàng tồn is now a module group like F1.1–F4.1 (red pulsing dot, opens pinned, sub-items Tổng quan / Theo bưu cục / So sánh hai mốc / Chi tiết bưu gửi at `/hangton/overview|office|compare|items`; `/hangton` redirects to overview; the page tab bar and the sidebar stay in step through the URL). Navigation tests updated for the group.
 Tests: frontend full sweep 716/716, oxlint clean on touched files, build OK.
+
+## 10. Independent review of 1c22c62 (Opus, 2026-10-17): PASS, no blocker, 5 should-fix — all addressed (Claude Code/Sonnet 5.5)
+
+- Section 9.1 said the Control Center starts the backend Hidden but the line still said Minimized: fixed (`TTVH_ControlCenter.ps1`).
+- Forgotten pause file: the supervisor now writes a "paused since …" line to `logs/supervisor.log` once and every 30 minutes. The file is NOT cleared automatically at logon (PO decision pending: whether a reboot should clear a pause).
+- Two backends in the same second: "Start System" keeps the pause file until both ports listen (max 90 s) and only then removes it; the supervisor also re-checks the port after 3 s before starting.
+- `install-qis-autostart.ps1 -Remove` now also stops the running supervisor.
+- Text cut by `truncate` (KPI notes, office names) removed; the empty-row `colSpan` follows the visible columns; hiding the column the table is ordered by resets the order; `/hangton/<unknown>` rewrites the URL to `/hangton/overview`.
+- Notes handled: dry runs log to `supervisor-dryrun.log` (marked DRYRUN); `supervisor.log` rotates at 1 MB; "node/npm not found" logged once; node fallback also uses the user profile; the Startup `.vbs` is written as UTF-16 so a Vietnamese path survives. Not changed: log files of a long-running node are not pruned while open; the regex-style source tests remain next to the new behaviour tests (office column count, sort reset, tab resolution).
+Tests: frontend 719/719, lint clean, build OK; supervisor dry runs (down / paused) show the expected lines; the live supervisor was restarted with the new script (`-Remove` then `-StartNow`).

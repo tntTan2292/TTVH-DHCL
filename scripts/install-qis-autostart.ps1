@@ -12,6 +12,10 @@ $startupDir = Join-Path $env:APPDATA 'Microsoft\Windows\Start Menu\Programs\Star
 $launcher = Join-Path $startupDir 'QIS_V2_AUTO.vbs'
 
 if ($Remove) {
+    # also stop the running supervisor, otherwise it keeps restarting what the operator stops until logoff
+    Get-CimInstance Win32_Process -Filter "Name='powershell.exe'" |
+        Where-Object { $_.ProcessId -ne $PID -and $_.CommandLine -match 'qis-supervisor\.ps1' -and $_.CommandLine -match '-File' } |
+        ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue; Write-Host "Stopped supervisor PID $($_.ProcessId)" }
     if (Test-Path -LiteralPath $launcher) { Remove-Item -LiteralPath $launcher -Force; Write-Host "Removed $launcher" }
     else { Write-Host 'Nothing to remove.' }
     return
@@ -24,7 +28,8 @@ Set WshShell = CreateObject("WScript.Shell")
 WshShell.Run "$($command.Replace('"','""'))", 0, False
 Set WshShell = Nothing
 "@
-Set-Content -LiteralPath $launcher -Value $vbs -Encoding ASCII
+# Unicode (UTF-16 with BOM): Windows Script Host reads it, so a path with Vietnamese letters survives
+Set-Content -LiteralPath $launcher -Value $vbs -Encoding Unicode
 Write-Host "Installed $launcher"
 
 if ($StartNow) {

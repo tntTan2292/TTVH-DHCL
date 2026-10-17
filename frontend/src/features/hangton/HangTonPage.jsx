@@ -9,6 +9,7 @@ import {
 import { useNavigate, useParams } from 'react-router-dom';
 import { PageContainer } from '../../components/shared/SharedComponents.jsx';
 import { LoadingLayout, ErrorLayout, EmptyLayout } from '../../components/common/StateLayouts.jsx';
+import { resolveHangtonTab, isHangtonTab } from './hangtonTabs.js';
 import SnapshotPicker from './components/SnapshotPicker.jsx';
 import HangTonOverviewTab from './components/HangTonOverviewTab.jsx';
 import HangTonByOfficeTab from './components/HangTonByOfficeTab.jsx';
@@ -30,7 +31,11 @@ export default function HangTonPage() {
 
   const { tab } = useParams();
   const navigate = useNavigate();
-  const activeTab = TABS.some((t) => t.id === tab) ? tab : 'overview';
+  const activeTab = resolveHangtonTab(tab);
+  useEffect(() => {
+    // /hangton/<unknown> -> the real overview URL, so the address and the menu agree
+    if (!isHangtonTab(tab)) navigate('/hangton/overview', { replace: true });
+  }, [tab, navigate]);
   const setActiveTab = (id) => navigate(`/hangton/${id}`);
   const [selectedOfficeDrilldown, setSelectedOfficeDrilldown] = useState('');
 

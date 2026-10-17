@@ -101,3 +101,15 @@ test('Readable text: no 9-11px text left in the Hàng tồn screens', () => {
   }
   assert.doesNotMatch(read('./components/HangTonOverviewTab.jsx'), /fontSize: 1[01]/);
 });
+
+test('Review fixes: no truncated KPI notes or office names, empty row spans the visible columns, unknown tab rewrites the URL', () => {
+  const overview = read('./components/HangTonOverviewTab.jsx');
+  const office = read('./components/HangTonByOfficeTab.jsx');
+  const page = read('./HangTonPage.jsx');
+  assert.doesNotMatch(overview, /pt-2 truncate/, 'KPI notes wrap instead of being cut');
+  assert.doesNotMatch(office, /truncate max-w-\[150px\]/, 'office names are never cut (also in the captured picture)');
+  assert.doesNotMatch(office, /colSpan=\{16\}/);
+  assert.match(office, /officeTableColumnCount\(shownLevels\.length\)/);
+  assert.match(office, /sortAfterHide\(current, next\)/);
+  assert.match(page, /navigate\('\/hangton\/overview', \{ replace: true \}\)/);
+});

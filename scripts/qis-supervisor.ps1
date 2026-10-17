@@ -15,10 +15,13 @@ param(
 $RootPath = Split-Path -Parent $PSScriptRoot
 $LogDir = Join-Path $RootPath 'logs'
 $PauseFile = Join-Path $LogDir 'supervisor.pause'
-$SupervisorLog = Join-Path $LogDir 'supervisor.log'
+$SupervisorLog = Join-Path $LogDir $(if ($DryRun) { 'supervisor-dryrun.log' } else { 'supervisor.log' })
 New-Item -ItemType Directory -Force -Path $LogDir | Out-Null
 
 function Write-Log([string]$message) {
+    if ((Test-Path -LiteralPath $SupervisorLog) -and (Get-Item -LiteralPath $SupervisorLog).Length -gt 1MB) {
+        Move-Item -LiteralPath $SupervisorLog -Destination ($SupervisorLog + '.old') -Force
+    }
     $line = '{0} {1}' -f (Get-Date -Format 'yyyy-MM-dd HH:mm:ss'), $message
     Add-Content -LiteralPath $SupervisorLog -Value $line -Encoding UTF8
     if ($DryRun) { Write-Host $line }
@@ -36,11 +39,17 @@ function Resolve-Tool([string]$name, [string[]]$fallbacks) {
 }
 
 $NodeFallbacks = @(
+    (Join-Path $env:USERPROFILE 'nodejs_portable_v22
+ode-v22.12.0-win-x64
+ode.exe'),
     'C:\Users\Admin\nodejs_portable_v22\node-v22.12.0-win-x64\node.exe',
     'D:\Setup\nodejs_portable\node-v22.12.0-win-x64\node.exe',
     'C:\Program Files\nodejs\node.exe'
 )
 $NpmFallbacks = @(
+    (Join-Path $env:USERPROFILE 'nodejs_portable_v22
+ode-v22.12.0-win-x64
+pm.cmd'),
     'C:\Users\Admin\nodejs_portable_v22\node-v22.12.0-win-x64\npm.cmd',
     'D:\Setup\nodejs_portable\node-v22.12.0-win-x64\npm.cmd',
     'C:\Program Files\nodejs\npm.cmd'
@@ -72,13 +81,26 @@ $createdNew = $false
 $mutex = New-Object System.Threading.Mutex($true, 'Global\QIS_V2_SUPERVISOR', [ref]$createdNew)
 if (-not $createdNew -and -not $DryRun) { exit 0 }
 
-Write-Log "supervisor up (backend $BackendPort, frontend $FrontendPort, check ${CheckSeconds}s, pid $PID)"
+Write-Log "$(if ($DryRun) { 'DRYRUN ' })supervisor up (backend $BackendPort, frontend $FrontendPort, check ${CheckSeconds}s, pid $PID)"
 $lastStart = @{ backend = [datetime]::MinValue; frontend = [datetime]::MinValue }
 $recent = @{ backend = (New-Object 'System.Collections.Generic.List[datetime]'); frontend = (New-Object 'System.Collections.Generic.List[datetime]') }
 $lastClean = [datetime]::MinValue
+$lastPauseNote = [datetime]::MinValue
+$missingNote = @{}
 
 function Ensure-Service([string]$name, [int]$port, [scriptblock]$starter) {
-    if (Test-Path -LiteralPath $PauseFile) { return }
+    if (Test-Path -LiteralPath $PauseFile) {
+        # say so once, then every 30 minutes, so a forgotten pause file is visible in the log
+        if (((Get-Date) - $script:lastPauseNote).TotalMinutes -ge 30) {
+            $since = (Get-Item -LiteralPath $PauseFile).LastWriteTime.ToString('yyyy-MM-dd HH:mm:ss')
+            Write-Log "paused since $since (logs\supervisor.pause exists): $name will not be restarted until it is removed (Control Center -> Start System)"
+            $script:lastPauseNote = Get-Date
+        }
+        return
+    }
+    if (Test-PortListening $port) { return }
+    # confirm: a server that is just binding its port must not be started twice
+    Start-Sleep -Seconds 3
     if (Test-PortListening $port) { return }
     $now = Get-Date
     if (($now - $lastStart[$name]).TotalSeconds -lt $GraceSeconds) { return }
@@ -96,11 +118,11 @@ function Ensure-Service([string]$name, [int]$port, [scriptblock]$starter) {
 do {
     $node = Resolve-Tool 'node' $NodeFallbacks
     $npm = Resolve-Tool 'npm.cmd' $NpmFallbacks
-    if (-not $node) { Write-Log 'node.exe not found'; }
+    if (-not $node) { if (-not $missingNote['node']) { Write-Log 'node.exe not found (will keep checking, message shown once)'; $missingNote['node'] = $true } }
     else {
         Ensure-Service 'backend' $BackendPort { Start-Hidden 'backend' $node 'server.js' (Join-Path $RootPath 'backend') }
     }
-    if (-not $npm) { Write-Log 'npm.cmd not found' }
+    if (-not $npm) { if (-not $missingNote['npm']) { Write-Log 'npm.cmd not found (will keep checking, message shown once)'; $missingNote['npm'] = $true } }
     else {
         Ensure-Service 'frontend' $FrontendPort { Start-Hidden 'frontend' $npm 'run dev' (Join-Path $RootPath 'frontend') }
     }

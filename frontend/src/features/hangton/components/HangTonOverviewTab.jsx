@@ -150,7 +150,7 @@ export default function HangTonOverviewTab({
             <span className="text-3xl font-black text-emerald-700">{compareValue(compare, 'resolved')}</span>
             <span className="text-sm text-emerald-600 font-medium">bưu gửi</span>
           </div>
-          <p className="mt-2 text-[13px] text-emerald-800 border-t border-emerald-100 pt-2 truncate">
+          <p className="mt-2 text-[13px] text-emerald-800 border-t border-emerald-100 pt-2">
             Đã phát / vu hồi / ra khỏi tồn
           </p>
         </div>
@@ -165,7 +165,7 @@ export default function HangTonOverviewTab({
             <span className="text-3xl font-black text-amber-700">{compareValue(compare, 'aged_up')}</span>
             <span className="text-sm text-amber-600 font-medium">bưu gửi</span>
           </div>
-          <p className="mt-2 text-[13px] text-amber-800 border-t border-amber-100 pt-2 truncate">
+          <p className="mt-2 text-[13px] text-amber-800 border-t border-amber-100 pt-2">
             Chuyển sang mức tồn cao hơn
           </p>
         </div>
@@ -180,7 +180,7 @@ export default function HangTonOverviewTab({
             <span className="text-3xl font-black text-indigo-700">{compareValue(compare, 'new')}</span>
             <span className="text-sm text-indigo-600 font-medium">bưu gửi</span>
           </div>
-          <p className="mt-2 text-[13px] text-indigo-800 border-t border-indigo-100 pt-2 truncate">
+          <p className="mt-2 text-[13px] text-indigo-800 border-t border-indigo-100 pt-2">
             Phát sinh mới so với mốc trước
           </p>
         </div>

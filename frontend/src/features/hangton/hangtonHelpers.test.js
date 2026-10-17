@@ -197,3 +197,31 @@ test('column presets hide the low-age levels; toggles and storage values are san
   assert.deepEqual(sanitizeHiddenLevels(['≥2 ngày', 'rác', 5]), ['≥2 ngày']);
   assert.deepEqual(sanitizeHiddenLevels('x'), []);
 });
+
+test('office table: empty-row colSpan follows the visible columns; hiding the sorted level resets the sort', async () => {
+  const { officeTableColumnCount, sortAfterHide, buildOfficeTableRows, calculateOfficeTotals } = await import('./hangtonOfficeTableData.js');
+  const { TON_LEVELS, presetHiddenLevels, visibleLevels } = await import('./hangtonLevels.js');
+  assert.equal(officeTableColumnCount(TON_LEVELS.length), 16, 'all 9 levels: 1 + 9 + 3 + 3');
+  assert.equal(officeTableColumnCount(visibleLevels(presetHiddenLevels('ge5')).length), 10, 'only ≥5, ≥7, ≥14');
+  assert.equal(officeTableColumnCount(0), 7);
+  const sorted = { field: '≥2 ngày', direction: 'asc' };
+  assert.deepEqual(sortAfterHide(sorted, ['≥2 ngày']), { field: 'total', direction: 'desc' });
+  assert.equal(sortAfterHide(sorted, ['≥1 ngày']), sorted, 'a visible sort column is kept');
+  assert.deepEqual(sortAfterHide({ field: 'office', direction: 'asc' }, TON_LEVELS), { field: 'office', direction: 'asc' });
+  // totals keep counting every level even when columns are hidden (hiding is display only)
+  const rows = buildOfficeTableRows(
+    [{ office: 'A', n: 3, cod: 0, n_ge5: 1 }],
+    [{ office: 'A', ton_level: '<1 ngày', n: 2 }, { office: 'A', ton_level: '≥5 ngày', n: 1 }],
+    [],
+  );
+  assert.equal(calculateOfficeTotals(rows).total, 3);
+});
+
+test('tab resolution: unknown tab falls back to the overview', async () => {
+  const { resolveHangtonTab, isHangtonTab, HANGTON_TAB_IDS } = await import('./hangtonTabs.js');
+  assert.deepEqual([...HANGTON_TAB_IDS], ['overview', 'office', 'compare', 'items']);
+  assert.equal(resolveHangtonTab('items'), 'items');
+  assert.equal(resolveHangtonTab('foo'), 'overview');
+  assert.equal(resolveHangtonTab(undefined), 'overview');
+  assert.equal(isHangtonTab('foo'), false);
+});

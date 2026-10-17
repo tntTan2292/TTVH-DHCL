@@ -35,11 +35,13 @@ function Kill-ProcessByPort {
 }
 
 function Start-System {
-    # the auto-start supervisor (scripts\qis-supervisor.ps1) is no longer paused
-    Remove-Item -LiteralPath "$RootPath\logs\supervisor.pause" -Force -ErrorAction SilentlyContinue
+    # Keep the supervisor (scripts\qis-supervisor.ps1) paused while the system is being started, so it cannot start a
+    # second copy in the same second; the pause file is removed only once both ports listen (see below).
+    New-Item -ItemType Directory -Force -Path "$RootPath\logs" | Out-Null
+    Set-Content -LiteralPath "$RootPath\logs\supervisor.pause" -Value (Get-Date -Format s)
     Write-Host "Starting Backend..." -ForegroundColor Yellow
     if (-not (Check-Port $BackendPort)) {
-        Start-Process -FilePath "node" -ArgumentList "server.js" -WorkingDirectory "$RootPath\backend" -WindowStyle Minimized -RedirectStandardOutput "$RootPath\backend\backend.log" -RedirectStandardError "$RootPath\backend\backend_err.log"
+        Start-Process -FilePath "node" -ArgumentList "server.js" -WorkingDirectory "$RootPath\backend" -WindowStyle Hidden -RedirectStandardOutput "$RootPath\backend\backend.log" -RedirectStandardError "$RootPath\backend\backend_err.log"
         Start-Sleep -Seconds 2
     } else {
         Write-Host "Backend is already running!" -ForegroundColor Green
@@ -53,6 +55,9 @@ function Start-System {
         Write-Host "Frontend is already running!" -ForegroundColor Green
     }
     
+    $deadline = (Get-Date).AddSeconds(90)
+    while ((Get-Date) -lt $deadline -and -not ((Check-Port $BackendPort) -and (Check-Port $FrontendPort))) { Start-Sleep -Seconds 1 }
+    Remove-Item -LiteralPath "$RootPath\logs\supervisor.pause" -Force -ErrorAction SilentlyContinue
     Write-Host "System started successfully in background." -ForegroundColor Green
     Write-Host "Press any key to return to menu..."
     $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")

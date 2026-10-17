@@ -7,6 +7,17 @@
 import { TON_LEVELS, tonRank } from './hangtonLevels.js';
 import { compareSortValues } from '../../components/common/tableSort.js';
 
+// Columns of the office table: office + visible levels + (Tổng, ≥5, COD) + 3 comparison columns.
+export function officeTableColumnCount(shownLevelCount) {
+  return 1 + shownLevelCount + 3 + 3;
+}
+
+// Hiding the level a table is ordered by would leave it ordered by a column nobody sees: fall back to the default.
+export function sortAfterHide(sort, hiddenLevels = []) {
+  if (sort && hiddenLevels.includes(sort.field)) return { field: 'total', direction: 'desc' };
+  return sort;
+}
+
 export const OFFICE_TABLE_TEXT_FIELDS = Object.freeze(['office']);
 
 /**
