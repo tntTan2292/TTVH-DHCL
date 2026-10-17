@@ -56,4 +56,13 @@ PASSED. Automatic login works without a browser: `POST /login` JSON `{username,p
 
 Filter check (2026-10-17 08:53 data): the API returns the whole province (11 673); the probe printed it unfiltered. Applying D1+D2 in QIS (5 statuses, `DK1 = LM`, all `Loại Tồn`, all customers) gives **4 430** parcels = the PO's portal count. Breakdown: Đã xác nhận đến 1 400, Đã giao cho bưu tá 835, Phát không thành công 2 095, Đã phân tuyến 100, Vu hồi về bưu cục 0 (the 5th status exists in the data only for other DK1). The filter is applied by QIS after fetching, never trusted to the portal default.
 
+### Phase 2 result (2026-10-17, Claude Code/Sonnet 5.5) — backend delivered, PO restart needed
+
+- Schema (additive, applied at startup): `hangton_snapshot` (one row per `business_date`+`slot`, portal timestamp, `is_stale`), `hangton_snapshot_item` (scoped parcels). Migration `backend/migrate_hangton_inventory_01_schema.js`.
+- Service `backend/src/services/hangtonInventory/`: `scope.js` (D1–D3 filter, `Loại Tồn` rank), `client.js` (JSON login + fetch), `snapshotService.js` (store/replace a slot, stale flag when the portal timestamp equals the previous snapshot's), `compareService.js` (overview; compare of two snapshots keyed by `ItemCode`: resolved / aged_up / aged_down / new / unchanged, per office), `scheduler.js` (slots 07:30, 11:30, 21:00 local; 1-minute tick, 3 h catch-up for a missed slot, 10 min retry after a failure; started from `server.js`, off in tests, off with `HANGTON_SCHEDULER=off`, not started without credentials).
+- API `/api/hangton` (admin + viewer read): `GET /snapshots`, `GET /overview?id|date&slot`, `GET /compare?id|date&slot&from_id|base_date&base_slot&detail=1` (default base = the same slot on the closest earlier day), `POST /snapshots/run {slot}` (admin).
+- Real-data check into a throw-away DB: 11 673 fetched, **4 430 kept** (= PO count), ≥5 ngày = 662 (Thuận Hóa 271, Phú Lộc 219, Hương Trà 125, Hương Thủy 40, KTC1 Huế 1 5), self-compare 4 430 unchanged, compare query 23 ms.
+- Tests: `node --test test_hangtonInventory.js` 6/6 (scope, store/replace/stale, compare classification, slot decision, tick, client); `server.startupMigrations.test.js` pass. Operational database untouched until the backend is restarted.
+- Not done: alert thresholds (O2), screens (phase 3), Opus review, PO UI check.
+
 Required Reading for the executor: this manifest and `docs/05_DEVELOPMENT/Implementation/report_block_ui_standard.md`.

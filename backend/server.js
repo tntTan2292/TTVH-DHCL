@@ -14,6 +14,7 @@ const f41Routes = require('./src/routes/f41Routes');
 const f11Routes = require('./src/routes/f11Routes');
 const f12Routes = require('./src/routes/f12Routes');
 const homeRoutes = require('./src/routes/homeRoutes');
+const createHangtonRouter = require('./src/routes/hangtonRoutes');
 const { startWatcher } = require('./src/services/importWatcher');
 const { dbPath: activeDbPath } = require('./src/config/db');
 const { applyNetworkManagement001Phase1Schema } = require('./migrate_network_management_001_phase1_schema');
@@ -33,6 +34,7 @@ const { applyF13RoutePostmanIdentity01Phase1Schema } = require('./migrate_f13_ro
 const { applyImportBulkReimportAll01Schema } = require('./migrate_import_bulk_reimport_all_01_schema');
 const { applyImportLogAudit01Schema } = require('./migrate_import_log_audit_01_schema');
 const { applyPerfLoad01AggSchema } = require('./migrate_perf_load_01_agg_schema');
+const { applyHangtonInventory01Schema } = require('./migrate_hangton_inventory_01_schema');
 
 const app = express();
 const PORT = Number(process.env.PORT || 5050);
@@ -71,6 +73,7 @@ async function shutdown(signal, exitCode = 0) {
         console.log('====================================');
         try {
             const { stopAutoBackfillQueueRuntime } = require('./src/services/autoBackfillQueueRuntime');
+            hangtonScheduler?.stop();
             await stopAutoBackfillQueueRuntime();
             if (activeServer?.listening) {
                 await new Promise((resolve) => activeServer.close(resolve));
@@ -125,6 +128,7 @@ app.use('/api/f41', f41Routes);
 app.use('/api/f11', f11Routes);
 app.use('/api/f12', f12Routes);
 app.use('/api/home', homeRoutes);
+app.use('/api/hangton', createHangtonRouter());
 
 // Additive, idempotent schema migrations applied on every startup so any
 // environment running this codebase self-heals instead of depending on
@@ -147,6 +151,23 @@ async function ensureStartupSchemaMigrations(dbPath = activeDbPath) {
     await applyImportBulkReimportAll01Schema(dbPath);
     await applyImportLogAudit01Schema(dbPath);
     await applyPerfLoad01AggSchema(dbPath);
+    await applyHangtonInventory01Schema(dbPath);
+}
+
+// HANGTON-INVENTORY-01: three daily stock snapshots (07:30, 11:30, 21:00). Off in tests, with
+// HANGTON_SCHEDULER=off, or when no hangton login is configured.
+let hangtonScheduler = null;
+function startHangtonScheduler() {
+    if (process.env.NODE_ENV === 'test' || String(process.env.HANGTON_SCHEDULER || 'on').toLowerCase() === 'off') return;
+    const { readCredentials, fetchStockData } = require('./src/services/hangtonInventory/client');
+    const credentials = readCredentials();
+    if (!credentials.username || !credentials.password) {
+        console.warn('[hangton] scheduler not started: no credentials in backend/.hangton.env');
+        return;
+    }
+    const { createScheduler } = require('./src/services/hangtonInventory/scheduler');
+    hangtonScheduler = createScheduler({ db: require('./src/config/db'), fetchStock: () => fetchStockData({ credentials }) });
+    hangtonScheduler.start();
 }
 
 function startServer() {
@@ -154,6 +175,7 @@ function startServer() {
         .then(async () => {
             const { startAutoBackfillQueueRuntime } = require('./src/services/autoBackfillQueueRuntime');
             await startAutoBackfillQueueRuntime();
+            startHangtonScheduler();
         })
         .then(() => {
             const server = app.listen(PORT, HOST, () => {
