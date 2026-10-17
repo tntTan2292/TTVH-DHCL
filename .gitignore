@@ -117,3 +117,6 @@ frontend/certs/
 # Large source data and exports (kept on the workstation, not in git)
 Data QLML/
 exports/
+
+# HANGTON-INVENTORY-01 local portal credentials
+backend/.hangton.env
