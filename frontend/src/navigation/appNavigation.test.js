@@ -67,8 +67,14 @@ test('Module 1 (Quản lý chất lượng) contains F1.1, F1.2, F1.3, F4.1, Hà
   assert.equal(f41.roles, undefined);
 
   assert.equal(hangton.title, 'Chỉ số rà soát Hàng tồn');
-  assert.equal(hangton.path, '/hangton');
+  assert.equal(hangton.path, undefined, 'Hàng tồn is a module group like the F modules, not a flat link');
   assert.equal(hangton.roles, undefined);
+  assert.deepEqual(toPlain(hangton.subItems.map((item) => [item.name, item.path])), [
+    ['Tổng quan', '/hangton/overview'],
+    ['Theo bưu cục', '/hangton/office'],
+    ['So sánh hai mốc', '/hangton/compare'],
+    ['Chi tiết bưu gửi', '/hangton/items'],
+  ]);
 });
 
 test('Module 2 (Quản lý mạng lưới) retains all 5 network map sub-menus including postman catalog', () => {
@@ -203,7 +209,12 @@ test('Sidebar.jsx is synchronized with exact 3 modules and F1.1 -> F1.2 -> F1.3 
   assert.deepEqual(toPlain(qualityItems[3].subItems.map((item) => item.path)), ['/f41/dashboard', '/f41/ranking/bcvh']);
 
   assert.equal(qualityItems[4].title, 'Chỉ số rà soát Hàng tồn');
-  assert.equal(qualityItems[4].path, '/hangton');
+  assert.deepEqual(toPlain(qualityItems[4].subItems.map((item) => item.path)), [
+    '/hangton/overview', '/hangton/office', '/hangton/compare', '/hangton/items',
+  ]);
+  const sidebarSource = fs.readFileSync(new URL('../components/Sidebar.jsx', import.meta.url), 'utf8');
+  assert.match(sidebarSource, /'Chỉ số rà soát Hàng tồn': true/, 'module opens pinned like the F modules');
+  assert.match(sidebarSource, /includes\('Hàng tồn'\)/, 'module has its own coloured indicator dot');
 
   // Verify Pareto and Message Center remain excluded
   const subItemsText = JSON.stringify(qualityItems);

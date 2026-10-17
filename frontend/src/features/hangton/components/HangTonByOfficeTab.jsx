@@ -3,9 +3,15 @@ import { Building2, ExternalLink } from 'lucide-react';
 import SortableTh from '../../../components/common/SortableTh.jsx';
 import BlockCaptureButton from '../../../components/common/BlockCaptureButton.jsx';
 import { nextSortState } from '../../../components/common/tableSort.js';
-import { hasCompareBase } from '../hangtonLevels.js';
 import {
+  COLUMN_PRESETS,
   TON_LEVELS,
+  activePresetId,
+  hasCompareBase,
+  presetHiddenLevels,
+  sanitizeHiddenLevels,
+  toggleHiddenLevel,
+  visibleLevels,
   getLevelConfig,
   formatNumber,
   formatCurrency,
@@ -18,6 +24,24 @@ import {
   sortOfficeRows,
 } from '../hangtonOfficeTableData.js';
 
+const HIDDEN_STORAGE_KEY = 'qis.hangton.hiddenLevels';
+
+function loadHiddenLevels() {
+  try {
+    return sanitizeHiddenLevels(JSON.parse(window.localStorage.getItem(HIDDEN_STORAGE_KEY) || '[]'));
+  } catch {
+    return [];
+  }
+}
+
+function saveHiddenLevels(hidden) {
+  try {
+    window.localStorage.setItem(HIDDEN_STORAGE_KEY, JSON.stringify(hidden));
+  } catch {
+    // storage unavailable: the choice only lasts for this visit
+  }
+}
+
 export default function HangTonByOfficeTab({
   overview,
   compare,
@@ -29,6 +53,14 @@ export default function HangTonByOfficeTab({
 
   const [sort, setSort] = useState({ field: 'total', direction: 'desc' });
   const [searchTerm, setSearchTerm] = useState('');
+  const [hiddenLevels, setHiddenLevels] = useState(loadHiddenLevels);
+  const shownLevels = visibleLevels(hiddenLevels);
+  const presetId = activePresetId(hiddenLevels);
+
+  const applyHidden = (next) => {
+    setHiddenLevels(next);
+    saveHiddenLevels(next);
+  };
 
   const rawRows = useMemo(() => {
     return buildOfficeTableRows(
@@ -64,11 +96,11 @@ export default function HangTonByOfficeTab({
     >
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 border-b border-slate-100 pb-4">
         <div>
-          <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+          <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
             <Building2 size={18} className="text-rose-600" />
             Bảng theo dõi Hàng tồn theo Bưu cục ({snapshotLabel})
           </h3>
-          <p className="mt-1 text-xs text-slate-500">
+          <p className="mt-1 text-sm text-slate-500">
             Chỉ hiển thị các bưu cục đang phát sinh hàng tồn (Quyết định D5). Bấm tiêu đề cột để sắp xếp; bấm tên bưu cục để xem danh sách chi tiết.
           </p>
         </div>
@@ -79,7 +111,7 @@ export default function HangTonByOfficeTab({
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Tìm bưu cục..."
-            className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs text-slate-800 placeholder-slate-400 focus:border-rose-500 focus:outline-none shadow-2xs"
+            className="rounded-lg border border-slate-200 px-3 py-1.5 text-sm text-slate-800 placeholder-slate-400 focus:border-rose-500 focus:outline-none shadow-2xs"
           />
           <BlockCaptureButton
             targetRef={tableBlockRef}
@@ -89,25 +121,65 @@ export default function HangTonByOfficeTab({
         </div>
       </div>
 
+      {/* Column picker: hide the low-age levels (not part of the captured picture) */}
+      <div className="flex flex-wrap items-center gap-2" data-no-capture="true">
+        <span className="text-base font-bold text-slate-700">Cột mức tồn:</span>
+        {COLUMN_PRESETS.map((preset) => (
+          <button
+            key={preset.id}
+            type="button"
+            onClick={() => applyHidden(presetHiddenLevels(preset.id))}
+            className={`rounded-lg border px-3 py-1.5 text-base font-semibold cursor-pointer transition-colors ${
+              presetId === preset.id ? 'border-rose-600 bg-rose-600 text-white' : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50'
+            }`}
+          >
+            {preset.label}
+          </button>
+        ))}
+        <span className="mx-1 h-5 w-px bg-slate-300" />
+        {TON_LEVELS.map((lvl) => {
+          const shown = !hiddenLevels.includes(lvl);
+          return (
+            <button
+              key={lvl}
+              type="button"
+              onClick={() => applyHidden(toggleHiddenLevel(hiddenLevels, lvl))}
+              aria-pressed={shown}
+              title={shown ? 'Bấm để ẩn cột này' : 'Bấm để hiện lại cột này'}
+              className={`rounded-md border px-2.5 py-1 text-base cursor-pointer transition-colors ${
+                shown ? 'border-red-300 bg-red-50 text-red-800 font-semibold' : 'border-slate-200 bg-slate-100 text-slate-400 line-through'
+              }`}
+            >
+              {lvl}
+            </button>
+          );
+        })}
+        {hiddenLevels.length > 0 ? (
+          <span className="text-sm text-slate-500">Cột Tổng tồn vẫn tính cả các mức đã ẩn.</span>
+        ) : null}
+      </div>
+
       {/* Main Table */}
       <div className="overflow-x-auto border border-slate-200 rounded-xl shadow-2xs">
-        <table className="w-full text-xs text-left border-collapse">
+        <table className="w-full text-sm text-left border-collapse">
           <thead>
             {/* Group Header Row */}
-            <tr className="bg-slate-50 border-b border-slate-200 text-slate-700 font-bold text-[11px] uppercase tracking-wider">
-              <th rowSpan={2} className="py-2.5 px-3 min-w-[140px] sticky left-0 bg-slate-50 z-10 border-r border-slate-200">
-                <SortableTh
-                  field="office"
-                  sort={sort}
-                  onSort={handleSort}
-                  activeClassName="bg-rose-100 text-rose-950 font-bold"
-                >
-                  Bưu cục phát
-                </SortableTh>
-              </th>
-              <th colSpan={9} className="py-1.5 px-2 text-center border-r border-slate-200 bg-red-50/50 text-red-900">
-                Phân loại theo tuổi bưu gửi (Loại Tồn)
-              </th>
+            <tr className="bg-slate-50 border-b border-slate-200 text-slate-700 font-bold text-[13px] uppercase tracking-wider">
+              <SortableTh
+                field="office"
+                sort={sort}
+                onSort={handleSort}
+                rowSpan={2}
+                className="py-2.5 px-3 min-w-[160px] sticky left-0 bg-slate-50 z-10 border-r border-slate-200 text-left"
+                activeClassName="bg-rose-100 text-rose-950 font-bold"
+              >
+                Bưu cục phát
+              </SortableTh>
+              {shownLevels.length > 0 ? (
+                <th colSpan={shownLevels.length} className="py-1.5 px-2 text-center border-r border-slate-200 bg-red-50/50 text-red-900">
+                  Phân loại theo tuổi bưu gửi (Loại Tồn)
+                </th>
+              ) : null}
               <th colSpan={3} className="py-1.5 px-2 text-center border-r border-slate-200 bg-slate-100 text-slate-800">
                 Tổng hợp hiện tại
               </th>
@@ -117,8 +189,8 @@ export default function HangTonByOfficeTab({
             </tr>
 
             {/* Sub Columns Header Row */}
-            <tr className="bg-slate-50/80 border-b border-slate-200 text-slate-600 font-semibold text-[11px]">
-              {TON_LEVELS.map((lvl) => {
+            <tr className="bg-slate-50/80 border-b border-slate-200 text-slate-600 font-semibold text-[13px]">
+              {shownLevels.map((lvl) => {
                 const cfg = getLevelConfig(lvl);
                 return (
                   <SortableTh
@@ -225,7 +297,7 @@ export default function HangTonByOfficeTab({
                   </td>
 
                   {/* 9 Level columns */}
-                  {TON_LEVELS.map((lvl) => {
+                  {shownLevels.map((lvl) => {
                     const count = r[lvl] || 0;
                     const cfg = getLevelConfig(lvl);
                     return (
@@ -282,7 +354,7 @@ export default function HangTonByOfficeTab({
               <td className="py-2.5 px-3 sticky left-0 bg-slate-100 z-10 border-r border-slate-300 uppercase">
                 {totals.office}
               </td>
-              {TON_LEVELS.map((lvl) => {
+              {shownLevels.map((lvl) => {
                 const count = totals[lvl] || 0;
                 const cfg = getLevelConfig(lvl);
                 return (

@@ -49,8 +49,9 @@ test('App.jsx configures /hangton route accessible to admin and viewer', () => {
   const appSource = read('../../App.jsx');
   assert.match(
     appSource,
-    /path="hangton"\s+element=\{<ProtectedRoute allowedRoles=\{\[ROLE_ADMIN, ROLE_VIEWER\]\}><HangTonPage \/><\/ProtectedRoute>\}/,
+    /path="hangton\/:tab"\s+element=\{<ProtectedRoute allowedRoles=\{\[ROLE_ADMIN, ROLE_VIEWER\]\}><HangTonPage \/><\/ProtectedRoute>\}/,
   );
+  assert.match(appSource, /path="hangton"\s+element=\{<Navigate to="\/hangton\/overview" replace \/>\}/);
 });
 
 test('No-base state: Overview, Office totals and Compare tab use the dash helpers, not raw zeros', () => {
@@ -82,4 +83,21 @@ test('Page does not reload twice: the resolved base is derived, never copied bac
   assert.doesNotMatch(page, /setBaseSnapshotId\(cmpData/);
   assert.match(page, /requestToken/);
   assert.match(page, /return compare\?\.from \|\| null/);
+});
+
+test('Column hiding: Theo bưu cục table has presets and per-level toggles, remembered per viewer', () => {
+  const office = read('./components/HangTonByOfficeTab.jsx');
+  assert.match(office, /COLUMN_PRESETS/);
+  assert.match(office, /toggleHiddenLevel/);
+  assert.match(office, /shownLevels\.map/);
+  assert.doesNotMatch(office, /\{TON_LEVELS\.map\(\(lvl\) => \{\s*const cfg = getLevelConfig/, 'table columns come from the visible levels');
+  assert.match(office, /localStorage/);
+  assert.match(office, /data-no-capture="true"/, 'the picker is not part of the captured picture');
+});
+
+test('Readable text: no 9-11px text left in the Hàng tồn screens', () => {
+  for (const file of ['HangTonPage.jsx', 'components/HangTonOverviewTab.jsx', 'components/HangTonByOfficeTab.jsx', 'components/HangTonCompareTab.jsx', 'components/HangTonItemsTab.jsx', 'components/SnapshotPicker.jsx']) {
+    assert.doesNotMatch(read(`./${file}`), /text-\[(?:9|10|11)px\]/, `${file} must not use tiny text`);
+  }
+  assert.doesNotMatch(read('./components/HangTonOverviewTab.jsx'), /fontSize: 1[01]/);
 });

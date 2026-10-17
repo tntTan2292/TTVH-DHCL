@@ -146,11 +146,11 @@ export default function HangTonItemsTab({
     >
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 border-b border-slate-100 pb-4">
         <div>
-          <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+          <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
             <FileText size={18} className="text-rose-600" />
             Chi tiết danh sách Bưu gửi Tồn đọng ({snapshotLabel})
           </h3>
-          <p className="mt-1 text-xs text-slate-500">
+          <p className="mt-1 text-sm text-slate-500">
             Tra cứu theo bưu cục, ngưỡng tuổi tồn và trạng thái TMS. Màu đỏ đậm dần theo Loại Tồn.
           </p>
         </div>
@@ -160,7 +160,7 @@ export default function HangTonItemsTab({
             type="button"
             onClick={handleExportCsv}
             disabled={!data.rows || data.rows.length === 0}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors shadow-2xs cursor-pointer disabled:opacity-50"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors shadow-2xs cursor-pointer disabled:opacity-50"
           >
             <Download size={13} />
             <span>Xuất trang này</span>
@@ -175,7 +175,7 @@ export default function HangTonItemsTab({
 
       {/* Filter Bar */}
       <div className="flex flex-wrap items-center gap-2.5 p-3 rounded-xl bg-slate-50 border border-slate-200/70" data-no-capture="true">
-        <div className="flex items-center gap-1 text-xs font-bold text-slate-600 uppercase tracking-wider">
+        <div className="flex items-center gap-1 text-sm font-bold text-slate-600 uppercase tracking-wider">
           <Filter size={13} />
           <span>Bộ lọc:</span>
         </div>
@@ -187,7 +187,7 @@ export default function HangTonItemsTab({
             setOffice(e.target.value);
             setPage(1);
           }}
-          className="rounded-lg border border-slate-300 bg-white py-1.5 px-2.5 text-xs text-slate-800 shadow-2xs focus:border-rose-500 focus:outline-none"
+          className="rounded-lg border border-slate-300 bg-white py-1.5 px-2.5 text-sm text-slate-800 shadow-2xs focus:border-rose-500 focus:outline-none"
         >
           <option value="">Tất cả bưu cục ({officeOptions.length})</option>
           {officeOptions.map((off) => (
@@ -202,7 +202,7 @@ export default function HangTonItemsTab({
             setMinRank(e.target.value);
             setPage(1);
           }}
-          className="rounded-lg border border-slate-300 bg-white py-1.5 px-2.5 text-xs text-slate-800 shadow-2xs focus:border-rose-500 focus:outline-none"
+          className="rounded-lg border border-slate-300 bg-white py-1.5 px-2.5 text-sm text-slate-800 shadow-2xs focus:border-rose-500 focus:outline-none"
         >
           {MIN_RANK_OPTIONS.map((opt) => (
             <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -216,7 +216,7 @@ export default function HangTonItemsTab({
             setStatus(e.target.value);
             setPage(1);
           }}
-          className="rounded-lg border border-slate-300 bg-white py-1.5 px-2.5 text-xs text-slate-800 shadow-2xs focus:border-rose-500 focus:outline-none"
+          className="rounded-lg border border-slate-300 bg-white py-1.5 px-2.5 text-sm text-slate-800 shadow-2xs focus:border-rose-500 focus:outline-none"
         >
           <option value="">Tất cả trạng thái</option>
           {SCOPE_STATUSES.map((st) => (
@@ -229,7 +229,7 @@ export default function HangTonItemsTab({
           <button
             type="button"
             onClick={handleResetFilters}
-            className="inline-flex items-center gap-1 text-xs text-rose-600 hover:text-rose-700 font-semibold cursor-pointer ml-auto"
+            className="inline-flex items-center gap-1 text-sm text-rose-600 hover:text-rose-700 font-semibold cursor-pointer ml-auto"
           >
             <RotateCcw size={12} />
             <span>Xóa lọc</span>
@@ -239,9 +239,9 @@ export default function HangTonItemsTab({
 
       {/* Main Detail Table */}
       <div className="overflow-x-auto border border-slate-200 rounded-xl shadow-2xs">
-        <table className="w-full text-xs text-left border-collapse">
+        <table className="w-full text-sm text-left border-collapse">
           <thead>
-            <tr className="bg-slate-50 border-b border-slate-200 text-slate-700 font-bold text-[11px] uppercase tracking-wider">
+            <tr className="bg-slate-50 border-b border-slate-200 text-slate-700 font-bold text-[13px] uppercase tracking-wider">
               <th className="py-2.5 px-3">STT</th>
               <SortableTh field="item_code" sort={sort} onSort={handleSort} className="py-2.5 px-3" activeClassName="bg-rose-100 text-rose-950 font-bold">Số hiệu bưu gửi</SortableTh>
               <SortableTh field="office" sort={sort} onSort={handleSort} className="py-2.5 px-3" activeClassName="bg-rose-100 text-rose-950 font-bold">Bưu cục phát</SortableTh>
@@ -277,12 +277,12 @@ export default function HangTonItemsTab({
                 const rowNum = (page - 1) * limit + idx + 1;
                 return (
                   <tr key={`${row.item_code}_${idx}`} className="hover:bg-slate-50/70 transition-colors">
-                    <td className="py-2.5 px-3 text-slate-400 font-mono text-[11px]">{rowNum}</td>
+                    <td className="py-2.5 px-3 text-slate-400 font-mono text-[13px]">{rowNum}</td>
                     <td className="py-2.5 px-3 font-mono font-bold text-slate-900">{row.item_code}</td>
                     <td className="py-2.5 px-3 font-semibold text-slate-800">{row.office || '—'}</td>
                     <td className="py-2.5 px-3 text-slate-700">{row.status_name}</td>
                     <td className="py-2.5 px-3">
-                      <span className={`inline-block px-2 py-0.5 rounded text-[11px] font-semibold border ${cfg.badgeClass}`}>
+                      <span className={`inline-block px-2 py-0.5 rounded text-[13px] font-semibold border ${cfg.badgeClass}`}>
                         {row.ton_level}
                       </span>
                     </td>
@@ -304,7 +304,7 @@ export default function HangTonItemsTab({
       </div>
 
       {/* Pagination Controls */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-xs text-slate-600 pt-2" data-no-capture="true">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-sm text-slate-600 pt-2" data-no-capture="true">
         <div>
           Hiển thị <strong>{data.rows?.length || 0}</strong> / <strong>{formatNumber(data.total || 0)}</strong> bưu gửi
           {office ? ` tại bưu cục ${office}` : ''}
@@ -319,7 +319,7 @@ export default function HangTonItemsTab({
                 setLimit(Number(e.target.value));
                 setPage(1);
               }}
-              className="rounded-md border border-slate-200 py-1 px-2 text-xs text-slate-700 shadow-2xs focus:outline-none"
+              className="rounded-md border border-slate-200 py-1 px-2 text-sm text-slate-700 shadow-2xs focus:outline-none"
             >
               <option value={50}>50</option>
               <option value={100}>100</option>

@@ -236,3 +236,35 @@ export function compareValue(compare, key) {
 }
 
 export const NO_BASE_NOTE = 'Chưa có mốc so sánh: cần một snapshot cùng khung giờ của ngày trước. Các số biến động sẽ hiện khi có mốc đó.';
+
+// Column hiding for the "Theo bưu cục" table (hide the low-age levels to read the heavy ones at a glance).
+export const COLUMN_PRESETS = Object.freeze([
+  { id: 'all', label: 'Tất cả mức', minRank: -1 },
+  { id: 'ge3', label: 'Từ ≥3 ngày', minRank: 3 },
+  { id: 'ge5', label: 'Từ ≥5 ngày', minRank: 5 },
+]);
+
+export function presetHiddenLevels(presetId) {
+  const preset = COLUMN_PRESETS.find((p) => p.id === presetId) || COLUMN_PRESETS[0];
+  return TON_LEVELS.filter((lvl) => tonRank(lvl) < preset.minRank);
+}
+
+export function visibleLevels(hidden = []) {
+  return TON_LEVELS.filter((lvl) => !hidden.includes(lvl));
+}
+
+export function toggleHiddenLevel(hidden = [], level) {
+  const next = hidden.includes(level) ? hidden.filter((l) => l !== level) : [...hidden, level];
+  return TON_LEVELS.filter((l) => next.includes(l));
+}
+
+export function activePresetId(hidden = []) {
+  const sorted = [...hidden].sort().join('|');
+  const hit = COLUMN_PRESETS.find((p) => [...presetHiddenLevels(p.id)].sort().join('|') === sorted);
+  return hit ? hit.id : null;
+}
+
+// Stored hidden levels: only canonical levels survive (corrupt or old values are dropped).
+export function sanitizeHiddenLevels(value) {
+  return Array.isArray(value) ? TON_LEVELS.filter((lvl) => value.includes(lvl)) : [];
+}

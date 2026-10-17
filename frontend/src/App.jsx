@@ -110,7 +110,8 @@ function App() {
             <Route path="f41" element={<Navigate to="/f41/dashboard" replace />} />
             <Route path="f41/dashboard" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN, ROLE_VIEWER]}><F41DashboardPage /></ProtectedRoute>} />
             <Route path="f41/ranking/bcvh" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN, ROLE_VIEWER]}><F41BcvhRankingPage /></ProtectedRoute>} />
-            <Route path="hangton" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN, ROLE_VIEWER]}><HangTonPage /></ProtectedRoute>} />
+            <Route path="hangton" element={<Navigate to="/hangton/overview" replace />} />
+            <Route path="hangton/:tab" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN, ROLE_VIEWER]}><HangTonPage /></ProtectedRoute>} />
             <Route path="import" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN]}><DataImportCenter /></ProtectedRoute>} />
             <Route path="kpi-config" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN]}><KpiConfiguration /></ProtectedRoute>} />
             <Route path="system-info" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN]}><SystemInformation /></ProtectedRoute>} />

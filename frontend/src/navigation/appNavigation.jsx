@@ -43,11 +43,16 @@ const F41_GROUP = {
   ],
 };
 
-const HANGTON_ITEM = {
+const HANGTON_GROUP = {
   title: 'Chỉ số rà soát Hàng tồn',
   name: 'Chỉ số rà soát Hàng tồn',
-  path: '/hangton',
   icon: <Package size={18} />,
+  subItems: [
+    { name: 'Tổng quan', path: '/hangton/overview', icon: <Target size={18} /> },
+    { name: 'Theo bưu cục', path: '/hangton/office', icon: <BarChart2 size={18} /> },
+    { name: 'So sánh hai mốc', path: '/hangton/compare', icon: <Activity size={18} /> },
+    { name: 'Chi tiết bưu gửi', path: '/hangton/items', icon: <Database size={18} /> },
+  ],
 };
 
 const QUALITY_MANAGEMENT_GROUP = {
@@ -58,7 +63,7 @@ const QUALITY_MANAGEMENT_GROUP = {
     F12_GROUP,
     F13_GROUP,
     F41_GROUP,
-    HANGTON_ITEM,
+    HANGTON_GROUP,
   ],
 };
 

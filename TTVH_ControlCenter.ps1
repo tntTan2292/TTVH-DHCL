@@ -35,6 +35,8 @@ function Kill-ProcessByPort {
 }
 
 function Start-System {
+    # the auto-start supervisor (scripts\qis-supervisor.ps1) is no longer paused
+    Remove-Item -LiteralPath "$RootPath\logs\supervisor.pause" -Force -ErrorAction SilentlyContinue
     Write-Host "Starting Backend..." -ForegroundColor Yellow
     if (-not (Check-Port $BackendPort)) {
         Start-Process -FilePath "node" -ArgumentList "server.js" -WorkingDirectory "$RootPath\backend" -WindowStyle Minimized -RedirectStandardOutput "$RootPath\backend\backend.log" -RedirectStandardError "$RootPath\backend\backend_err.log"
@@ -57,6 +59,9 @@ function Start-System {
 }
 
 function Stop-System {
+    # pause the supervisor, otherwise it would start the system again within seconds
+    New-Item -ItemType Directory -Force -Path "$RootPath\logs" | Out-Null
+    Set-Content -LiteralPath "$RootPath\logs\supervisor.pause" -Value (Get-Date -Format s)
     Write-Host "Stopping Backend (Port $BackendPort)..." -ForegroundColor Yellow
     Kill-ProcessByPort $BackendPort
     

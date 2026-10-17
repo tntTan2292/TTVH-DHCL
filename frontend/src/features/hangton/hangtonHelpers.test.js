@@ -183,3 +183,17 @@ test('compare figures show a dash, not 0, when there is no base snapshot', () =>
   assert.equal(compareValue(withBase, 'aged_up'), formatNumber(1234));
   assert.match(NO_BASE_NOTE, /Chưa có mốc so sánh/);
 });
+
+test('column presets hide the low-age levels; toggles and storage values are sanitised', async () => {
+  const { presetHiddenLevels, visibleLevels, toggleHiddenLevel, activePresetId, sanitizeHiddenLevels } = await import('./hangtonLevels.js');
+  assert.deepEqual(presetHiddenLevels('all'), []);
+  assert.deepEqual(visibleLevels(presetHiddenLevels('ge3')), ['≥3 ngày', '≥4 ngày', '≥5 ngày', '≥7 ngày', '≥14 ngày']);
+  assert.deepEqual(visibleLevels(presetHiddenLevels('ge5')), ['≥5 ngày', '≥7 ngày', '≥14 ngày']);
+  const hidden = toggleHiddenLevel([], '≥2 ngày');
+  assert.deepEqual(hidden, ['≥2 ngày']);
+  assert.deepEqual(toggleHiddenLevel(hidden, '≥2 ngày'), [], 'second click shows the column again');
+  assert.equal(activePresetId(presetHiddenLevels('ge5')), 'ge5');
+  assert.equal(activePresetId(['≥2 ngày']), null, 'a custom choice matches no preset');
+  assert.deepEqual(sanitizeHiddenLevels(['≥2 ngày', 'rác', 5]), ['≥2 ngày']);
+  assert.deepEqual(sanitizeHiddenLevels('x'), []);
+});

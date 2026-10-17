@@ -24,6 +24,9 @@ function getModuleIndicatorDot(title = '') {
   if (title.includes('F4.1')) {
     return <span className="inline-block h-2 w-2 rounded-full bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.8)] shrink-0 animate-pulse" title="Phân hệ F4.1 – Bưu cục (Cam)" />;
   }
+  if (title.includes('Hàng tồn')) {
+    return <span className="inline-block h-2 w-2 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.85)] shrink-0 animate-pulse" title="Chỉ số rà soát Hàng tồn (Đỏ)" />;
+  }
   return null;
 }
 
@@ -35,6 +38,7 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
     'F1.2 – Thu gom liên tỉnh': true,
     'F1.3 – Chất lượng phát liên tỉnh': true,
     'F4.1 – Chất lượng phát thành công bưu cục': true,
+    'Chỉ số rà soát Hàng tồn': true,
     'Quản lý mạng lưới': false,
     'Quản trị hệ thống': false,
   });
@@ -110,10 +114,15 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
           ],
         },
         {
-          name: 'Chỉ số rà soát Hàng tồn',
           title: 'Chỉ số rà soát Hàng tồn',
-          path: '/hangton',
+          name: 'Chỉ số rà soát Hàng tồn',
           icon: <Package size={18} />,
+          subItems: [
+            { name: 'Tổng quan', path: '/hangton/overview', icon: <Target size={18} /> },
+            { name: 'Theo bưu cục', path: '/hangton/office', icon: <BarChart2 size={18} /> },
+            { name: 'So sánh hai mốc', path: '/hangton/compare', icon: <Activity size={18} /> },
+            { name: 'Chi tiết bưu gửi', path: '/hangton/items', icon: <Database size={18} /> },
+          ],
         },
       ],
     },

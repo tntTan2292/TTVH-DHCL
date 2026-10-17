@@ -6,6 +6,7 @@ import {
   FileText,
   RefreshCw,
 } from 'lucide-react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { PageContainer } from '../../components/shared/SharedComponents.jsx';
 import { LoadingLayout, ErrorLayout, EmptyLayout } from '../../components/common/StateLayouts.jsx';
 import SnapshotPicker from './components/SnapshotPicker.jsx';
@@ -27,7 +28,10 @@ export default function HangTonPage() {
   const [selectedSnapshotId, setSelectedSnapshotId] = useState(null);
   const [baseSnapshotId, setBaseSnapshotId] = useState(null); // manual choice only; default base = compare.from
 
-  const [activeTab, setActiveTab] = useState('overview');
+  const { tab } = useParams();
+  const navigate = useNavigate();
+  const activeTab = TABS.some((t) => t.id === tab) ? tab : 'overview';
+  const setActiveTab = (id) => navigate(`/hangton/${id}`);
   const [selectedOfficeDrilldown, setSelectedOfficeDrilldown] = useState('');
 
   const [overview, setOverview] = useState(null);
@@ -124,7 +128,7 @@ export default function HangTonPage() {
         title="Chỉ số rà soát Hàng tồn"
         subtitle="Đang kết nối dữ liệu snapshot..."
         accentClassName="bg-rose-600"
-        badge={<span className="rounded-md border border-rose-300 bg-rose-100 px-2.5 py-0.5 text-xs font-bold text-rose-900">Rà soát hàng tồn</span>}
+        badge={<span className="rounded-md border border-rose-300 bg-rose-100 px-2.5 py-0.5 text-sm font-bold text-rose-900">Rà soát hàng tồn</span>}
       >
         <LoadingLayout message="Đang nạp danh sách mốc dữ liệu snapshot..." />
       </PageContainer>
@@ -137,7 +141,7 @@ export default function HangTonPage() {
         title="Chỉ số rà soát Hàng tồn"
         subtitle="Lỗi kết nối dữ liệu"
         accentClassName="bg-rose-600"
-        badge={<span className="rounded-md border border-rose-300 bg-rose-100 px-2.5 py-0.5 text-xs font-bold text-rose-900">Rà soát hàng tồn</span>}
+        badge={<span className="rounded-md border border-rose-300 bg-rose-100 px-2.5 py-0.5 text-sm font-bold text-rose-900">Rà soát hàng tồn</span>}
       >
         <ErrorLayout
           error={{ message: error }}
@@ -153,7 +157,7 @@ export default function HangTonPage() {
         title="Chỉ số rà soát Hàng tồn"
         subtitle="Hệ thống chưa ghi nhận snapshot dữ liệu"
         accentClassName="bg-rose-600"
-        badge={<span className="rounded-md border border-rose-300 bg-rose-100 px-2.5 py-0.5 text-xs font-bold text-rose-900">Rà soát hàng tồn</span>}
+        badge={<span className="rounded-md border border-rose-300 bg-rose-100 px-2.5 py-0.5 text-sm font-bold text-rose-900">Rà soát hàng tồn</span>}
       >
         <EmptyLayout
           title="Chưa có snapshot hàng tồn"
@@ -169,7 +173,7 @@ export default function HangTonPage() {
       subtitle="Theo dõi, rà soát và so sánh biến động bưu gửi tồn theo từng khung giờ và bưu cục (BĐT TP Huế)"
       accentClassName="bg-rose-600"
       badge={
-        <span className="rounded-md border border-rose-300 bg-rose-100 px-2.5 py-0.5 text-xs font-bold text-rose-900">
+        <span className="rounded-md border border-rose-300 bg-rose-100 px-2.5 py-0.5 text-sm font-bold text-rose-900">
           Rà soát hàng tồn
         </span>
       }
@@ -185,7 +189,7 @@ export default function HangTonPage() {
             type="button"
             onClick={() => loadSnapshotData(selectedSnapshotId, baseSnapshotId)}
             disabled={dataLoading}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors shadow-2xs cursor-pointer disabled:opacity-50"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors shadow-2xs cursor-pointer disabled:opacity-50"
             title="Tải lại dữ liệu snapshot hiện tại"
           >
             <RefreshCw size={13} className={dataLoading ? 'animate-spin text-rose-600' : ''} />
@@ -205,7 +209,7 @@ export default function HangTonPage() {
                 key={tab.id}
                 type="button"
                 onClick={() => setActiveTab(tab.id)}
-                className={`relative inline-flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition-all cursor-pointer select-none ${
+                className={`relative inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-bold transition-all cursor-pointer select-none ${
                   active
                     ? 'bg-rose-600 text-white shadow-sm'
                     : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200/80'
@@ -214,7 +218,7 @@ export default function HangTonPage() {
                 <Icon size={15} className={active ? 'text-white' : 'text-slate-500'} />
                 <span>{tab.label}</span>
                 {tab.id === 'office' && overview?.by_office?.length ? (
-                  <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${active ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-700'}`}>
+                  <span className={`px-1.5 py-0.2 rounded-full text-xs ${active ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-700'}`}>
                     {overview.by_office.length}
                   </span>
                 ) : null}
