@@ -39,6 +39,9 @@ It is designed to be the shortest safe entry point for a new AI session while pr
 | Governance Version | `V2 Active` |
 | Last Updated | `2026-10-09: F11-MODULE-PLAN plan complete (F1.1 source audit + overall plan, awaiting PO decisions; does not change Current Ticket). Prior: 2026-10-08: F41-DASHBOARD-RANKING-01 closed (PO UI PASS). Prior: 2026-10-08: UI-BCVH-RANKING-DECLUTTER-01 IMPLEMENTED / PO UI PASS / CLOSED.` |
 
+Previous update: `2026-10-17 (HANGTON-INVENTORY-01 phases 1-3 delivered, PO UI PASS for the screens, Claude Code/Sonnet 5.5 with Antigravity UI; does not change Current Ticket). New indicator "Chỉ số rà soát Hàng tồn" (Quản lý chất lượng, /hangton): automatic hangton login and fetch, scoped stock (DK1 LM, 5 statuses, all Loại Tồn; 4 430 parcels on 2026-10-17), three daily snapshots 07:30/11:30/21:00 kept separately, API /api/hangton (snapshots, overview, items, compare of two snapshots: resolved / aged_up / new), 4 screens. Open: numeric alert thresholds (O2), portal refresh cadence (O5), late-start catch-up window. Credentials in gitignored backend/.hangton.env. Manifest: docs/10_TICKETS/HANGTON-INVENTORY-01_MANIFEST.md.)`
+
+
 Previous update: `2026-10-16 (IMPORT-LOG-AUDIT-01 backend delivered, Claude Code/Sonnet 5.5; does not change Current Ticket). import_log now records actor, run, job, import mode and replaced rows (additive migration; queue jobs and manual upload); GET /import/log (admin, filters); POST /import/auto-backfill/runs accepts anchor_date = chosen day D plus D-1, D-2 for F1.1/F1.2/F1.3/F4.1 on both lanes (replace after one confirmation). Backend restart needed; screens to Antigravity, PO UI check pending. Manifest: docs/10_TICKETS/IMPORT-LOG-AUDIT-01_MANIFEST.md.)`
 
 

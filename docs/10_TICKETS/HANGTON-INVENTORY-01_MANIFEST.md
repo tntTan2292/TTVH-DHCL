@@ -119,3 +119,7 @@ Review of Section 6 found no backend change and green gates; three fixes made:
 2. Chi tiết: the sort drop-down is replaced by click-to-order column titles (Số hiệu, Bưu cục, Trạng thái, Loại tồn, COD, Bưu tá; second click reverses). Backend `GET /api/hangton/items` now accepts `sort=rank|office|cod|item_code|status|postman` and `dir=asc|desc` (whitelisted; unknown values fall back to rank desc). Backend restart needed for the direction to take effect.
 3. HangTonPage: the base snapshot resolved by the backend is no longer copied back into state (it caused a second load on every snapshot change); stale responses are ignored.
 Tests: frontend 27/27 (hangton, navigation, role routing), backend `test_hangtonInventory.js` 6/6, oxlint clean on `src/features/hangton`, build OK.
+
+## 8. PO status
+
+2026-10-17: PO checked the Hàng tồn screens after the Section 7 fixes and backend restart — PO UI PASS for phase 3. Ticket stays open for O2 (alert thresholds), O5 (portal refresh cadence) and the Import Center integration (not built yet).
