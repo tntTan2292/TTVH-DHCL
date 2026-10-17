@@ -222,3 +222,17 @@ export function formatDelta(val) {
   if (!Number.isFinite(n) || n === 0) return '0';
   return n > 0 ? `+${formatNumber(n)}` : `${formatNumber(n)}`;
 }
+
+/**
+ * Comparison figures exist only when a base snapshot was found (compare = { from, to, summary, ... }).
+ * Without one, show a dash instead of a misleading 0.
+ */
+export function hasCompareBase(compare) {
+  return Boolean(compare && compare.from && compare.summary);
+}
+
+export function compareValue(compare, key) {
+  return hasCompareBase(compare) ? formatNumber(compare.summary[key]) : '—';
+}
+
+export const NO_BASE_NOTE = 'Chưa có mốc so sánh: cần một snapshot cùng khung giờ của ngày trước. Các số biến động sẽ hiện khi có mốc đó.';

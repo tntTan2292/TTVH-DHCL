@@ -111,3 +111,11 @@ Required Reading for the executor: this manifest and `docs/05_DEVELOPMENT/Implem
   - `oxlint -D no-undef`: clean on all new/touched identifiers.
   - No browser/Playwright/dev server/login executed; stopped at `READY FOR PO UI CHECK`.
 
+
+## 7. Review fixes (2026-10-17, Claude Code/Sonnet 5.5) — READY FOR PO UI CHECK
+
+Review of Section 6 found no backend change and green gates; three fixes made:
+1. No base snapshot (compare unavailable): the Overview cards, the Theo bưu cục total row and the So sánh hai mốc cards show "—" with the note "Chưa có mốc so sánh…" instead of 0 (`hasCompareBase` / `compareValue` / `NO_BASE_NOTE` in `hangtonLevels.js`); the base drop-down no longer pretends the first snapshot is the base.
+2. Chi tiết: the sort drop-down is replaced by click-to-order column titles (Số hiệu, Bưu cục, Trạng thái, Loại tồn, COD, Bưu tá; second click reverses). Backend `GET /api/hangton/items` now accepts `sort=rank|office|cod|item_code|status|postman` and `dir=asc|desc` (whitelisted; unknown values fall back to rank desc). Backend restart needed for the direction to take effect.
+3. HangTonPage: the base snapshot resolved by the backend is no longer copied back into state (it caused a second load on every snapshot change); stale responses are ignored.
+Tests: frontend 27/27 (hangton, navigation, role routing), backend `test_hangtonInventory.js` 6/6, oxlint clean on `src/features/hangton`, build OK.

@@ -30,6 +30,8 @@ import {
   formatDelta,
   formatSlot,
   formatSnapshotLabel,
+  compareValue,
+  NO_BASE_NOTE,
 } from '../hangtonLevels.js';
 
 export default function HangTonOverviewTab({
@@ -48,14 +50,6 @@ export default function HangTonOverviewTab({
   const ge5 = overview?.ge5 ?? 0;
   const byLevel = overview?.by_level || [];
   const byStatus = overview?.by_status || [];
-
-  const summary = compare?.summary || {
-    resolved: 0,
-    aged_up: 0,
-    aged_down: 0,
-    new: 0,
-    unchanged: 0,
-  };
 
   // Base comparison deltas if available
   const baseTotal = compare?.from?.kept_row_count;
@@ -97,7 +91,11 @@ export default function HangTonOverviewTab({
             <span>Tồn ≥5 ngày: <strong className="text-rose-700">{formatNumber(ge5)}</strong> (mục tiêu: 0)</span>
           </div>
         </div>
-      ) : null}
+      ) : (
+        <div className="rounded-xl border border-amber-200 bg-amber-50/70 px-4 py-2.5 text-xs text-amber-900 shadow-2xs" data-no-capture="true">
+          {NO_BASE_NOTE}
+        </div>
+      )}
 
       {/* 5 KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
@@ -149,7 +147,7 @@ export default function HangTonOverviewTab({
             <CheckCircle2 size={18} className="text-emerald-600" />
           </div>
           <div className="mt-2 flex items-baseline gap-2">
-            <span className="text-2xl font-black text-emerald-700">{formatNumber(summary.resolved)}</span>
+            <span className="text-2xl font-black text-emerald-700">{compareValue(compare, 'resolved')}</span>
             <span className="text-xs text-emerald-600 font-medium">bưu gửi</span>
           </div>
           <p className="mt-2 text-[11px] text-emerald-800 border-t border-emerald-100 pt-2 truncate">
@@ -164,7 +162,7 @@ export default function HangTonOverviewTab({
             <TrendingUp size={18} className="text-amber-600" />
           </div>
           <div className="mt-2 flex items-baseline gap-2">
-            <span className="text-2xl font-black text-amber-700">{formatNumber(summary.aged_up)}</span>
+            <span className="text-2xl font-black text-amber-700">{compareValue(compare, 'aged_up')}</span>
             <span className="text-xs text-amber-600 font-medium">bưu gửi</span>
           </div>
           <p className="mt-2 text-[11px] text-amber-800 border-t border-amber-100 pt-2 truncate">
@@ -179,7 +177,7 @@ export default function HangTonOverviewTab({
             <PlusCircle size={18} className="text-indigo-600" />
           </div>
           <div className="mt-2 flex items-baseline gap-2">
-            <span className="text-2xl font-black text-indigo-700">{formatNumber(summary.new)}</span>
+            <span className="text-2xl font-black text-indigo-700">{compareValue(compare, 'new')}</span>
             <span className="text-xs text-indigo-600 font-medium">bưu gửi</span>
           </div>
           <p className="mt-2 text-[11px] text-indigo-800 border-t border-indigo-100 pt-2 truncate">

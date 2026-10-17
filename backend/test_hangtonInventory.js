@@ -85,6 +85,9 @@ test('compare classifies resolved / aged_up / new / unchanged and defaults to sa
     const list = await inventory.items(db, to.id, { minRank: 3, sort: 'rank' });
     assert.equal(list.total, 2);
     assert.deepEqual(list.rows.map((r) => r.item_code), ['S', 'U']);
+    assert.deepEqual((await inventory.items(db, to.id, { sort: 'rank', dir: 'asc' })).rows.map((r) => r.item_code), ['N', 'O', 'S', 'U']);
+    assert.deepEqual((await inventory.items(db, to.id, { sort: 'item_code', dir: 'desc' })).rows.map((r) => r.item_code), ['U', 'S', 'O', 'N']);
+    assert.deepEqual((await inventory.items(db, to.id, { sort: 'bad; DROP TABLE x', dir: 'x' })).rows.map((r) => r.item_code), ['S', 'U', 'O', 'N'], 'unknown sort falls back to rank desc');
     assert.equal((await inventory.items(db, to.id, { office: 'BCVH Phú Lộc' })).total, 1);
 
     const ov = await inventory.overview(db, to.id);

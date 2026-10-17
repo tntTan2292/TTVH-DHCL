@@ -11,6 +11,9 @@ import {
   formatNumber,
   formatCurrency,
   formatDelta,
+  hasCompareBase,
+  compareValue,
+  NO_BASE_NOTE,
 } from './hangtonLevels.js';
 import {
   buildOfficeTableRows,
@@ -167,4 +170,16 @@ test('CSV export properly escapes cells and builds valid BOM string', () => {
   assert.ok(csv.startsWith('\uFEFF'));
   assert.ok(csv.includes('"Mã bưu gửi","Bưu cục phát"'));
   assert.ok(csv.includes('"EH12345VN","Thuận Hóa"'));
+});
+
+test('compare figures show a dash, not 0, when there is no base snapshot', () => {
+  assert.equal(hasCompareBase(null), false);
+  assert.equal(hasCompareBase({ summary: { resolved: 0 } }), false, 'summary without a base snapshot');
+  assert.equal(compareValue(null, 'resolved'), '—');
+  assert.equal(compareValue(undefined, 'new'), '—');
+  const withBase = { from: { id: 1 }, summary: { resolved: 0, aged_up: 1234 } };
+  assert.equal(hasCompareBase(withBase), true);
+  assert.equal(compareValue(withBase, 'resolved'), '0', 'a real zero stays 0');
+  assert.equal(compareValue(withBase, 'aged_up'), formatNumber(1234));
+  assert.match(NO_BASE_NOTE, /Chưa có mốc so sánh/);
 });

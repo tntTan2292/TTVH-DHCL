@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo, useCallback } from 'react';
+import React, { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import {
   Layers,
   Building2,
@@ -25,7 +25,7 @@ const TABS = [
 export default function HangTonPage() {
   const [snapshots, setSnapshots] = useState([]);
   const [selectedSnapshotId, setSelectedSnapshotId] = useState(null);
-  const [baseSnapshotId, setBaseSnapshotId] = useState(null);
+  const [baseSnapshotId, setBaseSnapshotId] = useState(null); // manual choice only; default base = compare.from
 
   const [activeTab, setActiveTab] = useState('overview');
   const [selectedOfficeDrilldown, setSelectedOfficeDrilldown] = useState('');
@@ -33,6 +33,7 @@ export default function HangTonPage() {
   const [overview, setOverview] = useState(null);
   const [compare, setCompare] = useState(null);
 
+  const requestToken = useRef(0);
   const [loading, setLoading] = useState(true);
   const [dataLoading, setDataLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -61,6 +62,7 @@ export default function HangTonPage() {
   // 2. Fetch overview & compare for the active snapshot
   const loadSnapshotData = useCallback(async (id, baseId) => {
     if (!id) return;
+    const token = ++requestToken.current;
     setDataLoading(true);
     try {
       const [ovData, cmpData] = await Promise.all([
@@ -68,17 +70,13 @@ export default function HangTonPage() {
         fetchCompare(baseId ? { id, from_id: baseId, detail: 1 } : { id, detail: 1 }).catch(() => null),
       ]);
 
+      if (token !== requestToken.current) return; // a newer snapshot was selected meanwhile
       setOverview(ovData);
       setCompare(cmpData);
-
-      // If baseId wasn't manually set, sync with what backend resolved
-      if (!baseId && cmpData?.from?.id) {
-        setBaseSnapshotId(cmpData.from.id);
-      }
     } catch (err) {
-      setError(err?.response?.data?.error?.message || err.message || 'Lỗi khi tải dữ liệu hàng tồn.');
+      if (token === requestToken.current) setError(err?.response?.data?.error?.message || err.message || 'Lỗi khi tải dữ liệu hàng tồn.');
     } finally {
-      setDataLoading(false);
+      if (token === requestToken.current) setDataLoading(false);
     }
   }, []);
 

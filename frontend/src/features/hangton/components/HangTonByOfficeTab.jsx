@@ -3,6 +3,7 @@ import { Building2, ExternalLink } from 'lucide-react';
 import SortableTh from '../../../components/common/SortableTh.jsx';
 import BlockCaptureButton from '../../../components/common/BlockCaptureButton.jsx';
 import { nextSortState } from '../../../components/common/tableSort.js';
+import { hasCompareBase } from '../hangtonLevels.js';
 import {
   TON_LEVELS,
   getLevelConfig,
@@ -47,6 +48,7 @@ export default function HangTonByOfficeTab({
     return sortOfficeRows(filteredRows, sort);
   }, [filteredRows, sort]);
 
+  const hasBase = hasCompareBase(compare);
   const totals = useMemo(() => {
     return calculateOfficeTotals(rawRows);
   }, [rawRows]);
@@ -304,13 +306,13 @@ export default function HangTonByOfficeTab({
                 {formatCurrency(totals.cod)}
               </td>
               <td className="py-2.5 px-2 text-right text-emerald-800">
-                {formatNumber(totals.resolved)}
+                {hasBase ? formatNumber(totals.resolved) : '—'}
               </td>
               <td className="py-2.5 px-2 text-right text-amber-800">
-                {formatNumber(totals.aged_up)}
+                {hasBase ? formatNumber(totals.aged_up) : '—'}
               </td>
               <td className="py-2.5 px-2 text-right text-indigo-800">
-                {formatNumber(totals.new)}
+                {hasBase ? formatNumber(totals.new) : '—'}
               </td>
             </tr>
           </tfoot>

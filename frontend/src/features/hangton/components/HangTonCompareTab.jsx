@@ -15,6 +15,9 @@ import {
   formatSlot,
   formatSnapshotLabel,
   getLevelConfig,
+  compareValue,
+  hasCompareBase,
+  NO_BASE_NOTE,
 } from '../hangtonLevels.js';
 import { downloadCsv } from '../hangtonExport.js';
 
@@ -31,15 +34,8 @@ export default function HangTonCompareTab({
   const [selectedOffice, setSelectedOffice] = useState('');
 
   const toSnapshot = snapshots.find((s) => String(s.id) === String(toSnapshotId)) || snapshots[0];
-  const fromSnapshot = snapshots.find((s) => String(s.id) === String(baseSnapshotId)) || snapshots[1] || snapshots[0];
-
-  const summary = compare?.summary || {
-    resolved: 0,
-    aged_up: 0,
-    aged_down: 0,
-    new: 0,
-    unchanged: 0,
-  };
+  const fromSnapshot = snapshots.find((s) => String(s.id) === String(baseSnapshotId)) || null;
+  const hasBase = hasCompareBase(compare);
 
   // Get unique office list from the 3 detail sets
   const officeOptions = useMemo(() => {
@@ -103,7 +99,7 @@ export default function HangTonCompareTab({
           <BlockCaptureButton
             targetRef={compareBlockRef}
             blockTitle="So sánh biến động hai mốc hàng tồn"
-            dateOrPeriod={`${formatSnapshotLabel(toSnapshot)} vs ${formatSnapshotLabel(fromSnapshot)}`}
+            dateOrPeriod={`${formatSnapshotLabel(toSnapshot)} vs ${fromSnapshot ? formatSnapshotLabel(fromSnapshot) : 'chưa có mốc so sánh'}`}
           />
         </div>
       </div>
@@ -141,6 +137,7 @@ export default function HangTonCompareTab({
             onChange={(e) => onChangeBaseSnapshot(e.target.value)}
             className="w-full rounded-lg border border-slate-300 bg-white py-2 px-3 text-xs font-semibold text-slate-900 shadow-2xs hover:border-slate-400 focus:border-rose-500 focus:outline-none"
           >
+            {!baseSnapshotId ? <option value="" disabled>— Chưa có mốc so sánh —</option> : null}
             {snapshots.map((s) => (
               <option key={s.id} value={s.id}>
                 {s.business_date} — {formatSlot(s.slot)} ({s.kept_row_count ?? 0} bưu gửi)
@@ -150,6 +147,12 @@ export default function HangTonCompareTab({
           </select>
         </div>
       </div>
+
+      {!hasBase ? (
+        <div className="rounded-xl border border-amber-200 bg-amber-50/70 px-4 py-2.5 text-xs text-amber-900" data-no-capture="true">
+          {NO_BASE_NOTE} Có thể chọn một mốc cơ sở khác ở ô bên trên.
+        </div>
+      ) : null}
 
       {/* Summary Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
@@ -167,7 +170,7 @@ export default function HangTonCompareTab({
             <span className="text-[11px] font-bold uppercase tracking-wider">Đã xử lý khỏi tồn</span>
             <CheckCircle2 size={16} />
           </div>
-          <div className="text-xl font-black text-emerald-700">{formatNumber(summary.resolved)}</div>
+          <div className="text-xl font-black text-emerald-700">{compareValue(compare, 'resolved')}</div>
           <p className="text-[11px] text-emerald-800 mt-1">Trong mốc trước, đã ra khỏi tồn</p>
         </button>
 
@@ -185,7 +188,7 @@ export default function HangTonCompareTab({
             <span className="text-[11px] font-bold uppercase tracking-wider">Tăng loại tồn</span>
             <TrendingUp size={16} />
           </div>
-          <div className="text-xl font-black text-amber-700">{formatNumber(summary.aged_up)}</div>
+          <div className="text-xl font-black text-amber-700">{compareValue(compare, 'aged_up')}</div>
           <p className="text-[11px] text-amber-800 mt-1">Chuyển sang mức tồn lâu hơn</p>
         </button>
 
@@ -203,7 +206,7 @@ export default function HangTonCompareTab({
             <span className="text-[11px] font-bold uppercase tracking-wider">Mới vào tồn</span>
             <PlusCircle size={16} />
           </div>
-          <div className="text-xl font-black text-indigo-700">{formatNumber(summary.new)}</div>
+          <div className="text-xl font-black text-indigo-700">{compareValue(compare, 'new')}</div>
           <p className="text-[11px] text-indigo-800 mt-1">Chưa có ở mốc trước</p>
         </button>
 
@@ -212,7 +215,7 @@ export default function HangTonCompareTab({
           <div className="text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1">
             Không đổi mức
           </div>
-          <div className="text-xl font-black text-slate-800">{formatNumber(summary.unchanged)}</div>
+          <div className="text-xl font-black text-slate-800">{compareValue(compare, 'unchanged')}</div>
           <p className="text-[11px] text-slate-500 mt-1">Giữ nguyên mức tồn</p>
         </div>
 
@@ -221,7 +224,7 @@ export default function HangTonCompareTab({
           <div className="text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1">
             Giảm mức tồn
           </div>
-          <div className="text-xl font-black text-slate-800">{formatNumber(summary.aged_down)}</div>
+          <div className="text-xl font-black text-slate-800">{compareValue(compare, 'aged_down')}</div>
           <p className="text-[11px] text-slate-500 mt-1">Điều chỉnh TMS</p>
         </div>
       </div>

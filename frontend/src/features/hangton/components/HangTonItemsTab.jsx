@@ -7,6 +7,8 @@ import {
   ChevronRight,
   RotateCcw,
 } from 'lucide-react';
+import SortableTh from '../../../components/common/SortableTh.jsx';
+import { nextSortState } from '../../../components/common/tableSort.js';
 import BlockCaptureButton from '../../../components/common/BlockCaptureButton.jsx';
 import { fetchItems } from '../api/hangtonClient.js';
 import {
@@ -24,6 +26,10 @@ const SCOPE_STATUSES = [
   'Đã phân tuyến',
   'Đã xác nhận đến',
 ];
+
+// Column title -> backend sort key (GET /api/hangton/items ?sort=&dir=).
+const SORT_TEXT_FIELDS = ['item_code', 'office', 'status', 'postman'];
+const DEFAULT_SORT = { field: 'rank', direction: 'desc' };
 
 const MIN_RANK_OPTIONS = [
   { value: '', label: 'Tất cả mức tồn' },
@@ -48,7 +54,7 @@ export default function HangTonItemsTab({
   const [office, setOffice] = useState(initialOffice || '');
   const [minRank, setMinRank] = useState('');
   const [status, setStatus] = useState('');
-  const [sort, setSort] = useState('rank'); // 'rank' | 'office' | 'cod'
+  const [sort, setSort] = useState(DEFAULT_SORT); // { field, direction }
   const [limit, setLimit] = useState(100);
   const [page, setPage] = useState(1);
 
@@ -79,7 +85,8 @@ export default function HangTonItemsTab({
           office: office || undefined,
           min_rank: minRank !== '' ? minRank : undefined,
           status: status || undefined,
-          sort,
+          sort: sort.field,
+          dir: sort.direction,
           limit,
           offset,
         });
@@ -101,11 +108,16 @@ export default function HangTonItemsTab({
 
   const totalPages = Math.max(1, Math.ceil((data.total || 0) / limit));
 
+  const handleSort = (field) => {
+    setSort((current) => nextSortState(current, field, { textFields: SORT_TEXT_FIELDS }));
+    setPage(1);
+  };
+
   const handleResetFilters = () => {
     setOffice('');
     setMinRank('');
     setStatus('');
-    setSort('rank');
+    setSort(DEFAULT_SORT);
     setPage(1);
   };
 
@@ -212,22 +224,8 @@ export default function HangTonItemsTab({
           ))}
         </select>
 
-        {/* Sort order */}
-        <select
-          value={sort}
-          onChange={(e) => {
-            setSort(e.target.value);
-            setPage(1);
-          }}
-          className="rounded-lg border border-slate-300 bg-white py-1.5 px-2.5 text-xs text-slate-800 shadow-2xs focus:border-rose-500 focus:outline-none"
-        >
-          <option value="rank">Sắp xếp: Loại tồn cao nhất</option>
-          <option value="office">Sắp xếp: Theo bưu cục</option>
-          <option value="cod">Sắp xếp: Tiền COD cao nhất</option>
-        </select>
-
         {/* Reset button */}
-        {(office || minRank || status || sort !== 'rank') && (
+        {(office || minRank || status || sort.field !== 'rank' || sort.direction !== 'desc') && (
           <button
             type="button"
             onClick={handleResetFilters}
@@ -245,12 +243,12 @@ export default function HangTonItemsTab({
           <thead>
             <tr className="bg-slate-50 border-b border-slate-200 text-slate-700 font-bold text-[11px] uppercase tracking-wider">
               <th className="py-2.5 px-3">STT</th>
-              <th className="py-2.5 px-3">Số hiệu bưu gửi</th>
-              <th className="py-2.5 px-3">Bưu cục phát</th>
-              <th className="py-2.5 px-3">Trạng thái TMS</th>
-              <th className="py-2.5 px-3">Loại tồn</th>
-              <th className="py-2.5 px-3 text-right">Tiền COD</th>
-              <th className="py-2.5 px-3">Bưu tá phụ trách</th>
+              <SortableTh field="item_code" sort={sort} onSort={handleSort} className="py-2.5 px-3" activeClassName="bg-rose-100 text-rose-950 font-bold">Số hiệu bưu gửi</SortableTh>
+              <SortableTh field="office" sort={sort} onSort={handleSort} className="py-2.5 px-3" activeClassName="bg-rose-100 text-rose-950 font-bold">Bưu cục phát</SortableTh>
+              <SortableTh field="status" sort={sort} onSort={handleSort} className="py-2.5 px-3" activeClassName="bg-rose-100 text-rose-950 font-bold">Trạng thái TMS</SortableTh>
+              <SortableTh field="rank" sort={sort} onSort={handleSort} className="py-2.5 px-3" activeClassName="bg-rose-100 text-rose-950 font-bold">Loại tồn</SortableTh>
+              <SortableTh field="cod" sort={sort} onSort={handleSort} className="py-2.5 px-3 text-right" activeClassName="bg-rose-100 text-rose-950 font-bold">Tiền COD</SortableTh>
+              <SortableTh field="postman" sort={sort} onSort={handleSort} className="py-2.5 px-3" activeClassName="bg-rose-100 text-rose-950 font-bold">Bưu tá phụ trách</SortableTh>
               <th className="py-2.5 px-3">Lý do</th>
             </tr>
           </thead>

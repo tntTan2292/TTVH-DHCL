@@ -52,3 +52,34 @@ test('App.jsx configures /hangton route accessible to admin and viewer', () => {
     /path="hangton"\s+element=\{<ProtectedRoute allowedRoles=\{\[ROLE_ADMIN, ROLE_VIEWER\]\}><HangTonPage \/><\/ProtectedRoute>\}/,
   );
 });
+
+test('No-base state: Overview, Office totals and Compare tab use the dash helpers, not raw zeros', () => {
+  const overview = read('./components/HangTonOverviewTab.jsx');
+  const office = read('./components/HangTonByOfficeTab.jsx');
+  const compare = read('./components/HangTonCompareTab.jsx');
+  assert.match(overview, /compareValue\(compare, 'resolved'\)/);
+  assert.match(overview, /compareValue\(compare, 'aged_up'\)/);
+  assert.match(overview, /compareValue\(compare, 'new'\)/);
+  assert.match(overview, /NO_BASE_NOTE/);
+  assert.match(office, /hasCompareBase/);
+  assert.match(office, /hasBase \? formatNumber\(totals\.resolved\) : '—'/);
+  assert.match(compare, /NO_BASE_NOTE/);
+  assert.doesNotMatch(compare, /snapshots\[1\] \|\| snapshots\[0\]/, 'must not pretend a base snapshot exists');
+});
+
+test('Chi tiết table orders by clicking column titles (SortableTh) and sends sort + dir', () => {
+  const items = read('./components/HangTonItemsTab.jsx');
+  for (const field of ['item_code', 'office', 'status', 'rank', 'cod', 'postman']) {
+    assert.match(items, new RegExp(`<SortableTh field="${field}"`), `column ${field} must be sortable`);
+  }
+  assert.match(items, /nextSortState/);
+  assert.match(items, /sort: sort\.field,\s*dir: sort\.direction/);
+  assert.doesNotMatch(items, /Sắp xếp: Loại tồn cao nhất/, 'the old sort drop-down is replaced by column titles');
+});
+
+test('Page does not reload twice: the resolved base is derived, never copied back into state', () => {
+  const page = read('./HangTonPage.jsx');
+  assert.doesNotMatch(page, /setBaseSnapshotId\(cmpData/);
+  assert.match(page, /requestToken/);
+  assert.match(page, /return compare\?\.from \|\| null/);
+});

@@ -26,12 +26,12 @@ function createHangtonRouter({ db = require('../config/db'), fetchStock = () => 
         res.json({ success: true, data: { snapshot, ...(await inventory.overview(db, snapshot.id)) } });
     }));
 
-    // Parcel list of one snapshot (Chi tiết): ?id|date&slot, ?office=, ?min_rank= (e.g. 5), ?status=, ?sort=rank|office|cod, ?limit&offset.
+    // Parcel list of one snapshot (Chi tiết): ?id|date&slot, ?office=, ?min_rank= (e.g. 5), ?status=, ?sort=rank|office|cod|item_code|status|postman, ?dir=asc|desc, ?limit&offset.
     router.get('/items', ...read, wrap(async (req, res) => {
         const snapshot = await inventory.resolveSnapshot(db, req.query);
         if (!snapshot) return fail(res, 404, 'NO_SNAPSHOT', 'Chưa có snapshot hàng tồn.');
-        const { office, min_rank: minRank, status, sort, limit, offset } = req.query;
-        res.json({ success: true, data: { snapshot, ...(await inventory.items(db, snapshot.id, { office, minRank, status, sort, limit, offset })) } });
+        const { office, min_rank: minRank, status, sort, dir, limit, offset } = req.query;
+        res.json({ success: true, data: { snapshot, ...(await inventory.items(db, snapshot.id, { office, minRank, status, sort, dir, limit, offset })) } });
     }));
 
     // Parcel-level comparison. to = ?id|date+slot (default newest); from = ?from_id, or ?base_date/?base_slot,
