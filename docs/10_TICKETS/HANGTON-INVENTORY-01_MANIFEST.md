@@ -65,4 +65,25 @@ Filter check (2026-10-17 08:53 data): the API returns the whole province (11 673
 - Tests: `node --test test_hangtonInventory.js` 6/6 (scope, store/replace/stale, compare classification, slot decision, tick, client); `server.startupMigrations.test.js` pass. Operational database untouched until the backend is restarted.
 - Not done: alert thresholds (O2), screens (phase 3), Opus review, PO UI check.
 
+## 5. Phase 3 — screens (Antigravity). Backend contract is final; do not change the backend.
+
+Menu: a new item "Chỉ số rà soát Hàng tồn" at the END of Module 1 (Quản lý chất lượng), after F4.1, route `/hangton`, visible to admin and viewer. The existing navigation tests pin Module 1 to four items; add the fifth item there (that is the only allowed edit of an existing test, and only for this item).
+
+API (all `GET /api/hangton/...`, envelope `{success, data}`; use the existing authenticated client, see `frontend/src/features/f12` for the pattern):
+
+| Call | Use |
+| --- | --- |
+| `/snapshots` | list for the snapshot picker (date + slot 0730/1130/2100; `is_stale=1` = portal data not refreshed since the previous snapshot, show a small "dữ liệu cổng chưa cập nhật" note) |
+| `/overview?date=&slot=` | `total`, `ge5`, `by_level`, `by_office`, `by_office_level`, `by_status` |
+| `/compare?date=&slot=&base_date=&base_slot=&detail=1` | `summary` {resolved, aged_up, aged_down, new, unchanged}, `by_office`, lists `resolved` / `aged_up` / `new` (cap `detail_cap`) |
+| `/items?date=&slot=&office=&min_rank=&status=&sort=&limit=&offset=` | Chi tiết table, `{total, rows}` |
+
+Screens (tabs in one page):
+1. **Tổng quan**: cards Tổng tồn, Tồn ≥5 ngày (target 0, shown as the target line/note), Đã xử lý khỏi tồn, Tăng loại tồn, Mới vào tồn (the last three from `/compare`); stacked/column chart of stock by `Loại Tồn` (levels `<1 ngày` … `≥14 ngày`, ascending); Huế total vs the base snapshot.
+2. **Theo bưu cục**: table, one row per office WITH stock (D5, API already returns only those), columns per `Loại Tồn` level + Tổng + COD, plus the compare columns (đã xử lý / tăng loại / mới); click a column title to order; clicking an office opens Chi tiết filtered to it.
+3. **So sánh hai mốc**: pick the later snapshot (date + slot, default newest) and the base (default = same slot the previous day, or any other date/slot); show `summary` and the three lists (đã xử lý, tăng loại tồn from→to, mới vào) with office filter.
+4. **Chi tiết**: paged table of parcels (`/items`), filters office, level ≥, status; columns Số hiệu, Bưu cục, Trạng thái, Loại tồn, COD, Bưu tá, Lý do; export of the shown filter to Excel/CSV if the project already has a helper, otherwise skip.
+
+Rules: Huế only, no national rank (D6). Colour RED, deeper with longer stock age (≥1 lightest … ≥14 darkest); from ≥5 ngày the cell/row is visibly heavier, again at ≥7 and ≥14 (D10); no numeric alert thresholds yet (O2 open) — do not invent any. Slots are never merged into one day (D12): every figure belongs to one snapshot (date + slot). Follow `docs/05_DEVELOPMENT/Implementation/report_block_ui_standard.md` (camera button, click-to-order titles, target line, undefined-identifier check); the "date filter" of that standard is the snapshot picker here. Vietnamese labels.
+
 Required Reading for the executor: this manifest and `docs/05_DEVELOPMENT/Implementation/report_block_ui_standard.md`.

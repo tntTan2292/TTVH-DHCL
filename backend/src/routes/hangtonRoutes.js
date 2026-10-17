@@ -26,6 +26,14 @@ function createHangtonRouter({ db = require('../config/db'), fetchStock = () => 
         res.json({ success: true, data: { snapshot, ...(await inventory.overview(db, snapshot.id)) } });
     }));
 
+    // Parcel list of one snapshot (Chi tiết): ?id|date&slot, ?office=, ?min_rank= (e.g. 5), ?status=, ?sort=rank|office|cod, ?limit&offset.
+    router.get('/items', ...read, wrap(async (req, res) => {
+        const snapshot = await inventory.resolveSnapshot(db, req.query);
+        if (!snapshot) return fail(res, 404, 'NO_SNAPSHOT', 'Chưa có snapshot hàng tồn.');
+        const { office, min_rank: minRank, status, sort, limit, offset } = req.query;
+        res.json({ success: true, data: { snapshot, ...(await inventory.items(db, snapshot.id, { office, minRank, status, sort, limit, offset })) } });
+    }));
+
     // Parcel-level comparison. to = ?id|date+slot (default newest); from = ?from_id, or ?base_date/?base_slot,
     // default = the same slot on the closest earlier day. ?detail=1 adds the resolved / aged_up / new lists.
     router.get('/compare', ...read, wrap(async (req, res) => {

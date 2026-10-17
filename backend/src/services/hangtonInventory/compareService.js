@@ -50,6 +50,22 @@ async function overview(db, snapshotId) {
     return { total, ge5, by_level: byLevel, by_office: byOffice, by_office_level: byOfficeLevel, by_status: byStatus };
 }
 
+// Parcel list of one snapshot for the detail table: optional office / min level rank / status, paged.
+const ITEM_SORTS = Object.freeze({ rank: 'ton_rank DESC, office, item_code', office: 'office, ton_rank DESC, item_code', cod: 'cod DESC, item_code' });
+async function items(db, snapshotId, { office, minRank, status, sort = 'rank', limit = 200, offset = 0 } = {}) {
+    const where = ['snapshot_id = ?'];
+    const params = [snapshotId];
+    if (office) { where.push('office = ?'); params.push(office); }
+    if (minRank !== undefined && minRank !== '' && !Number.isNaN(Number(minRank))) { where.push('ton_rank >= ?'); params.push(Number(minRank)); }
+    if (status) { where.push('status_name = ?'); params.push(status); }
+    const total = (await db.get(`SELECT COUNT(*) AS n FROM hangton_snapshot_item WHERE ${where.join(' AND ')}`, params)).n;
+    const rows = await db.all(
+        `SELECT item_code, status_name, ton_level, ton_rank, office, district, cod, parcel_type, customer_class, postman_code, postman_name, reason, weight
+           FROM hangton_snapshot_item WHERE ${where.join(' AND ')} ORDER BY ${ITEM_SORTS[sort] || ITEM_SORTS.rank} LIMIT ? OFFSET ?`,
+        [...params, Math.min(Number(limit) || 200, 1000), Math.max(Number(offset) || 0, 0)]);
+    return { total, rows };
+}
+
 const DETAIL_CAP = 1000;
 
 // Parcels in A (left join B) plus parcels only in B. ?1 = from snapshot, ?2 = to snapshot.
@@ -91,4 +107,4 @@ async function compare(db, fromId, toId, { detail = false } = {}) {
     return result;
 }
 
-module.exports = { listSnapshots, getSnapshot, resolveSnapshot, resolveDefaultBase, overview, compare };
+module.exports = { listSnapshots, getSnapshot, resolveSnapshot, resolveDefaultBase, overview, compare, items };

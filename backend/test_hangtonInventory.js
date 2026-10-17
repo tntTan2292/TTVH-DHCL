@@ -82,6 +82,11 @@ test('compare classifies resolved / aged_up / new / unchanged and defaults to sa
     assert.deepEqual(result.aged_up.map((r) => [r.item_code, r.from_level, r.to_level]), [['U', '≥3 ngày', '≥4 ngày']]);
     assert.deepEqual(result.new.map((r) => r.item_code), ['N']);
 
+    const list = await inventory.items(db, to.id, { minRank: 3, sort: 'rank' });
+    assert.equal(list.total, 2);
+    assert.deepEqual(list.rows.map((r) => r.item_code), ['S', 'U']);
+    assert.equal((await inventory.items(db, to.id, { office: 'BCVH Phú Lộc' })).total, 1);
+
     const ov = await inventory.overview(db, to.id);
     assert.equal(ov.total, 4);
     assert.equal(ov.ge5, 0);
