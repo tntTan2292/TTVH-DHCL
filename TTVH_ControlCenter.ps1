@@ -34,11 +34,22 @@ function Kill-ProcessByPort {
     }
 }
 
+$PauseFile = "$RootPath\logs\supervisor.pause"
+
+function Test-Locked { return (Test-Path -LiteralPath $PauseFile) }
+
+function Set-Lock {
+    New-Item -ItemType Directory -Force -Path "$RootPath\logs" | Out-Null
+    Set-Content -LiteralPath $PauseFile -Value (Get-Date -Format s)
+}
+
+function Clear-Lock { Remove-Item -LiteralPath $PauseFile -Force -ErrorAction SilentlyContinue }
+
 function Start-System {
+    param([switch]$NoPrompt)
     # Keep the supervisor (scripts\qis-supervisor.ps1) paused while the system is being started, so it cannot start a
     # second copy in the same second; the pause file is removed only once both ports listen (see below).
-    New-Item -ItemType Directory -Force -Path "$RootPath\logs" | Out-Null
-    Set-Content -LiteralPath "$RootPath\logs\supervisor.pause" -Value (Get-Date -Format s)
+    Set-Lock
     Write-Host "Starting Backend..." -ForegroundColor Yellow
     if (-not (Check-Port $BackendPort)) {
         Start-Process -FilePath "node" -ArgumentList "server.js" -WorkingDirectory "$RootPath\backend" -WindowStyle Hidden -RedirectStandardOutput "$RootPath\backend\backend.log" -RedirectStandardError "$RootPath\backend\backend_err.log"
@@ -57,16 +68,19 @@ function Start-System {
     
     $deadline = (Get-Date).AddSeconds(90)
     while ((Get-Date) -lt $deadline -and -not ((Check-Port $BackendPort) -and (Check-Port $FrontendPort))) { Start-Sleep -Seconds 1 }
-    Remove-Item -LiteralPath "$RootPath\logs\supervisor.pause" -Force -ErrorAction SilentlyContinue
-    Write-Host "System started successfully in background." -ForegroundColor Green
-    Write-Host "Press any key to return to menu..."
-    $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+    Clear-Lock
+    Write-Host "System started successfully in background. Lock released: the supervisor will bring it back if it goes down." -ForegroundColor Green
+    if (-not $NoPrompt) {
+        Write-Host "Press any key to return to menu..."
+        $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+    }
 }
 
 function Stop-System {
-    # pause the supervisor, otherwise it would start the system again within seconds
-    New-Item -ItemType Directory -Force -Path "$RootPath\logs" | Out-Null
-    Set-Content -LiteralPath "$RootPath\logs\supervisor.pause" -Value (Get-Date -Format s)
+    # -Lock: the supervisor must NOT bring the system back until the operator presses Start (lock file).
+    # Without -Lock the lock is released, so the supervisor restarts the system within ~20 seconds.
+    param([switch]$Lock, [switch]$NoPrompt)
+    if ($Lock) { Set-Lock } else { Clear-Lock }
     Write-Host "Stopping Backend (Port $BackendPort)..." -ForegroundColor Yellow
     Kill-ProcessByPort $BackendPort
     
@@ -77,9 +91,12 @@ function Stop-System {
     # Additionally, we could kill all node processes but that might interfere with other projects.
     # Killing by port is safest.
     
-    Write-Host "System stopped." -ForegroundColor Green
-    Write-Host "Press any key to return to menu..."
-    $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+    if ($Lock) { Write-Host "System stopped and LOCKED: it will not start again until you choose Start System." -ForegroundColor Green }
+    else { Write-Host "System stopped (not locked): the supervisor will start it again within about 20 seconds." -ForegroundColor Yellow }
+    if (-not $NoPrompt) {
+        Write-Host "Press any key to return to menu..."
+        $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+    }
 }
 
 function Check-Health {
@@ -135,14 +152,18 @@ while ($true) {
 
     Write-Host "Backend Status : " -NoNewline; Write-Host $bState -ForegroundColor $bColor
     Write-Host "Frontend Status: " -NoNewline; Write-Host $fState -ForegroundColor $fColor
+    $lockText = if (Test-Locked) { "LOCKED (will not restart by itself until Start)" } else { "ON (supervisor restarts it if it goes down)" }
+    $lockColor = if (Test-Locked) { "Red" } else { "Green" }
+    Write-Host "Auto-restart   : " -NoNewline; Write-Host $lockText -ForegroundColor $lockColor
     Write-Host "-----------------------------------------"
 
-    Write-Host "1. Start System"
-    Write-Host "2. Stop System"
-    Write-Host "3. Restart System"
-    Write-Host "4. Health Check"
-    Write-Host "5. Open Dashboard"
-    Write-Host "6. Open Project Folder"
+    Write-Host "1. Start System            (releases the lock)"
+    Write-Host "2. Stop System             (temporary: supervisor starts it again)"
+    Write-Host "3. Stop System + LOCK      (stays off until you press Start)"
+    Write-Host "4. Restart System          (always with lock handling)"
+    Write-Host "5. Health Check"
+    Write-Host "6. Open Dashboard"
+    Write-Host "7. Open Project Folder"
     Write-Host "0. Exit Control Center"
     Write-Host "-----------------------------------------"
     
@@ -151,10 +172,11 @@ while ($true) {
     switch ($choice) {
         "1" { Start-System }
         "2" { Stop-System }
-        "3" { Stop-System; Start-System }
-        "4" { Check-Health }
-        "5" { Open-Dashboard }
-        "6" { Open-Project-Folder }
+        "3" { Stop-System -Lock }
+        "4" { Stop-System -Lock -NoPrompt; Start-System }
+        "5" { Check-Health }
+        "6" { Open-Dashboard }
+        "7" { Open-Project-Folder }
         "0" { exit }
         default { 
             Write-Host "Invalid option. Try again." -ForegroundColor Red

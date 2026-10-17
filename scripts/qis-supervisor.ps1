@@ -82,6 +82,15 @@ $mutex = New-Object System.Threading.Mutex($true, 'Global\QIS_V2_SUPERVISOR', [r
 if (-not $createdNew -and -not $DryRun) { exit 0 }
 
 Write-Log "$(if ($DryRun) { 'DRYRUN ' })supervisor up (backend $BackendPort, frontend $FrontendPort, check ${CheckSeconds}s, pid $PID)"
+# A lock (pause file) older than the last Windows boot is stale: a reboot releases it (PO decision 2026-10-17), so the
+# system always comes back after a restart of the PC. A lock set during this session is kept.
+if (Test-Path -LiteralPath $PauseFile) {
+    $boot = (Get-CimInstance Win32_OperatingSystem).LastBootUpTime
+    if ((Get-Item -LiteralPath $PauseFile).LastWriteTime -lt $boot) {
+        Remove-Item -LiteralPath $PauseFile -Force -ErrorAction SilentlyContinue
+        Write-Log "lock file was older than the last boot ($boot): removed, the system will be started"
+    }
+}
 $lastStart = @{ backend = [datetime]::MinValue; frontend = [datetime]::MinValue }
 $recent = @{ backend = (New-Object 'System.Collections.Generic.List[datetime]'); frontend = (New-Object 'System.Collections.Generic.List[datetime]') }
 $lastClean = [datetime]::MinValue
