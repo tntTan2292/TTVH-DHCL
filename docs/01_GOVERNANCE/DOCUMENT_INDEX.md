@@ -1122,6 +1122,7 @@ Validation: 15 new backend tests (13 service unit + 2 real in-memory SQLite repo
 | `docs/10_TICKETS/IMPORT-LOG-AUDIT-01_OPUS_REREVIEW_PROMPT.md` | Executor Prompt | IMPORT-LOG-AUDIT-01: short re-review prompt for Claude Code (Opus), fixes of commit 61d14fe only |
 | `docs/10_TICKETS/HANGTON-INVENTORY-01_MANIFEST.md` | Ticket Manifest | HANGTON-INVENTORY-01: "Chỉ số rà soát Hàng tồn" (hangton portal audit, PO decisions D1-D11, open points, phases); planned, no code |
 | `docs/10_TICKETS/HANGTON-INVENTORY-01_ANTIGRAVITY_PROMPT.md` | Executor Prompt | HANGTON-INVENTORY-01: lean prompt for Antigravity (Hàng tồn screens, phase 3) |
+| `docs/10_TICKETS/HANGTON-INVENTORY-01_OPUS_REVIEW_PROMPT.md` | Executor Prompt | HANGTON-INVENTORY-01: independent review prompt for Claude Code (Opus), commit 1c22c62 (auto-start supervisor, bigger text, column hiding, module navigation) |
 | `docs/10_TICKETS/IMPORT-COVERAGE-SPEED-01_MANIFEST.md` | Ticket Manifest | IMPORT-COVERAGE-SPEED-01: batched coverage scan, scan cache with invalidation, faster /import/status, Server-Timing; backend only |
 | `docs/10_TICKETS/UI-GLASS-THEME-01_MANIFEST.md` | Ticket Manifest | UI-GLASS-THEME-01: Phase A of the system-wide light Glass theme (tokens, shell menu/topbar, shared buttons and controls, login); presentation only, assigned to Antigravity, report blocks stay solid |
 | `docs/10_TICKETS/UI-GLASS-THEME-01_ANTIGRAVITY_PROMPT.md` | Executor Prompt | UI-GLASS-THEME-01: lean prompt for Antigravity (Gemini) |
