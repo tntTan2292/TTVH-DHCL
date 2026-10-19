@@ -12,7 +12,9 @@ import {
   Square,
   UserCheck,
   Zap,
-  Filter
+  Filter,
+  LayoutGrid,
+  List
 } from 'lucide-react';
 import {
   getItemKey,
@@ -24,15 +26,28 @@ import {
   resolveNoCodeStatus,
   paginateItems,
   filterDaysByMissingOnly,
-  formatLastImportTooltip
+  formatLastImportTooltip,
+  DEFAULT_DAY_VIEW_INDICATORS,
+  groupItemsByCalendarDay,
+  resolveCalendarDaySelectionState,
+  resolveIndicatorColumnSelectionState,
+  filterCalendarDaysByMissingOnly,
+  summarizeCalendarDayGroups
 } from './autoBackfillUiHelpers';
+
+const INDICATOR_LABELS = {
+  'F1.1': 'KT Nghiệp vụ',
+  'F1.2': 'KT Khối lượng',
+  'F1.3': 'KT Thời gian',
+  'F4.1': 'Dịch vụ COD',
+};
 
 /**
  * AutoBackfillSmartDayView
- * Chế độ Lịch theo Ngày thông minh (Option A - Redesigned)
- * - Các cột thẳng hàng tuyệt đối (Fixed-width aligned columns).
- * - Bộ lọc Indicator Tabs & Month Pills chuyển nhanh không cần cuộn dọc.
- * - Lọc nhanh "Chỉ ngày còn thiếu" với 1 click.
+ * Chế độ Lịch theo Ngày thông minh (Option A - Redesigned & Round 3 Day-per-row)
+ * - Khi lọc 'Tất cả': 1 dòng cho mỗi ngày, 4 chỉ tiêu cạnh nhau (F1.1, F1.2, F1.3, F4.1).
+ * - Khi lọc một chỉ tiêu: giữ nguyên bố cục bảng phẳng chi tiết.
+ * - Hỗ trợ chuyển đổi nhanh giữa Gộp 1 dòng/ngày và Bảng phẳng làm đường lui.
  */
 export default function AutoBackfillSmartDayView({
   filteredCoverageItems = [],
@@ -66,6 +81,7 @@ export default function AutoBackfillSmartDayView({
   const [accordionPage, setAccordionPage] = useState(1);
   const [accordionPageSize, setAccordionPageSize] = useState(10);
   const [activeMenuKey, setActiveMenuKey] = useState(null);
+  const [allViewMode, setAllViewMode] = useState('COMBINED'); // 'COMBINED' | 'FLAT'
 
   // Close secondary actions menu on click outside
   useEffect(() => {
@@ -77,14 +93,33 @@ export default function AutoBackfillSmartDayView({
   // Reset page when filters change
   useEffect(() => {
     setAccordionPage(1);
-  }, [indicatorFilter, monthFilter, laneFilter, onlyMissingDays]);
+  }, [indicatorFilter, monthFilter, laneFilter, onlyMissingDays, allViewMode]);
 
-  // Group filtered items by business date
+  // 1. Calendar Day Groups (1 row per date, 4 indicators side-by-side)
+  const allCalendarDays = useMemo(() => {
+    return groupItemsByCalendarDay(filteredCoverageItems, DEFAULT_DAY_VIEW_INDICATORS);
+  }, [filteredCoverageItems]);
+
+  const displayedCalendarDays = useMemo(() => {
+    if (onlyMissingDays) {
+      return filterCalendarDaysByMissingOnly(allCalendarDays);
+    }
+    return allCalendarDays;
+  }, [allCalendarDays, onlyMissingDays]);
+
+  const calendarSummary = useMemo(() => {
+    return summarizeCalendarDayGroups(allCalendarDays);
+  }, [allCalendarDays]);
+
+  const paginatedCalendarDays = useMemo(() => {
+    return paginateItems(displayedCalendarDays, accordionPage, accordionPageSize);
+  }, [displayedCalendarDays, accordionPage, accordionPageSize]);
+
+  // 2. Flat Day Groups (1 row per (indicator, date) - fallback / single-indicator view)
   const allDayGroups = useMemo(() => {
     return groupItemsByDay(filteredCoverageItems);
   }, [filteredCoverageItems]);
 
-  // Apply "Only Missing Days" quick toggle
   const displayedDayGroups = useMemo(() => {
     if (onlyMissingDays) {
       return filterDaysByMissingOnly(allDayGroups);
@@ -92,27 +127,34 @@ export default function AutoBackfillSmartDayView({
     return allDayGroups;
   }, [allDayGroups, onlyMissingDays]);
 
-  // Month-wide summary metrics
   const monthSummary = useMemo(() => {
     return summarizeMonthDays(allDayGroups);
   }, [allDayGroups]);
 
-  // Pagination for the day rows
   const paginatedDays = useMemo(() => {
     return paginateItems(displayedDayGroups, accordionPage, accordionPageSize);
   }, [displayedDayGroups, accordionPage, accordionPageSize]);
 
+  // Active View Configuration
+  const isCombinedView = indicatorFilter === 'ALL' && allViewMode === 'COMBINED';
+  const activePaginated = isCombinedView ? paginatedCalendarDays : paginatedDays;
+  const activeDisplayedCount = isCombinedView ? displayedCalendarDays.length : displayedDayGroups.length;
+  const activeAllDaysCount = isCombinedView ? allCalendarDays.length : allDayGroups.length;
+  const activeMissingCount = isCombinedView ? calendarSummary.missingDays : monthSummary.missingDays;
+  const activeSummaryLabel = isCombinedView ? calendarSummary.label : monthSummary.label;
+
   // Check if all page items are selected
   const isReimportMode = selectedReimportKeys.size > 0;
   const isAllPageItemsSelected = useMemo(() => {
-    const allPageItems = paginatedDays.pageItems.flatMap((d) => d.items);
+    const allPageItems = activePaginated.pageItems.flatMap((d) => d.items);
     if (isReimportMode) {
       const selectable = allPageItems.filter(isReimportSelectable).map(getItemKey);
       return selectable.length > 0 && selectable.every((k) => selectedReimportKeys.has(k));
     }
     const selectable = allPageItems.filter(isSelectable).map(getItemKey);
     return selectable.length > 0 && selectable.every((k) => selectedBulkKeys.has(k));
-  }, [paginatedDays.pageItems, isReimportMode, selectedBulkKeys, selectedReimportKeys]);
+  }, [activePaginated.pageItems, isReimportMode, selectedBulkKeys, selectedReimportKeys]);
+
 
   return (
     <div className="flex flex-col gap-4">
@@ -173,6 +215,7 @@ export default function AutoBackfillSmartDayView({
           </div>
 
           {/* Quick Toggle: All Days vs Only Missing Days */}
+          {/* Quick Toggle: All Days vs Only Missing Days */}
           <div className="flex items-center rounded-xl bg-slate-100/90 p-1 border border-slate-200/80 shadow-2xs">
             <button
               type="button"
@@ -183,7 +226,7 @@ export default function AutoBackfillSmartDayView({
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              Tất cả ngày ({allDayGroups.length})
+              Tất cả ngày ({activeAllDaysCount})
             </button>
             <button
               type="button"
@@ -195,7 +238,7 @@ export default function AutoBackfillSmartDayView({
               }`}
             >
               <Zap className="h-3 w-3" />
-              <span>Chỉ ngày còn thiếu ({monthSummary.missingDays})</span>
+              <span>Chỉ ngày còn thiếu ({activeMissingCount})</span>
             </button>
           </div>
         </div>
@@ -241,11 +284,11 @@ export default function AutoBackfillSmartDayView({
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200/90 bg-white/95 px-5 py-3 shadow-xs">
         <div className="flex items-center gap-3">
           <p className="text-xs font-medium text-slate-700">
-            {monthSummary.label}
+            {activeSummaryLabel}
           </p>
           {onlyMissingDays && (
             <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-bold text-amber-900 border border-amber-300">
-              Đang lọc {displayedDayGroups.length} ngày còn thiếu
+              Đang lọc {activeDisplayedCount} ngày còn thiếu
             </span>
           )}
         </div>
@@ -269,7 +312,7 @@ export default function AutoBackfillSmartDayView({
             <button
               type="button"
               onClick={() => onSelectAllReimport(indicatorFilter, monthFilter)}
-              className="inline-flex items-center gap-1.5 rounded-xl border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-xs font-bold text-indigo-700 hover:bg-indigo-100 transition shadow-2xs"
+              className="inline-flex items-center gap-1.5 rounded-xl border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-xs font-bold text-indigo-700 hover:bg-indigo-100 transition shadow-2xs cursor-pointer"
               title="Chọn tất cả ngày bao gồm ngày đã hoàn tất để tái nhập hàng loạt"
             >
               <RotateCcw className="h-3.5 w-3.5 text-indigo-600" />
@@ -277,15 +320,47 @@ export default function AutoBackfillSmartDayView({
             </button>
           )}
 
+          {/* Layout switcher when viewing all indicators (Round 3) */}
+          {indicatorFilter === 'ALL' && (
+            <div className="inline-flex items-center rounded-xl bg-slate-100 p-0.5 border border-slate-200 shadow-2xs">
+              <button
+                type="button"
+                onClick={() => setAllViewMode('COMBINED')}
+                className={`inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-bold transition duration-150 cursor-pointer ${
+                  allViewMode === 'COMBINED'
+                    ? 'bg-white text-slate-900 shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+                title="Bố cục 1 dòng cho mỗi ngày, 4 chỉ tiêu cạnh nhau (PO Round 3)"
+              >
+                <LayoutGrid className="h-3 w-3" />
+                <span>Gộp 1 dòng/ngày</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setAllViewMode('FLAT')}
+                className={`inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-bold transition duration-150 cursor-pointer ${
+                  allViewMode === 'FLAT'
+                    ? 'bg-white text-slate-900 shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+                title="Bố cục bảng phẳng truyền thống (1 dòng cho mỗi chỉ tiêu)"
+              >
+                <List className="h-3 w-3" />
+                <span>Bảng phẳng</span>
+              </button>
+            </div>
+          )}
+
           <span className="text-xs font-semibold text-slate-500 pl-2 border-l border-slate-200">
-            Hiển thị {paginatedDays.pageItems.length}/{displayedDayGroups.length} ngày
+            Hiển thị {activePaginated.pageItems.length}/{activeDisplayedCount} ngày
           </span>
         </div>
       </div>
 
-      {/* 4. THE STRICTLY ALIGNED DAY TABLE (Fixed-width columns, zero horizontal jumping) */}
+      {/* 4. THE STRICTLY ALIGNED DAY TABLE */}
       <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden flex flex-col">
-        {paginatedDays.pageItems.length === 0 ? (
+        {activePaginated.pageItems.length === 0 ? (
           <div className="p-12 text-center">
             <CheckCircle2 className="mx-auto h-12 w-12 text-emerald-500" />
             <h3 className="mt-3 text-lg font-bold text-slate-900">Không có dữ liệu phù hợp bộ lọc</h3>
@@ -295,7 +370,271 @@ export default function AutoBackfillSmartDayView({
                 : 'Tất cả các ngày trong phạm vi lựa chọn đã được xử lý hoàn tất hoặc ngoại lệ.'}
             </p>
           </div>
+        ) : isCombinedView ? (
+          /* ========================================================================= */
+          /* OPTION A ROUND 3: COMBINED 1-ROW-PER-DAY WITH 4 INDICATORS SIDE-BY-SIDE   */
+          /* ========================================================================= */
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse text-sm">
+              <thead className="sticky top-0 z-10 bg-slate-50/95 backdrop-blur-xs border-b border-slate-200 text-xs font-bold uppercase text-slate-600">
+                <tr>
+                  {/* Col 1: Select All on Page */}
+                  {isAdmin && (
+                    <th className="w-12 px-3 py-3.5 text-center">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onToggleSelectAllItems(activePaginated.pageItems.flatMap((d) => d.items));
+                        }}
+                        className="text-slate-500 hover:text-slate-800 focus:outline-none cursor-pointer"
+                        title={isAllPageItemsSelected ? 'Bỏ chọn trang này' : 'Chọn trang này'}
+                      >
+                        {isAllPageItemsSelected ? (
+                          <CheckSquare className={`h-4 w-4 ${isReimportMode ? 'text-indigo-600' : 'text-blue-600'}`} />
+                        ) : (
+                          <Square className="h-4 w-4" />
+                        )}
+                      </button>
+                    </th>
+                  )}
+
+                  {/* Col 2: Business Date + Anchor */}
+                  <th className="w-44 min-w-[150px] px-3 py-3.5">Ngày Nghiệp vụ</th>
+
+                  {/* Col 3..6: 4 Indicators */}
+                  {DEFAULT_DAY_VIEW_INDICATORS.map((code) => {
+                    const colSelection = resolveIndicatorColumnSelectionState(
+                      activePaginated.pageItems,
+                      code,
+                      selectedBulkKeys,
+                      selectedReimportKeys
+                    );
+                    return (
+                      <th key={code} className="min-w-[215px] px-2.5 py-3">
+                        <div className="flex items-center justify-between gap-1.5">
+                          <div className="flex items-center gap-1.5">
+                            <span className="rounded bg-slate-800 text-white px-1.5 py-0.5 text-[11px] font-extrabold shadow-2xs">
+                              {code}
+                            </span>
+                            <span className="text-[11px] font-bold text-slate-700 tracking-tight">
+                              {INDICATOR_LABELS[code] || code}
+                            </span>
+                          </div>
+                          {isAdmin && colSelection.canSelect && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                onToggleSelectAllItems(colSelection.selectableItems);
+                              }}
+                              className="p-1 rounded text-slate-400 hover:text-blue-600 hover:bg-slate-200/60 transition cursor-pointer"
+                              title={
+                                colSelection.isSelected
+                                  ? `Bỏ chọn toàn bộ chỉ tiêu ${code} trên trang`
+                                  : `Chọn toàn bộ chỉ tiêu ${code} trên trang (${colSelection.selectedCount}/${colSelection.selectableItems.length})`
+                              }
+                            >
+                              {colSelection.isSelected ? (
+                                <CheckSquare className={`h-3.5 w-3.5 ${isReimportMode ? 'text-indigo-600' : 'text-blue-600'}`} />
+                              ) : colSelection.isPartial ? (
+                                <MinusSquare className={`h-3.5 w-3.5 ${isReimportMode ? 'text-indigo-600' : 'text-blue-600'}`} />
+                              ) : (
+                                <Square className="h-3.5 w-3.5" />
+                              )}
+                            </button>
+                          )}
+                        </div>
+                      </th>
+                    );
+                  })}
+
+                  {/* Col 7: Thao tác ngày */}
+                  <th className="w-28 min-w-[100px] px-3 py-3.5 text-right">Lịch nghỉ / TT</th>
+                </tr>
+              </thead>
+
+              <tbody className="divide-y divide-slate-100">
+                {activePaginated.pageItems.map((day) => {
+                  const daySelection = resolveCalendarDaySelectionState(
+                    day,
+                    selectedBulkKeys,
+                    selectedReimportKeys
+                  );
+                  const holiday = day.holiday;
+                  const holidayItem = day.items.find((i) => Boolean(i.holiday));
+                  const firstActionableItem = day.items.find(isSelectable);
+                  const isAnyLaneSelected = day.items.some((i) => {
+                    const k = getItemKey(i);
+                    return isReimportMode ? selectedReimportKeys.has(k) : selectedBulkKeys.has(k);
+                  });
+
+                  const handleToggleCalendarDay = (e) => {
+                    e.stopPropagation();
+                    if (!daySelection.canSelect) return;
+                    if (onSelectDayAllIndicators) {
+                      onSelectDayAllIndicators(day.date);
+                    }
+                  };
+
+                  return (
+                    <tr
+                      key={day.date}
+                      className={`transition hover:bg-slate-50/70 ${
+                        isAnyLaneSelected
+                          ? isReimportMode
+                            ? 'bg-indigo-50/40'
+                            : 'bg-blue-50/40'
+                          : ''
+                      }`}
+                    >
+                      {/* Col 1: Day Checkbox */}
+                      {isAdmin && (
+                        <td className="w-12 px-3 py-2.5 text-center align-middle">
+                          {daySelection.canSelect ? (
+                            <button
+                              type="button"
+                              onClick={handleToggleCalendarDay}
+                              className="text-slate-400 hover:text-blue-600 focus:outline-none cursor-pointer"
+                              title={
+                                daySelection.isSelected
+                                  ? `Bỏ chọn cả 4 chỉ tiêu ngày ${day.date}`
+                                  : `Chọn cả 4 chỉ tiêu ngày ${day.date} (${daySelection.selectedCount}/${daySelection.totalSelectable})`
+                              }
+                            >
+                              {daySelection.isSelected ? (
+                                <CheckSquare
+                                  className={`h-4 w-4 ${isReimportMode ? 'text-indigo-600 fill-indigo-50' : 'text-blue-600 fill-blue-50'}`}
+                                />
+                              ) : daySelection.isPartial ? (
+                                <MinusSquare
+                                  className={`h-4 w-4 ${isReimportMode ? 'text-indigo-600 fill-indigo-50' : 'text-blue-600 fill-blue-50'}`}
+                                />
+                              ) : (
+                                <Square className="h-4 w-4" />
+                              )}
+                            </button>
+                          ) : (
+                            <span className="w-4 h-4 inline-block text-slate-300 text-xs">—</span>
+                          )}
+                        </td>
+                      )}
+
+                      {/* Col 2: Date + Anchor Run button */}
+                      <td className="w-44 min-w-[150px] px-3 py-2.5 align-middle">
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-bold text-slate-900 whitespace-nowrap">{day.date}</span>
+                          {day.hasMissing ? (
+                            <span className="h-2 w-2 rounded-full bg-amber-400 shrink-0" title="Ngày có dữ liệu còn thiếu" />
+                          ) : (
+                            <span className="h-2 w-2 rounded-full bg-emerald-500 shrink-0" title="Ngày đã đủ dữ liệu" />
+                          )}
+                        </div>
+                        {isAdmin && onAnchorRunClick && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onAnchorRunClick(day.date);
+                            }}
+                            className="mt-1 inline-flex items-center gap-1 rounded-md border border-blue-200 bg-blue-50/90 px-1.5 py-0.5 text-[10px] font-bold text-[var(--color-vnpost-blue)] hover:bg-blue-100 hover:border-blue-300 transition shadow-2xs whitespace-nowrap cursor-pointer"
+                            title={`Import cả ngày + bù 3 ngày (${day.date}, D-1, D-2)`}
+                          >
+                            <Zap className="h-2.5 w-2.5 text-amber-500 fill-amber-400" />
+                            <span>Import cả ngày + bù 3 ngày</span>
+                          </button>
+                        )}
+                        {isAdmin && onSelectDayAllIndicators && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onSelectDayAllIndicators(day.date);
+                            }}
+                            className="mt-1 inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-1.5 py-0.5 text-[10px] font-bold text-slate-600 hover:bg-slate-50 hover:border-slate-300 transition whitespace-nowrap cursor-pointer"
+                            title={`Chọn ${day.date} cho cả 4 chỉ tiêu (F1.1, F1.2, F1.3, F4.1) và 2 nguồn để Nhập mới hoặc Nhập lại`}
+                          >
+                            <CheckSquare className="h-2.5 w-2.5" />
+                            <span>Chọn cả 4 chỉ tiêu</span>
+                          </button>
+                        )}
+                      </td>
+
+                      {/* Col 3..6: 4 Indicators */}
+                      {DEFAULT_DAY_VIEW_INDICATORS.map((code) => (
+                        <td key={code} className="min-w-[215px] px-2 py-2 align-middle">
+                          <CompactIndicatorCell
+                            dayDate={day.date}
+                            indicatorCode={code}
+                            indicatorData={day.indicators[code]}
+                            isReimportMode={isReimportMode}
+                            selectedBulkKeys={selectedBulkKeys}
+                            selectedReimportKeys={selectedReimportKeys}
+                            isAdmin={isAdmin}
+                            onToggleSelectItem={onToggleSelectItem}
+                            onReimportClick={onReimportClick}
+                            onConfirmClick={onConfirmClick}
+                            onRevokeClick={onRevokeClick}
+                            activeMenuKey={activeMenuKey}
+                            setActiveMenuKey={setActiveMenuKey}
+                            importLogMap={importLogMap}
+                          />
+                        </td>
+                      ))}
+
+                      {/* Col 7: Lịch nghỉ / Thao tác */}
+                      <td className="w-28 min-w-[100px] px-3 py-2.5 text-right whitespace-nowrap align-middle">
+                        {holiday ? (
+                          <span
+                            className="inline-flex items-center gap-1 rounded-md bg-purple-50 px-1.5 py-0.5 text-[11px] font-semibold text-purple-800 border border-purple-200"
+                            title={holiday.reason}
+                          >
+                            <CalendarDays className="h-3 w-3 text-purple-600 shrink-0" />
+                            <span className="truncate max-w-[80px]">Nghỉ lễ</span>
+                          </span>
+                        ) : isAdmin ? (
+                          <div className="flex items-center justify-end gap-1">
+                            {firstActionableItem && (
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onMarkHolidayClick(firstActionableItem);
+                                }}
+                                className="inline-flex items-center gap-0.5 rounded-md border border-indigo-200 bg-indigo-50 px-1.5 py-0.5 text-[10px] font-semibold text-indigo-900 hover:bg-indigo-100 transition shadow-2xs cursor-pointer"
+                                title="Đánh dấu LỊCH NGHỈ cho ngày này"
+                              >
+                                <CalendarDays className="h-3 w-3" />
+                                <span>Nghỉ</span>
+                              </button>
+                            )}
+                            {holiday && holidayItem && (
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onRevokeHolidayClick(holidayItem.holiday);
+                                }}
+                                className="inline-flex items-center gap-0.5 rounded-md border border-purple-200 bg-purple-50 px-1.5 py-0.5 text-[10px] font-semibold text-purple-900 hover:bg-purple-100 transition shadow-2xs cursor-pointer"
+                                title="Thu hồi LỊCH NGHỈ"
+                              >
+                                <RotateCcw className="h-3 w-3" />
+                                <span>Thu hồi</span>
+                              </button>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-xs text-slate-300">—</span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         ) : (
+          /* ========================================================================= */
+          /* FLAT TABLE VIEW (1 ROW PER (INDICATOR, DATE) - SINGLE-INDICATOR / FALLBACK)*/
+          /* ========================================================================= */
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse text-sm">
               <thead className="sticky top-0 z-10 bg-slate-50/95 backdrop-blur-xs border-b border-slate-200 text-xs font-bold uppercase text-slate-600">
@@ -306,7 +645,6 @@ export default function AutoBackfillSmartDayView({
                       <button
                         type="button"
                         onClick={() => {
-                          // Existing select-all/none handler of the panel (same as "Bảng Chi tiết").
                           onToggleSelectAllItems(paginatedDays.pageItems.flatMap((d) => d.items));
                         }}
                         className="text-slate-500 hover:text-slate-800 focus:outline-none"
@@ -372,7 +710,6 @@ export default function AutoBackfillSmartDayView({
                   const handleToggleDay = (e) => {
                     e.stopPropagation();
                     if (!daySelection.canSelect) return;
-                    // A finished day, or ticking more days while re-importing: pick the cells for Nhập lại with D-1, D-2.
                     if (onSelectDayForReimport && (daySelection.viaReimport || (isReimportMode && !daySelection.isSelected))) {
                       onSelectDayForReimport(day.items, { additive: isReimportMode });
                       return;
@@ -431,7 +768,7 @@ export default function AutoBackfillSmartDayView({
                         </td>
                       )}
 
-                      {/* Col 2: Business Date + Button "Import cả ngày + bù 3 ngày" ở đầu cột/hàng của mỗi ngày D */}
+                      {/* Col 2: Business Date + Anchor Run */}
                       <td className="min-w-[150px] w-44 px-3 py-3 align-middle">
                         <div className="font-bold text-slate-900 whitespace-nowrap">{day.date}</div>
                         {isAdmin && onAnchorRunClick && (
@@ -464,7 +801,7 @@ export default function AutoBackfillSmartDayView({
                         )}
                       </td>
 
-                      {/* Col 3: Indicator Code (if viewing ALL) with tooltip */}
+                      {/* Col 3: Indicator Code */}
                       {indicatorFilter === 'ALL' && (
                         <td className="w-20 px-3 py-3 whitespace-nowrap align-middle">
                           <span
@@ -476,7 +813,7 @@ export default function AutoBackfillSmartDayView({
                         </td>
                       )}
 
-                      {/* Col 4: Lịch Nghỉ / Ghi chú (Fixed width, does NOT shift other columns) */}
+                      {/* Col 4: Lịch Nghỉ / Ghi chú */}
                       <td className="w-40 px-3 py-3 whitespace-nowrap align-middle">
                         {holiday ? (
                           <span
@@ -493,7 +830,7 @@ export default function AutoBackfillSmartDayView({
                         )}
                       </td>
 
-                      {/* Col 5: Nguồn Huế (HUE Cell - Fixed strictly aligned layout) */}
+                      {/* Col 5: Nguồn Huế (HUE) */}
                       <td className="min-w-[310px] px-3 py-3 align-middle">
                         {day.lanes.HUE ? (
                           <LaneSourceCell
@@ -516,7 +853,7 @@ export default function AutoBackfillSmartDayView({
                         )}
                       </td>
 
-                      {/* Col 6: Nguồn TCT (TCT Cell - Fixed strictly aligned layout) */}
+                      {/* Col 6: Nguồn TCT */}
                       <td className="min-w-[310px] px-3 py-3 align-middle">
                         {day.lanes.TCT ? (
                           <LaneSourceCell
@@ -539,7 +876,7 @@ export default function AutoBackfillSmartDayView({
                         )}
                       </td>
 
-                      {/* Col 7: Thao tác Ngày (Right-aligned) */}
+                      {/* Col 7: Thao tác Ngày */}
                       <td className="w-36 px-3 py-3 text-right whitespace-nowrap align-middle">
                         {isAdmin ? (
                           <div className="flex items-center justify-end gap-1.5">
@@ -586,7 +923,7 @@ export default function AutoBackfillSmartDayView({
         )}
 
         {/* 5. INTERNAL PAGINATION BAR */}
-        {paginatedDays.totalPages > 1 && (
+        {activePaginated.totalPages > 1 && (
           <div className="flex items-center justify-between border-t border-slate-200 bg-slate-50 px-6 py-3 text-xs font-medium text-slate-600">
             <div className="flex items-center gap-2">
               <span>Hiển thị:</span>
@@ -608,20 +945,20 @@ export default function AutoBackfillSmartDayView({
               <button
                 type="button"
                 onClick={() => setAccordionPage((p) => Math.max(1, p - 1))}
-                disabled={!paginatedDays.hasPrev}
-                className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold text-slate-700 shadow-2xs hover:bg-slate-100 disabled:opacity-40"
+                disabled={!activePaginated.hasPrev}
+                className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold text-slate-700 shadow-2xs hover:bg-slate-100 disabled:opacity-40 cursor-pointer"
               >
                 <ChevronLeft className="h-3.5 w-3.5" />
                 <span>Trước</span>
               </button>
               <span className="font-bold text-slate-800">
-                Trang {paginatedDays.currentPage} / {paginatedDays.totalPages}
+                Trang {activePaginated.currentPage} / {activePaginated.totalPages}
               </span>
               <button
                 type="button"
-                onClick={() => setAccordionPage((p) => Math.min(paginatedDays.totalPages, p + 1))}
-                disabled={!paginatedDays.hasNext}
-                className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold text-slate-700 shadow-2xs hover:bg-slate-100 disabled:opacity-40"
+                onClick={() => setAccordionPage((p) => Math.min(activePaginated.totalPages, p + 1))}
+                disabled={!activePaginated.hasNext}
+                className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold text-slate-700 shadow-2xs hover:bg-slate-100 disabled:opacity-40 cursor-pointer"
               >
                 <span>Sau</span>
                 <ChevronRight className="h-3.5 w-3.5" />
@@ -813,3 +1150,213 @@ function LaneSourceCell({
     </div>
   );
 }
+
+/**
+ * CompactIndicatorCell
+ * Subcomponent rendering an indicator cell in the 1-row-per-day combined view (Round 3).
+ * Contains side-by-side or stacked HUE & TCT lane chips with individual checkbox & action button.
+ */
+function CompactIndicatorCell({
+  dayDate: _dayDate,
+  indicatorCode,
+  indicatorData,
+  isReimportMode,
+  selectedBulkKeys,
+  selectedReimportKeys,
+  isAdmin,
+  onToggleSelectItem,
+  onReimportClick,
+  onConfirmClick,
+  onRevokeClick,
+  activeMenuKey,
+  setActiveMenuKey,
+  importLogMap = null
+}) {
+  if (!indicatorData || !indicatorData.items || indicatorData.items.length === 0) {
+    return (
+      <div className="flex items-center justify-center p-2 text-xs text-slate-300 italic">
+        —
+      </div>
+    );
+  }
+
+  const lanes = indicatorData.laneOrder?.length > 0 ? indicatorData.laneOrder : ['HUE', 'TCT'];
+
+  return (
+    <div className="flex flex-col gap-1 p-1.5 rounded-xl bg-slate-50/80 border border-slate-200/70 hover:border-slate-300 transition">
+      {lanes.map((lane) => {
+        const item = indicatorData.lanes[lane];
+        if (!item) {
+          return (
+            <div key={lane} className="flex items-center justify-between px-2 py-1 rounded-lg bg-white/40 text-[10px] text-slate-400">
+              <span className="font-bold text-slate-400">{lane}</span>
+              <span>—</span>
+            </div>
+          );
+        }
+
+        const key = getItemKey(item);
+        const isLaneSelected = isReimportMode ? selectedReimportKeys.has(key) : selectedBulkKeys.has(key);
+        const canSelectLane = isReimportMode
+          ? isReimportSelectable(item)
+          : isSelectable(item) || item.status === 'COMPLETED';
+
+        const statusInfo = resolveNoCodeStatus(item.status);
+        const logEntry = importLogMap?.get(key);
+        const lastImportTooltip = formatLastImportTooltip(logEntry);
+
+        const canConfirm = isAdmin && isSelectable(item);
+        const canRevoke = isAdmin && item.status === 'EXCLUDED' && item.exception?.exception_type === 'PO_EXEMPTED';
+        const hasSecondaryActions = canConfirm || canRevoke;
+        const menuKey = `${key}::compact-menu`;
+        const isMenuOpen = activeMenuKey === menuKey;
+
+        return (
+          <div
+            key={lane}
+            title={lastImportTooltip}
+            className={`flex items-center justify-between gap-1.5 px-2 py-1 rounded-lg border transition ${
+              isLaneSelected
+                ? isReimportMode
+                  ? 'border-indigo-300 bg-indigo-50/70 shadow-2xs'
+                  : 'border-blue-300 bg-blue-50/70 shadow-2xs'
+                : 'border-slate-200/70 bg-white hover:border-slate-300'
+            }`}
+          >
+            {/* Left: Checkbox + Lane Tag + Status */}
+            <div className="flex items-center gap-1.5 min-w-0">
+              {isAdmin && (
+                <div className="w-4 shrink-0 flex items-center justify-center">
+                  {canSelectLane ? (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onToggleSelectItem(item);
+                      }}
+                      className="text-slate-400 hover:text-blue-600 focus:outline-none cursor-pointer"
+                      title={`Chọn ${indicatorCode} nguồn ${lane}`}
+                    >
+                      {isLaneSelected ? (
+                        <CheckSquare
+                          className={`h-3.5 w-3.5 ${isReimportMode ? 'text-indigo-600 fill-indigo-50' : 'text-blue-600 fill-blue-50'}`}
+                        />
+                      ) : (
+                        <Square className="h-3.5 w-3.5" />
+                      )}
+                    </button>
+                  ) : (
+                    <span className="w-3.5 h-3.5 text-slate-300 text-[10px] text-center inline-block">—</span>
+                  )}
+                </div>
+              )}
+
+              <span
+                className={`text-[10px] font-extrabold px-1 py-0.2 rounded shrink-0 ${
+                  lane === 'HUE'
+                    ? 'bg-amber-100 text-amber-900 border border-amber-200/70'
+                    : 'bg-sky-100 text-sky-900 border border-sky-200/70'
+                }`}
+              >
+                {lane}
+              </span>
+
+              <span
+                title={lastImportTooltip}
+                className={`text-[10px] font-semibold px-1.5 py-0.2 rounded-full border truncate max-w-[70px] cursor-help shrink-0 ${statusInfo.badgeClass}`}
+              >
+                {statusInfo.label}
+              </span>
+            </div>
+
+            {/* Right: Action Button or Popover */}
+            <div className="flex items-center gap-1 shrink-0">
+              {isAdmin && (
+                item.status === 'COMPLETED' ? (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onReimportClick(item);
+                    }}
+                    className="inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[10px] font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 transition shadow-2xs cursor-pointer whitespace-nowrap"
+                    title={`Tái nạp ${indicatorCode} ${lane}`}
+                  >
+                    <RotateCcw className="h-2.5 w-2.5" />
+                    <span>Nhập lại</span>
+                  </button>
+                ) : item.status === 'INCOMPLETE' ||
+                  item.status === 'DATA_ERROR' ||
+                  (item.status === 'EXCLUDED' && item.holiday) ? (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onReimportClick(item);
+                    }}
+                    className="inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[10px] font-bold text-[var(--color-vnpost-blue)] bg-blue-50 hover:bg-blue-100 border border-blue-200 transition shadow-2xs cursor-pointer whitespace-nowrap"
+                    title={`Nạp mới ${indicatorCode} ${lane}`}
+                  >
+                    <RotateCw className="h-2.5 w-2.5" />
+                    <span>Nhập mới</span>
+                  </button>
+                ) : null
+              )}
+
+              {hasSecondaryActions && (
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setActiveMenuKey(isMenuOpen ? null : menuKey);
+                    }}
+                    className="flex items-center justify-center rounded p-0.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition"
+                    title="Thao tác khác"
+                  >
+                    <MoreHorizontal className="h-3 w-3" />
+                  </button>
+
+                  {isMenuOpen && (
+                    <div
+                      onClick={(e) => e.stopPropagation()}
+                      className="absolute right-0 top-full z-30 mt-1 min-w-[170px] rounded-xl border border-slate-200 bg-white py-1 shadow-lg animate-in fade-in zoom-in-95 duration-100"
+                    >
+                      {canConfirm && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setActiveMenuKey(null);
+                            onConfirmClick(item);
+                          }}
+                          className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs font-semibold text-amber-900 hover:bg-amber-50 transition"
+                        >
+                          <UserCheck className="h-3.5 w-3.5 text-amber-600" />
+                          <span>Không phát sinh</span>
+                        </button>
+                      )}
+                      {canRevoke && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setActiveMenuKey(null);
+                            onRevokeClick(item);
+                          }}
+                          className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs font-semibold text-slate-700 hover:bg-slate-100 transition"
+                        >
+                          <RotateCcw className="h-3.5 w-3.5 text-slate-500" />
+                          <span>Hoàn tác</span>
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+

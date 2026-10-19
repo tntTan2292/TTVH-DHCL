@@ -12,7 +12,13 @@ import {
   formatAuditValue,
   buildLatestImportLogMap,
   formatLastImportTooltip,
-  buildImportLogQueryParams
+  buildImportLogQueryParams,
+  DEFAULT_DAY_VIEW_INDICATORS,
+  groupItemsByCalendarDay,
+  resolveCalendarDaySelectionState,
+  resolveIndicatorColumnSelectionState,
+  filterCalendarDaysByMissingOnly,
+  summarizeCalendarDayGroups
 } from './autoBackfillUiHelpers.js';
 
 console.log('Running IMPORT-LOG-AUDIT-01 anchor & audit helpers test suite...');
@@ -293,3 +299,175 @@ console.log('ALL IMPORT-LOG-AUDIT-01 helper tests PASSED SUCCESSFULLY! (7/7 Suit
   assert.equal(none.reimportKeys.size + none.bulkKeys.size, 0);
   console.log('✔ 10. mergeDayCellsIntoSelection tests PASSED!');
 }
+
+// ==========================================
+// 11. groupItemsByCalendarDay: exactly 1 row per calendar date, 4 indicators side-by-side
+// ==========================================
+{
+  assert.deepEqual(DEFAULT_DAY_VIEW_INDICATORS, ['F1.1', 'F1.2', 'F1.3', 'F4.1']);
+  const rawItems = [
+    { indicator: 'F1.1', source_lane: 'HUE', business_date: '2026-10-18', status: 'COMPLETED' },
+    { indicator: 'F1.1', source_lane: 'TCT', business_date: '2026-10-18', status: 'COMPLETED' },
+    { indicator: 'F1.2', source_lane: 'HUE', business_date: '2026-10-18', status: 'INCOMPLETE' },
+    { indicator: 'F1.2', source_lane: 'TCT', business_date: '2026-10-18', status: 'INCOMPLETE' },
+    { indicator: 'F1.3', source_lane: 'HUE', business_date: '2026-10-18', status: 'COMPLETED' },
+    { indicator: 'F1.3', source_lane: 'TCT', business_date: '2026-10-18', status: 'COMPLETED' },
+    { indicator: 'F4.1', source_lane: 'HUE', business_date: '2026-10-18', status: 'COMPLETED' },
+    { indicator: 'F4.1', source_lane: 'TCT', business_date: '2026-10-18', status: 'COMPLETED' },
+    // Earlier day: all complete
+    { indicator: 'F1.1', source_lane: 'HUE', business_date: '2026-10-17', status: 'COMPLETED' },
+    { indicator: 'F1.1', source_lane: 'TCT', business_date: '2026-10-17', status: 'COMPLETED' },
+    { indicator: 'F1.2', source_lane: 'HUE', business_date: '2026-10-17', status: 'COMPLETED' },
+    { indicator: 'F1.2', source_lane: 'TCT', business_date: '2026-10-17', status: 'COMPLETED' },
+    { indicator: 'F1.3', source_lane: 'HUE', business_date: '2026-10-17', status: 'COMPLETED' },
+    { indicator: 'F1.3', source_lane: 'TCT', business_date: '2026-10-17', status: 'COMPLETED' },
+    { indicator: 'F4.1', source_lane: 'HUE', business_date: '2026-10-17', status: 'COMPLETED' },
+    { indicator: 'F4.1', source_lane: 'TCT', business_date: '2026-10-17', status: 'COMPLETED' },
+  ];
+
+  const calendarDays = groupItemsByCalendarDay(rawItems);
+  assert.equal(calendarDays.length, 2, '2 distinct calendar dates -> 2 rows, not 8 rows');
+  assert.equal(calendarDays[0].date, '2026-10-18', 'newest date first');
+  assert.equal(calendarDays[1].date, '2026-10-17');
+
+  const d18 = calendarDays[0];
+  assert.equal(d18.items.length, 8, '8 items inside day 2026-10-18');
+  assert.ok(d18.indicators['F1.1'], 'F1.1 indicator slot exists');
+  assert.ok(d18.indicators['F1.2'], 'F1.2 indicator slot exists');
+  assert.ok(d18.indicators['F1.3'], 'F1.3 indicator slot exists');
+  assert.ok(d18.indicators['F4.1'], 'F4.1 indicator slot exists');
+  assert.equal(d18.indicators['F1.1'].lanes.HUE.status, 'COMPLETED');
+  assert.equal(d18.indicators['F1.1'].lanes.TCT.status, 'COMPLETED');
+  assert.equal(d18.indicators['F1.2'].lanes.HUE.status, 'INCOMPLETE');
+  assert.equal(d18.hasMissing, true, 'd18 has F1.2 incomplete so hasMissing is true');
+  assert.equal(d18.isFullyComplete, false);
+
+  const d17 = calendarDays[1];
+  assert.equal(d17.hasMissing, false);
+  assert.equal(d17.isFullyComplete, true);
+
+  // Empty and null inputs
+  assert.deepEqual(groupItemsByCalendarDay([]), []);
+  assert.deepEqual(groupItemsByCalendarDay(null), []);
+  console.log('✔ 11. groupItemsByCalendarDay day-per-row grouping tests PASSED!');
+}
+
+// ==========================================
+// 12. resolveCalendarDaySelectionState: full, partial, none, or excluded
+// ==========================================
+{
+  const makeDay = (date, status = 'COMPLETED') => {
+    const items = ['F1.1', 'F1.2', 'F1.3', 'F4.1'].flatMap((indicator) =>
+      ['HUE', 'TCT'].map((lane) => ({ indicator, source_lane: lane, business_date: date, status }))
+    );
+    return groupItemsByCalendarDay(items)[0];
+  };
+
+  const day18 = makeDay('2026-10-18', 'COMPLETED');
+  const d18Keys = day18.items.map((i) => `${i.indicator}::${i.source_lane}::${i.business_date}`);
+
+  // None selected
+  const none = resolveCalendarDaySelectionState(day18, new Set(), new Set());
+  assert.equal(none.canSelect, true);
+  assert.equal(none.isSelected, false);
+  assert.equal(none.isPartial, false);
+  assert.equal(none.selectedCount, 0);
+  assert.equal(none.totalSelectable, 8);
+
+  // Partial selected (2 of 8 cells picked)
+  const partialKeys = new Set([d18Keys[0], d18Keys[1]]);
+  const partial = resolveCalendarDaySelectionState(day18, new Set(), partialKeys);
+  assert.equal(partial.canSelect, true);
+  assert.equal(partial.isSelected, false);
+  assert.equal(partial.isPartial, true);
+  assert.equal(partial.selectedCount, 2);
+
+  // All 8 cells selected
+  const allKeys = new Set(d18Keys);
+  const full = resolveCalendarDaySelectionState(day18, new Set(), allKeys);
+  assert.equal(full.canSelect, true);
+  assert.equal(full.isSelected, true);
+  assert.equal(full.isPartial, false);
+  assert.equal(full.selectedCount, 8);
+
+  // Excluded/holiday day: cannot select
+  const holidayItems = ['F1.1', 'F1.2'].flatMap((indicator) =>
+    ['HUE'].map((lane) => ({ indicator, source_lane: lane, business_date: '2026-10-19', status: 'EXCLUDED', holiday: { reason: 'Nghỉ lễ' } }))
+  );
+  const holidayDay = groupItemsByCalendarDay(holidayItems)[0];
+  const holidayState = resolveCalendarDaySelectionState(holidayDay, new Set(), new Set());
+  assert.equal(holidayState.canSelect, false);
+  assert.equal(holidayState.isSelected, false);
+  assert.equal(holidayState.isPartial, false);
+  console.log('✔ 12. resolveCalendarDaySelectionState tests PASSED!');
+}
+
+// ==========================================
+// 13. resolveIndicatorColumnSelectionState: column header multi-day toggle
+// ==========================================
+{
+  const makeDay = (date, status = 'INCOMPLETE') => {
+    const items = ['F1.1', 'F1.2', 'F1.3', 'F4.1'].flatMap((indicator) =>
+      ['HUE', 'TCT'].map((lane) => ({ indicator, source_lane: lane, business_date: date, status }))
+    );
+    return groupItemsByCalendarDay(items)[0];
+  };
+
+  const days = [makeDay('2026-10-18'), makeDay('2026-10-17')];
+  // Indicator F1.1 across 2 days has 4 items total (2 days x 2 lanes)
+  const f11Items = days.flatMap((d) => d.indicators['F1.1'].items);
+  assert.equal(f11Items.length, 4);
+
+  // None selected
+  const colNone = resolveIndicatorColumnSelectionState(days, 'F1.1', new Set(), new Set());
+  assert.equal(colNone.canSelect, true);
+  assert.equal(colNone.isSelected, false);
+  assert.equal(colNone.isPartial, false);
+  assert.equal(colNone.selectableItems.length, 4);
+  assert.equal(colNone.selectedCount, 0);
+
+  // Partial selected
+  const bulkPartial = new Set([`F1.1::HUE::2026-10-18`]);
+  const colPartial = resolveIndicatorColumnSelectionState(days, 'F1.1', bulkPartial, new Set());
+  assert.equal(colPartial.isSelected, false);
+  assert.equal(colPartial.isPartial, true);
+  assert.equal(colPartial.selectedCount, 1);
+
+  // All selected
+  const bulkAll = new Set([
+    `F1.1::HUE::2026-10-18`,
+    `F1.1::TCT::2026-10-18`,
+    `F1.1::HUE::2026-10-17`,
+    `F1.1::TCT::2026-10-17`
+  ]);
+  const colFull = resolveIndicatorColumnSelectionState(days, 'F1.1', bulkAll, new Set());
+  assert.equal(colFull.isSelected, true);
+  assert.equal(colFull.isPartial, false);
+  assert.equal(colFull.selectedCount, 4);
+  console.log('✔ 13. resolveIndicatorColumnSelectionState tests PASSED!');
+}
+
+// ==========================================
+// 14. filterCalendarDaysByMissingOnly & summarizeCalendarDayGroups
+// ==========================================
+{
+  const makeDay = (date, hasMissing) => {
+    const status = hasMissing ? 'INCOMPLETE' : 'COMPLETED';
+    const items = ['F1.1'].map((indicator) => ({ indicator, source_lane: 'HUE', business_date: date, status }));
+    return groupItemsByCalendarDay(items)[0];
+  };
+
+  const days = [makeDay('2026-10-18', true), makeDay('2026-10-17', false), makeDay('2026-10-16', true)];
+  const missingOnly = filterCalendarDaysByMissingOnly(days);
+  assert.equal(missingOnly.length, 2);
+  assert.deepEqual(missingOnly.map((d) => d.date), ['2026-10-18', '2026-10-16']);
+
+  const summary = summarizeCalendarDayGroups(days);
+  assert.equal(summary.totalDays, 3);
+  assert.equal(summary.completeDays, 1);
+  assert.equal(summary.missingDays, 2);
+  assert.equal(summary.label, '3 ngày • 1 đã xử lý • 2 còn thiếu');
+
+  console.log('✔ 14. filter & summarizeCalendarDayGroups tests PASSED!');
+}
+

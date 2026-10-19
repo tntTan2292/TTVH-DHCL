@@ -1046,3 +1046,252 @@ export function buildImportLogQueryParams(filters = {}) {
   if (filters.pageSize) params.pageSize = Number(filters.pageSize);
   return params;
 }
+
+// ==========================================
+// IMPORT-LOG-AUDIT-01 Round 3: Day-per-row with 4 indicators
+// ==========================================
+
+export const DEFAULT_DAY_VIEW_INDICATORS = ['F1.1', 'F1.2', 'F1.3', 'F4.1'];
+
+/**
+ * Groups coverage items strictly by business_date into 1 row per calendar day,
+ * organizing each date into 4 indicator slots (F1.1, F1.2, F1.3, F4.1).
+ * Used when indicatorFilter === 'ALL' to avoid 4 rows per day and endless scrolling.
+ * Pure.
+ * @param {Object[]} items
+ * @param {string[]} supportedIndicators
+ * @returns {Object[]} sorted by business_date desc
+ */
+export function groupItemsByCalendarDay(items = [], supportedIndicators = DEFAULT_DAY_VIEW_INDICATORS) {
+  if (!Array.isArray(items) || items.length === 0) return [];
+  const map = new Map();
+
+  for (const item of items) {
+    const date = item.business_date || '';
+    if (!date) continue;
+    if (!map.has(date)) {
+      const indicatorsMap = {};
+      for (const code of supportedIndicators) {
+        indicatorsMap[code] = {
+          indicator: code,
+          lanes: {},
+          laneOrder: [],
+          items: [],
+          holiday: null,
+        };
+      }
+      map.set(date, {
+        date,
+        indicators: indicatorsMap,
+        items: [],
+        holiday: null,
+        hasMissing: false,
+        isFullyComplete: true,
+      });
+    }
+
+    const day = map.get(date);
+    const indCode = (item.indicator || '').trim().toUpperCase();
+    const lane = (item.source_lane || item.lane || '').trim().toUpperCase();
+
+    if (indCode && !day.indicators[indCode]) {
+      day.indicators[indCode] = {
+        indicator: indCode,
+        lanes: {},
+        laneOrder: [],
+        items: [],
+        holiday: null,
+      };
+    }
+
+    if (indCode && day.indicators[indCode]) {
+      const indGroup = day.indicators[indCode];
+      if (lane) indGroup.lanes[lane] = item;
+      indGroup.items.push(item);
+      if (!indGroup.holiday && item.holiday) indGroup.holiday = item.holiday;
+    }
+
+    day.items.push(item);
+    if (!day.holiday && item.holiday) day.holiday = item.holiday;
+  }
+
+  const result = Array.from(map.values());
+  result.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+
+  for (const day of result) {
+    let hasMissing = false;
+    let allFinished = true;
+
+    for (const indCode of Object.keys(day.indicators)) {
+      const ind = day.indicators[indCode];
+      const standardLanes = ['HUE', 'TCT'];
+      const presentStandard = standardLanes.filter((l) => Boolean(ind.lanes[l]));
+      const otherLanes = Object.keys(ind.lanes).filter((l) => !standardLanes.includes(l));
+      ind.laneOrder = [...presentStandard, ...otherLanes];
+
+      for (const item of ind.items) {
+        const norm = normalizePoStatus(item.status);
+        if (norm === 'INCOMPLETE' || norm === 'DATA_ERROR') {
+          hasMissing = true;
+          allFinished = false;
+        } else if (norm !== 'COMPLETED' && norm !== 'EXCLUDED') {
+          allFinished = false;
+        }
+      }
+    }
+
+    day.hasMissing = hasMissing;
+    day.isFullyComplete = allFinished && day.items.length > 0;
+  }
+
+  return result;
+}
+
+/**
+ * Resolves the selection state of a calendar day row across all its indicators.
+ * Matches mergeDayCellsIntoSelection target set:
+ * - If in reimport mode or day has completed cell: targets isReimportSelectable cells.
+ * - Otherwise: targets isSelectable cells.
+ * Pure.
+ * @param {Object} dayGroup - row object from groupItemsByCalendarDay
+ * @param {Set<string>} selectedBulkKeys
+ * @param {Set<string>} selectedReimportKeys
+ * @returns {{ canSelect: boolean, isSelected: boolean, isPartial: boolean, selectedCount: number, totalSelectable: number, viaReimport: boolean }}
+ */
+export function resolveCalendarDaySelectionState(dayGroup, selectedBulkKeys = new Set(), selectedReimportKeys = new Set()) {
+  const isReimportMode = selectedReimportKeys.size > 0;
+  const items = dayGroup?.items || [];
+
+  if (items.length === 0) {
+    return { canSelect: false, isSelected: false, isPartial: false, selectedCount: 0, totalSelectable: 0, viaReimport: false };
+  }
+
+  const hasCompleted = items.some((i) => i.status === 'COMPLETED');
+  const viaReimport = isReimportMode || hasCompleted;
+  const selectableItems = viaReimport
+    ? items.filter(isReimportSelectable)
+    : items.filter(isSelectable);
+
+  if (selectableItems.length === 0) {
+    const reimportItems = items.filter(isReimportSelectable);
+    if (reimportItems.length > 0) {
+      return {
+        canSelect: true,
+        isSelected: false,
+        isPartial: false,
+        selectedCount: 0,
+        totalSelectable: reimportItems.length,
+        viaReimport: true,
+      };
+    }
+    return { canSelect: false, isSelected: false, isPartial: false, selectedCount: 0, totalSelectable: 0, viaReimport: false };
+  }
+
+  const selectedCount = selectableItems.filter((i) => {
+    const k = getItemKey(i);
+    return selectedReimportKeys.has(k) || selectedBulkKeys.has(k);
+  }).length;
+
+  const isSelected = selectedCount === selectableItems.length;
+  const isPartial = selectedCount > 0 && selectedCount < selectableItems.length;
+
+  return {
+    canSelect: true,
+    isSelected,
+    isPartial,
+    selectedCount,
+    totalSelectable: selectableItems.length,
+    viaReimport,
+  };
+}
+
+/**
+ * Resolves selection state for a specific indicator across a list of visible calendar days (e.g. for column header toggle).
+ * Pure.
+ * @param {Object[]} visibleDayGroups
+ * @param {string} indicatorCode
+ * @param {Set<string>} selectedBulkKeys
+ * @param {Set<string>} selectedReimportKeys
+ * @returns {{ canSelect: boolean, isSelected: boolean, isPartial: boolean, selectableItems: Object[], selectedCount: number }}
+ */
+export function resolveIndicatorColumnSelectionState(visibleDayGroups = [], indicatorCode = '', selectedBulkKeys = new Set(), selectedReimportKeys = new Set()) {
+  const isReimportMode = selectedReimportKeys.size > 0;
+  const indItems = (visibleDayGroups || []).flatMap((d) => d.indicators?.[indicatorCode]?.items || []);
+  const hasCompleted = indItems.some((i) => i.status === 'COMPLETED');
+  const viaReimport = isReimportMode || hasCompleted;
+
+  const selectableItems = viaReimport
+    ? indItems.filter(isReimportSelectable)
+    : indItems.filter(isSelectable);
+
+  if (selectableItems.length === 0) {
+    const reimportItems = indItems.filter(isReimportSelectable);
+    if (reimportItems.length > 0) {
+      return {
+        canSelect: true,
+        isSelected: false,
+        isPartial: false,
+        selectableItems: reimportItems,
+        selectedCount: 0,
+      };
+    }
+    return { canSelect: false, isSelected: false, isPartial: false, selectableItems: [], selectedCount: 0 };
+  }
+
+  const selectedCount = selectableItems.filter((i) => {
+    const k = getItemKey(i);
+    return selectedReimportKeys.has(k) || selectedBulkKeys.has(k);
+  }).length;
+
+  const isSelected = selectedCount === selectableItems.length;
+  const isPartial = selectedCount > 0 && selectedCount < selectableItems.length;
+
+  return {
+    canSelect: true,
+    isSelected,
+    isPartial,
+    selectableItems,
+    selectedCount,
+  };
+}
+
+/**
+ * Filters calendar day rows keeping only those that have at least one missing / data_error item.
+ * Pure.
+ * @param {Object[]} calendarDays
+ * @returns {Object[]}
+ */
+export function filterCalendarDaysByMissingOnly(calendarDays = []) {
+  if (!Array.isArray(calendarDays)) return [];
+  return calendarDays.filter((day) => Boolean(day.hasMissing));
+}
+
+/**
+ * Summarizes calendar day groups into metrics and label for toolbar.
+ * Pure.
+ * @param {Object[]} calendarDays
+ * @returns {{ totalDays: number, completeDays: number, missingDays: number, label: string }}
+ */
+export function summarizeCalendarDayGroups(calendarDays = []) {
+  if (!Array.isArray(calendarDays)) {
+    return { totalDays: 0, completeDays: 0, missingDays: 0, label: '0 ngày' };
+  }
+  const totalDays = calendarDays.length;
+  let missingDays = 0;
+  let completeDays = 0;
+
+  for (const day of calendarDays) {
+    if (day.hasMissing) {
+      missingDays += 1;
+    } else {
+      completeDays += 1;
+    }
+  }
+
+  const completeLabel = `${completeDays} đã xử lý`;
+  const missingLabel = missingDays > 0 ? `${missingDays} còn thiếu` : '0 còn thiếu';
+  const label = `${totalDays} ngày • ${completeLabel} • ${missingLabel}`;
+
+  return { totalDays, completeDays, missingDays, label };
+}
+
