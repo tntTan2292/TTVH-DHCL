@@ -162,3 +162,5 @@ PO: hiding the low-age columns on Theo bưu cục must also recompute the totals
 2. **Chi tiết**: paging for every row — page size 50/100/200/500/1000/Tất cả, first/previous/page box/next/last, bar above and below the table. The old "Xuất trang này" is replaced by **Tải Excel (tất cả)** and **CSV (tất cả)**: the server builds the file from every row of the current filter, not one page.
 3. Backend: `/api/hangton/items` accepts `levels=a|b` (exact Loại Tồn) and a limit up to 20 000; new `GET /api/hangton/items/export?format=xlsx|csv` + same filters (`itemsExport.js`, Vietnamese headers, column widths, CSV with BOM). Real database check: newest snapshot 5 625 parcels, all exported (xlsx 3.1 MB, 5 626 sheet rows); BCVH Thuận Hóa ≥5 ngày = 118 rows. Backend restart needed.
 Tests: frontend 723/723, backend 7/7, lint clean, build OK.
+
+2026-10-19 (PO status): after the backend restart the PO checked Section 13 (click a figure of Theo bưu cục → parcel list; Excel download in Chi tiết) and confirmed it works — PO UI PASS for Sections 9, 12 and 13. Still open: O5 (portal refresh cadence), Import Center integration, Control Center menu real run (PO).
