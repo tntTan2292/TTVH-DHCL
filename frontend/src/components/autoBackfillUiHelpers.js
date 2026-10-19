@@ -692,6 +692,22 @@ export function resolveDaySelectionState(day, selectedKeys = new Set(), { isReim
     isReimportMode ? isReimportSelectable(item) : isSelectable(item)
   );
 
+  // A day whose cells are all done has nothing to import, but it can still be picked for Nhập lại: the day
+  // checkbox then starts the re-import selection (viaReimport) instead of being dead.
+  if (selectableItems.length === 0 && !isReimportMode) {
+    const reimportItems = (day?.items || []).filter((item) => isReimportSelectable(item));
+    if (reimportItems.length > 0) {
+      return {
+        canSelect: true,
+        isSelected: false,
+        isPartial: false,
+        selectedCount: 0,
+        selectableItems: reimportItems,
+        viaReimport: true,
+      };
+    }
+  }
+
   if (selectableItems.length === 0) {
     return {
       canSelect: false,
@@ -946,9 +962,10 @@ export function formatLastImportTooltip(logEntry) {
  * Pure; the caller decides what to do with the keys.
  * @param {Object[]} pickedItems - coverage items that were picked
  * @param {Object[]} allItems - every coverage item currently loaded
+ * @param {{ allLanes?: boolean }} [options] - allLanes: add every source of the day, not only the picked one
  * @returns {{ keys: string[], extraKeys: string[] }}
  */
-export function expandWithPreviousDays(pickedItems = [], allItems = []) {
+export function expandWithPreviousDays(pickedItems = [], allItems = [], { allLanes = false } = {}) {
   const byKey = new Map();
   for (const item of allItems || []) byKey.set(getItemKey(item), item);
   const keys = new Set();
@@ -960,11 +977,16 @@ export function expandWithPreviousDays(pickedItems = [], allItems = []) {
   for (const item of pickedItems || []) {
     if (!item) continue;
     for (const date of computeAnchorDates(item.business_date, 3).slice(1)) {
-      const neighbour = byKey.get(getItemKey({ ...item, business_date: date }));
-      if (!neighbour || !isReimportSelectable(neighbour)) continue;
-      const key = getItemKey(neighbour);
-      if (!keys.has(key)) extraKeys.add(key);
-      keys.add(key);
+      // allLanes: every source of the same indicator on that day (HUE and TCT), not only the picked source
+      const neighbours = allLanes
+        ? (allItems || []).filter((other) => other.indicator === item.indicator && other.business_date === date)
+        : [byKey.get(getItemKey({ ...item, business_date: date }))];
+      for (const neighbour of neighbours) {
+        if (!neighbour || !isReimportSelectable(neighbour)) continue;
+        const key = getItemKey(neighbour);
+        if (!keys.has(key)) extraKeys.add(key);
+        keys.add(key);
+      }
     }
   }
   return { keys: [...keys], extraKeys: [...extraKeys] };

@@ -418,13 +418,22 @@ export default function AutoBackfillOperatorPanel() {
       if (isReimportSelectable(item)) {
         setSelectedBulkKeys(new Set());
         // Picking a day to re-import also picks the 2 days before it (D-1, D-2); each can be unticked.
-        setSelectedReimportKeys(new Set(expandWithPreviousDays([item], rawCoverageItems).keys));
+        setSelectedReimportKeys(new Set(expandWithPreviousDays([item], rawCoverageItems, { allLanes: true }).keys));
       }
     } else {
       if (isSelectable(item)) {
         toggleSelectBulkItem(item);
       }
     }
+  };
+
+  // Day checkbox on a day that is done (or on top of a re-import selection): picks the day's cells for Nhập lại
+  // together with D-1 and D-2 of every source. `additive` keeps what is already ticked.
+  const handleSelectDayForReimport = (dayItems, { additive = false } = {}) => {
+    const picked = (dayItems || []).filter(isReimportSelectable);
+    const { keys } = expandWithPreviousDays(picked, rawCoverageItems, { allLanes: true });
+    setSelectedBulkKeys(new Set());
+    setSelectedReimportKeys((prev) => new Set(additive ? [...prev, ...keys] : keys));
   };
 
   // Select/Unselect All Items in a list
@@ -1186,7 +1195,7 @@ export default function AutoBackfillOperatorPanel() {
   const bulkWithPreviousDays = useMemo(() => {
     if (selectedBulkKeys.size === 0) return { keys: [], extraKeys: [] };
     const picked = rawCoverageItems.filter((item) => selectedBulkKeys.has(getItemKey(item)));
-    return expandWithPreviousDays(picked, rawCoverageItems);
+    return expandWithPreviousDays(picked, rawCoverageItems, { allLanes: true });
   }, [selectedBulkKeys, rawCoverageItems]);
 
   const distinctBulkDates = useMemo(() => {
@@ -1783,6 +1792,7 @@ export default function AutoBackfillOperatorPanel() {
           selectedReimportKeys={selectedReimportKeys}
           isAdmin={isAdmin}
           onToggleSelectItem={handleToggleRowSelection}
+          onSelectDayForReimport={handleSelectDayForReimport}
           onToggleSelectAllItems={toggleSelectAllItems}
           onSelectAllUnfinished={handleSelectAllUnfinished}
           onSelectAllReimport={handleSelectAllReimport}

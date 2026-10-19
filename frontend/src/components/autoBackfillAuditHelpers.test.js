@@ -6,6 +6,7 @@ import {
   calculateAnchorOverwrites,
   buildAnchorRunPayload,
   expandWithPreviousDays,
+  resolveDaySelectionState,
   formatAnchorSkippedSummary,
   formatAuditValue,
   buildLatestImportLogMap,
@@ -232,4 +233,26 @@ console.log('ALL IMPORT-LOG-AUDIT-01 helper tests PASSED SUCCESSFULLY! (7/7 Suit
   assert.deepEqual(expandWithPreviousDays([], all), { keys: [], extraKeys: [] });
   assert.deepEqual(expandWithPreviousDays([all[3]], [all[3]]).keys, ['F4.1::HUE::2026-10-15'], 'no neighbours loaded: only the picked cell');
   console.log('✔ 8. expandWithPreviousDays tests PASSED!');
+}
+
+// ==========================================
+// 9. expandWithPreviousDays allLanes + a finished day can start Nhập lại
+// ==========================================
+{
+  const cell = (lane, date) => ({ indicator: 'F4.1', source_lane: lane, business_date: date, status: 'COMPLETED' });
+  const all = [cell('HUE', '2026-10-18'), cell('TCT', '2026-10-18'), cell('HUE', '2026-10-17'), cell('TCT', '2026-10-17'), cell('HUE', '2026-10-16'), cell('TCT', '2026-10-16')];
+  const lanesOnly = expandWithPreviousDays([all[0]], all);
+  assert.deepEqual(lanesOnly.keys.sort(), ['F4.1::HUE::2026-10-16', 'F4.1::HUE::2026-10-17', 'F4.1::HUE::2026-10-18']);
+  const everyLane = expandWithPreviousDays([all[0]], all, { allLanes: true });
+  assert.equal(everyLane.keys.length, 5, 'HUE on the picked day plus HUE and TCT on D-1 and D-2');
+  assert.ok(everyLane.keys.includes('F4.1::TCT::2026-10-17') && everyLane.keys.includes('F4.1::TCT::2026-10-16'));
+
+  const doneDay = { date: '2026-10-18', items: [all[0], all[1]] };
+  const selection = resolveDaySelectionState(doneDay, new Set(), { isReimportMode: false });
+  assert.equal(selection.canSelect, true);
+  assert.equal(selection.viaReimport, true);
+  assert.equal(selection.selectableItems.length, 2);
+  const holiday = { date: '2026-10-19', items: [{ ...cell('HUE', '2026-10-19'), holiday: { reason: 'x' } }] };
+  assert.equal(resolveDaySelectionState(holiday, new Set(), { isReimportMode: false }).canSelect, false);
+  console.log('✔ 9. allLanes expansion and finished-day selection tests PASSED!');
 }

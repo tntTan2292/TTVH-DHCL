@@ -49,6 +49,7 @@ export default function AutoBackfillSmartDayView({
   selectedReimportKeys = new Set(),
   isAdmin = false,
   onToggleSelectItem,
+  onSelectDayForReimport = null,
   onToggleSelectAllItems,
   onSelectAllUnfinished,
   onSelectAllReimport,
@@ -370,6 +371,11 @@ export default function AutoBackfillSmartDayView({
                   const handleToggleDay = (e) => {
                     e.stopPropagation();
                     if (!daySelection.canSelect) return;
+                    // A finished day, or ticking more days while re-importing: pick the cells for Nhập lại with D-1, D-2.
+                    if (onSelectDayForReimport && (daySelection.viaReimport || (isReimportMode && !daySelection.isSelected))) {
+                      onSelectDayForReimport(day.items, { additive: isReimportMode });
+                      return;
+                    }
                     if (daySelection.isSelected) {
                       daySelection.selectableItems.forEach((item) => {
                         const k = getItemKey(item);

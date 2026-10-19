@@ -76,3 +76,7 @@ Points 2-4 PASS. Fixed: the confirmation box now opens at once with a loading li
 ## 9. Day selection brings D-1, D-2 along (PO request 2026-10-19)
 
 PO: picking a day for "Nhập lại" must also pick the days to refresh, or users cannot find how to import and refresh together. Screen only, no API change: (a) picking a completed day for Nhập lại now selects the same indicator and lane on D-1 and D-2 too (each can be unticked; the bar and the confirmation list show all of them); (b) the new-import bar gets "Nhập mới + bù 2 ngày trước (N ô)" which switches to the Nhập lại selection with D-1, D-2 added and opens its confirmation. Pure helper `expandWithPreviousDays` with test. The "Import cả ngày + bù 3 ngày" button (all indicators, both lanes) is unchanged.
+
+## 10. Follow-up from PO check (2026-10-19)
+
+Two defects seen on screen: (1) picking one cell added D-1, D-2 of the same source only, so TCT was left out; (2) the day checkbox was dead on a finished day (only the HUE/TCT cell ticks worked). Fixed in the screen only: the D-1, D-2 expansion now covers every source of the indicator (`expandWithPreviousDays(..., { allLanes: true })`), and the day checkbox on a finished day (or while a Nhập lại selection is open) picks the whole day for Nhập lại with D-1, D-2 of both sources (`resolveDaySelectionState` returns `viaReimport`). Holiday / excluded days stay unselectable. Tests 9 in `autoBackfillAuditHelpers.test.js`.
