@@ -2365,3 +2365,7 @@ Opening the Data Import Center waited on a coverage scan of 5 186 queries (2.2 s
 ## 2026-10-17 - HANGTON-INVENTORY-01 (CHỈ SỐ RÀ SOÁT HÀNG TỒN, PHASES 1-3)
 
 New quality indicator fed by the hangton portal, which can only return the stock as of the export time. Phase 1: automatic login and fetch proven (no bot block). Phase 2: scoped snapshots (DK1 LM, 5 statuses, all stock levels; 4 430 parcels on 2026-10-17) stored three times a day (07:30, 11:30, 21:00, kept as separate points), compare of two snapshots by parcel (resolved, aged up, new), API /api/hangton. Phase 3: four screens (Tổng quan, Theo bưu cục, So sánh hai mốc, Chi tiết) built by Antigravity, reviewed, three review fixes, PO UI PASS 2026-10-17. Open: alert thresholds per level (O2), portal refresh cadence (O5), tighter catch-up window. Manifest: docs/10_TICKETS/HANGTON-INVENTORY-01_MANIFEST.md.
+
+## 2026-10-19 - IMPORT-LOG-AUDIT-01 CLOSED (PO UI PASS)
+
+Product Owner checked the Data Import Center and confirmed PASS. Closed: import log with user, mode and replaced rows; anchor-day run (chosen day + D-1, D-2, four indicators, both sources); a first-time import can add D-1, D-2; a day can be picked for all four indicators; one row per day with four indicator columns; faster coverage scan and /import/status. Backend restart needed. Manifest: docs/10_TICKETS/IMPORT-LOG-AUDIT-01_MANIFEST.md Section 15.

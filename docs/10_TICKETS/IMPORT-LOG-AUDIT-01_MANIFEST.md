@@ -117,3 +117,7 @@ Left as notes: a fifth registered indicator would not get a column (the table dr
 ## 14. Re-review of 8b2d451: PASS (Opus, 2026-10-19)
 
 B1, S2 and no-regression PASS; S1 PASS with notes. Notes handled: the width figure corrected to 972 px; the status chip limit raised from 70 to 92 px so "Chưa hoàn tất" is no longer cut (tooltip kept). The table may still scroll sideways inside its card at 1280 px with the sidebar open: PO to check. Status: **READY FOR PO UI CHECK** (screens of Mục 4, 9-13). Backend restart needed for the migration, anchor run, log API and the faster coverage scan.
+
+## 15. Closure (2026-10-19)
+
+Product Owner checked the screens (Sections 4, 9-13) and confirmed PO UI PASS. Delivered: import log audit columns and `GET /import/log`; `anchor_date` run (D, D-1, D-2, F1.1/F1.2/F1.3/F4.1, both sources, API-side confirmation); first-time import with D-1, D-2; "Chọn cả 4 chỉ tiêu"; one row per day with four indicator columns; coverage scan speed (IMPORT-COVERAGE-SPEED-01). Independent reviews: Opus FAIL then PASS on backend and on both screen rounds. Commits: a524cf6, f0f7ccf, 61d14fe, 38b68d3, 54e94fb, ed0c2af, 0dbe472, 0b72343, 00b83ae, cec7795, 8b2d451, e960cfc. Residual: backend restart needed; `GET /import/log?latest=1` and the migration re-run have no automated test; a fifth registered indicator would need a column.
