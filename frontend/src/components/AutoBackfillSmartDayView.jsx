@@ -1268,7 +1268,7 @@ function CompactIndicatorCell({
 
               <span
                 title={lastImportTooltip}
-                className={`text-[10px] font-semibold px-1.5 py-0.2 rounded-full border truncate max-w-[70px] cursor-help shrink-0 ${statusInfo.badgeClass}`}
+                className={`text-[10px] font-semibold px-1.5 py-0.2 rounded-full border truncate max-w-[92px] cursor-help shrink-0 ${statusInfo.badgeClass}`}
               >
                 {statusInfo.label}
               </span>

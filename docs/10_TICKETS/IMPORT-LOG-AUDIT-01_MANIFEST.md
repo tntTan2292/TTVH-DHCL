@@ -109,7 +109,11 @@ Hard guard (unchanged): no API, payload, `getItemKey`, selection state shape, mo
 
 FAIL (B1, S1, S2). Fixed by Claude Code, screen only:
 - B1 (blocker): the column-header tick of the one-row-per-day table could not pick completed cells and never reached "full". It now goes through `mergeDayCellsIntoSelection` (new panel handler `handleToggleCells`, prop `onToggleSelectCells`), and `resolveIndicatorColumnSelectionState` counts every pickable cell in either selection; dead fallbacks removed. Test 14 covers a mixed column, tick, untick and a column of finished cells.
-- S1: minimum widths reduced (indicator columns 215 -> 176 px, date 150 -> 132, last column 100 -> 88; about 930 px in total). The earlier claim "fits 1280 px" was wrong and is withdrawn: this is an estimate from the code, the PO checks it at 1280 px (the table keeps its own horizontal scroll if needed).
+- S1: minimum widths reduced (indicator columns 215 -> 176 px, date 150 -> 132, last column 100 -> 88; 972 px in total (48 + 132 + 4 x 176 + 88; corrected by the re-review, the table still widens to its content)). The earlier claim "fits 1280 px" was wrong and is withdrawn: this is an estimate from the code, the PO checks it at 1280 px (the table keeps its own horizontal scroll if needed).
 - S2: the one-row-per-day table lost the "Thu hồi" (revoke holiday) button; it is now under the "Nghỉ lễ" badge. The button "Chọn cả 4 chỉ tiêu" is hidden on holiday days.
 - Subtitles under the indicator codes use the sidebar names (earlier commit cec7795).
 Left as notes: a fifth registered indicator would not get a column (the table draws the four fixed ones; the registry has four).
+
+## 14. Re-review of 8b2d451: PASS (Opus, 2026-10-19)
+
+B1, S2 and no-regression PASS; S1 PASS with notes. Notes handled: the width figure corrected to 972 px; the status chip limit raised from 70 to 92 px so "Chưa hoàn tất" is no longer cut (tooltip kept). The table may still scroll sideways inside its card at 1280 px with the sidebar open: PO to check. Status: **READY FOR PO UI CHECK** (screens of Mục 4, 9-13). Backend restart needed for the migration, anchor run, log API and the faster coverage scan.
