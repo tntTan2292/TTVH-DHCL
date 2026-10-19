@@ -32,10 +32,12 @@ export function buildOfficeTableRows(byOffice = [], byOfficeLevel = [], compareB
 
   // Index level counts by office + ton_level
   const levelMap = new Map();
+  const codMap = new Map();
   for (const entry of byOfficeLevel || []) {
     if (!entry?.office) continue;
     const key = `${entry.office}:::${entry.ton_level}`;
     levelMap.set(key, (levelMap.get(key) || 0) + (Number(entry.n) || 0));
+    codMap.set(key, (codMap.get(key) || 0) + (Number(entry.cod) || 0));
   }
 
   // Index compare changes by office: resolved, aged_up, new
@@ -60,10 +62,12 @@ export function buildOfficeTableRows(byOffice = [], byOfficeLevel = [], compareB
       ge5: Number(off.n_ge5) || 0,
     };
 
-    // Fill each ton_level count
+    // Fill each ton_level count (and its COD, so totals can follow the visible levels)
+    row.codByLevel = {};
     for (const lvl of TON_LEVELS) {
       const count = levelMap.get(`${officeName}:::${lvl}`) || 0;
       row[lvl] = count;
+      row.codByLevel[lvl] = codMap.get(`${officeName}:::${lvl}`) || 0;
     }
 
     // If ge5 wasn't calculated from backend, compute it directly
@@ -81,6 +85,30 @@ export function buildOfficeTableRows(byOffice = [], byOfficeLevel = [], compareB
 
     return row;
   });
+}
+
+/**
+ * Re-computes Tổng tồn, Tồn ≥5 ngày and Tiền COD of every row from the levels that are shown, and drops the
+ * offices that have no stock left in those levels (PO 2026-10-19: hiding columns must change the totals too).
+ * The comparison columns (đã xử lý / tăng loại / mới vào) are not split by level and stay as they are.
+ * With every level shown the rows are returned unchanged.
+ */
+export function applyVisibleLevels(rows = [], shownLevels = TON_LEVELS) {
+  if (shownLevels.length === TON_LEVELS.length) return rows;
+  return rows
+    .map((row) => {
+      let total = 0;
+      let ge5 = 0;
+      let cod = 0;
+      for (const lvl of shownLevels) {
+        const count = Number(row[lvl]) || 0;
+        total += count;
+        if ((tonRank(lvl) ?? 0) >= 5) ge5 += count;
+        cod += Number(row.codByLevel?.[lvl]) || 0;
+      }
+      return { ...row, total, ge5, cod };
+    })
+    .filter((row) => row.total > 0);
 }
 
 /**

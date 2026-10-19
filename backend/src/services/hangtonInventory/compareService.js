@@ -41,7 +41,7 @@ async function overview(db, snapshotId) {
                 SUM(CASE WHEN ton_rank >= 5 THEN 1 ELSE 0 END) AS n_ge5
            FROM hangton_snapshot_item WHERE snapshot_id = ? GROUP BY office ORDER BY n DESC`, [snapshotId]);
     const byOfficeLevel = await db.all(
-        `SELECT office, ton_level, ton_rank, COUNT(*) AS n
+        `SELECT office, ton_level, ton_rank, COUNT(*) AS n, COALESCE(SUM(cod), 0) AS cod
            FROM hangton_snapshot_item WHERE snapshot_id = ? GROUP BY office, ton_level, ton_rank ORDER BY office, ton_rank`, [snapshotId]);
     const byStatus = await db.all(
         'SELECT status_name, COUNT(*) AS n FROM hangton_snapshot_item WHERE snapshot_id = ? GROUP BY status_name ORDER BY n DESC', [snapshotId]);

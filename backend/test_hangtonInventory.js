@@ -91,6 +91,7 @@ test('compare classifies resolved / aged_up / new / unchanged and defaults to sa
     assert.equal((await inventory.items(db, to.id, { office: 'BCVH Phú Lộc' })).total, 1);
 
     const ov = await inventory.overview(db, to.id);
+    assert.ok(ov.by_office_level.every((r) => typeof r.cod === 'number'), 'each office/level group carries its COD sum');
     assert.equal(ov.total, 4);
     assert.equal(ov.ge5, 0);
     assert.equal(ov.by_office.find((o) => o.office === 'BCVH Phú Lộc').n, 1);

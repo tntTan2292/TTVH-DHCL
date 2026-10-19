@@ -21,6 +21,7 @@ import {
   OFFICE_TABLE_TEXT_FIELDS,
   buildOfficeTableRows,
   calculateOfficeTotals,
+  applyVisibleLevels,
   officeTableColumnCount,
   sortAfterHide,
   sortOfficeRows,
@@ -73,11 +74,14 @@ export default function HangTonByOfficeTab({
     );
   }, [overview, compare]);
 
+  // Hidden levels change the figures, not only the columns: Tổng tồn / ≥5 / COD follow the shown levels.
+  const visibleRows = useMemo(() => applyVisibleLevels(rawRows, shownLevels), [rawRows, shownLevels]);
+
   const filteredRows = useMemo(() => {
-    if (!searchTerm.trim()) return rawRows;
+    if (!searchTerm.trim()) return visibleRows;
     const q = searchTerm.trim().toLowerCase();
-    return rawRows.filter((r) => r.office.toLowerCase().includes(q));
-  }, [rawRows, searchTerm]);
+    return visibleRows.filter((r) => r.office.toLowerCase().includes(q));
+  }, [visibleRows, searchTerm]);
 
   const sortedRows = useMemo(() => {
     return sortOfficeRows(filteredRows, sort);
@@ -85,8 +89,8 @@ export default function HangTonByOfficeTab({
 
   const hasBase = hasCompareBase(compare);
   const totals = useMemo(() => {
-    return calculateOfficeTotals(rawRows);
-  }, [rawRows]);
+    return calculateOfficeTotals(visibleRows);
+  }, [visibleRows]);
 
   const handleSort = (field) => {
     setSort((current) => nextSortState(current, field, { textFields: OFFICE_TABLE_TEXT_FIELDS }));
@@ -158,7 +162,7 @@ export default function HangTonByOfficeTab({
           );
         })}
         {hiddenLevels.length > 0 ? (
-          <span className="text-sm text-slate-500">Cột Tổng tồn vẫn tính cả các mức đã ẩn.</span>
+          <span className="text-sm text-slate-500">Tổng tồn, Tồn ≥5 ngày, Tiền COD và dòng TỔNG CỘNG chỉ tính các mức đang hiển thị; bưu cục không còn tồn ở các mức này được ẩn. Cột biến động không chia theo mức nên giữ nguyên.</span>
         ) : null}
       </div>
 

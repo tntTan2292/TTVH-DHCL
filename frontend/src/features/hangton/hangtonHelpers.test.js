@@ -208,13 +208,27 @@ test('office table: empty-row colSpan follows the visible columns; hiding the so
   assert.deepEqual(sortAfterHide(sorted, ['≥2 ngày']), { field: 'total', direction: 'desc' });
   assert.equal(sortAfterHide(sorted, ['≥1 ngày']), sorted, 'a visible sort column is kept');
   assert.deepEqual(sortAfterHide({ field: 'office', direction: 'asc' }, TON_LEVELS), { field: 'office', direction: 'asc' });
-  // totals keep counting every level even when columns are hidden (hiding is display only)
+  // hiding levels changes the figures: totals, ≥5 and COD follow the shown levels; empty offices disappear
+  const { applyVisibleLevels } = await import('./hangtonOfficeTableData.js');
   const rows = buildOfficeTableRows(
-    [{ office: 'A', n: 3, cod: 0, n_ge5: 1 }],
-    [{ office: 'A', ton_level: '<1 ngày', n: 2 }, { office: 'A', ton_level: '≥5 ngày', n: 1 }],
+    [{ office: 'A', n: 7, cod: 700, n_ge5: 2 }, { office: 'B', n: 3, cod: 30, n_ge5: 0 }],
+    [
+      { office: 'A', ton_level: '<1 ngày', n: 3, cod: 300 }, { office: 'A', ton_level: '≥3 ngày', n: 2, cod: 200 },
+      { office: 'A', ton_level: '≥5 ngày', n: 1, cod: 100 }, { office: 'A', ton_level: '≥14 ngày', n: 1, cod: 100 },
+      { office: 'B', ton_level: '<1 ngày', n: 3, cod: 30 },
+    ],
     [],
   );
-  assert.equal(calculateOfficeTotals(rows).total, 3);
+  assert.equal(applyVisibleLevels(rows, TON_LEVELS), rows, 'all levels shown: rows unchanged');
+  assert.equal(calculateOfficeTotals(rows).total, 10);
+  const ge3 = applyVisibleLevels(rows, visibleLevels(presetHiddenLevels('ge3')));
+  assert.deepEqual(ge3.map((r) => r.office), ['A'], 'B has stock only below 3 days: it disappears');
+  assert.deepEqual([ge3[0].total, ge3[0].ge5, ge3[0].cod], [4, 2, 400]);
+  const totals = calculateOfficeTotals(ge3);
+  assert.deepEqual([totals.total, totals.ge5, totals.cod], [4, 2, 400], 'TỔNG CỘNG follows the shown levels');
+  const ge5 = applyVisibleLevels(rows, visibleLevels(presetHiddenLevels('ge5')));
+  assert.deepEqual([ge5[0].total, ge5[0].ge5, ge5[0].cod], [2, 2, 200]);
+  assert.deepEqual(applyVisibleLevels(rows, []), [], 'no level shown: no row');
 });
 
 test('tab resolution: unknown tab falls back to the overview', async () => {

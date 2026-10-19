@@ -113,3 +113,11 @@ test('Review fixes: no truncated KPI notes or office names, empty row spans the 
   assert.match(office, /sortAfterHide\(current, next\)/);
   assert.match(page, /navigate\('\/hangton\/overview', \{ replace: true \}\)/);
 });
+
+test('Theo bưu cục: rows and TỔNG CỘNG are built from the visible levels', () => {
+  const office = read('./components/HangTonByOfficeTab.jsx');
+  assert.match(office, /applyVisibleLevels\(rawRows, shownLevels\)/);
+  assert.match(office, /calculateOfficeTotals\(visibleRows\)/);
+  assert.doesNotMatch(office, /calculateOfficeTotals\(rawRows\)/, 'totals must not ignore the hidden levels');
+  assert.doesNotMatch(office, /vẫn tính cả các mức đã ẩn/);
+});
