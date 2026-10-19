@@ -33,6 +33,7 @@ import { isAdminRole } from '../auth/roles';
 import {
   buildRunPayload,
   countDistinctDates,
+  computeAnchorDates,
   expandWithPreviousDays,
   findNewestUnfinishedMonthKey,
   groupItemsByDay,
@@ -94,6 +95,7 @@ export default function AutoBackfillOperatorPanel() {
 
   // State for coverage scan
   const [coverageData, setCoverageData] = useState(null);
+  const [selectionPool, setSelectionPool] = useState([]);
   const [coverageLoading, setCoverageLoading] = useState(false);
   const [_coverageError, setCoverageError] = useState(null);
 
@@ -417,8 +419,7 @@ export default function AutoBackfillOperatorPanel() {
     } else if (item?.status === 'COMPLETED') {
       if (isReimportSelectable(item)) {
         setSelectedBulkKeys(new Set());
-        // Picking a day to re-import also picks the 2 days before it (D-1, D-2); each can be unticked.
-        setSelectedReimportKeys(new Set(expandWithPreviousDays([item], rawCoverageItems, { allLanes: true }).keys));
+        setSelectedReimportKeys(new Set([key]));
       }
     } else {
       if (isSelectable(item)) {
@@ -427,13 +428,45 @@ export default function AutoBackfillOperatorPanel() {
     }
   };
 
-  // Day checkbox on a day that is done (or on top of a re-import selection): picks the day's cells for Nhập lại
-  // together with D-1 and D-2 of every source. `additive` keeps what is already ticked.
+  // Day checkbox on a day that is done (or on top of a re-import selection): picks that day's cells for Nhập lại
+  // only (a re-import never adds other days). `additive` keeps what is already ticked.
   const handleSelectDayForReimport = (dayItems, { additive = false } = {}) => {
-    const picked = (dayItems || []).filter(isReimportSelectable);
-    const { keys } = expandWithPreviousDays(picked, rawCoverageItems, { allLanes: true });
+    const keys = (dayItems || []).filter(isReimportSelectable).map(getItemKey);
     setSelectedBulkKeys(new Set());
     setSelectedReimportKeys((prev) => new Set(additive ? [...prev, ...keys] : keys));
+  };
+
+  // One click picks the date for every indicator (F1.1, F1.2, F1.3, F4.1) and both sources, whatever the screen
+  // filter shows. Coverage is read unfiltered (the server caches it) and kept in `selectionPool` so the
+  // confirmation lists and the run requests can find cells of indicators that are not on screen.
+  // A day with something already imported becomes a Nhập lại selection (it handles new cells too); a day with
+  // nothing imported becomes a Nhập mới selection.
+  const handleSelectDayAllIndicators = async (date) => {
+    if (!isAdmin || !date) return;
+    try {
+      const res = await api.get('/import/auto-backfill/coverage');
+      if (!res?.data?.success) throw new Error('coverage');
+      const windowDates = new Set(computeAnchorDates(date, 3));
+      const laneOk = (item) => laneFilter === 'ALL' || (item.source_lane || '').toUpperCase() === laneFilter.toUpperCase();
+      // D-1 and D-2 are kept too, so "Nhập mới + bù 2 ngày trước" finds them for indicators not on screen.
+      setSelectionPool((res.data.data?.items || []).filter((item) => windowDates.has(item.business_date) && laneOk(item)));
+      const dayCells = (res.data.data?.items || []).filter((item) => item.business_date === date && laneOk(item));
+      const reimportCells = dayCells.filter(isReimportSelectable);
+      if (reimportCells.length === 0) {
+        showToast(`Ngày ${date} không có ô nào chọn được (ngày nghỉ hoặc ngoại lệ).`, 'error');
+        return;
+      }
+      if (reimportCells.some((item) => item.status === 'COMPLETED')) {
+        setSelectedBulkKeys(new Set());
+        setSelectedReimportKeys(new Set(reimportCells.map(getItemKey)));
+      } else {
+        setSelectedReimportKeys(new Set());
+        setSelectedBulkKeys(new Set(dayCells.filter(isSelectable).map(getItemKey)));
+      }
+    } catch (err) {
+      console.error('[AutoBackfillOperatorPanel] select day all indicators error:', err);
+      showToast('Không đọc được dữ liệu bao phủ để chọn cả ngày.', 'error');
+    }
   };
 
   // Select/Unselect All Items in a list
@@ -1013,7 +1046,7 @@ export default function AutoBackfillOperatorPanel() {
     setBulkLoading(true);
     setBulkResultReport(null);
 
-    const selectedItems = rawCoverageItems.filter((item) => selectedBulkKeys.has(getItemKey(item)));
+    const selectedItems = selectionLookupItems.filter((item) => selectedBulkKeys.has(getItemKey(item)));
     const results = [];
     let successCount = 0;
     let failCount = 0;
@@ -1060,7 +1093,7 @@ export default function AutoBackfillOperatorPanel() {
     setBulkNewImportLoading(true);
     setBulkNewImportReport(null);
 
-    const selectedItems = rawCoverageItems.filter((item) => selectedBulkKeys.has(getItemKey(item)));
+    const selectedItems = selectionLookupItems.filter((item) => selectedBulkKeys.has(getItemKey(item)));
     const results = [];
     let successCount = 0;
     let failCount = 0;
@@ -1102,7 +1135,7 @@ export default function AutoBackfillOperatorPanel() {
   // Bulk Reimport Execution Handler (IMPORT-BULK-REIMPORT-ALL-01: for selectedReimportKeys, includes COMPLETED)
   const handleExecuteBulkReimport = async () => {
     if (!isAdmin || selectedReimportKeys.size === 0) return;
-    const selectedItems = rawCoverageItems.filter((item) => selectedReimportKeys.has(getItemKey(item)));
+    const selectedItems = selectionLookupItems.filter((item) => selectedReimportKeys.has(getItemKey(item)));
     const hasCompleted = selectedItems.some((item) => item.status === 'COMPLETED');
     if (hasCompleted && !bulkReimportAck) return;
 
@@ -1157,6 +1190,13 @@ export default function AutoBackfillOperatorPanel() {
     return coverageData?.items || [];
   }, [coverageData]);
 
+  // Cells that may be looked up by key: what the screen loaded plus the cells picked by "cả 4 chỉ tiêu".
+  const selectionLookupItems = useMemo(() => {
+    if (selectionPool.length === 0) return rawCoverageItems;
+    const known = new Set(rawCoverageItems.map(getItemKey));
+    return [...rawCoverageItems, ...selectionPool.filter((item) => !known.has(getItemKey(item)))];
+  }, [rawCoverageItems, selectionPool]);
+
   // Derived Month Options
   const monthOptions = useMemo(() => {
     const monthsSet = new Set();
@@ -1194,9 +1234,9 @@ export default function AutoBackfillOperatorPanel() {
   // Cells that "Nhập mới + bù 2 ngày trước" would pick: the new-import selection plus D-1, D-2 of each.
   const bulkWithPreviousDays = useMemo(() => {
     if (selectedBulkKeys.size === 0) return { keys: [], extraKeys: [] };
-    const picked = rawCoverageItems.filter((item) => selectedBulkKeys.has(getItemKey(item)));
-    return expandWithPreviousDays(picked, rawCoverageItems, { allLanes: true });
-  }, [selectedBulkKeys, rawCoverageItems]);
+    const picked = selectionLookupItems.filter((item) => selectedBulkKeys.has(getItemKey(item)));
+    return expandWithPreviousDays(picked, selectionLookupItems, { allLanes: true });
+  }, [selectedBulkKeys, selectionLookupItems]);
 
   const distinctBulkDates = useMemo(() => {
     return countDistinctDates(selectedBulkKeys);
@@ -1228,8 +1268,8 @@ export default function AutoBackfillOperatorPanel() {
 
   // Selected Reimport items split (completed vs new import)
   const selectedReimportItems = useMemo(() => {
-    return rawCoverageItems.filter((item) => selectedReimportKeys.has(getItemKey(item)));
-  }, [rawCoverageItems, selectedReimportKeys]);
+    return selectionLookupItems.filter((item) => selectedReimportKeys.has(getItemKey(item)));
+  }, [selectionLookupItems, selectedReimportKeys]);
 
   const reimportSplit = useMemo(() => {
     return splitReimportItems(selectedReimportItems);
@@ -1793,6 +1833,7 @@ export default function AutoBackfillOperatorPanel() {
           isAdmin={isAdmin}
           onToggleSelectItem={handleToggleRowSelection}
           onSelectDayForReimport={handleSelectDayForReimport}
+          onSelectDayAllIndicators={handleSelectDayAllIndicators}
           onToggleSelectAllItems={toggleSelectAllItems}
           onSelectAllUnfinished={handleSelectAllUnfinished}
           onSelectAllReimport={handleSelectAllReimport}

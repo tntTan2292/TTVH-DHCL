@@ -50,6 +50,7 @@ export default function AutoBackfillSmartDayView({
   isAdmin = false,
   onToggleSelectItem,
   onSelectDayForReimport = null,
+  onSelectDayAllIndicators = null,
   onToggleSelectAllItems,
   onSelectAllUnfinished,
   onSelectAllReimport,
@@ -445,6 +446,20 @@ export default function AutoBackfillSmartDayView({
                           >
                             <Zap className="h-2.5 w-2.5 text-amber-500 fill-amber-400" />
                             <span>Import cả ngày + bù 3 ngày</span>
+                          </button>
+                        )}
+                        {isAdmin && onSelectDayAllIndicators && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onSelectDayAllIndicators(day.date);
+                            }}
+                            className="mt-1 inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-1.5 py-0.5 text-[10px] font-bold text-slate-600 hover:bg-slate-50 hover:border-slate-300 transition whitespace-nowrap cursor-pointer"
+                            title={`Chọn ${day.date} cho cả 4 chỉ tiêu (F1.1, F1.2, F1.3, F4.1) và 2 nguồn để Nhập mới hoặc Nhập lại`}
+                          >
+                            <CheckSquare className="h-2.5 w-2.5" />
+                            <span>Chọn cả 4 chỉ tiêu</span>
                           </button>
                         )}
                       </td>
