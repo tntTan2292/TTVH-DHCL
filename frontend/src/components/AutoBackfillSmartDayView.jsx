@@ -35,11 +35,12 @@ import {
   summarizeCalendarDayGroups
 } from './autoBackfillUiHelpers';
 
+// Names as in the sidebar (UI-VN-LABELS-01); no invented names.
 const INDICATOR_LABELS = {
-  'F1.1': 'KT Nghiệp vụ',
-  'F1.2': 'KT Khối lượng',
-  'F1.3': 'KT Thời gian',
-  'F4.1': 'Dịch vụ COD',
+  'F1.1': 'Toàn trình nội tỉnh',
+  'F1.2': 'Thu gom liên tỉnh',
+  'F1.3': 'Phát liên tỉnh',
+  'F4.1': 'Phát thành công bưu cục',
 };
 
 /**
