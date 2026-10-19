@@ -5,19 +5,21 @@ import {
   Download,
   ChevronLeft,
   ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
   RotateCcw,
 } from 'lucide-react';
 import SortableTh from '../../../components/common/SortableTh.jsx';
 import { nextSortState } from '../../../components/common/tableSort.js';
 import BlockCaptureButton from '../../../components/common/BlockCaptureButton.jsx';
-import { fetchItems } from '../api/hangtonClient.js';
+import { fetchItems, downloadItemsFile } from '../api/hangtonClient.js';
 import {
   getLevelConfig,
   formatNumber,
   formatCurrency,
   formatSnapshotLabel,
 } from '../hangtonLevels.js';
-import { downloadCsv } from '../hangtonExport.js';
+import { buildItemsParams } from '../hangtonExport.js';
 
 const SCOPE_STATUSES = [
   'Phát không thành công',
@@ -30,6 +32,10 @@ const SCOPE_STATUSES = [
 // Column title -> backend sort key (GET /api/hangton/items ?sort=&dir=).
 const SORT_TEXT_FIELDS = ['item_code', 'office', 'status', 'postman'];
 const DEFAULT_SORT = { field: 'rank', direction: 'desc' };
+
+// Page sizes; 0 = every row on one page (the API allows up to 20 000).
+const PAGE_SIZES = [50, 100, 200, 500, 1000, 0];
+const ALL_ROWS = 20000;
 
 const MIN_RANK_OPTIONS = [
   { value: '', label: 'Tất cả mức tồn' },
@@ -56,6 +62,9 @@ export default function HangTonItemsTab({
   const [status, setStatus] = useState('');
   const [sort, setSort] = useState(DEFAULT_SORT); // { field, direction }
   const [limit, setLimit] = useState(100);
+  const [pageInput, setPageInput] = useState('1');
+  const [exporting, setExporting] = useState(false);
+  const pageSize = limit === 0 ? ALL_ROWS : limit;
   const [page, setPage] = useState(1);
 
   const [data, setData] = useState({ total: 0, rows: [] });
@@ -79,17 +88,10 @@ export default function HangTonItemsTab({
       setLoading(true);
       setError(null);
       try {
-        const offset = (page - 1) * limit;
-        const res = await fetchItems({
-          id: currentSnapshot.id,
-          office: office || undefined,
-          min_rank: minRank !== '' ? minRank : undefined,
-          status: status || undefined,
-          sort: sort.field,
-          dir: sort.direction,
-          limit,
-          offset,
-        });
+        const offset = (page - 1) * pageSize;
+        const res = await fetchItems(buildItemsParams({
+          snapshotId: currentSnapshot.id, office, minRank, status, sort: sort.field, dir: sort.direction, limit: pageSize, offset,
+        }));
         if (active && res) {
           setData(res);
         }
@@ -104,9 +106,17 @@ export default function HangTonItemsTab({
     return () => {
       active = false;
     };
-  }, [currentSnapshot?.id, office, minRank, status, sort, limit, page]);
+  }, [currentSnapshot?.id, office, minRank, status, sort, pageSize, page]);
 
-  const totalPages = Math.max(1, Math.ceil((data.total || 0) / limit));
+  const totalPages = Math.max(1, Math.ceil((data.total || 0) / pageSize));
+
+  useEffect(() => { setPageInput(String(page)); }, [page]);
+
+  const goToPage = (value) => {
+    const n = Math.min(totalPages, Math.max(1, Math.floor(Number(value)) || 1));
+    setPage(n);
+    setPageInput(String(n));
+  };
 
   const handleSort = (field) => {
     setSort((current) => nextSortState(current, field, { textFields: SORT_TEXT_FIELDS }));
@@ -121,23 +131,62 @@ export default function HangTonItemsTab({
     setPage(1);
   };
 
-  const handleExportCsv = () => {
-    const filename = `Chi_tiet_Hang_ton_${currentSnapshot?.business_date || ''}_${currentSnapshot?.slot || ''}`;
-    const headers = [
-      { key: 'item_code', label: 'Số hiệu bưu gửi' },
-      { key: 'office', label: 'Bưu cục phát' },
-      { key: 'district', label: 'Huyện/Quận' },
-      { key: 'status_name', label: 'Trạng thái' },
-      { key: 'ton_level', label: 'Loại tồn' },
-      { key: 'cod', label: 'Tiền COD' },
-      { key: 'postman_name', label: 'Bưu tá' },
-      { key: 'customer_class', label: 'Phân loại KH' },
-      { key: 'reason', label: 'Lý do' },
-      { key: 'weight', label: 'Trọng lượng (g)' },
-    ];
-
-    downloadCsv(filename, headers, data.rows || []);
+  // Every row of the current filter (not just this page), built by the server.
+  const handleExport = async (format) => {
+    setExporting(true);
+    try {
+      await downloadItemsFile(buildItemsParams({
+        snapshotId: currentSnapshot.id, office, minRank, status, sort: sort.field, dir: sort.direction,
+      }), format);
+    } catch (err) {
+      setError(err?.message || 'Không tải được tệp.');
+    } finally {
+      setExporting(false);
+    }
   };
+
+  const pageBar = (
+    <div className="flex flex-col gap-3 pt-2 text-sm text-slate-600 sm:flex-row sm:items-center sm:justify-between" data-no-capture="true">
+      <div>
+        Hiển thị <strong>{formatNumber(data.rows?.length || 0)}</strong> / <strong>{formatNumber(data.total || 0)}</strong> bưu gửi
+        {office ? ` tại bưu cục ${office}` : ''}
+      </div>
+      <div className="flex flex-wrap items-center gap-3">
+        <label className="flex items-center gap-1.5">
+          <span>Số dòng/trang:</span>
+          <select
+            value={limit}
+            onChange={(e) => { setLimit(Number(e.target.value)); setPage(1); }}
+            className="rounded-md border border-slate-200 px-2 py-1 text-sm text-slate-700 shadow-2xs focus:outline-none"
+          >
+            {PAGE_SIZES.map((n) => (<option key={n} value={n}>{n === 0 ? 'Tất cả' : n}</option>))}
+          </select>
+        </label>
+        <div className="flex items-center gap-1">
+          <button type="button" onClick={() => goToPage(1)} disabled={page <= 1} title="Trang đầu"
+            className="cursor-pointer rounded-md border border-slate-200 p-1 text-slate-700 shadow-2xs hover:bg-slate-50 disabled:opacity-40"><ChevronsLeft size={16} /></button>
+          <button type="button" onClick={() => goToPage(page - 1)} disabled={page <= 1} title="Trang trước"
+            className="cursor-pointer rounded-md border border-slate-200 p-1 text-slate-700 shadow-2xs hover:bg-slate-50 disabled:opacity-40"><ChevronLeft size={16} /></button>
+          <span className="flex items-center gap-1 px-1">
+            Trang
+            <input
+              type="number" min={1} max={totalPages} value={pageInput}
+              onChange={(e) => setPageInput(e.target.value)}
+              onBlur={() => goToPage(pageInput)}
+              onKeyDown={(e) => { if (e.key === 'Enter') goToPage(pageInput); }}
+              className="w-16 rounded-md border border-slate-300 px-1.5 py-0.5 text-center text-sm font-bold text-slate-800"
+              aria-label="Số trang"
+            />
+            / <strong>{totalPages}</strong>
+          </span>
+          <button type="button" onClick={() => goToPage(page + 1)} disabled={page >= totalPages} title="Trang sau"
+            className="cursor-pointer rounded-md border border-slate-200 p-1 text-slate-700 shadow-2xs hover:bg-slate-50 disabled:opacity-40"><ChevronRight size={16} /></button>
+          <button type="button" onClick={() => goToPage(totalPages)} disabled={page >= totalPages} title="Trang cuối"
+            className="cursor-pointer rounded-md border border-slate-200 p-1 text-slate-700 shadow-2xs hover:bg-slate-50 disabled:opacity-40"><ChevronsRight size={16} /></button>
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <div
@@ -158,12 +207,23 @@ export default function HangTonItemsTab({
         <div className="flex items-center gap-2" data-no-capture="true">
           <button
             type="button"
-            onClick={handleExportCsv}
-            disabled={!data.rows || data.rows.length === 0}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors shadow-2xs cursor-pointer disabled:opacity-50"
+            onClick={() => handleExport('xlsx')}
+            disabled={exporting || !data.total}
+            className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-emerald-600 bg-emerald-600 px-3 py-1.5 text-sm font-semibold text-white shadow-2xs transition-colors hover:bg-emerald-700 disabled:opacity-50"
+            title="Tải toàn bộ bưu gửi theo bộ lọc hiện tại (không chỉ trang này)"
           >
             <Download size={13} />
-            <span>Xuất trang này</span>
+            <span>{exporting ? 'Đang tạo tệp...' : 'Tải Excel (tất cả)'}</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => handleExport('csv')}
+            disabled={exporting || !data.total}
+            className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-semibold text-slate-700 shadow-2xs transition-colors hover:bg-slate-50 disabled:opacity-50"
+            title="Tải toàn bộ bưu gửi theo bộ lọc hiện tại (CSV)"
+          >
+            <Download size={13} />
+            <span>CSV (tất cả)</span>
           </button>
           <BlockCaptureButton
             targetRef={tableBlockRef}
@@ -237,6 +297,8 @@ export default function HangTonItemsTab({
         )}
       </div>
 
+      {pageBar}
+
       {/* Main Detail Table */}
       <div className="overflow-x-auto border border-slate-200 rounded-xl shadow-2xs">
         <table className="w-full text-sm text-left border-collapse">
@@ -274,7 +336,7 @@ export default function HangTonItemsTab({
             ) : (
               data.rows.map((row, idx) => {
                 const cfg = getLevelConfig(row.ton_level);
-                const rowNum = (page - 1) * limit + idx + 1;
+                const rowNum = (page - 1) * pageSize + idx + 1;
                 return (
                   <tr key={`${row.item_code}_${idx}`} className="hover:bg-slate-50/70 transition-colors">
                     <td className="py-2.5 px-3 text-slate-400 font-mono text-[13px]">{rowNum}</td>
@@ -303,55 +365,7 @@ export default function HangTonItemsTab({
         </table>
       </div>
 
-      {/* Pagination Controls */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-sm text-slate-600 pt-2" data-no-capture="true">
-        <div>
-          Hiển thị <strong>{data.rows?.length || 0}</strong> / <strong>{formatNumber(data.total || 0)}</strong> bưu gửi
-          {office ? ` tại bưu cục ${office}` : ''}
-        </div>
-
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1.5">
-            <span>Hiển thị:</span>
-            <select
-              value={limit}
-              onChange={(e) => {
-                setLimit(Number(e.target.value));
-                setPage(1);
-              }}
-              className="rounded-md border border-slate-200 py-1 px-2 text-sm text-slate-700 shadow-2xs focus:outline-none"
-            >
-              <option value={50}>50</option>
-              <option value={100}>100</option>
-              <option value={200}>200</option>
-            </select>
-          </div>
-
-          <div className="flex items-center gap-1">
-            <button
-              type="button"
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-              disabled={page <= 1}
-              className="p-1 rounded-md border border-slate-200 text-slate-700 hover:bg-slate-50 disabled:opacity-40 cursor-pointer shadow-2xs"
-              title="Trang trước"
-            >
-              <ChevronLeft size={16} />
-            </button>
-            <span className="px-2 font-bold text-slate-800">
-              {page} / {totalPages}
-            </span>
-            <button
-              type="button"
-              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-              disabled={page >= totalPages}
-              className="p-1 rounded-md border border-slate-200 text-slate-700 hover:bg-slate-50 disabled:opacity-40 cursor-pointer shadow-2xs"
-              title="Trang sau"
-            >
-              <ChevronRight size={16} />
-            </button>
-          </div>
-        </div>
-      </div>
+      {pageBar}
     </div>
   );
 }

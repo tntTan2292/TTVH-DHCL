@@ -8,6 +8,7 @@ const { SLOTS } = require('../services/hangtonInventory/scope');
 const inventory = require('../services/hangtonInventory/compareService');
 const { takeSnapshot } = require('../services/hangtonInventory/snapshotService');
 const { fetchStockData } = require('../services/hangtonInventory/client');
+const { buildItemsXlsx, buildItemsCsv } = require('../services/hangtonInventory/itemsExport');
 
 function createHangtonRouter({ db = require('../config/db'), fetchStock = () => fetchStockData() } = {}) {
     const router = express.Router();
@@ -26,12 +27,29 @@ function createHangtonRouter({ db = require('../config/db'), fetchStock = () => 
         res.json({ success: true, data: { snapshot, ...(await inventory.overview(db, snapshot.id)) } });
     }));
 
-    // Parcel list of one snapshot (Chi tiết): ?id|date&slot, ?office=, ?min_rank= (e.g. 5), ?status=, ?sort=rank|office|cod|item_code|status|postman, ?dir=asc|desc, ?limit&offset.
+    // Parcel list of one snapshot (Chi tiết): ?id|date&slot, ?office=, ?min_rank= (e.g. 5), ?status=, ?levels=a|b (exact Loại Tồn), ?sort=rank|office|cod|item_code|status|postman, ?dir=asc|desc, ?limit&offset (limit up to 20000).
     router.get('/items', ...read, wrap(async (req, res) => {
         const snapshot = await inventory.resolveSnapshot(db, req.query);
         if (!snapshot) return fail(res, 404, 'NO_SNAPSHOT', 'Chưa có snapshot hàng tồn.');
-        const { office, min_rank: minRank, status, sort, dir, limit, offset } = req.query;
-        res.json({ success: true, data: { snapshot, ...(await inventory.items(db, snapshot.id, { office, minRank, status, sort, dir, limit, offset })) } });
+        const { office, min_rank: minRank, levels, status, sort, dir, limit, offset } = req.query;
+        res.json({ success: true, data: { snapshot, ...(await inventory.items(db, snapshot.id, { office, minRank, levels, status, sort, dir, limit, offset })) } });
+    }));
+
+    // Same filters as /items, but every matching row as a file: ?format=xlsx (default) | csv.
+    router.get('/items/export', ...read, wrap(async (req, res) => {
+        const snapshot = await inventory.resolveSnapshot(db, req.query);
+        if (!snapshot) return fail(res, 404, 'NO_SNAPSHOT', 'Chưa có snapshot hàng tồn.');
+        const { office, min_rank: minRank, levels, status, sort, dir } = req.query;
+        const { rows } = await inventory.items(db, snapshot.id, { office, minRank, levels, status, sort, dir, limit: inventory.ITEMS_MAX_LIMIT, offset: 0 });
+        const csv = String(req.query.format).toLowerCase() === 'csv';
+        const name = `Hang_ton_${snapshot.business_date}_${snapshot.slot}`;
+        res.setHeader('Content-Disposition', `attachment; filename="${name}.${csv ? 'csv' : 'xlsx'}"`);
+        res.setHeader('Access-Control-Expose-Headers', 'Content-Disposition');
+        if (csv) {
+            res.type('text/csv; charset=utf-8').send(buildItemsCsv(rows));
+        } else {
+            res.type('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet').send(buildItemsXlsx(rows));
+        }
     }));
 
     // Parcel-level comparison. to = ?id|date+slot (default newest); from = ?from_id, or ?base_date/?base_slot,

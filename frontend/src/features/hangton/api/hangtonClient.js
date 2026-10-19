@@ -2,6 +2,7 @@
 // Uses existing authenticated axios client (api from ../../../api/client.js).
 
 import api from '../../../api/client.js';
+import { saveBlob } from '../hangtonExport.js';
 
 export async function fetchSnapshots(limit = 90) {
   const res = await api.get('/hangton/snapshots', { params: { limit } });
@@ -23,4 +24,12 @@ export async function fetchCompare(params = {}) {
 export async function fetchItems(params = {}) {
   const res = await api.get('/hangton/items', { params });
   return res.data?.data;
+}
+
+// Every row of the filter as a file (server side, not one page): format 'xlsx' (default) or 'csv'.
+export async function downloadItemsFile(params = {}, format = 'xlsx') {
+  const res = await api.get('/hangton/items/export', { params: { ...params, format }, responseType: 'blob' });
+  const disposition = res.headers?.['content-disposition'] || '';
+  const match = disposition.match(/filename="?([^";]+)"?/i);
+  saveBlob(res.data, match ? match[1] : `Hang_ton.${format}`);
 }

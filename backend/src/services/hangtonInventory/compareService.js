@@ -55,11 +55,21 @@ const ITEM_SORT_COLUMNS = Object.freeze({
     rank: 'ton_rank', office: 'office', cod: 'cod', item_code: 'item_code', status: 'status_name', postman: 'postman_name',
 });
 const ITEM_SORT_DEFAULT_DIR = Object.freeze({ rank: 'DESC', cod: 'DESC' });
-async function items(db, snapshotId, { office, minRank, status, sort = 'rank', dir, limit = 200, offset = 0 } = {}) {
+const ITEMS_MAX_LIMIT = 20000;
+
+// "levels": exact "Loại Tồn" values, as an array or a "|"-joined string (e.g. "≥5 ngày|≥7 ngày").
+function parseLevels(levels) {
+    const list = Array.isArray(levels) ? levels : String(levels || '').split('|');
+    return list.map((l) => String(l).trim()).filter(Boolean);
+}
+
+async function items(db, snapshotId, { office, minRank, levels, status, sort = 'rank', dir, limit = 200, offset = 0 } = {}) {
     const where = ['snapshot_id = ?'];
     const params = [snapshotId];
     if (office) { where.push('office = ?'); params.push(office); }
     if (minRank !== undefined && minRank !== '' && !Number.isNaN(Number(minRank))) { where.push('ton_rank >= ?'); params.push(Number(minRank)); }
+    const levelList = parseLevels(levels);
+    if (levelList.length > 0) { where.push(`ton_level IN (${levelList.map(() => '?').join(',')})`); params.push(...levelList); }
     if (status) { where.push('status_name = ?'); params.push(status); }
     const field = ITEM_SORT_COLUMNS[sort] ? sort : 'rank';
     const direction = String(dir).toLowerCase() === 'asc' ? 'ASC' : String(dir).toLowerCase() === 'desc' ? 'DESC' : (ITEM_SORT_DEFAULT_DIR[field] || 'ASC');
@@ -68,7 +78,7 @@ async function items(db, snapshotId, { office, minRank, status, sort = 'rank', d
     const rows = await db.all(
         `SELECT item_code, status_name, ton_level, ton_rank, office, district, cod, parcel_type, customer_class, postman_code, postman_name, reason, weight
            FROM hangton_snapshot_item WHERE ${where.join(' AND ')} ORDER BY ${orderBy} LIMIT ? OFFSET ?`,
-        [...params, Math.min(Number(limit) || 200, 1000), Math.max(Number(offset) || 0, 0)]);
+        [...params, Math.min(Number(limit) || 200, ITEMS_MAX_LIMIT), Math.max(Number(offset) || 0, 0)]);
     return { total, rows };
 }
 
@@ -113,4 +123,4 @@ async function compare(db, fromId, toId, { detail = false } = {}) {
     return result;
 }
 
-module.exports = { listSnapshots, getSnapshot, resolveSnapshot, resolveDefaultBase, overview, compare, items };
+module.exports = { ITEMS_MAX_LIMIT, listSnapshots, getSnapshot, resolveSnapshot, resolveDefaultBase, overview, compare, items };

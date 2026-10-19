@@ -24,8 +24,10 @@ import {
   applyVisibleLevels,
   officeTableColumnCount,
   sortAfterHide,
+  drillDownFilter,
   sortOfficeRows,
 } from '../hangtonOfficeTableData.js';
+import HangTonItemsModal from './HangTonItemsModal.jsx';
 
 const HIDDEN_STORAGE_KEY = 'qis.hangton.hiddenLevels';
 
@@ -56,6 +58,7 @@ export default function HangTonByOfficeTab({
 
   const [sort, setSort] = useState({ field: 'total', direction: 'desc' });
   const [searchTerm, setSearchTerm] = useState('');
+  const [drill, setDrill] = useState(null); // { office, levels, title } -> parcel list modal
   const [hiddenLevels, setHiddenLevels] = useState(loadHiddenLevels);
   const shownLevels = visibleLevels(hiddenLevels);
   const presetId = activePresetId(hiddenLevels);
@@ -92,6 +95,8 @@ export default function HangTonByOfficeTab({
     return calculateOfficeTotals(visibleRows);
   }, [visibleRows]);
 
+  const openDrill = (office, kind, level) => setDrill(drillDownFilter({ office, kind, level, shownLevels }));
+
   const handleSort = (field) => {
     setSort((current) => nextSortState(current, field, { textFields: OFFICE_TABLE_TEXT_FIELDS }));
   };
@@ -108,7 +113,7 @@ export default function HangTonByOfficeTab({
             Bảng theo dõi Hàng tồn theo Bưu cục ({snapshotLabel})
           </h3>
           <p className="mt-1 text-sm text-slate-500">
-            Chỉ hiển thị các bưu cục đang phát sinh hàng tồn (Quyết định D5). Bấm tiêu đề cột để sắp xếp; bấm tên bưu cục để xem danh sách chi tiết.
+            Chỉ hiển thị các bưu cục đang phát sinh hàng tồn (Quyết định D5). Bấm tiêu đề cột để sắp xếp; bấm tên bưu cục để sang tab Chi tiết; bấm vào một con số để xem ngay danh sách bưu gửi tạo nên con số đó.
           </p>
         </div>
 
@@ -318,21 +323,21 @@ export default function HangTonByOfficeTab({
                               : 'text-slate-300'
                         }`}
                       >
-                        {count > 0 ? formatNumber(count) : '—'}
+                        {count > 0 ? (<button type="button" onClick={() => openDrill(r.office, 'level', lvl)} className="w-full cursor-pointer text-right underline-offset-2 hover:underline" title="Bấm để xem danh sách bưu gửi">{formatNumber(count)}</button>) : '—'}
                       </td>
                     );
                   })}
 
                   {/* Tổng tồn */}
                   <td className="py-2 px-2.5 text-right font-bold text-slate-900 bg-slate-50/50">
-                    {formatNumber(r.total)}
+                    {r.total > 0 ? <button type="button" onClick={() => openDrill(r.office, 'total')} className="w-full cursor-pointer text-right underline-offset-2 hover:underline" title="Bấm để xem danh sách bưu gửi">{formatNumber(r.total)}</button> : '0'}
                   </td>
 
                   {/* Tồn >=5 ngày */}
                   <td className={`py-2 px-2.5 text-right font-black ${
                     r.ge5 > 0 ? 'bg-red-100/80 text-red-800' : 'text-slate-300'
                   }`}>
-                    {r.ge5 > 0 ? formatNumber(r.ge5) : '0'}
+                    {r.ge5 > 0 ? <button type="button" onClick={() => openDrill(r.office, 'ge5')} className="w-full cursor-pointer text-right underline-offset-2 hover:underline" title="Bấm để xem danh sách bưu gửi">{formatNumber(r.ge5)}</button> : '0'}
                   </td>
 
                   {/* Tiền COD */}
@@ -371,15 +376,15 @@ export default function HangTonByOfficeTab({
                       cfg.isAlert && count > 0 ? 'text-red-800 font-black' : 'text-slate-900'
                     }`}
                   >
-                    {formatNumber(count)}
+                    {count > 0 ? <button type="button" onClick={() => openDrill(null, 'level', lvl)} className="w-full cursor-pointer text-right underline-offset-2 hover:underline" title="Bấm để xem danh sách bưu gửi">{formatNumber(count)}</button> : '0'}
                   </td>
                 );
               })}
               <td className="py-2.5 px-2.5 text-right bg-slate-200/60 font-black">
-                {formatNumber(totals.total)}
+                {totals.total > 0 ? <button type="button" onClick={() => openDrill(null, 'total')} className="w-full cursor-pointer text-right underline-offset-2 hover:underline" title="Bấm để xem danh sách bưu gửi">{formatNumber(totals.total)}</button> : '0'}
               </td>
               <td className="py-2.5 px-2.5 text-right bg-red-200/80 text-red-900 font-black">
-                {formatNumber(totals.ge5)}
+                {totals.ge5 > 0 ? <button type="button" onClick={() => openDrill(null, 'ge5')} className="w-full cursor-pointer text-right underline-offset-2 hover:underline" title="Bấm để xem danh sách bưu gửi">{formatNumber(totals.ge5)}</button> : '0'}
               </td>
               <td className="py-2.5 px-2.5 text-right border-r border-slate-300">
                 {formatCurrency(totals.cod)}
@@ -397,6 +402,14 @@ export default function HangTonByOfficeTab({
           </tfoot>
         </table>
       </div>
+      <HangTonItemsModal
+        isOpen={Boolean(drill)}
+        onClose={() => setDrill(null)}
+        snapshot={currentSnapshot}
+        office={drill?.office || undefined}
+        levels={drill?.levels || []}
+        title={drill?.title || ''}
+      />
     </div>
   );
 }

@@ -121,3 +121,27 @@ test('Theo bưu cục: rows and TỔNG CỘNG are built from the visible levels'
   assert.doesNotMatch(office, /calculateOfficeTotals\(rawRows\)/, 'totals must not ignore the hidden levels');
   assert.doesNotMatch(office, /vẫn tính cả các mức đã ẩn/);
 });
+
+test('Theo bưu cục: every figure opens the parcel list; Chi tiết pages through every row and exports all of them', () => {
+  const office = read('./components/HangTonByOfficeTab.jsx');
+  const modal = read('./components/HangTonItemsModal.jsx');
+  const items = read('./components/HangTonItemsTab.jsx');
+  const client = read('./api/hangtonClient.js');
+  assert.match(office, /HangTonItemsModal/);
+  for (const kind of ["'level', lvl", "'total'", "'ge5'"]) {
+    assert.ok(office.includes(`openDrill(r.office, ${kind})`), `row figure ${kind} opens the list`);
+    assert.ok(office.includes(`openDrill(null, ${kind})`), `TỔNG CỘNG figure ${kind} opens the list`);
+  }
+  assert.match(modal, /limit: ALL_ROWS/, 'the modal loads every row, no paging');
+  assert.match(modal, /Tải Excel/);
+  assert.match(modal, /downloadItemsFile/);
+  assert.match(client, /\/hangton\/items\/export/);
+  assert.match(client, /responseType: 'blob'/);
+  assert.match(items, /PAGE_SIZES = \[50, 100, 200, 500, 1000, 0\]/);
+  assert.match(items, /Tất cả/);
+  assert.match(items, /goToPage\(1\)/);
+  assert.match(items, /goToPage\(totalPages\)/);
+  assert.match(items, /handleExport\('xlsx'\)/);
+  assert.doesNotMatch(items, /Xuất trang này/, 'the export is no longer limited to the current page');
+  assert.doesNotMatch(items, /downloadCsv/);
+});

@@ -14,6 +14,8 @@ const { takeSnapshot } = require('./src/services/hangtonInventory/snapshotServic
 const inventory = require('./src/services/hangtonInventory/compareService');
 const { dueSlot, createScheduler } = require('./src/services/hangtonInventory/scheduler');
 const { fetchStockData } = require('./src/services/hangtonInventory/client');
+const XLSX = require('xlsx');
+const { buildItemsXlsx, buildItemsCsv } = require('./src/services/hangtonInventory/itemsExport');
 
 async function makeDb() {
     const file = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'hangton-')), 'test.sqlite');
@@ -90,6 +92,11 @@ test('compare classifies resolved / aged_up / new / unchanged and defaults to sa
     assert.deepEqual((await inventory.items(db, to.id, { sort: 'bad; DROP TABLE x', dir: 'x' })).rows.map((r) => r.item_code), ['S', 'U', 'O', 'N'], 'unknown sort falls back to rank desc');
     assert.equal((await inventory.items(db, to.id, { office: 'BCVH Phú Lộc' })).total, 1);
 
+    assert.deepEqual((await inventory.items(db, to.id, { levels: '≥4 ngày|<1 ngày' })).rows.map((r) => r.item_code).sort(), ['N', 'S', 'U']);
+    assert.equal((await inventory.items(db, to.id, { levels: '≥4 ngày' })).total, 2, 'exact level');
+    assert.equal((await inventory.items(db, to.id, { levels: ['≥1 ngày'], office: 'BCVH Phú Lộc' })).total, 1, 'exact level + office');
+    assert.equal((await inventory.items(db, to.id, { limit: 5000 })).rows.length, 4, 'a large page is allowed (full view / export)');
+
     const ov = await inventory.overview(db, to.id);
     assert.ok(ov.by_office_level.every((r) => typeof r.cod === 'number'), 'each office/level group carries its COD sum');
     assert.equal(ov.total, 4);
@@ -140,4 +147,20 @@ test('client: JSON login then data fetch; missing credentials and failed login a
     await assert.rejects(fetchStockData({ credentials: { username: '', password: '' }, fetchImpl }), /CREDENTIALS_MISSING/);
     const denied = async () => ({ ok: false, status: 401, json: async () => ({ success: false }), headers: { getSetCookie: () => [] } });
     await assert.rejects(fetchStockData({ credentials: { username: 'u', password: 'p' }, fetchImpl: denied }), /LOGIN_FAILED_401/);
+});
+
+test('items export: every row, Vietnamese headers, xlsx opens back, csv carries a BOM and quotes', () => {
+    const rows = [
+        { item_code: 'A1', office: 'BCVH Thuận Hóa', ton_level: '≥5 ngày', cod: 1000, reason: 'có, dấu phẩy "và" nháy' },
+        { item_code: 'A2', office: 'BCVH Phú Lộc', ton_level: '<1 ngày', cod: null },
+    ];
+    const book = XLSX.read(buildItemsXlsx(rows), { type: 'buffer' });
+    const sheet = XLSX.utils.sheet_to_json(book.Sheets[book.SheetNames[0]], { header: 1 });
+    assert.equal(sheet.length, 3, 'header + 2 rows');
+    assert.deepEqual(sheet[0].slice(0, 2), ['Số hiệu bưu gửi', 'Bưu cục phát']);
+    assert.equal(sheet[1][0], 'A1');
+    const csv = buildItemsCsv(rows);
+    assert.equal(csv.charCodeAt(0), 0xFEFF);
+    assert.match(csv, /"có, dấu phẩy ""và"" nháy"/);
+    assert.equal(csv.split('\r\n').length, 3);
 });

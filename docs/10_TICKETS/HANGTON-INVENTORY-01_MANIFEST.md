@@ -155,3 +155,10 @@ Tests: frontend 719/719, lint clean, build OK; supervisor dry runs (down / pause
 ## 12. Hidden levels change the totals (PO 2026-10-19, Claude Code/Sonnet 5.5)
 
 PO: hiding the low-age columns on Theo bưu cục must also recompute the totals. Now Tổng tồn, Tồn ≥5 ngày and Tiền COD of every office and the TỔNG CỘNG row are summed from the shown levels only; an office with no stock left in them is dropped; the comparison columns (not split by level) are unchanged and the screen says so. Supersedes the Section 9.3 rule "Tổng tồn counts hidden levels". Backend: `/api/hangton/overview` → `by_office_level` rows now carry `cod` (needs a backend restart; without it COD shows 0 while levels are hidden, everything else works). Tests: frontend 720/720, backend 6/6, lint clean, build OK.
+
+## 13. Drill-down and full detail (PO 2026-10-19, Claude Code/Sonnet 5.5) — READY FOR PO UI CHECK
+
+1. **Theo bưu cục**: every figure of the table (each level cell, Tổng tồn, Tồn ≥5 ngày, for each office and for the TỔNG CỘNG row) opens a window with the parcels behind that figure (all rows, no paging, titles click-to-order, Tải Excel / Tải CSV). Tổng tồn / ≥5 follow the shown levels (Section 12).
+2. **Chi tiết**: paging for every row — page size 50/100/200/500/1000/Tất cả, first/previous/page box/next/last, bar above and below the table. The old "Xuất trang này" is replaced by **Tải Excel (tất cả)** and **CSV (tất cả)**: the server builds the file from every row of the current filter, not one page.
+3. Backend: `/api/hangton/items` accepts `levels=a|b` (exact Loại Tồn) and a limit up to 20 000; new `GET /api/hangton/items/export?format=xlsx|csv` + same filters (`itemsExport.js`, Vietnamese headers, column widths, CSV with BOM). Real database check: newest snapshot 5 625 parcels, all exported (xlsx 3.1 MB, 5 626 sheet rows); BCVH Thuận Hóa ≥5 ngày = 118 rows. Backend restart needed.
+Tests: frontend 723/723, backend 7/7, lint clean, build OK.

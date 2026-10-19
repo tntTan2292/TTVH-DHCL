@@ -46,3 +46,34 @@ export function downloadCsv(filename, headers, rows) {
   document.body.removeChild(link);
   URL.revokeObjectURL(url);
 }
+
+/**
+ * Saves a Blob received from the API as a file download.
+ */
+export function saveBlob(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.setAttribute('href', url);
+  link.setAttribute('download', filename);
+  link.style.visibility = 'hidden';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+
+/**
+ * Query parameters of GET /api/hangton/items (and /items/export): empty values are dropped, levels are joined with "|".
+ */
+export function buildItemsParams({ snapshotId, office, levels, minRank, status, sort, dir, limit, offset } = {}) {
+  const params = { id: snapshotId };
+  if (office) params.office = office;
+  if (Array.isArray(levels) && levels.length > 0) params.levels = levels.join('|');
+  if (minRank !== undefined && minRank !== null && minRank !== '') params.min_rank = minRank;
+  if (status) params.status = status;
+  if (sort) params.sort = sort;
+  if (dir) params.dir = dir;
+  if (limit !== undefined) params.limit = limit;
+  if (offset !== undefined) params.offset = offset;
+  return params;
+}

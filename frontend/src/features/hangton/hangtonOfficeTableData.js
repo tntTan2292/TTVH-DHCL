@@ -18,6 +18,27 @@ export function sortAfterHide(sort, hiddenLevels = []) {
   return sort;
 }
 
+/**
+ * What a click on a number of the office table lists (PO 2026-10-19: the parcels behind the figure).
+ * kind 'level': that one level; 'total': every shown level; 'ge5': the shown levels of 5 days and more.
+ * office null = the TỔNG CỘNG row (every office).
+ */
+export function drillDownFilter({ office = null, kind = 'total', level = null, shownLevels = TON_LEVELS } = {}) {
+  let levels;
+  let what;
+  if (kind === 'level') {
+    levels = [level];
+    what = level;
+  } else if (kind === 'ge5') {
+    levels = shownLevels.filter((lvl) => (tonRank(lvl) ?? 0) >= 5);
+    what = 'Tồn ≥5 ngày';
+  } else {
+    levels = [...shownLevels];
+    what = shownLevels.length === TON_LEVELS.length ? 'Tổng tồn' : 'Tổng tồn (các mức đang hiển thị)';
+  }
+  return { office: office || null, levels, title: `${office || 'Toàn BĐT TP Huế'} — ${what}` };
+}
+
 export const OFFICE_TABLE_TEXT_FIELDS = Object.freeze(['office']);
 
 /**

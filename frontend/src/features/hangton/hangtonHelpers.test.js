@@ -239,3 +239,32 @@ test('tab resolution: unknown tab falls back to the overview', async () => {
   assert.equal(resolveHangtonTab(undefined), 'overview');
   assert.equal(isHangtonTab('foo'), false);
 });
+
+test('drill-down from a figure of the office table: which parcels it lists', async () => {
+  const { drillDownFilter } = await import('./hangtonOfficeTableData.js');
+  const { TON_LEVELS, presetHiddenLevels, visibleLevels } = await import('./hangtonLevels.js');
+  const one = drillDownFilter({ office: 'BCVH Thuận Hóa', kind: 'level', level: '≥5 ngày', shownLevels: TON_LEVELS });
+  assert.deepEqual(one.levels, ['≥5 ngày']);
+  assert.equal(one.office, 'BCVH Thuận Hóa');
+  assert.equal(one.title, 'BCVH Thuận Hóa — ≥5 ngày');
+  const ge3 = visibleLevels(presetHiddenLevels('ge3'));
+  assert.deepEqual(drillDownFilter({ office: 'A', kind: 'total', shownLevels: ge3 }).levels, ge3, 'Tổng tồn = the shown levels');
+  assert.match(drillDownFilter({ office: 'A', kind: 'total', shownLevels: ge3 }).title, /các mức đang hiển thị/);
+  assert.equal(drillDownFilter({ office: 'A', kind: 'total', shownLevels: TON_LEVELS }).title, 'A — Tổng tồn');
+  assert.deepEqual(drillDownFilter({ office: 'A', kind: 'ge5', shownLevels: TON_LEVELS }).levels, ['≥5 ngày', '≥7 ngày', '≥14 ngày']);
+  assert.deepEqual(drillDownFilter({ office: 'A', kind: 'ge5', shownLevels: ge3 }).levels, ['≥5 ngày', '≥7 ngày', '≥14 ngày']);
+  const all = drillDownFilter({ office: null, kind: 'level', level: '≥7 ngày' });
+  assert.equal(all.office, null, 'the TỔNG CỘNG row covers every office');
+  assert.match(all.title, /^Toàn BĐT TP Huế — ≥7 ngày$/);
+});
+
+test('items query parameters: empty values dropped, levels joined with a bar', async () => {
+  const { buildItemsParams } = await import('./hangtonExport.js');
+  assert.deepEqual(buildItemsParams({ snapshotId: 7 }), { id: 7 });
+  assert.deepEqual(
+    buildItemsParams({ snapshotId: 7, office: 'BCVH Phú Lộc', levels: ['≥5 ngày', '≥7 ngày'], minRank: '', status: '', sort: 'rank', dir: 'desc', limit: 100, offset: 0 }),
+    { id: 7, office: 'BCVH Phú Lộc', levels: '≥5 ngày|≥7 ngày', sort: 'rank', dir: 'desc', limit: 100, offset: 0 },
+  );
+  assert.equal(buildItemsParams({ snapshotId: 1, levels: [] }).levels, undefined);
+  assert.equal(buildItemsParams({ snapshotId: 1, minRank: 5 }).min_rank, 5);
+});
