@@ -104,3 +104,12 @@ Delivered by Antigravity (2026-10-19, READY FOR PO UI CHECK):
 
 Hard guard (unchanged): no API, payload, `getItemKey`, selection state shape, modal or handler change; use the existing props (`onToggleSelectItem`, `onSelectDayAllIndicators`, `onReimportClick`, `onAnchorRunClick`, `selectedBulkKeys`, `selectedReimportKeys`). Logic goes into pure helpers with tests; existing tests run unchanged; the flat table stays as fallback.
 
+
+## 13. Opus round-3 review (2026-10-19) and fixes
+
+FAIL (B1, S1, S2). Fixed by Claude Code, screen only:
+- B1 (blocker): the column-header tick of the one-row-per-day table could not pick completed cells and never reached "full". It now goes through `mergeDayCellsIntoSelection` (new panel handler `handleToggleCells`, prop `onToggleSelectCells`), and `resolveIndicatorColumnSelectionState` counts every pickable cell in either selection; dead fallbacks removed. Test 14 covers a mixed column, tick, untick and a column of finished cells.
+- S1: minimum widths reduced (indicator columns 215 -> 176 px, date 150 -> 132, last column 100 -> 88; about 930 px in total). The earlier claim "fits 1280 px" was wrong and is withdrawn: this is an estimate from the code, the PO checks it at 1280 px (the table keeps its own horizontal scroll if needed).
+- S2: the one-row-per-day table lost the "Thu hồi" (revoke holiday) button; it is now under the "Nghỉ lễ" badge. The button "Chọn cả 4 chỉ tiêu" is hidden on holiday days.
+- Subtitles under the indicator codes use the sidebar names (earlier commit cec7795).
+Left as notes: a fifth registered indicator would not get a column (the table draws the four fixed ones; the registry has four).

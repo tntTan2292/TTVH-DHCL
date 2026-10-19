@@ -1215,26 +1215,11 @@ export function resolveCalendarDaySelectionState(dayGroup, selectedBulkKeys = ne
  * @returns {{ canSelect: boolean, isSelected: boolean, isPartial: boolean, selectableItems: Object[], selectedCount: number }}
  */
 export function resolveIndicatorColumnSelectionState(visibleDayGroups = [], indicatorCode = '', selectedBulkKeys = new Set(), selectedReimportKeys = new Set()) {
-  const isReimportMode = selectedReimportKeys.size > 0;
+  // The column tick toggles every pickable cell of the indicator (completed ones too) through
+  // mergeDayCellsIntoSelection, so its state counts the cells ticked in either selection.
   const indItems = (visibleDayGroups || []).flatMap((d) => d.indicators?.[indicatorCode]?.items || []);
-  const hasCompleted = indItems.some((i) => i.status === 'COMPLETED');
-  const viaReimport = isReimportMode || hasCompleted;
-
-  const selectableItems = viaReimport
-    ? indItems.filter(isReimportSelectable)
-    : indItems.filter(isSelectable);
-
+  const selectableItems = indItems.filter(isReimportSelectable);
   if (selectableItems.length === 0) {
-    const reimportItems = indItems.filter(isReimportSelectable);
-    if (reimportItems.length > 0) {
-      return {
-        canSelect: true,
-        isSelected: false,
-        isPartial: false,
-        selectableItems: reimportItems,
-        selectedCount: 0,
-      };
-    }
     return { canSelect: false, isSelected: false, isPartial: false, selectableItems: [], selectedCount: 0 };
   }
 
@@ -1243,13 +1228,10 @@ export function resolveIndicatorColumnSelectionState(visibleDayGroups = [], indi
     return selectedReimportKeys.has(k) || selectedBulkKeys.has(k);
   }).length;
 
-  const isSelected = selectedCount === selectableItems.length;
-  const isPartial = selectedCount > 0 && selectedCount < selectableItems.length;
-
   return {
     canSelect: true,
-    isSelected,
-    isPartial,
+    isSelected: selectedCount === selectableItems.length,
+    isPartial: selectedCount > 0 && selectedCount < selectableItems.length,
     selectableItems,
     selectedCount,
   };

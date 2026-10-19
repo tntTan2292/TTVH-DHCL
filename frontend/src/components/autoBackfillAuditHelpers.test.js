@@ -471,3 +471,39 @@ console.log('ALL IMPORT-LOG-AUDIT-01 helper tests PASSED SUCCESSFULLY! (7/7 Suit
   console.log('✔ 14. filter & summarizeCalendarDayGroups tests PASSED!');
 }
 
+// ==========================================
+// 14. Column header tick on a mixed column reaches "full", picks completed cells and unticks again
+// ==========================================
+{
+  const cell = (date, status) => ({ indicator: 'F1.1', source_lane: 'HUE', business_date: date, status });
+  const days = [
+    { indicators: { 'F1.1': { items: [cell('2026-10-18', 'COMPLETED')] } } },
+    { indicators: { 'F1.1': { items: [cell('2026-10-17', 'INCOMPLETE')] } } },
+  ];
+  const all = days.flatMap((d) => d.indicators['F1.1'].items);
+
+  let bulk = new Set();
+  let reimport = new Set();
+  const state0 = resolveIndicatorColumnSelectionState(days, 'F1.1', bulk, reimport);
+  assert.equal(state0.canSelect, true);
+  assert.equal(state0.selectableItems.length, 2, 'completed and missing cells are both pickable');
+
+  const on = mergeDayCellsIntoSelection({ selectedBulkKeys: bulk, selectedReimportKeys: reimport, dayCells: state0.selectableItems, knownItems: all });
+  bulk = on.bulkKeys; reimport = on.reimportKeys;
+  assert.equal(reimport.size, 2, 'a completed cell makes it a Nhập lại selection holding both cells');
+  const state1 = resolveIndicatorColumnSelectionState(days, 'F1.1', bulk, reimport);
+  assert.equal(state1.isSelected, true);
+  assert.equal(state1.isPartial, false);
+
+  const off = mergeDayCellsIntoSelection({ selectedBulkKeys: bulk, selectedReimportKeys: reimport, dayCells: state1.selectableItems, knownItems: all });
+  assert.equal(off.reimportKeys.size + off.bulkKeys.size, 0);
+
+  // a column of finished cells only is no longer dead
+  const doneOnly = [{ indicators: { 'F1.1': { items: [cell('2026-10-18', 'COMPLETED')] } } }];
+  const done = resolveIndicatorColumnSelectionState(doneOnly, 'F1.1', new Set(), new Set());
+  assert.equal(done.canSelect, true);
+  const picked = mergeDayCellsIntoSelection({ dayCells: done.selectableItems, knownItems: doneOnly[0].indicators['F1.1'].items });
+  assert.equal(picked.reimportKeys.size, 1);
+  console.log('✔ 14. column header tick (mixed and finished columns) tests PASSED!');
+}
+

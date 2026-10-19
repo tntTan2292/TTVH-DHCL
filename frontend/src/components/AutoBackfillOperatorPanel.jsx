@@ -477,6 +477,19 @@ export default function AutoBackfillOperatorPanel() {
     }
   };
 
+  // Ticks / unticks a group of cells (a column header of the one-row-per-day table) on top of the current
+  // selection: completed cells make it a Nhập lại selection, the same rule as ticking a day.
+  const handleToggleCells = (cells) => {
+    const merged = mergeDayCellsIntoSelection({
+      selectedBulkKeys,
+      selectedReimportKeys,
+      dayCells: cells || [],
+      knownItems: selectionLookupItems,
+    });
+    setSelectedBulkKeys(merged.bulkKeys);
+    setSelectedReimportKeys(merged.reimportKeys);
+  };
+
   // Select/Unselect All Items in a list
   const toggleSelectAllItems = (itemsList) => {
     if (selectedReimportKeys.size > 0) {
@@ -1842,6 +1855,7 @@ export default function AutoBackfillOperatorPanel() {
           onToggleSelectItem={handleToggleRowSelection}
           onSelectDayForReimport={handleSelectDayForReimport}
           onSelectDayAllIndicators={handleSelectDayAllIndicators}
+          onToggleSelectCells={handleToggleCells}
           onToggleSelectAllItems={toggleSelectAllItems}
           onSelectAllUnfinished={handleSelectAllUnfinished}
           onSelectAllReimport={handleSelectAllReimport}

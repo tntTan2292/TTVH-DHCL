@@ -67,6 +67,7 @@ export default function AutoBackfillSmartDayView({
   onToggleSelectItem,
   onSelectDayForReimport = null,
   onSelectDayAllIndicators = null,
+  onToggleSelectCells = null,
   onToggleSelectAllItems,
   onSelectAllUnfinished,
   onSelectAllReimport,
@@ -400,7 +401,7 @@ export default function AutoBackfillSmartDayView({
                   )}
 
                   {/* Col 2: Business Date + Anchor */}
-                  <th className="w-44 min-w-[150px] px-3 py-3.5">Ngày Nghiệp vụ</th>
+                  <th className="w-36 min-w-[132px] px-3 py-3.5">Ngày Nghiệp vụ</th>
 
                   {/* Col 3..6: 4 Indicators */}
                   {DEFAULT_DAY_VIEW_INDICATORS.map((code) => {
@@ -411,7 +412,7 @@ export default function AutoBackfillSmartDayView({
                       selectedReimportKeys
                     );
                     return (
-                      <th key={code} className="min-w-[215px] px-2.5 py-3">
+                      <th key={code} className="min-w-[176px] px-2.5 py-3">
                         <div className="flex items-center justify-between gap-1.5">
                           <div className="flex items-center gap-1.5">
                             <span className="rounded bg-slate-800 text-white px-1.5 py-0.5 text-[11px] font-extrabold shadow-2xs">
@@ -425,7 +426,8 @@ export default function AutoBackfillSmartDayView({
                             <button
                               type="button"
                               onClick={() => {
-                                onToggleSelectAllItems(colSelection.selectableItems);
+                                if (onToggleSelectCells) onToggleSelectCells(colSelection.selectableItems);
+                                else onToggleSelectAllItems(colSelection.selectableItems);
                               }}
                               className="p-1 rounded text-slate-400 hover:text-blue-600 hover:bg-slate-200/60 transition cursor-pointer"
                               title={
@@ -449,7 +451,7 @@ export default function AutoBackfillSmartDayView({
                   })}
 
                   {/* Col 7: Thao tác ngày */}
-                  <th className="w-28 min-w-[100px] px-3 py-3.5 text-right">Lịch nghỉ / TT</th>
+                  <th className="w-24 min-w-[88px] px-3 py-3.5 text-right">Lịch nghỉ / TT</th>
                 </tr>
               </thead>
 
@@ -520,7 +522,7 @@ export default function AutoBackfillSmartDayView({
                       )}
 
                       {/* Col 2: Date + Anchor Run button */}
-                      <td className="w-44 min-w-[150px] px-3 py-2.5 align-middle">
+                      <td className="w-36 min-w-[132px] px-3 py-2.5 align-middle">
                         <div className="flex items-center gap-1.5">
                           <span className="font-bold text-slate-900 whitespace-nowrap">{day.date}</span>
                           {day.hasMissing ? (
@@ -543,7 +545,7 @@ export default function AutoBackfillSmartDayView({
                             <span>Import cả ngày + bù 3 ngày</span>
                           </button>
                         )}
-                        {isAdmin && onSelectDayAllIndicators && (
+                        {isAdmin && onSelectDayAllIndicators && !holiday && (
                           <button
                             type="button"
                             onClick={(e) => {
@@ -561,7 +563,7 @@ export default function AutoBackfillSmartDayView({
 
                       {/* Col 3..6: 4 Indicators */}
                       {DEFAULT_DAY_VIEW_INDICATORS.map((code) => (
-                        <td key={code} className="min-w-[215px] px-2 py-2 align-middle">
+                        <td key={code} className="min-w-[176px] px-2 py-2 align-middle">
                           <CompactIndicatorCell
                             dayDate={day.date}
                             indicatorCode={code}
@@ -582,15 +584,31 @@ export default function AutoBackfillSmartDayView({
                       ))}
 
                       {/* Col 7: Lịch nghỉ / Thao tác */}
-                      <td className="w-28 min-w-[100px] px-3 py-2.5 text-right whitespace-nowrap align-middle">
+                      <td className="w-24 min-w-[88px] px-3 py-2.5 text-right whitespace-nowrap align-middle">
                         {holiday ? (
-                          <span
-                            className="inline-flex items-center gap-1 rounded-md bg-purple-50 px-1.5 py-0.5 text-[11px] font-semibold text-purple-800 border border-purple-200"
-                            title={holiday.reason}
-                          >
-                            <CalendarDays className="h-3 w-3 text-purple-600 shrink-0" />
-                            <span className="truncate max-w-[80px]">Nghỉ lễ</span>
-                          </span>
+                          <div className="flex flex-col items-end gap-1">
+                            <span
+                              className="inline-flex items-center gap-1 rounded-md bg-purple-50 px-1.5 py-0.5 text-[11px] font-semibold text-purple-800 border border-purple-200"
+                              title={holiday.reason}
+                            >
+                              <CalendarDays className="h-3 w-3 text-purple-600 shrink-0" />
+                              <span className="truncate max-w-[80px]">Nghỉ lễ</span>
+                            </span>
+                            {isAdmin && holidayItem && (
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onRevokeHolidayClick(holidayItem.holiday);
+                                }}
+                                className="inline-flex items-center gap-0.5 rounded-md border border-purple-200 bg-purple-50 px-1.5 py-0.5 text-[10px] font-semibold text-purple-900 hover:bg-purple-100 transition shadow-2xs cursor-pointer"
+                                title="Thu hồi LỊCH NGHỈ"
+                              >
+                                <RotateCcw className="h-3 w-3" />
+                                <span>Thu hồi</span>
+                              </button>
+                            )}
+                          </div>
                         ) : isAdmin ? (
                           <div className="flex items-center justify-end gap-1">
                             {firstActionableItem && (
@@ -605,20 +623,6 @@ export default function AutoBackfillSmartDayView({
                               >
                                 <CalendarDays className="h-3 w-3" />
                                 <span>Nghỉ</span>
-                              </button>
-                            )}
-                            {holiday && holidayItem && (
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  onRevokeHolidayClick(holidayItem.holiday);
-                                }}
-                                className="inline-flex items-center gap-0.5 rounded-md border border-purple-200 bg-purple-50 px-1.5 py-0.5 text-[10px] font-semibold text-purple-900 hover:bg-purple-100 transition shadow-2xs cursor-pointer"
-                                title="Thu hồi LỊCH NGHỈ"
-                              >
-                                <RotateCcw className="h-3 w-3" />
-                                <span>Thu hồi</span>
                               </button>
                             )}
                           </div>
