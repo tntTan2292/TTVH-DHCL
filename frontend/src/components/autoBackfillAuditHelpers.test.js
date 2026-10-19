@@ -7,6 +7,7 @@ import {
   buildAnchorRunPayload,
   expandWithPreviousDays,
   resolveDaySelectionState,
+  mergeDayCellsIntoSelection,
   formatAnchorSkippedSummary,
   formatAuditValue,
   buildLatestImportLogMap,
@@ -255,4 +256,40 @@ console.log('ALL IMPORT-LOG-AUDIT-01 helper tests PASSED SUCCESSFULLY! (7/7 Suit
   const holiday = { date: '2026-10-19', items: [{ ...cell('HUE', '2026-10-19'), holiday: { reason: 'x' } }] };
   assert.equal(resolveDaySelectionState(holiday, new Set(), { isReimportMode: false }).canSelect, false);
   console.log('✔ 9. allLanes expansion and finished-day selection tests PASSED!');
+}
+
+// ==========================================
+// 10. mergeDayCellsIntoSelection: another day is added, never replaces; same day again unticks
+// ==========================================
+{
+  const day = (date, status = 'COMPLETED') => ['F1.1', 'F1.2', 'F1.3', 'F4.1'].flatMap((indicator) => ['HUE', 'TCT'].map((lane) => ({ indicator, source_lane: lane, business_date: date, status })));
+  const d18 = day('2026-10-18');
+  const d17 = day('2026-10-17');
+  const first = mergeDayCellsIntoSelection({ dayCells: d18 });
+  assert.equal(first.reimportKeys.size, 8);
+  assert.equal(first.bulkKeys.size, 0);
+
+  const second = mergeDayCellsIntoSelection({ selectedReimportKeys: first.reimportKeys, dayCells: d17, knownItems: d18 });
+  assert.equal(second.reimportKeys.size, 16, 'the earlier day is kept');
+
+  const off = mergeDayCellsIntoSelection({ selectedReimportKeys: second.reimportKeys, dayCells: d18, knownItems: [...d18, ...d17] });
+  assert.equal(off.removed, true);
+  assert.equal(off.reimportKeys.size, 8);
+  assert.ok([...off.reimportKeys].every((key) => key.endsWith('2026-10-17')));
+
+  // new (not imported) days stay a Nhập mới selection; a completed day turns the whole thing into Nhập lại
+  const fresh = day('2026-10-19', 'INCOMPLETE');
+  const newOnly = mergeDayCellsIntoSelection({ dayCells: fresh });
+  assert.equal(newOnly.bulkKeys.size, 8);
+  assert.equal(newOnly.reimportKeys.size, 0);
+  const mixed = mergeDayCellsIntoSelection({ selectedBulkKeys: newOnly.bulkKeys, dayCells: d18, knownItems: fresh });
+  assert.equal(mixed.reimportKeys.size, 16);
+  assert.equal(mixed.bulkKeys.size, 0);
+
+  // holiday / excluded cells are never picked
+  const holidayDay = day('2026-10-20', 'EXCLUDED');
+  const none = mergeDayCellsIntoSelection({ dayCells: holidayDay });
+  assert.equal(none.dayKeys.length, 0);
+  assert.equal(none.reimportKeys.size + none.bulkKeys.size, 0);
+  console.log('✔ 10. mergeDayCellsIntoSelection tests PASSED!');
 }

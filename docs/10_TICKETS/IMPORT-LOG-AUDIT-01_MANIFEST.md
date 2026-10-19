@@ -85,3 +85,13 @@ Two defects seen on screen: (1) picking one cell added D-1, D-2 of the same sour
 
 1. D-1 and D-2 belong to a first-time import only: picking a new (not yet imported) day shows "Nhập mới + bù 2 ngày trước (N ô)" (sources HUE and TCT of D-1, D-2 for the same indicators). Nhập lại never adds other days: the earlier expansion on a completed cell and on a finished day's checkbox is removed; the day checkbox on a finished day now picks just that day.
 2. New "Chọn cả 4 chỉ tiêu" button under each date: one click picks that date for F1.1, F1.2, F1.3 and F4.1 and both sources (respecting the source filter), whatever indicator the screen shows. It reads unfiltered coverage (cached by the server), keeps the cells of D-2..D in a selection pool so the confirmation lists and run requests find indicators that are not on screen, then opens a Nhập lại selection if anything of that day is completed (it also handles the not-yet-imported cells) or a Nhập mới selection if nothing is imported. Screen only; the runs are the same per-cell requests as before.
+
+## 12. Selection fix (Claude Code) and day-per-row redesign (Antigravity), 2026-10-19
+
+PO: "Chọn cả 4 chỉ tiêu" of one day dropped the day picked before, and the day table shows 4 rows per day (one per indicator), so re-importing one day means a long scroll.
+
+Done by Claude Code (selection logic, commit with this section): picking a day for all 4 indicators is now added to the current selection; picking the same day again unticks it; a completed cell anywhere makes the whole selection a Nhập lại selection, otherwise it stays Nhập mới. Pure helper `mergeDayCellsIntoSelection` with tests; the selection pool only grows.
+
+Antigravity (screen only, round 3 of the Bù dữ liệu tự động area, creative freedom as in UI-IMPORT-DAYVIEW-01 Section 9): when the indicator filter is ALL, show **one row per day** with the four indicators side by side (F1.1, F1.2, F1.3, F4.1), each with a compact HUE / TCT status and its own tick or Nhập lại action, plus one day control that calls `onSelectDayAllIndicators(date)` (already wired) and shows whether the day is fully, partly or not picked. A column header control per indicator is welcome (pick that indicator for the visible days). The result must let a user pick several days for all indicators in a few clicks without scrolling through 4 rows per day. Single-indicator filter keeps today's layout.
+
+Hard guard (unchanged): no API, payload, `getItemKey`, selection state shape, modal or handler change; use the existing props (`onToggleSelectItem`, `onSelectDayAllIndicators`, `onReimportClick`, `onAnchorRunClick`, `selectedBulkKeys`, `selectedReimportKeys`). Logic goes into pure helpers with tests; existing tests run unchanged; the flat table stays as fallback.

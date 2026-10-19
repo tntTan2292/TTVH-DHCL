@@ -993,6 +993,42 @@ export function expandWithPreviousDays(pickedItems = [], allItems = [], { allLan
 }
 
 /**
+ * "Chọn cả 4 chỉ tiêu" of a day, added to what is already picked (ticking another day never drops an earlier one).
+ * Ticking a day whose cells are all already picked unticks that day. The result is one selection: a Nhập lại
+ * selection (it handles new cells too) as soon as any picked cell is completed, otherwise a Nhập mới selection.
+ * Pure.
+ * @param {Object} args
+ * @param {Set<string>} args.selectedBulkKeys - current Nhập mới selection
+ * @param {Set<string>} args.selectedReimportKeys - current Nhập lại selection
+ * @param {Object[]} args.dayCells - every coverage cell of the day being ticked (all indicators, lanes)
+ * @param {Object[]} args.knownItems - cells that may already be picked (to read their status)
+ * @returns {{ bulkKeys: Set<string>, reimportKeys: Set<string>, dayKeys: string[], removed: boolean }}
+ */
+export function mergeDayCellsIntoSelection({ selectedBulkKeys = new Set(), selectedReimportKeys = new Set(), dayCells = [], knownItems = [] } = {}) {
+  const dayKeys = (dayCells || []).filter(isReimportSelectable).map(getItemKey);
+  const current = new Set([...selectedBulkKeys, ...selectedReimportKeys]);
+  const removed = dayKeys.length > 0 && dayKeys.every((key) => current.has(key));
+  const next = new Set(current);
+  for (const key of dayKeys) {
+    if (removed) next.delete(key);
+    else next.add(key);
+  }
+  const byKey = new Map();
+  for (const item of knownItems || []) byKey.set(getItemKey(item), item);
+  for (const item of dayCells || []) byKey.set(getItemKey(item), item);
+  const items = [...next].map((key) => byKey.get(key)).filter(Boolean);
+  if (items.some((item) => item.status === 'COMPLETED')) {
+    return { bulkKeys: new Set(), reimportKeys: next, dayKeys, removed };
+  }
+  return {
+    bulkKeys: new Set(items.filter((item) => isSelectable(item)).map(getItemKey)),
+    reimportKeys: new Set(),
+    dayKeys,
+    removed,
+  };
+}
+
+/**
  * Cleans query parameters for GET /import/log.
  * @param {Object} filters
  * @returns {Object}

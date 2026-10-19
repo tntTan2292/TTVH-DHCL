@@ -35,6 +35,7 @@ import {
   countDistinctDates,
   computeAnchorDates,
   expandWithPreviousDays,
+  mergeDayCellsIntoSelection,
   findNewestUnfinishedMonthKey,
   groupItemsByDay,
   groupItemsByIndicatorAndMonth,
@@ -449,20 +450,27 @@ export default function AutoBackfillOperatorPanel() {
       const windowDates = new Set(computeAnchorDates(date, 3));
       const laneOk = (item) => laneFilter === 'ALL' || (item.source_lane || '').toUpperCase() === laneFilter.toUpperCase();
       // D-1 and D-2 are kept too, so "Nhập mới + bù 2 ngày trước" finds them for indicators not on screen.
-      setSelectionPool((res.data.data?.items || []).filter((item) => windowDates.has(item.business_date) && laneOk(item)));
-      const dayCells = (res.data.data?.items || []).filter((item) => item.business_date === date && laneOk(item));
-      const reimportCells = dayCells.filter(isReimportSelectable);
-      if (reimportCells.length === 0) {
+      // The pool only grows: days picked earlier stay findable.
+      const poolCells = (res.data.data?.items || []).filter((item) => windowDates.has(item.business_date) && laneOk(item));
+      setSelectionPool((prev) => {
+        const known = new Set(poolCells.map(getItemKey));
+        return [...prev.filter((item) => !known.has(getItemKey(item))), ...poolCells];
+      });
+      const dayCells = poolCells.filter((item) => item.business_date === date);
+      if (dayCells.filter(isReimportSelectable).length === 0) {
         showToast(`Ngày ${date} không có ô nào chọn được (ngày nghỉ hoặc ngoại lệ).`, 'error');
         return;
       }
-      if (reimportCells.some((item) => item.status === 'COMPLETED')) {
-        setSelectedBulkKeys(new Set());
-        setSelectedReimportKeys(new Set(reimportCells.map(getItemKey)));
-      } else {
-        setSelectedReimportKeys(new Set());
-        setSelectedBulkKeys(new Set(dayCells.filter(isSelectable).map(getItemKey)));
-      }
+      // Added to the current selection (another day never replaces an earlier one); ticking the same day again
+      // unticks it.
+      const merged = mergeDayCellsIntoSelection({
+        selectedBulkKeys,
+        selectedReimportKeys,
+        dayCells,
+        knownItems: [...selectionLookupItems, ...poolCells],
+      });
+      setSelectedBulkKeys(merged.bulkKeys);
+      setSelectedReimportKeys(merged.reimportKeys);
     } catch (err) {
       console.error('[AutoBackfillOperatorPanel] select day all indicators error:', err);
       showToast('Không đọc được dữ liệu bao phủ để chọn cả ngày.', 'error');
