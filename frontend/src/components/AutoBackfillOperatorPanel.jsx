@@ -33,6 +33,7 @@ import { isAdminRole } from '../auth/roles';
 import {
   buildRunPayload,
   countDistinctDates,
+  expandWithPreviousDays,
   findNewestUnfinishedMonthKey,
   groupItemsByDay,
   groupItemsByIndicatorAndMonth,
@@ -416,7 +417,8 @@ export default function AutoBackfillOperatorPanel() {
     } else if (item?.status === 'COMPLETED') {
       if (isReimportSelectable(item)) {
         setSelectedBulkKeys(new Set());
-        setSelectedReimportKeys(new Set([key]));
+        // Picking a day to re-import also picks the 2 days before it (D-1, D-2); each can be unticked.
+        setSelectedReimportKeys(new Set(expandWithPreviousDays([item], rawCoverageItems).keys));
       }
     } else {
       if (isSelectable(item)) {
@@ -1179,6 +1181,13 @@ export default function AutoBackfillOperatorPanel() {
   const autoOpenMonthKey = useMemo(() => {
     return findNewestUnfinishedMonthKey(monthlyGroups);
   }, [monthlyGroups]);
+
+  // Cells that "Nhập mới + bù 2 ngày trước" would pick: the new-import selection plus D-1, D-2 of each.
+  const bulkWithPreviousDays = useMemo(() => {
+    if (selectedBulkKeys.size === 0) return { keys: [], extraKeys: [] };
+    const picked = rawCoverageItems.filter((item) => selectedBulkKeys.has(getItemKey(item)));
+    return expandWithPreviousDays(picked, rawCoverageItems);
+  }, [selectedBulkKeys, rawCoverageItems]);
 
   const distinctBulkDates = useMemo(() => {
     return countDistinctDates(selectedBulkKeys);
@@ -2066,6 +2075,23 @@ export default function AutoBackfillOperatorPanel() {
           </div>
 
           <div className="flex items-center gap-2">
+            {/* NHẬP MỚI + BÙ 2 NGÀY TRƯỚC: switches to the re-import selection with D-1, D-2 added */}
+            {bulkWithPreviousDays.extraKeys.length > 0 && (
+              <button
+                onClick={() => {
+                  setSelectedBulkKeys(new Set());
+                  setSelectedReimportKeys(new Set(bulkWithPreviousDays.keys));
+                  setShowBulkReimportModal(true);
+                  setBulkReimportReport(null);
+                  setBulkReimportAck(false);
+                }}
+                className="rounded-xl bg-emerald-600 px-4 py-2 text-xs font-bold text-white hover:bg-emerald-500 transition shadow-sm flex items-center gap-1.5"
+              >
+                <RotateCcw className="h-3.5 w-3.5" />
+                <span>Nhập mới + bù 2 ngày trước ({bulkWithPreviousDays.keys.length} ô)</span>
+              </button>
+            )}
+
             {/* BULK NHẬP MỚI BUTTON (Renamed from "Nhập lại") */}
             <button
               onClick={() => {

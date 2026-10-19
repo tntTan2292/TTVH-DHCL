@@ -5,6 +5,7 @@ import {
   computeAnchorDates,
   calculateAnchorOverwrites,
   buildAnchorRunPayload,
+  expandWithPreviousDays,
   formatAnchorSkippedSummary,
   formatAuditValue,
   buildLatestImportLogMap,
@@ -210,3 +211,25 @@ console.log('Running IMPORT-LOG-AUDIT-01 anchor & audit helpers test suite...');
 }
 
 console.log('ALL IMPORT-LOG-AUDIT-01 helper tests PASSED SUCCESSFULLY! (7/7 Suites)');
+
+// ==========================================
+// 8. expandWithPreviousDays: picked day plus D-1, D-2 of the same indicator and lane
+// ==========================================
+{
+  const cell = (indicator, lane, date, status = 'COMPLETED', extra = {}) => ({ indicator, source_lane: lane, business_date: date, status, ...extra });
+  const all = [
+    cell('F4.1', 'HUE', '2026-10-18'), cell('F4.1', 'HUE', '2026-10-17'), cell('F4.1', 'HUE', '2026-10-16'), cell('F4.1', 'HUE', '2026-10-15'),
+    cell('F4.1', 'TCT', '2026-10-18'), cell('F4.1', 'TCT', '2026-10-17', 'EXCLUDED'), cell('F4.1', 'TCT', '2026-10-16'),
+    cell('F1.1', 'HUE', '2026-10-17'),
+  ];
+  const result = expandWithPreviousDays([all[0], all[4]], all);
+  assert.deepEqual(result.keys.sort(), [
+    'F4.1::HUE::2026-10-16', 'F4.1::HUE::2026-10-17', 'F4.1::HUE::2026-10-18',
+    'F4.1::TCT::2026-10-16', 'F4.1::TCT::2026-10-18',
+  ]);
+  assert.equal(result.extraKeys.length, 3, 'D-1, D-2 of HUE and D-2 of TCT; the excluded TCT D-1 and other indicators are not added');
+  assert.ok(!result.keys.includes('F4.1::HUE::2026-10-15'), 'only 2 days before');
+  assert.deepEqual(expandWithPreviousDays([], all), { keys: [], extraKeys: [] });
+  assert.deepEqual(expandWithPreviousDays([all[3]], [all[3]]).keys, ['F4.1::HUE::2026-10-15'], 'no neighbours loaded: only the picked cell');
+  console.log('✔ 8. expandWithPreviousDays tests PASSED!');
+}

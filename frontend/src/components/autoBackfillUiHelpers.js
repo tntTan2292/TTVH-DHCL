@@ -941,6 +941,36 @@ export function formatLastImportTooltip(logEntry) {
 }
 
 /**
+ * "Nhập lại + bù 2 ngày trước": the keys of the picked items plus, for each of them, the same indicator and
+ * source lane on the 2 days before it (D-1, D-2) when that cell exists and can be imported or re-imported.
+ * Pure; the caller decides what to do with the keys.
+ * @param {Object[]} pickedItems - coverage items that were picked
+ * @param {Object[]} allItems - every coverage item currently loaded
+ * @returns {{ keys: string[], extraKeys: string[] }}
+ */
+export function expandWithPreviousDays(pickedItems = [], allItems = []) {
+  const byKey = new Map();
+  for (const item of allItems || []) byKey.set(getItemKey(item), item);
+  const keys = new Set();
+  const extraKeys = new Set();
+  for (const item of pickedItems || []) {
+    if (!item) continue;
+    keys.add(getItemKey(item));
+  }
+  for (const item of pickedItems || []) {
+    if (!item) continue;
+    for (const date of computeAnchorDates(item.business_date, 3).slice(1)) {
+      const neighbour = byKey.get(getItemKey({ ...item, business_date: date }));
+      if (!neighbour || !isReimportSelectable(neighbour)) continue;
+      const key = getItemKey(neighbour);
+      if (!keys.has(key)) extraKeys.add(key);
+      keys.add(key);
+    }
+  }
+  return { keys: [...keys], extraKeys: [...extraKeys] };
+}
+
+/**
  * Cleans query parameters for GET /import/log.
  * @param {Object} filters
  * @returns {Object}

@@ -72,3 +72,7 @@ Not covered by tests: `GET /import/log`, migration re-run, real `insertImportLog
 ## 8. Re-review (Opus) and fixes
 
 Points 2-4 PASS. Fixed: the confirmation box now opens at once with a loading line and shows a coverage-read error with a Close button (no stuck day button); `latest=1` cap raised to 50 000 rows; test added for a window without completed days (no confirmation, no replace). Still untested: `GET /import/log?latest=1` (needs the shared database), and the unfiltered count inside the component (covered by the pure helper test only).
+
+## 9. Day selection brings D-1, D-2 along (PO request 2026-10-19)
+
+PO: picking a day for "Nhập lại" must also pick the days to refresh, or users cannot find how to import and refresh together. Screen only, no API change: (a) picking a completed day for Nhập lại now selects the same indicator and lane on D-1 and D-2 too (each can be unticked; the bar and the confirmation list show all of them); (b) the new-import bar gets "Nhập mới + bù 2 ngày trước (N ô)" which switches to the Nhập lại selection with D-1, D-2 added and opens its confirmation. Pure helper `expandWithPreviousDays` with test. The "Import cả ngày + bù 3 ngày" button (all indicators, both lanes) is unchanged.
