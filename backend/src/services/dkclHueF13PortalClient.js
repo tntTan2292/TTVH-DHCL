@@ -624,6 +624,56 @@ class DkclHueF13PortalClient {
         await this.stopForSecurityChallenge({ allowHrm: false });
     }
 
+    /**
+     * AUTO-LOGIN-01: one automatic sign-in on the page this (interactive) client has open. Unlike
+     * performOneLoginAttempt() it never throws and never waits for a human: it returns { authenticated, reason } and the
+     * caller falls back to the manual wait. It stops at once on a CAPTCHA / OTP page (never worked around), fills the
+     * HRM identifier only when the portal asks for it, and never logs a field value.
+     */
+    async tryAutomatedLogin({ username, password, hrmCode = null, waitMs = 45000 } = {}) {
+        if (!this.page || this.page.isClosed?.()) return { authenticated: false, reason: 'NO_PAGE' };
+        if (await this.isAuthenticated().catch(() => false)) return { authenticated: true, reason: 'ALREADY_AUTHENTICATED' };
+        if (this.loginAttempts >= 1) return { authenticated: false, reason: 'ATTEMPT_ALREADY_USED' };
+        this.loginAttempts += 1;
+
+        const challenge = /captcha|otp|ma xac thuc|mã xác thực/i;
+        const readBody = () => this.page.locator('body').innerText({ timeout: 5000 }).catch(() => '');
+        try {
+            if (!this.page.url().includes('/login')) {
+                await this.page.goto(`${this.baseUrl}/login`, { waitUntil: 'domcontentloaded', timeout: 60000 });
+            }
+            if (challenge.test(await readBody())) return { authenticated: false, reason: 'SECURITY_CHALLENGE' };
+
+            const usernameInput = this.page.locator('input[type="text"], input[type="email"], input[name*="user" i], input[name*="login" i]').first();
+            const passwordInput = this.page.locator('input[type="password"]').first();
+            const submit = this.page.locator('button[type="submit"], input[type="submit"]').first();
+            if (await usernameInput.count() === 0 || await passwordInput.count() === 0) return { authenticated: false, reason: 'LOGIN_FORM_NOT_FOUND' };
+            if (await submit.count() === 0) return { authenticated: false, reason: 'LOGIN_SUBMIT_NOT_FOUND' };
+            await usernameInput.fill(username);
+            await passwordInput.fill(password);
+            await Promise.all([
+                this.page.waitForLoadState('domcontentloaded', { timeout: 60000 }).catch(() => {}),
+                submit.click(),
+            ]);
+
+            let hrmFilled = false;
+            const deadline = Date.now() + waitMs;
+            while (Date.now() < deadline) {
+                await this.page.waitForTimeout(1000);
+                if (await this.isAuthenticated().catch(() => false)) return { authenticated: true, reason: 'LOGGED_IN' };
+                const body = await readBody();
+                if (challenge.test(body)) return { authenticated: false, reason: 'SECURITY_CHALLENGE' };
+                if (!hrmFilled && hrmCode && /HRM|ma nhan vien|mã nhân viên|employee/i.test(body)) {
+                    hrmFilled = true;
+                    await this.fillHrmIdentifierIfPresent(hrmCode);
+                }
+            }
+            return { authenticated: false, reason: 'NOT_AUTHENTICATED_AFTER_SUBMIT' };
+        } catch (error) {
+            return { authenticated: false, reason: error?.code || 'ATTEMPT_ERROR' };
+        }
+    }
+
     async fillHrmIdentifierIfPresent(hrmCode) {
         const bodyText = await this.page.locator('body').innerText({ timeout: 5000 }).catch(() => '');
         if (!/HRM|ma nhan vien|employee|nhan vien/i.test(bodyText)) return;

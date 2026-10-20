@@ -74,6 +74,7 @@ async function shutdown(signal, exitCode = 0) {
         try {
             const { stopAutoBackfillQueueRuntime } = require('./src/services/autoBackfillQueueRuntime');
             hangtonScheduler?.stop();
+            autoImportSchedule?.stop();
             await stopAutoBackfillQueueRuntime();
             if (activeServer?.listening) {
                 await new Promise((resolve) => activeServer.close(resolve));
@@ -170,11 +171,27 @@ function startHangtonScheduler() {
     hangtonScheduler.start();
 }
 
+// AUTO-LOGIN-01 Part B: scheduled automatic import (off unless AUTO_IMPORT_SCHEDULE_ENABLED=true).
+let autoImportSchedule = null;
+function startAutoImportSchedule() {
+    const { AutoImportScheduler } = require('./src/services/autoImportScheduler');
+    const { DkclSessionPreflightService } = require('./src/services/dkclSessionPreflightService');
+    const { getAutoBackfillQueueService } = require('./src/services/autoBackfillQueueRuntime');
+    const sessionService = new DkclSessionPreflightService();
+    autoImportSchedule = new AutoImportScheduler({
+        queueService: getAutoBackfillQueueService(),
+        sessionService,
+        autoLogin: sessionService.autoLogin,
+    });
+    autoImportSchedule.start();
+}
+
 function startServer() {
     return ensureStartupSchemaMigrations(activeDbPath)
         .then(async () => {
             const { startAutoBackfillQueueRuntime } = require('./src/services/autoBackfillQueueRuntime');
             await startAutoBackfillQueueRuntime();
+            startAutoImportSchedule();
             startHangtonScheduler();
         })
         .then(() => {

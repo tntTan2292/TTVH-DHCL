@@ -2369,3 +2369,7 @@ New quality indicator fed by the hangton portal, which can only return the stock
 ## 2026-10-19 - IMPORT-LOG-AUDIT-01 CLOSED (PO UI PASS)
 
 Product Owner checked the Data Import Center and confirmed PASS. Closed: import log with user, mode and replaced rows; anchor-day run (chosen day + D-1, D-2, four indicators, both sources); a first-time import can add D-1, D-2; a day can be picked for all four indicators; one row per day with four indicator columns; faster coverage scan and /import/status. Backend restart needed. Manifest: docs/10_TICKETS/IMPORT-LOG-AUDIT-01_MANIFEST.md Section 15.
+
+## 2026-10-20 - AUTO-LOGIN-01 (UNATTENDED SIGN-IN AND SCHEDULED IMPORT, BACKEND, OFF BY DEFAULT)
+
+PO approved unattended sign-in (no CAPTCHA, HUE first then TCT) and a scheduled import afterwards. Delivered, all off by default: rate-limited automatic sign-in before the manual login wait (one attempt per 30 min, stop after 2 failures in a row, state survives restarts, no credential logged), a scheduler that signs in when needed and creates one Auto Backfill run per lane at the configured Vietnam-time slots (user scheduler), and a PO-run probe. No live login has been made yet: the PO runs the probe next. Manifest: docs/10_TICKETS/AUTO-LOGIN-01_MANIFEST.md.
