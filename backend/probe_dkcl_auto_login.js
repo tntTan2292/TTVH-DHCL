@@ -4,6 +4,7 @@
  * AUTO-LOGIN-01 supervised probe -- run by the Product Owner, never by a scheduler.
  *
  *   node probe_dkcl_auto_login.js HUE            observe only: opens the DKCL login window and reports what it shows
+ *   node probe_dkcl_auto_login.js HUE --follow   click the "Đăng nhập qua portal" link and describe the next page (types nothing)
  *   node probe_dkcl_auto_login.js HUE --hold     when a saved session exists: keeps the window open so you can sign out by hand
  *   node probe_dkcl_auto_login.js HUE --attempt  also makes the ONE automatic sign-in attempt and reports the result
  *   (same for TCT)
@@ -24,8 +25,9 @@ async function main() {
     const source = String(process.argv[2] || '').toUpperCase();
     const attempt = process.argv.includes('--attempt');
     const hold = process.argv.includes('--hold');
+    const follow = process.argv.includes('--follow');
     if (!SOURCE_CONFIG[source]) {
-        console.error('Usage: node probe_dkcl_auto_login.js HUE|TCT [--hold] [--attempt]');
+        console.error('Usage: node probe_dkcl_auto_login.js HUE|TCT [--follow] [--hold] [--attempt]');
         process.exit(2);
     }
 
@@ -79,10 +81,11 @@ async function main() {
         console.log(`[probe ${source}] already signed in (saved session): ${alreadyIn}`);
         // Structure of the page (never values): which fields and buttons the sign-in page really has. Waits for the page to settle first.
         await client.page.waitForLoadState('networkidle', { timeout: 12000 }).catch(() => {});
-        const structure = await client.page.evaluate(() => {
+        const describe = () => client.page.evaluate(() => {
             const attrs = (el) => ({ tag: el.tagName.toLowerCase(), type: el.getAttribute('type') || null, name: el.getAttribute('name') || null, id: el.getAttribute('id') || null, autocomplete: el.getAttribute('autocomplete') || null, placeholder: el.getAttribute('placeholder') || null, visible: !!(el.offsetWidth || el.offsetHeight) });
             return {
                 title: document.title,
+                host: location.hostname,
                 path: location.pathname,
                 forms: document.querySelectorAll('form').length,
                 iframes: document.querySelectorAll('iframe').length,
@@ -90,9 +93,21 @@ async function main() {
                 buttons: [...document.querySelectorAll('button, input[type=submit], a.btn, [role=button]')].slice(0, 12).map((el) => ({ ...attrs(el), text: (el.innerText || el.value || '').trim().slice(0, 40) })),
             };
         }).catch((error) => ({ error: error.message }));
+        const structure = await describe();
         console.log(`[probe ${source}] page structure: ${JSON.stringify(structure)}`);
         console.log(`[probe ${source}] markers: login_form=${await client.hasLoginForm()} captcha_or_otp_words=${/captcha|otp|ma xac thuc|mã xác thực/i.test(body)} hrm_prompt_words=${/HRM|ma nhan vien|mã nhân viên|employee/i.test(body)}`);
 
+        if (follow && !alreadyIn) {
+            const link = client.page.locator('a:has-text("Đăng nhập qua portal"), a:has-text("Dang nhap qua portal")').first();
+            if (await link.count() === 0) {
+                console.log(`[probe ${source}] --follow: the "Đăng nhập qua portal" link was not found on this page.`);
+            } else {
+                await Promise.all([client.page.waitForLoadState('domcontentloaded', { timeout: 30000 }).catch(() => {}), link.click()]);
+                await client.page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
+                console.log(`[probe ${source}] after clicking the link, page structure: ${JSON.stringify(await describe())}`);
+                console.log(`[probe ${source}] nothing was typed. markers there: captcha_or_otp_words=${/captcha|otp|ma xac thuc|mã xác thực/i.test(await client.page.locator('body').innerText({ timeout: 5000 }).catch(() => ''))}`);
+            }
+        }
         if (alreadyIn && hold) {
             console.log(`[probe ${source}] The window stays open. Click Đăng xuất (sign out) in it, wait for the login page, then come back here and press Enter.`);
             await new Promise((resolve) => require('readline').createInterface({ input: process.stdin }).once('line', resolve));
