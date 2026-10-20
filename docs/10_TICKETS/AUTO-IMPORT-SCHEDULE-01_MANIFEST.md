@@ -39,3 +39,8 @@ Not verified live: a real 07:30 run and whether the keep-alive extends the real 
 
 - A run left in WAITING_AUTH is not resumed by the scheduler (the screen's resume still works); after the person signs in, the next hourly attempt plans what is left.
 - HUE broker mode (`DKCL_HUE_BROKER_ENABLED=true`, off today) has no live client for the keep-alive.
+
+## 6. Portal credentials removed from the environment (PO, 2026-10-21)
+
+The PO asked to delete the DKCL account keys from `.env`: they had been replaced many times and the sign-in is manual (portal.vnpost.vn with a captcha). Removed from the local `.env` (not tracked) and from `.env.example`: `PORTAL_HUE_USERNAME`, `PORTAL_HUE_PASSWORD`, `PORTAL_HUE_HRM_CODE`, `PORTAL_NATIONAL_USERNAME`, `PORTAL_NATIONAL_PASSWORD`, and three unused leftover lines (a hangton URL and `Username` / `password`; the hangton job reads `HANGTON_*` from `backend/.hangton.env`). Kept: `PORTAL_BASE_URL`, the `DKCL_HUE_*` settings, `QIS_VIEWER_*`, `QIS_AGG_READ`.
+Effect: nothing in the Auto Backfill flow reads these keys (it uses the live session or `requireExistingSession`). Only the old Data Import Center HUE F1.3 panel (`/import/dkcl/hue/f13/sync` and `backfill-queue`, `dkclHueF13SyncService.runWorkflow`) tried a form login with them, which the SSO portal no longer allows; it now stops with `MISSING_CREDENTIALS` instead of a failed login. `AUTO-IMPORT-001_SECURE_LOCAL_CREDENTIAL_SETUP.md` (2026-07-19) describes the old setup and is historical.
