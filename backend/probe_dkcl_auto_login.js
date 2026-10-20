@@ -57,6 +57,18 @@ async function main() {
         process.exit(4);
     }
 
+    // A lock folder left by an earlier probe that was closed mid-way (no backend, no browser on the profile) is stale.
+    const lockDir = `${profileDir}.lock`;
+    if (require('fs').existsSync(lockDir)) {
+        try {
+            require('fs').rmdirSync(lockDir); // only an empty folder is removed
+            console.log(`[probe ${source}] Removed a stale profile lock left by an earlier run.`);
+        } catch (error) {
+            console.error(`[probe ${source}] The profile lock folder is not empty or cannot be removed (${error.code}); not touching it.`);
+            process.exit(5);
+        }
+    }
+
     const client = new DkclHueF13PortalClient({ headless: false, source, manualAuthWaitMs: 60000 });
     try {
         await client.prepareInteractiveAuthentication({ baseUrl: process.env.PORTAL_BASE_URL || 'https://dkcl.vnpost.vn/', profileDir });
