@@ -10,6 +10,12 @@ const os = require('node:os');
 const path = require('node:path');
 const { AutoImportScheduler, parseTimes, parseLanes } = require('./src/services/autoImportScheduler');
 const { DkclSessionKeepAlive } = require('./src/services/dkclSessionKeepAlive');
+const { DkclSessionPreflightService, globalRegistry, DKCL_LIFECYCLE_STATES } = require('./src/services/dkclSessionPreflightService');
+const browserProcessManager = require('./src/services/browserProcessManager');
+
+browserProcessManager.findBrowserProcessByProfile = async () => ({ inspectionStatus: 'SUCCESS', matchingProcesses: [], errorCode: null });
+browserProcessManager.terminateProcessTree = async () => {};
+browserProcessManager.cleanupStaleLocks = () => {};
 
 const silent = { log() {}, warn() {}, error() {} };
 const HOUR = 60 * 60 * 1000;
@@ -228,4 +234,112 @@ test('keep-alive: checks only sources with a live session and logs every change 
         assert.equal(new DkclSessionKeepAlive({ sessionService, env: { DKCL_KEEPALIVE_ENABLED: 'false' } }).isEnabled(), false);
         assert.equal(new DkclSessionKeepAlive({ sessionService, env: {} }).isEnabled(), true, 'on by default');
     } finally { fs.rmSync(logDir, { recursive: true, force: true }); }
+});
+
+function reattachService({ savedSessionValid = true, calls = [] } = {}) {
+    globalRegistry.clear();
+    const probeClient = {
+        async authenticate() {
+            calls.push('probe-authenticate');
+            if (!savedSessionValid) throw Object.assign(new Error('login required'), { code: 'AUTHENTICATION_REQUIRED' });
+        },
+        async openF13Report() {},
+        async isF13ReportReady() { return true; },
+        async close() { calls.push('probe-close'); },
+    };
+    const windowClient = {
+        interactiveAuthenticatedOnOpen: true,
+        async prepareInteractiveAuthentication() { calls.push('window-open'); },
+        async waitInteractiveAuthentication() {},
+        async isF13ReportReady() { return true; },
+        async hideWindow() { return true; },
+        async restoreWindow() { return true; },
+        async close() {},
+    };
+    return new DkclSessionPreflightService({
+        portalClientFactory: () => probeClient,
+        interactiveClientFactory: () => windowClient,
+        coordinatorEnabled: false,
+        hueBrokerEnabled: false,
+    });
+}
+
+test('reattachSession: a valid saved session gets its browser window back, with nothing typed', async () => {
+    const calls = [];
+    const service = reattachService({ calls });
+    assert.equal(service.getInteractiveClient('TCT'), null, 'after a restart there is no live window');
+    const result = await service.reattachSession('TCT', { waitMs: 3000, pollMs: 20 });
+    assert.deepEqual(result, { attached: true, reason: 'REATTACHED' });
+    assert.ok(service.getInteractiveClient('TCT'), 'the window is back');
+    assert.equal(service.getRegistryState('TCT').state, DKCL_LIFECYCLE_STATES.F13_READY);
+    assert.deepEqual(calls.filter((call) => call === 'window-open').length, 1);
+
+    const again = await service.reattachSession('TCT', { waitMs: 3000, pollMs: 20 });
+    assert.deepEqual(again, { attached: true, reason: 'ALREADY_ATTACHED' }, 'a live window is left alone');
+    assert.equal(calls.filter((call) => call === 'window-open').length, 1, 'no second window');
+});
+
+test('reattachSession: no valid saved session means nothing is opened (a person must sign in)', async () => {
+    const calls = [];
+    const service = reattachService({ savedSessionValid: false, calls });
+    const result = await service.reattachSession('HUE', { waitMs: 500, pollMs: 20 });
+    assert.equal(result.attached, false);
+    assert.equal(result.reason, 'AUTHENTICATION_REQUIRED');
+    assert.ok(!calls.includes('window-open'), 'no login window is opened on its own');
+    assert.equal((await service.reattachSession('XYZ')).reason, 'INVALID_SOURCE');
+});
+
+test('reattachSession: leaves a login a person is in the middle of alone', async () => {
+    const calls = [];
+    const service = reattachService({ calls });
+    const entry = globalRegistry.get('TCT') || (service.getRegistryState('TCT') && globalRegistry.get('TCT'));
+    service.getRegistryState('TCT');
+    globalRegistry.get('TCT').state = DKCL_LIFECYCLE_STATES.WAITING_FOR_LOGIN;
+    const result = await service.reattachSession('TCT', { waitMs: 200, pollMs: 20 });
+    assert.deepEqual(result, { attached: false, reason: 'LOGIN_IN_PROGRESS' });
+    assert.equal(calls.length, 0, 'nothing is probed or opened');
+    assert.ok(entry === undefined || entry);
+});
+
+test('keep-alive reopens a lost window, then waits out a cooldown after a source that has nothing to reattach', async () => {
+    const logDir = fs.mkdtempSync(path.join(os.tmpdir(), 'keepalive-'));
+    try {
+        let now = Date.parse('2026-10-21T00:00:00Z');
+        const live = { HUE: false, TCT: false };
+        const reattachCalls = [];
+        const sessionService = {
+            getInteractiveClient: (source) => (live[source] ? {} : null),
+            async reattachSession(source) {
+                reattachCalls.push(source);
+                if (source === 'HUE') { live.HUE = true; return { attached: true, reason: 'REATTACHED' }; }
+                return { attached: false, reason: 'AUTHENTICATION_REQUIRED' };
+            },
+            async preflight() { return { status: 'SESSION_VALID' }; },
+        };
+        const keepAlive = new DkclSessionKeepAlive({ sessionService, logDir, clock: () => now, logger: silent });
+
+        await keepAlive.tick();
+        assert.deepEqual(reattachCalls, ['HUE', 'TCT'], 'both lost windows are tried once');
+        assert.match(fs.readFileSync(path.join(logDir, 'session-watch.log'), 'utf8'), /HUE window reopened from the saved session/);
+
+        now += 10 * 60000;
+        await keepAlive.tick();
+        assert.deepEqual(reattachCalls, ['HUE', 'TCT'], 'TCT has no valid session: not retried inside the cooldown, HUE is live');
+
+        now += 31 * 60000;
+        await keepAlive.tick();
+        assert.deepEqual(reattachCalls, ['HUE', 'TCT', 'TCT'], 'after the cooldown TCT is looked at again');
+    } finally { fs.rmSync(logDir, { recursive: true, force: true }); }
+});
+
+test('the scheduler reopens a lost window before it checks the session', async () => {
+    const order = [];
+    const t = build();
+    t.scheduler.sessionService.reattachSession = async (lane) => { order.push(`reattach:${lane}`); return { attached: true }; };
+    const originalPreflight = t.scheduler.sessionService.preflight;
+    t.scheduler.sessionService.preflight = async (lane) => { order.push(`preflight:${lane}`); return originalPreflight(lane); };
+    try {
+        await t.scheduler.tick();
+        assert.deepEqual(order.slice(0, 4), ['reattach:HUE', 'preflight:HUE', 'reattach:TCT', 'preflight:TCT']);
+    } finally { t.cleanup(); }
 });

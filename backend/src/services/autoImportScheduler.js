@@ -242,6 +242,8 @@ class AutoImportScheduler {
 
     async runLane(lane) {
         try {
+            // a restart loses the browser window but not the saved session: reopen it first (never signs in)
+            if (typeof this.sessionService.reattachSession === 'function') await this.sessionService.reattachSession(lane);
             const result = await this.sessionService.preflight(lane);
             if (result?.status !== 'SESSION_VALID') {
                 return { outcome: 'NEEDS_MANUAL_LOGIN', reason: result?.status || 'UNKNOWN' };

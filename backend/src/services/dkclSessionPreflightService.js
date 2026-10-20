@@ -1018,6 +1018,43 @@ class DkclSessionPreflightService {
     }
 
     /**
+     * AUTO-IMPORT-SCHEDULE-01: after a backend restart the portal session usually still exists in the browser profile
+     * (the cookies are on disk) but the live browser window the import jobs work in is gone. When the saved session is
+     * confirmed valid, this reopens that window; the portal sees a signed-in user, so nothing is typed and no captcha
+     * appears. It never signs in: with no valid saved session it does nothing and a person must sign in. It also leaves a
+     * login a person is in the middle of alone.
+     * Resolves { attached, reason } and never throws.
+     */
+    async reattachSession(source, { waitMs = 90000, pollMs = 2000 } = {}) {
+        let sourceConfig;
+        try {
+            sourceConfig = this.normalizeSource(source);
+        } catch (_) {
+            return { attached: false, reason: 'INVALID_SOURCE' };
+        }
+        if (sourceConfig.source === 'HUE' && this.hueBrokerEnabled) return { attached: false, reason: 'BROKER_MODE' };
+        const entry = getOrCreateRegistryEntry(sourceConfig.source);
+        if (entry.client && entry.authenticated) return { attached: true, reason: 'ALREADY_ATTACHED' };
+        if (DKCL_IN_PROGRESS_STATES.has(entry.state) || entry.openingPromise) return { attached: false, reason: 'LOGIN_IN_PROGRESS' };
+        try {
+            const probe = await this.preflight(sourceConfig.source);
+            if (probe?.status !== PREFLIGHT_STATUSES.SESSION_VALID) return { attached: false, reason: probe?.status || 'UNKNOWN' };
+            if (entry.client && entry.authenticated) return { attached: true, reason: 'ALREADY_ATTACHED' };
+            await this.interactiveAuthenticate(sourceConfig.source);
+            const deadline = Date.now() + waitMs;
+            while (Date.now() < deadline) {
+                if (entry.client && entry.authenticated && entry.state === DKCL_LIFECYCLE_STATES.F13_READY) {
+                    return { attached: true, reason: 'REATTACHED' };
+                }
+                await new Promise((resolve) => setTimeout(resolve, pollMs));
+            }
+            return { attached: false, reason: 'REATTACH_TIMEOUT' };
+        } catch (error) {
+            return { attached: false, reason: error?.code || 'REATTACH_ERROR' };
+        }
+    }
+
+    /**
      * Cancel a stuck OPENING_BROWSER / WAITING_FOR_LOGIN / F13_OPENING interactive session.
      * Called explicitly by the frontend "Thử lại / Huỷ" button.
      */

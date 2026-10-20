@@ -44,6 +44,12 @@ class DkclSessionKeepAlive {
         this.timer = null;
         this.busy = false;
         this.last = new Map(); // source -> { status, since }
+        this.reattachFailedAt = new Map(); // source -> time of the last reattach that found nothing to reattach
+    }
+
+    reattachCooldownMs() {
+        const value = Number(this.env.DKCL_REATTACH_COOLDOWN_MS);
+        return Number.isFinite(value) && value >= 0 ? value : 30 * 60 * 1000;
     }
 
     isEnabled() {
@@ -55,17 +61,23 @@ class DkclSessionKeepAlive {
         return Number.isFinite(value) && value >= 1000 ? value : 10 * 60 * 1000;
     }
 
-    start() {
+    start({ firstTickMs = 30000 } = {}) {
         if (!this.isEnabled() || this.timer) return this;
-        this.logger.log?.(`[DKCL-KEEPALIVE] every ${Math.round(this.intervalMs() / 60000)} min for sources with a live session.`);
+        this.logger.log?.(`[DKCL-KEEPALIVE] every ${Math.round(this.intervalMs() / 60000)} min; reopens the browser window of a source whose saved session is still valid.`);
         this.timer = this.setTimer(() => { void this.tick().catch(() => {}); }, this.intervalMs());
         this.timer.unref?.();
+        // soon after start-up, so the windows lost by a restart are back before anyone needs them
+        const first = setTimeout(() => { void this.tick().catch(() => {}); }, firstTickMs);
+        first.unref?.();
+        this.firstTimer = first;
         return this;
     }
 
     stop() {
         if (this.timer) this.clearTimer(this.timer);
+        if (this.firstTimer) clearTimeout(this.firstTimer);
         this.timer = null;
+        this.firstTimer = null;
     }
 
     async tick() {
@@ -76,7 +88,8 @@ class DkclSessionKeepAlive {
             for (const source of SOURCES) {
                 let status;
                 try {
-                    const client = this.sessionService.getInteractiveClient(source);
+                    let client = this.sessionService.getInteractiveClient(source);
+                    if (!client) client = await this.tryReattach(source);
                     status = client ? (await this.sessionService.preflight(source))?.status || 'UNKNOWN' : 'NO_SESSION';
                 } catch (error) {
                     status = `CHECK_ERROR_${error?.code || 'UNKNOWN'}`;
@@ -88,6 +101,22 @@ class DkclSessionKeepAlive {
             this.busy = false;
         }
         return changes;
+    }
+
+    /** Reopens the window of a source whose saved session is still valid; a failure waits out a cooldown. */
+    async tryReattach(source) {
+        if (typeof this.sessionService.reattachSession !== 'function') return null;
+        const failedAt = this.reattachFailedAt.get(source);
+        if (failedAt && this.clock() - failedAt < this.reattachCooldownMs()) return null;
+        const result = await this.sessionService.reattachSession(source);
+        if (!result.attached) {
+            // a person is signing in, or there is no valid saved session: wait before looking again
+            this.reattachFailedAt.set(source, this.clock());
+            return null;
+        }
+        this.reattachFailedAt.delete(source);
+        this.append(`${new Date(this.clock()).toISOString()} ${source} window reopened from the saved session (${result.reason})`);
+        return this.sessionService.getInteractiveClient(source);
     }
 
     /** Records a status; returns the log line when the status changed. */
