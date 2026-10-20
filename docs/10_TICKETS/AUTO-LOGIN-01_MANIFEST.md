@@ -1,6 +1,6 @@
 # AUTO-LOGIN-01 - Unattended DKCL sign-in (HUE first, TCT second) and scheduled import
 
-Status: BACKEND IMPLEMENTED, OFF BY DEFAULT / WAITING FOR THE PO SUPERVISED PROBE
+Status: CLOSED - NOT FEASIBLE (captcha); code removed 2026-10-21
 Owner: Claude Code (Sonnet), 2026-10-20. No screen change.
 
 ## 1. PO decisions (2026-10-20)
@@ -35,3 +35,8 @@ No live login has been made: the real portal flow (HRM prompt, page after sign-i
 5. Then `AUTO_IMPORT_SCHEDULE_ENABLED=true` and `AUTO_IMPORT_SCHEDULE_TIMES=...` (the PO chooses the times), restart.
 
 Status after the probe and the first scheduled run: to be recorded here (Section 5).
+
+## 5. Outcome (2026-10-21)
+
+The supervised probe (PO, HUE) showed the real sign-in path: `dkcl.vnpost.vn/sso/login` has no form, only the link "Đăng nhập qua portal", which leads to `portal.vnpost.vn/login` with username, password and a **captcha** field (the PO sees the captcha on screen). A captcha is never solved by software here (OCR, AI or a solving service would bypass a security control), so unattended sign-in is not possible; the PO already has the semi-automatic path (the login window opened by the system, the person signs in).
+PO decision: close this ticket, remove the code (auto-login service, interactive hook, `tryAutomatedLogin`, probe, tests) and keep what has value: the scheduled import and a session keep-alive, now ticket AUTO-IMPORT-SCHEDULE-01. Possible later route, outside this project: ask VNPost IT for a captcha exemption for this server or a service account / API token for DKCL.

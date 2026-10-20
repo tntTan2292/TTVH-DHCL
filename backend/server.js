@@ -75,6 +75,7 @@ async function shutdown(signal, exitCode = 0) {
             const { stopAutoBackfillQueueRuntime } = require('./src/services/autoBackfillQueueRuntime');
             hangtonScheduler?.stop();
             autoImportSchedule?.stop();
+            sessionKeepAlive?.stop();
             await stopAutoBackfillQueueRuntime();
             if (activeServer?.listening) {
                 await new Promise((resolve) => activeServer.close(resolve));
@@ -171,19 +172,23 @@ function startHangtonScheduler() {
     hangtonScheduler.start();
 }
 
-// AUTO-LOGIN-01 Part B: scheduled automatic import (off unless AUTO_IMPORT_SCHEDULE_ENABLED=true).
+// AUTO-IMPORT-SCHEDULE-01: scheduled automatic import (off unless AUTO_IMPORT_SCHEDULE_ENABLED=true) and DKCL session
+// keep-alive (on unless DKCL_KEEPALIVE_ENABLED=false). Neither signs in: the DKCL sign-in has a captcha.
 let autoImportSchedule = null;
+let sessionKeepAlive = null;
 function startAutoImportSchedule() {
     const { AutoImportScheduler } = require('./src/services/autoImportScheduler');
+    const { DkclSessionKeepAlive } = require('./src/services/dkclSessionKeepAlive');
     const { DkclSessionPreflightService } = require('./src/services/dkclSessionPreflightService');
     const { getAutoBackfillQueueService } = require('./src/services/autoBackfillQueueRuntime');
     const sessionService = new DkclSessionPreflightService();
     autoImportSchedule = new AutoImportScheduler({
         queueService: getAutoBackfillQueueService(),
         sessionService,
-        autoLogin: sessionService.autoLogin,
     });
     autoImportSchedule.start();
+    sessionKeepAlive = new DkclSessionKeepAlive({ sessionService });
+    sessionKeepAlive.start();
 }
 
 function startServer() {

@@ -2,7 +2,6 @@
 
 const path = require('path');
 const { DkclHueF13PortalClient } = require('./dkclHueF13PortalClient');
-const { DkclAutoLoginService } = require('./dkclAutoLoginService');
 const processManager = require('./browserProcessManager');
 const { DkclSessionCoordinator } = require('./dkclSessionCoordinator');
 const { DkclHueBrokerClient, isHueBrokerEnabled } = require('./dkclHueBrokerClient');
@@ -156,8 +155,6 @@ class DkclSessionPreflightService {
             ? options.coordinatorEnabled
             : DkclSessionCoordinator.isEnabled();
         this.coordinator = options.coordinator || new DkclSessionCoordinator(options.coordinatorOptions);
-        // AUTO-LOGIN-01: one rate-limited automatic sign-in before the manual wait (off unless enabled per source).
-        this.autoLogin = options.autoLoginService || new DkclAutoLoginService();
         this.hueBrokerEnabled = typeof options.hueBrokerEnabled === 'boolean'
             ? options.hueBrokerEnabled
             : isHueBrokerEnabled();
@@ -861,14 +858,7 @@ class DkclSessionPreflightService {
                 // Spawn background task to wait for login
                 (async () => {
                     try {
-                        // AUTO-LOGIN-01: the page is on the login form here. One automatic attempt (when enabled for
-                        // this source and allowed by the attempt limits); on any failure the manual wait below runs
-                        // exactly as before.
-                        if (!client.interactiveAuthenticatedOnOpen) {
-                            await this.autoLogin.attempt(sourceConfig.source, client).catch(() => null);
-                        }
                         await client.waitInteractiveAuthentication();
-                        this.autoLogin.recordSuccess(sourceConfig.source);
 
                         this.transitionEntry(sourceConfig.source, entry, DKCL_LIFECYCLE_STATES.AUTHENTICATED, {
                             client,

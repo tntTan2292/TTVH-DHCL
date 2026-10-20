@@ -1,36 +1,47 @@
 'use strict';
 
 /**
- * AUTO-LOGIN-01 Part B -- scheduled automatic import (PO decision 2026-10-20: after the automatic sign-in works,
- * schedule the import).
+ * AUTO-IMPORT-SCHEDULE-01 -- scheduled automatic import with hourly retries.
  *
- * At each configured time of day (Vietnam time) it, for HUE and TCT separately:
- *   1. makes sure the DKCL session is valid (preflight; when it is not and automatic sign-in is allowed for that source,
- *      opens the interactive login, which makes its one rate-limited automatic attempt, and waits for the result);
- *   2. for a source with a valid session, creates one ordinary Auto Backfill run for that lane (every ACTIVE indicator:
- *      missing days plus the 3-day refresh window), requested by the user "scheduler" so the import log shows who.
- * A source that cannot sign in is skipped and reported; nothing is forced, the manual path stays available.
+ * The DKCL sign-in goes through portal.vnpost.vn with a captcha, so it stays a human step (the existing login window).
+ * The scheduler therefore never signs in; it uses whatever session is valid.
  *
- * Off unless AUTO_IMPORT_SCHEDULE_ENABLED=true. Times: AUTO_IMPORT_SCHEDULE_TIMES="08:30,13:00" (default 08:30).
- * A time missed because the backend was down runs once at start-up if it is less than
- * AUTO_IMPORT_SCHEDULE_CATCHUP_MS late (default 3 h). The fired slots are saved so a restart never repeats one.
+ * At each configured time of day (Vietnam time, default 07:30) it starts a cycle. One attempt of a cycle, per lane
+ * (HUE, TCT; AUTO_IMPORT_SCHEDULE_LANES):
+ *   1. checks the DKCL session (preflight); no valid session -> the lane is a failure of this attempt;
+ *   2. creates one ordinary Auto Backfill run for the lane (every ACTIVE indicator: the missing days, the newest day
+ *      included, plus the 3-day refresh window), requested by the user "scheduler".
+ * When the runs of the attempt have ended, the attempt is a success only if every lane had a valid session and its run
+ * COMPLETED without a failed job (or had nothing to import). Otherwise the next attempt starts one hour after the
+ * previous one began (AUTO_IMPORT_SCHEDULE_RETRY_MS), until everything succeeds or AUTO_IMPORT_SCHEDULE_MAX_ATTEMPTS
+ * (default 16) is reached. Because a failed day stays missing / not refreshed, each retry plans exactly what is left.
+ *
+ * Off unless AUTO_IMPORT_SCHEDULE_ENABLED=true. A time missed because the backend was down starts its cycle once at
+ * start-up if it is less than AUTO_IMPORT_SCHEDULE_CATCHUP_MS late (default 3 h). The cycle state is saved, so a restart
+ * neither repeats a slot nor forgets a pending retry.
  */
 
 const fs = require('fs');
 const path = require('path');
 const { formatDateInTimezone } = require('./autoBackfillBusinessCalendar');
 
-const SOURCES = ['HUE', 'TCT'];
+const ALL_LANES = ['HUE', 'TCT'];
 const BUSINESS_TIMEZONE = 'Asia/Ho_Chi_Minh';
+const TERMINAL_RUN_STATUSES = new Set(['COMPLETED', 'COMPLETED_WITH_ERRORS', 'CANCELLED', 'FAILED']);
 
 function parseTimes(text) {
-    const values = String(text || '08:30').split(',').map((item) => item.trim()).filter(Boolean);
+    const values = String(text || '07:30').split(',').map((item) => item.trim()).filter(Boolean);
     const times = [];
     for (const value of values) {
         const match = /^([01]?\d|2[0-3]):([0-5]\d)$/.exec(value);
         if (match) times.push(`${match[1].padStart(2, '0')}:${match[2]}`);
     }
     return [...new Set(times)].sort();
+}
+
+function parseLanes(text) {
+    const lanes = String(text || ALL_LANES.join(',')).split(',').map((item) => item.trim().toUpperCase()).filter((lane) => ALL_LANES.includes(lane));
+    return lanes.length > 0 ? [...new Set(lanes)] : [...ALL_LANES];
 }
 
 function vietnamClock(date) {
@@ -44,7 +55,6 @@ class AutoImportScheduler {
     constructor({
         queueService,
         sessionService,
-        autoLogin,
         env = process.env,
         fsImpl = fs,
         clock = () => new Date(),
@@ -52,59 +62,54 @@ class AutoImportScheduler {
         clearTimer = clearInterval,
         stateDir = null,
         logger = console,
-        sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
     } = {}) {
         this.queueService = queueService;
         this.sessionService = sessionService;
-        this.autoLogin = autoLogin;
         this.env = env;
         this.fs = fsImpl;
         this.clock = clock;
         this.setTimer = setTimer;
         this.clearTimer = clearTimer;
         this.logger = logger;
-        this.sleep = sleep;
         this.stateDir = stateDir || path.resolve(__dirname, '../../../Data DKCL/BrowserProfiles');
         this.timer = null;
-        this.running = false;
-        this.lastReport = null;
+        this.busy = false;
     }
 
     isEnabled() {
         return String(this.env.AUTO_IMPORT_SCHEDULE_ENABLED || '').toLowerCase() === 'true';
     }
 
-    times() {
-        return parseTimes(this.env.AUTO_IMPORT_SCHEDULE_TIMES);
+    times() { return parseTimes(this.env.AUTO_IMPORT_SCHEDULE_TIMES); }
+
+    lanes() { return parseLanes(this.env.AUTO_IMPORT_SCHEDULE_LANES); }
+
+    number(name, fallback) {
+        const value = Number(this.env[name]);
+        return Number.isFinite(value) && value >= 0 ? value : fallback;
     }
 
-    catchupMs() {
-        const value = Number(this.env.AUTO_IMPORT_SCHEDULE_CATCHUP_MS);
-        return Number.isFinite(value) && value >= 0 ? value : 3 * 60 * 60 * 1000;
-    }
+    catchupMs() { return this.number('AUTO_IMPORT_SCHEDULE_CATCHUP_MS', 3 * 60 * 60 * 1000); }
 
-    sessionWaitMs() {
-        const value = Number(this.env.AUTO_IMPORT_SCHEDULE_SESSION_WAIT_MS);
-        return Number.isFinite(value) && value >= 0 ? value : 5 * 60 * 1000;
-    }
+    retryMs() { return this.number('AUTO_IMPORT_SCHEDULE_RETRY_MS', 60 * 60 * 1000); }
 
-    statePath() {
-        return path.join(this.stateDir, 'auto-import-schedule.json');
-    }
+    maxAttempts() { return Math.max(1, Math.floor(this.number('AUTO_IMPORT_SCHEDULE_MAX_ATTEMPTS', 16))); }
 
-    readFired() {
+    statePath() { return path.join(this.stateDir, 'auto-import-schedule.json'); }
+
+    readState() {
         try {
             const parsed = JSON.parse(this.fs.readFileSync(this.statePath(), 'utf8'));
-            return parsed && typeof parsed === 'object' ? parsed : {};
+            return parsed && typeof parsed === 'object' ? { fired: parsed.fired || {}, cycle: parsed.cycle || null } : { fired: {}, cycle: null };
         } catch (_) {
-            return {};
+            return { fired: {}, cycle: null };
         }
     }
 
-    writeFired(fired) {
+    writeState(state) {
         try {
             this.fs.mkdirSync(this.stateDir, { recursive: true });
-            this.fs.writeFileSync(this.statePath(), JSON.stringify(fired));
+            this.fs.writeFileSync(this.statePath(), JSON.stringify(state));
         } catch (error) {
             this.logger.warn?.(`[AUTO-IMPORT-SCHEDULE] cannot save state: ${error.message}`);
         }
@@ -116,7 +121,7 @@ class AutoImportScheduler {
             return this;
         }
         if (this.timer) return this;
-        this.logger.log?.(`[AUTO-IMPORT-SCHEDULE] enabled at ${this.times().join(', ')} (Vietnam time).`);
+        this.logger.log?.(`[AUTO-IMPORT-SCHEDULE] enabled at ${this.times().join(', ')} (Vietnam time), lanes ${this.lanes().join('+')}, retry every ${Math.round(this.retryMs() / 60000)} min.`);
         this.timer = this.setTimer(() => { void this.tick().catch((error) => this.logger.error?.(`[AUTO-IMPORT-SCHEDULE] tick failed: ${error.message}`)); }, intervalMs);
         this.timer.unref?.();
         void this.tick().catch(() => {});
@@ -128,74 +133,131 @@ class AutoImportScheduler {
         this.timer = null;
     }
 
-    /** The slot that is due now (and not yet fired today), or null. */
-    dueSlot(now = this.clock()) {
+    /** The slot that is due now (and not yet started today), or null. */
+    dueSlot(now = this.clock(), state = this.readState()) {
         const { day, minutes } = vietnamClock(now);
-        const fired = this.readFired();
         for (const time of this.times()) {
             const [hour, minute] = time.split(':').map(Number);
-            const slotMinutes = hour * 60 + minute;
-            const lateMs = (minutes - slotMinutes) * 60000;
+            const lateMs = (minutes - (hour * 60 + minute)) * 60000;
             if (lateMs < 0 || lateMs > this.catchupMs()) continue;
-            if (fired[time] === day) continue;
+            if (state.fired[time] === day) continue;
             return { day, time };
         }
         return null;
     }
 
     async tick() {
-        if (this.running || !this.isEnabled()) return null;
-        const slot = this.dueSlot();
-        if (!slot) return null;
-        const fired = this.readFired();
-        fired[slot.time] = slot.day; // saved before the work: a crash or restart never repeats the slot
-        this.writeFired(fired);
-        return this.runOnce(`slot ${slot.time}`);
-    }
-
-    async runOnce(reason = 'manual') {
-        if (this.running) return null;
-        this.running = true;
-        const report = { reason, startedAt: this.clock().toISOString(), sources: {} };
+        if (this.busy || !this.isEnabled()) return null;
+        this.busy = true;
         try {
-            for (const source of SOURCES) {
-                report.sources[source] = await this.runSource(source);
+            const now = this.clock();
+            const state = this.readState();
+            const { day } = vietnamClock(now);
+
+            // A new slot starts a new cycle (saved before any work, so a restart never repeats it).
+            const slot = this.dueSlot(now, state);
+            if (slot) {
+                state.fired[slot.time] = slot.day;
+                state.cycle = { day, slot: slot.time, attempts: 0, done: false, nextAttemptAt: now.getTime(), attempt: null, lastSummary: null };
+                this.writeState(state);
             }
+
+            const cycle = state.cycle;
+            if (!cycle || cycle.done || cycle.day !== day) return null;
+
+            if (cycle.attempt) {
+                return this.finishAttemptIfReady(state, now);
+            }
+            if (now.getTime() < cycle.nextAttemptAt) return null;
+            if (cycle.attempts >= this.maxAttempts()) {
+                cycle.done = true;
+                cycle.lastSummary = `gave up after ${cycle.attempts} attempts`;
+                this.writeState(state);
+                this.logger.warn?.(`[AUTO-IMPORT-SCHEDULE] ${cycle.lastSummary}; the manual path stays available.`);
+                return null;
+            }
+            return this.startAttempt(state, now);
         } finally {
-            this.running = false;
-            this.lastReport = { ...report, endedAt: this.clock().toISOString() };
-            this.logger.log?.(`[AUTO-IMPORT-SCHEDULE] ${reason}: ${SOURCES.map((s) => `${s}=${report.sources[s]?.outcome}`).join(', ')}`);
+            this.busy = false;
         }
-        return this.lastReport;
     }
 
-    async ensureSession(source) {
-        let result = await this.sessionService.preflight(source);
-        if (result?.status === 'SESSION_VALID') return { ok: true, how: 'EXISTING_SESSION' };
-        const gate = this.autoLogin?.check?.(source) || { allowed: false, reason: 'AUTO_LOGIN_UNAVAILABLE' };
-        if (!gate.allowed) return { ok: false, how: 'NEEDS_MANUAL_LOGIN', reason: gate.reason };
-        await this.sessionService.interactiveAuthenticate(source);
-        const deadline = this.clock().getTime() + this.sessionWaitMs();
-        while (this.clock().getTime() < deadline) {
-            await this.sleep(5000);
-            result = await this.sessionService.preflight(source);
-            if (result?.status === 'SESSION_VALID') return { ok: true, how: 'AUTO_LOGIN' };
+    async startAttempt(state, now) {
+        const cycle = state.cycle;
+        cycle.attempts += 1;
+        cycle.attempt = { startedAt: now.getTime(), lanes: {} };
+        this.writeState(state); // the attempt is on record before it runs
+        const label = `slot ${cycle.slot} attempt ${cycle.attempts}`;
+        for (const lane of this.lanes()) {
+            cycle.attempt.lanes[lane] = await this.runLane(lane);
         }
-        return { ok: false, how: 'SESSION_NOT_READY', reason: result?.status || 'UNKNOWN' };
+        this.writeState(state);
+        this.logger.log?.(`[AUTO-IMPORT-SCHEDULE] ${label}: ${this.lanes().map((lane) => `${lane}=${cycle.attempt.lanes[lane].outcome}`).join(', ')}`);
+        return { label, lanes: cycle.attempt.lanes };
     }
 
-    async runSource(source) {
+    /** Waits for the attempt's runs to end, then decides: done, or retry in one hour. */
+    async finishAttemptIfReady(state, now) {
+        const cycle = state.cycle;
+        const attempt = cycle.attempt;
+        const results = {};
+        let pending = false;
+        for (const lane of this.lanes()) {
+            const entry = attempt.lanes[lane] || { outcome: 'FAILED' };
+            if (entry.runId) {
+                const status = await this.runStatus(entry.runId);
+                if (!TERMINAL_RUN_STATUSES.has(status)) { pending = true; continue; }
+                results[lane] = status === 'COMPLETED' ? 'OK' : `RUN_${status}`;
+            } else {
+                results[lane] = entry.outcome === 'NOTHING_TO_IMPORT' ? 'OK' : entry.outcome;
+            }
+        }
+        const timedOut = now.getTime() - attempt.startedAt >= this.retryMs();
+        if (pending && !timedOut) return null; // runs still working: look again on the next tick
+
+        const failed = this.lanes().filter((lane) => results[lane] !== 'OK');
+        cycle.attempt = null;
+        if (failed.length === 0 && !pending) {
+            cycle.done = true;
+            cycle.lastSummary = `all lanes imported after ${cycle.attempts} attempt(s)`;
+            this.logger.log?.(`[AUTO-IMPORT-SCHEDULE] slot ${cycle.slot}: ${cycle.lastSummary}.`);
+        } else {
+            cycle.nextAttemptAt = attempt.startedAt + this.retryMs();
+            const detail = this.lanes().map((lane) => `${lane}=${results[lane] || 'STILL_RUNNING'}`).join(', ');
+            cycle.lastSummary = `retry needed (${detail})`;
+            this.logger.warn?.(`[AUTO-IMPORT-SCHEDULE] slot ${cycle.slot} attempt ${cycle.attempts}: ${cycle.lastSummary}; next attempt at ${new Date(cycle.nextAttemptAt).toISOString()}.`);
+        }
+        this.writeState(state);
+        return { done: cycle.done, results };
+    }
+
+    async runStatus(runId) {
         try {
-            const session = await this.ensureSession(source);
-            if (!session.ok) return { outcome: `SKIPPED_${session.how}`, reason: session.reason || null };
-            const created = await this.queueService.createRun({ lane: source, actor: 'scheduler', roles: ['admin'] });
-            return { outcome: created?.creation?.created === false ? 'RUN_ALREADY_OPEN' : 'RUN_CREATED', runId: created?.run?.id || null, jobs: created?.jobs?.length ?? null };
+            const result = await this.queueService.store.getRun(runId);
+            return result?.run?.status || 'UNKNOWN';
+        } catch (_) {
+            return 'UNKNOWN';
+        }
+    }
+
+    async runLane(lane) {
+        try {
+            const result = await this.sessionService.preflight(lane);
+            if (result?.status !== 'SESSION_VALID') {
+                return { outcome: 'NEEDS_MANUAL_LOGIN', reason: result?.status || 'UNKNOWN' };
+            }
+            const created = await this.queueService.createRun({ lane, actor: 'scheduler', roles: ['admin'] });
+            return {
+                outcome: created?.creation?.created === false ? 'RUN_ALREADY_OPEN' : 'RUN_CREATED',
+                runId: created?.run?.id || null,
+                jobs: created?.jobs?.length ?? null,
+            };
         } catch (error) {
             if (error?.code === 'AUTO_BACKFILL_NO_EXECUTABLE_COVERAGE') return { outcome: 'NOTHING_TO_IMPORT' };
-            this.logger.warn?.(`[AUTO-IMPORT-SCHEDULE][${source}] ${error?.code || 'ERROR'}: ${error?.message}`);
+            this.logger.warn?.(`[AUTO-IMPORT-SCHEDULE][${lane}] ${error?.code || 'ERROR'}: ${error?.message}`);
             return { outcome: 'FAILED', reason: error?.code || 'ERROR' };
         }
     }
 }
 
-module.exports = { AutoImportScheduler, parseTimes, vietnamClock };
+module.exports = { AutoImportScheduler, parseTimes, parseLanes, vietnamClock };
