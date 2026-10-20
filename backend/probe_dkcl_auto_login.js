@@ -35,6 +35,26 @@ async function main() {
     console.log(`[probe ${source}] attempt gate: ${JSON.stringify(autoLogin.check(source))}`);
 
     const profileDir = resolveProfileDir(SOURCE_CONFIG[source]);
+
+    // The backend (and any browser it left behind) owns this profile: a second Chromium on it closes at once.
+    const port = Number(process.env.PORT || 5050);
+    const backendUp = await new Promise((resolve) => {
+        const socket = require('net').connect({ host: '127.0.0.1', port, timeout: 1500 });
+        socket.once('connect', () => { socket.destroy(); resolve(true); });
+        socket.once('error', () => resolve(false));
+        socket.once('timeout', () => { socket.destroy(); resolve(false); });
+    });
+    if (backendUp) {
+        console.error(`[probe ${source}] The backend is still running on port ${port}. Stop it first (close its window or press Ctrl+C), then run this again.`);
+        process.exit(3);
+    }
+    const leftovers = await require('./src/services/browserProcessManager').findBrowserProcessByProfile(profileDir).catch(() => null);
+    const leftoverCount = leftovers?.matchingProcesses?.length || 0;
+    if (leftoverCount > 0) {
+        console.error(`[probe ${source}] ${leftoverCount} browser process(es) of the ${source} profile are still running (left by the backend). Close the DKCL browser windows or end those chrome processes in Task Manager, then run this again.`);
+        process.exit(4);
+    }
+
     const client = new DkclHueF13PortalClient({ headless: false, source, manualAuthWaitMs: 60000 });
     try {
         await client.prepareInteractiveAuthentication({ baseUrl: process.env.PORTAL_BASE_URL || 'https://dkcl.vnpost.vn/', profileDir });
