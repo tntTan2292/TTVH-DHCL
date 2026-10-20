@@ -105,8 +105,26 @@ async function main() {
                 await Promise.all([client.page.waitForLoadState('domcontentloaded', { timeout: 30000 }).catch(() => {}), link.click()]);
                 await client.page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
                 console.log(`[probe ${source}] after clicking the link, page structure: ${JSON.stringify(await describe())}`);
+                // Is the captcha field really shown to a person? Size and style of the field and its parents, and any picture in the form.
+                const captcha = await client.page.evaluate(() => {
+                    const el = document.querySelector('#captchaGenerated, input[name="captchaGenerated"]');
+                    if (!el) return { found: false };
+                    const chain = [];
+                    for (let node = el, i = 0; node && i < 6; node = node.parentElement, i += 1) {
+                        const style = getComputedStyle(node);
+                        const rect = node.getBoundingClientRect();
+                        chain.push({ tag: node.tagName.toLowerCase(), id: node.id || null, cls: String(node.className || '').slice(0, 40), display: style.display, visibility: style.visibility, opacity: style.opacity, w: Math.round(rect.width), h: Math.round(rect.height) });
+                    }
+                    const form = el.closest('form');
+                    return { found: true, chain, images: form ? form.querySelectorAll('img, canvas, svg').length : 0, required: el.required, disabled: el.disabled };
+                }).catch((error) => ({ error: error.message }));
+                console.log(`[probe ${source}] captcha field detail: ${JSON.stringify(captcha)}`);
                 console.log(`[probe ${source}] nothing was typed. markers there: captcha_or_otp_words=${/captcha|otp|ma xac thuc|mã xác thực/i.test(await client.page.locator('body').innerText({ timeout: 5000 }).catch(() => ''))}`);
             }
+        }
+        if (follow && !alreadyIn) {
+            console.log(`[probe ${source}] The window stays open on the sign-in page. LOOK at it: is there a captcha picture or box? Then press Enter here to close (nothing is typed).`);
+            await new Promise((resolve) => require('readline').createInterface({ input: process.stdin }).once('line', resolve));
         }
         if (alreadyIn && hold) {
             console.log(`[probe ${source}] The window stays open. Click Đăng xuất (sign out) in it, wait for the login page, then come back here and press Enter.`);
