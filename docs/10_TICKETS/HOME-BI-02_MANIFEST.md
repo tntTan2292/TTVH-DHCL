@@ -56,3 +56,7 @@ Chưa có: test hành vi giao diện (chỉ dò nguồn + hàm nhãn/`navState`)
 ## 7. Thu gọn trang chủ (PO 2026-10-21)
 
 PO: thanh đầu trang gọn một hàng, widget nhỏ lại (đặc biệt đường biểu đồ), để thấy hết trang khi zoom 67 %. Chỉ đổi khoảng cách và cỡ chữ, không đổi số liệu. Đo bằng trình duyệt headless ở độ rộng 2040 px (tương đương zoom 67 % của PO): chiều cao nội dung 1.133 px → 877 px (thanh đầu 94 → 40, bốn widget 287 → 232, khối xếp hạng + khối phải 688 → 565). Chip chỉ số ở thanh đầu rút còn "20/10", "Tuần 42", "T10" (kỳ đầy đủ nằm trên từng thẻ và trong tooltip). Số lớn trong widget text-4xl → text-3xl; đường xu hướng cao 56 → 32 px.
+
+## 8. Camera của thanh đầu trang chụp cả trang (PO 2026-10-21)
+
+Nút "Chụp ảnh" ở thanh "TRANG CHỦ ĐIỀU HÀNH CHẤT LƯỢNG" chụp toàn bộ trang (thanh đầu, 4 thẻ, bảng 34 tỉnh, khối lũy kế, khối hành động) thay vì chỉ thanh đầu; các nút điều khiển (bộ lọc, lùi/tiến, camera con) không vào ảnh. Chú thích chân ảnh ghi "QIS" thay vì nhãn F1.3 mặc định (`indicatorOverride` của `BlockCaptureButton`) và kỳ đang xem. Đã chụp thử bằng trình duyệt headless: ảnh 3104 x 1856 px (2x) đủ các khối.

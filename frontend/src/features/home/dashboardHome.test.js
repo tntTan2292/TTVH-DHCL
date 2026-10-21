@@ -120,3 +120,20 @@ test('HOME-BI-02: one Ngày/Tuần/Tháng filter with back / forward buttons dri
   assert.match(cardSrc, /previousBasisLabel/);
   assert.doesNotMatch(cardSrc, />So hôm trước</);
 });
+
+test('HOME-BI-02: the camera of the top bar shoots the whole page, not only the bar', () => {
+  const pageSrc = readSource('../../pages/DashboardHome.jsx');
+  assert.match(pageSrc, /ref=\{pageRef\}/);
+  assert.match(pageSrc, /captureRef=\{pageRef\}/);
+  const barSrc = readSource('./components/ExecutiveDateBar.jsx');
+  assert.match(barSrc, /targetRef=\{captureRef \|\| barRef\}/);
+  // the controls stay out of the picture
+  assert.match(barSrc, /data-no-capture="true"/);
+});
+
+test('HOME-BI-02: the whole-page picture is not captioned as an F1.3 picture', () => {
+  const barSrc = readSource('./components/ExecutiveDateBar.jsx');
+  assert.match(barSrc, /indicatorOverride="QIS"/);
+  const buttonSrc = readSource('../../components/common/BlockCaptureButton.jsx');
+  assert.match(buttonSrc, /indicatorOverride \|\| indicator\?\.moduleLabel/);
+});

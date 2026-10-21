@@ -6,6 +6,7 @@ import { navState, PERIOD_OPTIONS, periodChipTitle, periodTitle } from '../homeP
 /**
  * Executive control bar (TV friendly): title, each indicator's own loaded period, the Ngày / Tuần / Tháng
  * filter that drives the whole page, the back / forward buttons (HOME-BI-02, PO 2026-10-21), refresh, camera.
+ * The camera of this bar shoots the WHOLE page (captureRef, PO 2026-10-21); the controls are left out of the picture.
  * offset 0 = the latest period with data; -1 = one period back, and so on.
  */
 export default function ExecutiveDateBar({
@@ -14,6 +15,7 @@ export default function ExecutiveDateBar({
   offset,
   onOffsetChange,
   periodInfo,
+  captureRef = null,
   onRefresh,
   loading,
   indicators = [],
@@ -137,7 +139,8 @@ export default function ExecutiveDateBar({
           </button>
 
           <BlockCaptureButton
-            targetRef={barRef}
+            targetRef={captureRef || barRef}
+            indicatorOverride="QIS"
             blockTitle="Trang chủ điều hành chất lượng"
             dateOrPeriod={title}
           />

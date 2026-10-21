@@ -31,6 +31,7 @@ export default function DashboardHome() {
   const [errorExecutive, setErrorExecutive] = useState(null);
   const [errorRanking, setErrorRanking] = useState(null);
 
+  const pageRef = useRef(null); // the camera in the top bar shoots the whole page
   const execRequestSeqRef = useRef(0);
   const rankRequestSeqRef = useRef(0);
 
@@ -92,8 +93,9 @@ export default function DashboardHome() {
   const activeIndicatorData = indicators.find((ind) => ind.id === selectedIndicator) || indicators[0] || null;
 
   return (
-    <div className="mx-auto max-w-[1920px] space-y-2 p-2 sm:p-3">
+    <div ref={pageRef} className="mx-auto max-w-[1920px] space-y-2 p-2 sm:p-3">
       <ExecutiveDateBar
+        captureRef={pageRef}
         period={period}
         onPeriodChange={(next) => {
           setPeriod(next);

@@ -25,9 +25,10 @@ export default function BlockCaptureButton({
   beforeCapture = null,
   afterCapture = null,
   captionFontSize = 12,
+  indicatorOverride = null, // a picture that is not about one indicator (e.g. the whole Home page) names itself
 }) {
   const indicator = useIndicator();
-  const indicatorLabel = indicator?.moduleLabel || 'F1.3';
+  const indicatorLabel = indicatorOverride || indicator?.moduleLabel || 'F1.3';
   const theme = indicatorTheme(indicator);
   const [busyState, setBusyState] = useState(null); // 'copy' | 'save' | null
   const [feedback, setFeedback] = useState(null); // { type: 'success' | 'info' | 'error', message: string }
