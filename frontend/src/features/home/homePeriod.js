@@ -62,6 +62,18 @@ export function periodShortTitle(info) {
   return formatFullDate(info.period_to);
 }
 
+/**
+ * Which of the period buttons may be pressed. Both back and forward are locked while a request is running
+ * (a quick double click would step past the data), and back also stops at the server's own limit.
+ */
+export function navState({ periodInfo, offset, loading }) {
+  const maxBack = Number.isInteger(periodInfo?.max_back) ? periodInfo.max_back : 120;
+  return {
+    canGoBack: !loading && Boolean(periodInfo?.has_previous) && offset > -maxBack,
+    canGoForward: !loading && offset < 0,
+  };
+}
+
 /** Caption of the small line chart inside a card. */
 export function sparkCaption(trendKind) {
   if (trendKind === 'week') return '12 tuần gần nhất';

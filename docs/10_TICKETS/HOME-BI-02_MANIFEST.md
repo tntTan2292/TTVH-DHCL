@@ -38,3 +38,17 @@ Trả thêm: `period`, `offset`, `period_info` {period_from, period_to, period_p
 
 - PO UI check; Opus review độc lập (đổi cách tính số trên trang lãnh đạo).
 - Cần khởi động lại backend.
+
+## 6. Opus review độc lập (2026-10-21) — PASS WITH MUST-FIX
+
+Hạng, biến động, khoảng kỳ và so kỳ trước khớp giữa thẻ, bảng 34 tỉnh và khối lũy kế trên dữ liệu thật (ngày / tuần / tháng, offset 0 và -1, 4 chỉ tiêu); ISO week đúng trên 1.305 ngày Thứ Năm 2015-2039; F1.3 đọc mới cho số giống cũ; cache tách theo `period`/`offset`.
+
+Đã sửa sau review:
+- Nút lùi dừng ở giới hạn `MAX_BACK` (`has_previous` xét offset, trả `max_back`); nút lùi/tiến khóa khi đang tải (`navState`).
+- Chuỗi tuần/tháng làm tròn đúng như thẻ (hai chữ số rồi một chữ số).
+- Nhãn "ngày" còn sót khi xem tuần/tháng: tiêu đề camera và dòng trống của khối hành động, khối lũy kế (nay ghi "theo báo cáo toàn quốc TCT", "đến dd/mm"), chip bảng 34 tỉnh (nay có số tuần).
+- Không đọc xếp hạng BCVH cho F1.1/F1.2 (không dùng).
+- `period_info.mixed` + dòng báo "Các chỉ tiêu ở kỳ khác nhau" khi số liệu các chỉ tiêu về lệch ngày qua ranh giới tuần/tháng.
+
+Còn mở (cần PO quyết): (1) quanh ranh giới tuần/tháng các thẻ có thể ở hai kỳ khác nhau (mỗi chỉ tiêu đọc kỳ mới nhất của nó) — giữ như vậy hay dùng một kỳ chung và hiện "Chưa có dữ liệu" cho chỉ tiêu về trễ; (2) thẻ lấy tỷ lệ từ dữ liệu chi tiết còn khối lũy kế / bảng 34 tỉnh lấy từ báo cáo toàn quốc nên có thể lệch 0,1-0,3 điểm cùng kỳ (đã ghi nguồn trên khối lũy kế); (3) F1.1 có thể liệt kê bưu cục chấp nhận 531120 "Khách hàng lớn" trong khi khối BCVH của F1.3 loại mã này (đúng vì không phải BCVH).
+Chưa có: test hành vi giao diện (chỉ dò nguồn + hàm nhãn/`navState`), đo trên trình duyệt thật.

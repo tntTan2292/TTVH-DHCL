@@ -2,6 +2,7 @@ import React, { useRef } from 'react';
 import BlockCaptureButton from '../../../components/common/BlockCaptureButton.jsx';
 import { INDICATORS, indicatorTheme } from '../../indicator/indicatorConfig.js';
 import { IndicatorProvider } from '../../indicator/IndicatorContext.js';
+import { formatDayMonth } from '../homePeriod.js';
 
 export default function MonthlyRankProgressionBlock({
   indicatorData,
@@ -27,14 +28,14 @@ export default function MonthlyRankProgressionBlock({
               {indConfig.moduleLabel}
             </span>
             <span className="text-[11px] font-medium text-slate-500">
-              Hạng toàn quốc lũy kế từng tháng, tháng hiện tại đến ngày chốt
+              Hạng và tỷ lệ theo báo cáo toàn quốc TCT, lũy kế từng tháng; tháng cuối đến {formatDayMonth(indicatorData?.period_to || indicatorData?.data_date)}
             </span>
           </div>
           <div data-no-capture="true" className="shrink-0">
             <BlockCaptureButton
               targetRef={blockRef}
               blockTitle={`Diễn biến hạng lũy kế tháng - ${indConfig.moduleLabel}`}
-              dateOrPeriod="Từ T1 đến nay"
+              dateOrPeriod={`Từ T1 đến ${formatDayMonth(indicatorData?.period_to || indicatorData?.data_date)}`}
             />
           </div>
         </div>

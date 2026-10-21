@@ -333,6 +333,38 @@ test('a period with no counts is an explicit unavailable card, not zero', async 
     assert.equal(out.indicators[0].rate, null);
 });
 
+test('the back button stops at the limit of the offset range', async () => {
+    const out = await service(all4(periodAdapter()), { fact_x: '2026-10-20' }).getExecutive({ period: 'day', offset: -120 });
+    assert.equal(out.period_info.has_previous, false);
+    assert.equal(out.period_info.max_back, 120);
+    const near = await service(all4(periodAdapter()), { fact_x: '2026-10-20' }).getExecutive({ period: 'day', offset: -5 });
+    assert.equal(near.period_info.has_previous, true);
+});
+
+test('period_info.mixed tells when the indicators stand in different weeks (data lag at a week boundary)', async () => {
+    const a = periodAdapter();
+    // F1.2 already loaded Thursday 22/10 (week 43); the others stop at Wednesday 21/10 (week 42)
+    const adapters = { f11: a, f12: Object.assign(periodAdapter(), { localTable: 'fact_y' }), f13: a, f41: a };
+    const out = await new HomeExecutiveService({ adapters, db: fakeDb({ fact_x: '2026-10-21', fact_y: '2026-10-22' }) }).getExecutive({ period: 'week' });
+    assert.equal(out.indicators[0].period_from, '2026-10-15');
+    assert.equal(out.indicators[1].period_from, '2026-10-22');
+    assert.equal(out.period_info.mixed, true);
+    const same = await service(all4(periodAdapter()), { fact_x: '2026-10-20' }).getExecutive({ period: 'week' });
+    assert.equal(same.period_info.mixed, false);
+});
+
+test('monthly series rounds like the card: two decimals first, then one', async () => {
+    const a = periodAdapter();
+    a.trend = async () => ({ items: [
+        { date: '2026-09-10', total_volume: 10000, passed: 7935, failed: 2065, data_available: true },
+        { date: '2026-10-05', total_volume: 10, passed: 9, failed: 1, data_available: true },
+    ] });
+    const out = await service(all4(a), { fact_x: '2026-10-20' }).getExecutive({ period: 'month' });
+    const september = out.indicators[0].trend.find((p) => p.date === '2026-09-01');
+    // the card of September (summary.passed_rate = 79.35 -> round1) shows 79.3: the series must not say 79.4
+    assert.equal(september.rate, 79.3);
+});
+
 test('invalid period / offset are rejected', async () => {
     const s = service(all4(adapter()));
     await assert.rejects(() => s.getExecutive({ period: 'year' }), { code: 'MISSING_PARAM' });

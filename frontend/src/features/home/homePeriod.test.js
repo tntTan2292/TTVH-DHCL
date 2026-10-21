@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { periodShortTitle, periodTitle, previousBasisLabel, sparkCaption } from './homePeriod.js';
+import { navState, periodShortTitle, periodTitle, previousBasisLabel, sparkCaption } from './homePeriod.js';
 
 test('previousBasisLabel names what the change is read against', () => {
   assert.equal(previousBasisLabel('day'), 'hôm trước');
@@ -28,4 +28,14 @@ test('sparkCaption follows the series kind', () => {
   assert.equal(sparkCaption('week'), '12 tuần gần nhất');
   assert.equal(sparkCaption('month'), 'các tháng từ T1');
   assert.equal(sparkCaption('day'), '30 ngày gần nhất');
+});
+
+test('navState: back needs earlier data and a free request, forward only when not at the latest', () => {
+  const info = { has_previous: true, max_back: 120 };
+  assert.deepEqual(navState({ periodInfo: info, offset: 0, loading: false }), { canGoBack: true, canGoForward: false });
+  assert.deepEqual(navState({ periodInfo: info, offset: -3, loading: false }), { canGoBack: true, canGoForward: true });
+  assert.deepEqual(navState({ periodInfo: info, offset: -3, loading: true }), { canGoBack: false, canGoForward: false });
+  assert.equal(navState({ periodInfo: info, offset: -120, loading: false }).canGoBack, false);
+  assert.equal(navState({ periodInfo: { has_previous: false }, offset: 0, loading: false }).canGoBack, false);
+  assert.equal(navState({ periodInfo: null, offset: 0, loading: false }).canGoBack, false);
 });

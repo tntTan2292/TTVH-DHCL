@@ -4,6 +4,7 @@ import { ExternalLink } from 'lucide-react';
 import BlockCaptureButton from '../../../components/common/BlockCaptureButton.jsx';
 import SortableTh from '../../../components/common/SortableTh.jsx';
 import { shortBcvhName } from '../homeNames.js';
+import { periodTitle } from '../homePeriod.js';
 import { INDICATORS, indicatorTheme } from '../../indicator/indicatorConfig.js';
 import { IndicatorProvider } from '../../indicator/IndicatorContext.js';
 import {
@@ -68,8 +69,8 @@ export default function ActionUnitsBlock({
   const rankingUrl = indConfig.routes?.ranking || `/${selectedIndicator}/ranking/bcvh`;
   const badge = typeof spec.badge === 'function' ? spec.badge(threshold) : spec.badge;
   const emptyText = kind === 'bcvh'
-    ? 'Chưa có dữ liệu phân rã đơn vị cho ngày này.'
-    : `Không có ${kind === 'pairs' ? 'cặp bưu cục' : 'bưu cục'} nào dưới ${threshold}% trong ngày này.`;
+    ? 'Chưa có dữ liệu phân rã đơn vị cho kỳ này.'
+    : `Không có ${kind === 'pairs' ? 'cặp bưu cục' : 'bưu cục'} nào dưới ${threshold}% trong kỳ này.`;
 
   return (
     <IndicatorProvider indicator={indConfig}>
@@ -100,7 +101,7 @@ export default function ActionUnitsBlock({
             <BlockCaptureButton
               targetRef={blockRef}
               blockTitle={`${spec.title} - ${indConfig.moduleLabel}`}
-              dateOrPeriod={`Ngày ${indicatorData?.data_date || ''}`}
+              dateOrPeriod={periodTitle(indicatorData)}
             />
           </div>
         </div>

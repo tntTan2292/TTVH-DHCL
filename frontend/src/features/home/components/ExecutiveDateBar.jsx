@@ -1,7 +1,7 @@
 import React, { useRef } from 'react';
 import { RefreshCw, AlertCircle, CheckCircle2, ChevronLeft, ChevronRight } from 'lucide-react';
 import BlockCaptureButton from '../../../components/common/BlockCaptureButton.jsx';
-import { PERIOD_OPTIONS, periodShortTitle, periodTitle } from '../homePeriod.js';
+import { navState, PERIOD_OPTIONS, periodShortTitle, periodTitle } from '../homePeriod.js';
 
 /**
  * Executive control bar (TV friendly): title, each indicator's own loaded period, the Ngày / Tuần / Tháng
@@ -19,8 +19,7 @@ export default function ExecutiveDateBar({
   indicators = [],
 }) {
   const barRef = useRef(null);
-  const canGoBack = Boolean(periodInfo?.has_previous);
-  const canGoForward = offset < 0;
+  const { canGoBack, canGoForward } = navState({ periodInfo, offset, loading });
   const title = periodTitle(periodInfo);
 
   return (
@@ -107,6 +106,14 @@ export default function ExecutiveDateBar({
               <ChevronRight size={18} />
             </button>
           </div>
+          {periodInfo?.mixed && (
+            <span
+              className="rounded-lg border border-amber-200 bg-amber-50 px-2 py-1 text-[11px] font-bold text-amber-800"
+              title="Dữ liệu các chỉ tiêu về lệch ngày nên đang ở kỳ khác nhau; xem kỳ ghi trên từng thẻ."
+            >
+              Các chỉ tiêu ở kỳ khác nhau
+            </span>
+          )}
           {offset < 0 && (
             <button
               type="button"

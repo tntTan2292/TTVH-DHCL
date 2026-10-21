@@ -17,7 +17,7 @@ import {
 } from '../../../components/f13/f13HeatmapBandCatalog.js';
 import { shortProvinceName } from '../homeNames.js';
 import { INDICATORS, indicatorTheme } from '../../indicator/indicatorConfig.js';
-import { formatDayMonth, previousBasisLabel } from '../homePeriod.js';
+import { previousBasisLabel } from '../homePeriod.js';
 import { IndicatorProvider } from '../../indicator/IndicatorContext.js';
 import {
   filterProvincesByMode,
@@ -31,6 +31,7 @@ export default function NationalRankingBlock({
   selectedIndicator = 'f11',
   onSelectIndicator,
   period = 'day',
+  periodName = '',
   rankingData,
   loading,
 }) {
@@ -63,11 +64,8 @@ export default function NationalRankingBlock({
   const periodRangeLabel = rankingData?.period_start && rankingData?.period_end
     ? `${rankingData.period_start} → ${rankingData.period_end}`
     : '';
-  const periodChip = rankingData?.period_start && rankingData?.period_end
-    ? (rankingData.period_start === rankingData.period_end
-      ? formatDayMonth(rankingData.period_end)
-      : `${formatDayMonth(rankingData.period_start)} → ${formatDayMonth(rankingData.period_end)}`)
-    : '';
+  // named by the page from the card of the same indicator (same range, with the week number)
+  const periodChip = periodName && rankingData?.period_end ? periodName : '';
 
   return (
     <IndicatorProvider indicator={indConfig}>
@@ -88,7 +86,7 @@ export default function NationalRankingBlock({
               </span>
               {periodChip && (
                 <span className="rounded-full border border-slate-200 bg-white px-2.5 py-0.5 text-xs font-bold text-slate-600">
-                  {periodLabel} · {periodChip}
+                  {periodChip}
                 </span>
               )}
             </div>

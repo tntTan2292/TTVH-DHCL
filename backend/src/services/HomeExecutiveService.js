@@ -258,12 +258,17 @@ class HomeExecutiveService {
                 if (row?.d && (!earliest || row.d < earliest)) earliest = row.d;
             } catch { /* a missing table only means no earlier day is known */ }
         }
+        // Each indicator reads its own latest period (its data can lag the others by a day or two), so around a
+        // week / month boundary the cards may stand in different periods: the page says so (`mixed`).
+        const froms = new Set(ranges.filter(Boolean).map((range) => range.from));
         return {
             ...this._periodFields(ref, period),
             offset,
             full_to: ref ? ref.full_to : null,
-            has_previous: Boolean(ref && earliest && earliest < ref.from),
+            has_previous: Boolean(ref && earliest && earliest < ref.from) && offset > -MAX_BACK,
             has_next: offset < 0,
+            max_back: MAX_BACK,
+            mixed: froms.size > 1,
         };
     }
 
@@ -307,7 +312,7 @@ class HomeExecutiveService {
         const [summary, trend, ranking] = await Promise.all([
             adapter.summary(dataDate, dataDate),
             adapter.trend(trendFrom, dataDate),
-            adapter.ranking(dataDate, dataDate).catch(() => null),
+            FOCUS[id].kind === 'bcvh' ? adapter.ranking(dataDate, dataDate).catch(() => null) : Promise.resolve(null),
         ]);
 
         const volume = Number(summary?.total_bg || 0);
@@ -370,7 +375,7 @@ class HomeExecutiveService {
         const [summary, prevSummary, ranking, trend, rankNow, rankPrev] = await Promise.all([
             adapter.summary(from, to),
             adapter.summary(prev.from, prev.to).catch(() => null),
-            adapter.ranking(from, to).catch(() => null),
+            FOCUS[id].kind === 'bcvh' ? adapter.ranking(from, to).catch(() => null) : Promise.resolve(null),
             adapter.trend(seriesFrom, to, { skipNationalRank: true }).catch(() => null),
             adapter.rank.getNationalRankSummary(from, to).catch(() => null),
             adapter.rank.getNationalRankSummary(prev.from, prev.to).catch(() => null),
@@ -433,7 +438,8 @@ class HomeExecutiveService {
             .sort(([a], [b]) => a.localeCompare(b))
             .map(([key, group]) => ({
                 date: key,
-                rate: key === currentKey ? currentRate : round1((group.passed / group.volume) * 100),
+                // same rounding as the card and the indicator's own dashboard: two decimals, then one
+                rate: key === currentKey ? currentRate : round1(Math.round((group.passed / group.volume) * 10000) / 100),
                 rank: null,
                 volume: group.volume,
             }));
