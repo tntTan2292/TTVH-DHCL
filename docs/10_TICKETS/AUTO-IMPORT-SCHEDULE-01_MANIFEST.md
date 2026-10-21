@@ -53,3 +53,9 @@ Defect: the interactive DKCL window was hidden only after a typed login. It stay
 Fix (`dkclSessionPreflightService.js`): one `hideWindowIfVisible()` used by the login task and by every ready outcome of the probe. It does nothing when the window is already hidden or an operation owns the session, tolerates a client without a hide function, and a hide that failed is retried by the next ready probe.
 Validation: `src/services/dkclSessionWindowHide.test.js` 7/7 (5 of them fail on the previous code); `autoImport015.test.js` 7/7, `test_autoImportScheduler.js` 14/14, `test_autoBackfillSafety.js` 11/11. Not verified live on Windows (needs a backend restart and a look at the real window).
 Residual: HUE broker mode has no hide logic (off today).
+
+### 7.1 The window vanished on "Đăng nhập qua portal" (PO live check, 2026-10-21)
+
+Cause (backend_err.log): clicking "Đăng nhập qua portal" while the window was still opening made the portal redirect the page, which cancelled our own `page.goto(baseUrl)` with `net::ERR_ABORTED`; `prepareInteractiveAuthentication` treated that as a failure, the session went to SESSION_EXPIRED and the window was closed before any login. Also, `isAuthenticated()` accepted any page whose text had a signed-in marker, so the portal.vnpost.vn sign-in page could have counted as a signed-in DKCL session.
+Fix (`dkclHueF13PortalClient.js`, `dkclSessionPreflightService.js`): navigations during opening go through `gotoInterruptible()` (a cancelled navigation is not a failure; real errors still surface); a page counts as signed in only on the DKCL host; the window is never hidden while the client says it is not signed in.
+Tests: `dkclSessionWindowHide.test.js` 10/10. Unrelated, already failing before this change: `test_dkclSessionPreflightService.js` (SyntaxError, `cleanupCalled` declared twice at line 1146) and two real-workbook tests in `test_f11PortalAdapter.js` (TCT workbook reconciliation).

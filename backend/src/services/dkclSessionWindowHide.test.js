@@ -138,3 +138,53 @@ test('the window is left alone while an operation owns the session', async () =>
     assert.equal(hidden, false);
     assert.equal(client.calls.hide, 0);
 });
+
+// ---- Clicking "Đăng nhập qua portal" must neither close nor hide the window ----
+
+const { DkclHueF13PortalClient } = require('./dkclHueF13PortalClient');
+
+function fakePage({ url, body = '', inputs = 0 }) {
+    return {
+        url: () => url,
+        isClosed: () => false,
+        locator: (selector) => ({
+            innerText: async () => body,
+            count: async () => (selector.includes('password') ? inputs : 0),
+        }),
+    };
+}
+
+test('the portal sign-in page is not a signed-in DKCL session, even if it shows logout-like text', async () => {
+    const client = new DkclHueF13PortalClient({ headless: false, source: 'TCT' });
+    client.baseUrl = 'https://dkcl.vnpost.vn';
+    client.context = { pages: () => [] };
+    client.page = fakePage({ url: 'https://portal.vnpost.vn/sso/start', body: 'Đăng xuất Quản lý tệp' });
+    assert.equal(await client.isAuthenticated(), false);
+
+    client.page = fakePage({ url: 'https://dkcl.vnpost.vn/kpi/chat-luong', body: 'Quản lý tệp Đăng xuất' });
+    assert.equal(await client.isAuthenticated(), true, 'a DKCL page with the signed-in markers still counts');
+});
+
+test('a navigation cancelled by the portal redirect does not fail opening the window', async () => {
+    const client = new DkclHueF13PortalClient({ headless: false, source: 'TCT' });
+    client.baseUrl = 'https://dkcl.vnpost.vn';
+    let waited = false;
+    client.page = {
+        async goto() { throw new Error('page.goto: net::ERR_ABORTED at https://dkcl.vnpost.vn/'); },
+        async waitForLoadState() { waited = true; },
+    };
+    await client.gotoInterruptible('https://dkcl.vnpost.vn');
+    assert.equal(waited, true);
+
+    client.page = { async goto() { throw new Error('page.goto: net::ERR_NAME_NOT_RESOLVED'); } };
+    await assert.rejects(() => client.gotoInterruptible('https://dkcl.vnpost.vn'), /ERR_NAME_NOT_RESOLVED/, 'real failures still surface');
+});
+
+test('the window is not hidden while the client says it is not signed in', async () => {
+    const client = windowClient();
+    client.isAuthenticated = async () => false;
+    const service = serviceFor(client);
+    const entry = service.getRegistryState('TCT');
+    assert.equal(await service.hideWindowIfVisible({ source: 'TCT' }, entry, client), false);
+    assert.equal(client.calls.hide, 0);
+});

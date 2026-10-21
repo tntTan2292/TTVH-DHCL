@@ -261,6 +261,8 @@ class DkclSessionPreflightService {
         if (!client || entry.activeOperation) return false;
         const hideWindow = client.hideWindow || client.hideBrowserWindow;
         if (typeof hideWindow !== 'function') return false;
+        // never put the window away while the person may still be signing in (e.g. on the portal sign-in page)
+        if (typeof client.isAuthenticated === 'function' && !await client.isAuthenticated().catch(() => false)) return false;
         const hidden = Boolean(await hideWindow.call(client).catch(() => false));
         this.transitionEntry(sourceConfig.source, entry, DKCL_LIFECYCLE_STATES.F13_READY, {
             hideAttempted: true,

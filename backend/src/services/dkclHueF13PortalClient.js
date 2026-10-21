@@ -397,6 +397,9 @@ class DkclHueF13PortalClient {
     async _checkPageAuthenticated(page) {
         if (!page || page.isClosed?.()) return false;
         if (page.url().includes('/login')) return false;
+        // Signed in to DKCL means being on a DKCL page: the portal.vnpost.vn sign-in (reached from "Đăng nhập qua portal")
+        // is not a signed-in DKCL session, whatever text it shows.
+        if (this.baseUrl && !this.isOnPortalHost(page.url())) return false;
         const bodyText = await page.locator('body').innerText({ timeout: 5000 }).catch(() => '');
         const loginInputCount = await page.locator('input[name="login"], input[id="login"], input[type="password"]').count().catch(() => 0);
         if (loginInputCount > 0) return false;
@@ -488,7 +491,7 @@ class DkclHueF13PortalClient {
         }
         this.page = await waitForPortalCapablePage(this.context);
         if (!isDkclUrl(this.page.url())) {
-            await this.page.goto(this.loginUrl, { waitUntil: 'domcontentloaded', timeout: 60000 });
+            await this.gotoInterruptible(this.loginUrl);
         }
         await this.page.bringToFront?.().catch(() => {});
         await processManager.setBrowserWindowsVisibleByProfile?.(this.profileDir).catch(() => {});
@@ -497,12 +500,33 @@ class DkclHueF13PortalClient {
             throw portalError('BROWSER_WINDOW_HIDDEN: Cannot show browser window for manual login. The process might be hung or the window is forcefully hidden.', 'BROWSER_WINDOW_HIDDEN');
         }
 
-        await this.page.goto(this.baseUrl, { waitUntil: 'domcontentloaded', timeout: 60000 });
+        await this.gotoInterruptible(this.baseUrl);
         this.interactiveAuthenticatedOnOpen = await this.isAuthenticated();
         if (!await this.isAuthenticated()) {
-            if (!this.page.url().includes('/login')) {
-                await this.page.goto(`${this.baseUrl}/login`, { waitUntil: 'domcontentloaded', timeout: 60000 });
+            // A page that is already on its way to the portal sign-in (the person was quick) is left alone.
+            if (!this.page.url().includes('/login') && this.isOnPortalHost(this.page.url())) {
+                await this.gotoInterruptible(`${this.baseUrl}/login`);
             }
+        }
+    }
+
+    // The person can click "Đăng nhập qua portal" while the window is still loading: the portal then redirects the page
+    // and the navigation we started is cancelled (net::ERR_ABORTED). That is not a failure of opening the window; the
+    // login simply continues on the page the person is on, so it must not close the window.
+    async gotoInterruptible(url) {
+        try {
+            await this.page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60000 });
+        } catch (error) {
+            if (!/ERR_ABORTED|frame was detached|interrupted by another navigation/i.test(String(error?.message || ''))) throw error;
+            await this.page.waitForLoadState?.('domcontentloaded', { timeout: 15000 }).catch(() => {});
+        }
+    }
+
+    isOnPortalHost(url) {
+        try {
+            return new URL(url).host === new URL(this.baseUrl).host;
+        } catch (_) {
+            return isDkclUrl(url);
         }
     }
 
