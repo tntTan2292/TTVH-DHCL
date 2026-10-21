@@ -15,14 +15,9 @@ import BlockCaptureButton from '../../../components/common/BlockCaptureButton.js
 import { INDICATORS, indicatorTheme } from '../../indicator/indicatorConfig.js';
 import { IndicatorProvider } from '../../indicator/IndicatorContext.js';
 import { computeTrendYDomain, formatGap, INDICATOR_FULL_NAMES } from '../homeTableSort.js';
+import { periodShortTitle, periodTitle, previousBasisLabel, sparkCaption } from '../homePeriod.js';
 
 const SPARK_DAYS = 30;
-
-function formatDateShort(isoStr) {
-  if (!isoStr) return '—';
-  const parts = String(isoStr).split('-');
-  return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : isoStr;
-}
 
 /**
  * Executive card of one indicator (F1.1, F1.2, F1.3, F4.1), built for a TV screen:
@@ -81,9 +76,13 @@ export default function ExecutiveIndicatorCard({ data, isSelected, onSelect }) {
   const rankMovement = data.rank_movement != null ? Number(data.rank_movement) : null;
   const rank = data.rank;
   const total = data.total || 34;
-  const dateLabel = formatDateShort(data.data_date);
+  const dateLabel = periodShortTitle(data);
+  const basis = previousBasisLabel(data.period);
+  const caption = sparkCaption(data.trend_kind);
 
-  const spark = (data.trend || []).slice(-SPARK_DAYS).map((point) => ({ date: point.date, rate: point.rate }));
+  // day series: the last 30 days; week / month series arrive already limited by the server
+  const series = data.trend_kind === 'week' || data.trend_kind === 'month' ? (data.trend || []) : (data.trend || []).slice(-SPARK_DAYS);
+  const spark = series.map((point) => ({ date: point.date, rate: point.rate }));
   const sparkDomain = computeTrendYDomain(spark, targetRate);
 
   const movementView = rankMovement === null
@@ -114,7 +113,7 @@ export default function ExecutiveIndicatorCard({ data, isSelected, onSelect }) {
                 Mục tiêu {targetRate}%
               </span>
             </div>
-            <div className="mt-1 flex items-center gap-2 text-xs font-semibold text-slate-500" title={`Ngày số liệu của chỉ tiêu ${data.label}: ${dateLabel}`}>
+            <div className="mt-1 flex items-center gap-2 text-xs font-semibold text-slate-500" title={`Kỳ số liệu của chỉ tiêu ${data.label}: ${periodTitle(data)}`}>
               <span className="truncate">{fullName}</span>
               <span className="inline-flex shrink-0 items-center gap-1 rounded bg-slate-100 px-1.5 py-0.5 text-[11px] font-bold text-slate-600">
                 <Calendar size={11} className="text-slate-400" />
@@ -126,7 +125,7 @@ export default function ExecutiveIndicatorCard({ data, isSelected, onSelect }) {
             <BlockCaptureButton
               targetRef={cardRef}
               blockTitle={`Chỉ tiêu ${data.label}`}
-              dateOrPeriod={`Ngày ${dateLabel}`}
+              dateOrPeriod={periodTitle(data)}
             />
           </div>
         </div>
@@ -158,9 +157,9 @@ export default function ExecutiveIndicatorCard({ data, isSelected, onSelect }) {
                 {formatGap(gapToTarget)}
               </span>
             </div>
-            <div className="mt-0.5 flex items-center justify-between text-xs">
-              <span className="font-medium text-slate-500">So hôm trước</span>
-              {rateChangeView}
+            <div className="mt-0.5 flex flex-wrap items-center justify-between gap-x-2 text-xs">
+              <span className="whitespace-nowrap font-medium text-slate-500">So {basis}</span>
+              <span className="ml-auto whitespace-nowrap">{rateChangeView}</span>
             </div>
           </div>
 
@@ -175,15 +174,15 @@ export default function ExecutiveIndicatorCard({ data, isSelected, onSelect }) {
               </span>
               <span className="text-base font-bold text-rose-400">/{total}</span>
             </div>
-            <div className="mt-1 flex items-center justify-between border-t border-rose-200/60 pt-1 text-xs">
-              <span className="font-medium text-slate-500">So hôm trước</span>
-              {movementView}
+            <div className="mt-1 flex flex-wrap items-center justify-between gap-x-2 border-t border-rose-200/60 pt-1 text-xs">
+              <span className="whitespace-nowrap font-medium text-slate-500">So {basis}</span>
+              <span className="ml-auto whitespace-nowrap">{movementView}</span>
             </div>
           </div>
         </div>
 
         {/* Own 30-day line with the indicator's own target line */}
-        <div className="mt-2 h-14" title={`${SPARK_DAYS} ngày gần nhất · đường đỏ là mục tiêu ${targetRate}%`}>
+        <div className="mt-2 h-14" title={`${caption} · đường đỏ là mục tiêu ${targetRate}%`}>
           {spark.some((point) => point.rate != null) ? (
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={spark} margin={{ top: 4, right: 4, bottom: 2, left: 4 }}>

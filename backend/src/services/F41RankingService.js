@@ -261,7 +261,9 @@ class F41RankingService {
         }));
 
         let enriched = items;
-        if (!bcvhId) {
+        // filters.skipNationalRank: a caller that only needs rates/counts (Home weekly / monthly series) skips the
+        // per-day national rank lookup, which dominates the cost of a long range.
+        if (!bcvhId && !filters.skipNationalRank) {
             let ranks = {};
             try {
                 ranks = await this.nationalRankService.getNationalRanksForDates(

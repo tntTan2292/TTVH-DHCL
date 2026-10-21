@@ -10,16 +10,17 @@ import MonthlyRankProgressionBlock from '../features/home/components/MonthlyRank
  * DashboardHome — Trang chủ điều hành chất lượng (HOME-BI-01)
  *
  * Built to be shown on a TV, on one screen without scrolling:
- *   1. one-line control bar (anchor date, each indicator's loaded day);
+ *   1. one-line control bar (Ngày / Tuần / Tháng filter with back and forward buttons, each indicator's loaded period);
  *   2. four indicator cards (rate, national rank, gap to target, change, own 30-day line);
  *   3. left: 34-province ranking (default "Huế & lân cận"); right: monthly rank + units to act on.
  * Data: GET /api/home/executive and GET /api/home/national-ranking.
  * Each indicator is its own measure: nothing is compared or summed across indicators.
  */
 export default function DashboardHome() {
-  const [anchorDate, setAnchorDate] = useState(null);
   const [selectedIndicator, setSelectedIndicator] = useState('f11');
-  const [rankingPeriod, setRankingPeriod] = useState('day');
+  // One filter for the whole page (HOME-BI-02): the period and how many periods back from the latest (0, -1, -2 ...).
+  const [period, setPeriod] = useState('day');
+  const [offset, setOffset] = useState(0);
 
   const [executiveData, setExecutiveData] = useState(null);
   const [rankingData, setRankingData] = useState(null);
@@ -37,10 +38,7 @@ export default function DashboardHome() {
     setLoadingExecutive(true);
     setErrorExecutive(null);
 
-    const params = {};
-    if (anchorDate) params.anchor_date = anchorDate;
-
-    api.get('/home/executive', { params })
+    api.get('/home/executive', { params: { period, offset } })
       .then((res) => {
         if (seq !== execRequestSeqRef.current) return;
         if (res.data?.success) {
@@ -56,20 +54,14 @@ export default function DashboardHome() {
       .finally(() => {
         if (seq === execRequestSeqRef.current) setLoadingExecutive(false);
       });
-  }, [anchorDate]);
+  }, [period, offset]);
 
   const fetchNationalRanking = useCallback(() => {
     const seq = ++rankRequestSeqRef.current;
     setLoadingRanking(true);
     setErrorRanking(null);
 
-    const params = {
-      indicator: selectedIndicator,
-      period: rankingPeriod,
-    };
-    if (anchorDate) params.anchor_date = anchorDate;
-
-    api.get('/home/national-ranking', { params })
+    api.get('/home/national-ranking', { params: { indicator: selectedIndicator, period, offset } })
       .then((res) => {
         if (seq !== rankRequestSeqRef.current) return;
         if (res.data?.success) {
@@ -85,7 +77,7 @@ export default function DashboardHome() {
       .finally(() => {
         if (seq === rankRequestSeqRef.current) setLoadingRanking(false);
       });
-  }, [anchorDate, selectedIndicator, rankingPeriod]);
+  }, [selectedIndicator, period, offset]);
 
   useEffect(() => {
     fetchExecutive();
@@ -101,8 +93,14 @@ export default function DashboardHome() {
   return (
     <div className="mx-auto max-w-[1920px] space-y-3 p-3 sm:p-4 xl:p-5">
       <ExecutiveDateBar
-        anchorDate={anchorDate}
-        onAnchorDateChange={setAnchorDate}
+        period={period}
+        onPeriodChange={(next) => {
+          setPeriod(next);
+          setOffset(0);
+        }}
+        offset={offset}
+        onOffsetChange={setOffset}
+        periodInfo={executiveData?.period_info || null}
         onRefresh={() => {
           fetchExecutive();
           fetchNationalRanking();
@@ -144,7 +142,7 @@ export default function DashboardHome() {
       )}
 
       {/* Four indicator cards: rate, national rank, gap to target, change, own 30-day line */}
-      <section aria-label="Thẻ chỉ tiêu điều hành">
+      <section aria-label="Thẻ chỉ tiêu điều hành" aria-busy={loadingExecutive} className={loadingExecutive ? "opacity-60 transition-opacity" : "transition-opacity"}>
         {loadingExecutive && !indicators.length ? (
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
             {[1, 2, 3, 4].map((i) => (
@@ -172,18 +170,17 @@ export default function DashboardHome() {
       </section>
 
       {/* 34-province ranking (default "Huế & lân cận") beside the monthly rank and the units to act on */}
-      <div className="grid grid-cols-1 items-stretch gap-3 xl:grid-cols-12">
-        <div className="xl:col-span-7 2xl:col-span-8">
+      <div className={`grid grid-cols-1 items-stretch gap-3 xl:grid-cols-12 transition-opacity ${loadingExecutive || loadingRanking ? "opacity-60" : ""}`}>
+        <div className="xl:col-span-7">
           <NationalRankingBlock
             selectedIndicator={selectedIndicator}
             onSelectIndicator={setSelectedIndicator}
-            period={rankingPeriod}
-            onPeriodChange={setRankingPeriod}
+            period={period}
             rankingData={rankingData}
             loading={loadingRanking}
           />
         </div>
-        <div className="flex flex-col gap-3 xl:col-span-5 2xl:col-span-4">
+        <div className="flex flex-col gap-3 xl:col-span-5">
           <MonthlyRankProgressionBlock
             indicatorData={activeIndicatorData}
             selectedIndicator={selectedIndicator}

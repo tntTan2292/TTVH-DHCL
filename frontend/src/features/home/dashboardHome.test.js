@@ -58,7 +58,7 @@ test('Review Fix 4 & 5: ExecutiveIndicatorCard handles nulls cleanly and provide
   assert.match(cardSrc, /data\.rate/);
   assert.match(cardSrc, /gap_to_target/);
   assert.match(cardSrc, /rank_movement/);
-  assert.match(cardSrc, /data_date/);
+  assert.match(cardSrc, /periodShortTitle/);
   assert.match(cardSrc, /BlockCaptureButton/);
   assert.match(cardSrc, /Chưa có dữ liệu/);
   assert.doesNotMatch(cardSrc, /24h\/48h/);
@@ -96,4 +96,27 @@ test('HOME-BI-01: province table has no "Chênh MT" column and names its movemen
   assert.doesNotMatch(rankingSrc, /field="gap_to_target"/);
   assert.match(rankingSrc, /movement_basis/);
   assert.match(rankingSrc, /so với \{movementBasisLabel\}/);
+});
+
+test('HOME-BI-02: one Ngày/Tuần/Tháng filter with back / forward buttons drives cards, ranking and action block', () => {
+  const pageSrc = readSource('../../pages/DashboardHome.jsx');
+  assert.match(pageSrc, /params: \{ period, offset \}/);
+  assert.match(pageSrc, /indicator: selectedIndicator, period, offset/);
+  assert.doesNotMatch(pageSrc, /anchor_date/);
+
+  const barSrc = readSource('./components/ExecutiveDateBar.jsx');
+  assert.match(barSrc, /PERIOD_OPTIONS/);
+  assert.match(barSrc, /Xem kỳ trước/);
+  assert.match(barSrc, /Mới nhất/);
+  assert.doesNotMatch(barSrc, /Ngày chốt/);
+  assert.doesNotMatch(barSrc, /type="date"/);
+
+  // the ranking block has no switch of its own any more
+  const rankingSrc = readSource('./components/NationalRankingBlock.jsx');
+  assert.doesNotMatch(rankingSrc, /onPeriodChange/);
+
+  // the cards name what they are compared with
+  const cardSrc = readSource('./components/ExecutiveIndicatorCard.jsx');
+  assert.match(cardSrc, /previousBasisLabel/);
+  assert.doesNotMatch(cardSrc, />So hôm trước</);
 });

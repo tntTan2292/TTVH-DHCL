@@ -1,30 +1,27 @@
 import React, { useRef } from 'react';
-import { Calendar, RefreshCw, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { RefreshCw, AlertCircle, CheckCircle2, ChevronLeft, ChevronRight } from 'lucide-react';
 import BlockCaptureButton from '../../../components/common/BlockCaptureButton.jsx';
+import { PERIOD_OPTIONS, periodShortTitle, periodTitle } from '../homePeriod.js';
 
 /**
- * One-line executive control bar (TV friendly):
- * title, each indicator's own loaded day, the anchor date picker, refresh and camera.
+ * Executive control bar (TV friendly): title, each indicator's own loaded period, the Ngày / Tuần / Tháng
+ * filter that drives the whole page, the back / forward buttons (HOME-BI-02, PO 2026-10-21), refresh, camera.
+ * offset 0 = the latest period with data; -1 = one period back, and so on.
  */
 export default function ExecutiveDateBar({
-  anchorDate,
-  onAnchorDateChange,
+  period,
+  onPeriodChange,
+  offset,
+  onOffsetChange,
+  periodInfo,
   onRefresh,
   loading,
   indicators = [],
 }) {
   const barRef = useRef(null);
-
-  const formatDateDisplay = (isoStr) => {
-    if (!isoStr) return 'Mới nhất (N-1)';
-    const [y, m, d] = String(isoStr).split('-');
-    return d && m && y ? `${d}/${m}/${y}` : isoStr;
-  };
-
-  const shortDate = (isoStr) => {
-    const [, m, d] = String(isoStr || '').split('-');
-    return d && m ? `${d}/${m}` : '—';
-  };
+  const canGoBack = Boolean(periodInfo?.has_previous);
+  const canGoForward = offset < 0;
+  const title = periodTitle(periodInfo);
 
   return (
     <div
@@ -48,7 +45,7 @@ export default function ExecutiveDateBar({
                       ? 'border-slate-200 bg-slate-50 text-slate-700'
                       : 'border-amber-200 bg-amber-50 text-amber-800'
                   }`}
-                  title={hasData ? `Số liệu ${ind.label} ngày ${formatDateDisplay(ind.data_date)}` : (ind.message || 'Chưa có dữ liệu')}
+                  title={hasData ? `${ind.label}: ${periodTitle(ind)}` : (ind.message || 'Chưa có dữ liệu')}
                 >
                   {hasData ? (
                     <CheckCircle2 size={12} className="shrink-0 text-emerald-600" />
@@ -56,7 +53,7 @@ export default function ExecutiveDateBar({
                     <AlertCircle size={12} className="shrink-0 text-amber-600" />
                   )}
                   <span className="font-bold">{ind.label}</span>
-                  <span>{hasData ? shortDate(ind.data_date) : 'Chưa có'}</span>
+                  <span>{hasData ? periodShortTitle(ind) : 'Chưa có'}</span>
                 </div>
               );
             })}
@@ -64,30 +61,62 @@ export default function ExecutiveDateBar({
         </div>
 
         <div data-no-capture="true" className="flex flex-wrap items-center gap-2">
-          <div className="flex items-center gap-2 rounded-xl border border-slate-300 bg-slate-50/70 px-3 py-1 text-xs">
-            <Calendar size={14} className="shrink-0 text-slate-500" />
-            <label htmlFor="executiveAnchorDateInput" className="whitespace-nowrap font-bold text-slate-700">
-              Ngày chốt:
-            </label>
-            <input
-              id="executiveAnchorDateInput"
-              type="date"
-              value={anchorDate || ''}
-              onChange={(e) => onAnchorDateChange(e.target.value || null)}
-              className="cursor-pointer bg-transparent font-bold text-slate-900 outline-none"
-              title="Chọn ngày chốt dữ liệu (để trống = ngày mới nhất có dữ liệu)"
-            />
-            {anchorDate && (
-              <button
-                type="button"
-                onClick={() => onAnchorDateChange(null)}
-                className="cursor-pointer text-[11px] font-semibold text-blue-600 underline hover:text-blue-800"
-                title="Quay lại ngày mới nhất mặc định"
-              >
-                Mặc định
-              </button>
-            )}
+          {/* The filter that drives every block of the page */}
+          <div className="flex items-center rounded-xl bg-slate-200/70 p-1 text-sm font-bold" role="group" aria-label="Kỳ xem số liệu">
+            {PERIOD_OPTIONS.map((option) => {
+              const active = period === option.id;
+              return (
+                <button
+                  key={option.id}
+                  type="button"
+                  onClick={() => onPeriodChange(option.id)}
+                  aria-pressed={active}
+                  className={`cursor-pointer rounded-lg px-3.5 py-1 transition-all ${
+                    active ? 'bg-[var(--color-vnpost-blue)] text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  {option.label}
+                </button>
+              );
+            })}
           </div>
+
+          {/* Back / forward through periods; "Mới nhất" returns to the latest */}
+          <div className="flex items-center gap-1 rounded-xl border border-slate-300 bg-slate-50/70 px-1 py-0.5">
+            <button
+              type="button"
+              onClick={() => onOffsetChange(offset - 1)}
+              disabled={!canGoBack}
+              className="inline-flex h-7 w-7 cursor-pointer items-center justify-center rounded-lg text-slate-700 hover:bg-white disabled:cursor-not-allowed disabled:opacity-30"
+              title="Xem kỳ trước"
+              aria-label="Xem kỳ trước"
+            >
+              <ChevronLeft size={18} />
+            </button>
+            <span className="min-w-[10.5rem] px-1 text-center text-sm font-black text-slate-900" aria-live="polite">
+              {title}
+            </span>
+            <button
+              type="button"
+              onClick={() => onOffsetChange(offset + 1)}
+              disabled={!canGoForward}
+              className="inline-flex h-7 w-7 cursor-pointer items-center justify-center rounded-lg text-slate-700 hover:bg-white disabled:cursor-not-allowed disabled:opacity-30"
+              title="Xem kỳ sau"
+              aria-label="Xem kỳ sau"
+            >
+              <ChevronRight size={18} />
+            </button>
+          </div>
+          {offset < 0 && (
+            <button
+              type="button"
+              onClick={() => onOffsetChange(0)}
+              className="cursor-pointer rounded-xl border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-bold text-blue-700 hover:bg-blue-100"
+              title="Quay lại kỳ mới nhất có dữ liệu"
+            >
+              Mới nhất
+            </button>
+          )}
 
           <button
             type="button"
@@ -103,7 +132,7 @@ export default function ExecutiveDateBar({
           <BlockCaptureButton
             targetRef={barRef}
             blockTitle="Trang chủ điều hành chất lượng"
-            dateOrPeriod={formatDateDisplay(anchorDate)}
+            dateOrPeriod={title}
           />
         </div>
       </div>

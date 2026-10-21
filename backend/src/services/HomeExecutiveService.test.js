@@ -3,14 +3,33 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { HomeExecutiveService, TARGETS } = require('./HomeExecutiveService');
+const { CANONICAL_CODES } = require('./F11RankingService');
 
-function fakeDb(dateByTable) {
+// Understands the four lookups of the service: latest day (<= anchor), k-th previous loaded day (every day
+// from firstDay to the latest has data), last loaded day inside a range, earliest day.
+function fakeDb(dateByTable, firstDay = '2026-01-01') {
+    const shift = (date, delta) => {
+        const d = new Date(`${date}T00:00:00Z`);
+        d.setUTCDate(d.getUTCDate() + delta);
+        return d.toISOString().slice(0, 10);
+    };
     return {
         get(sql, params, cb) {
             const table = Object.keys(dateByTable).find((name) => sql.includes(name));
-            const limit = params?.[0];
             const date = table ? dateByTable[table] : null;
-            cb(null, { d: date && (!limit || date <= limit ? date : limit) });
+            if (!date) return cb(null, { d: null });
+            if (sql.includes('MIN(')) return cb(null, { d: firstDay });
+            if (sql.includes('DISTINCT')) {
+                const day = shift(params[0] < date ? params[0] : date, -params[1]);
+                return cb(null, { d: day >= firstDay ? day : null });
+            }
+            if (sql.includes('BETWEEN')) {
+                const [from, upper] = params;
+                const last = date < upper ? date : upper;
+                return cb(null, { d: last >= from ? last : null });
+            }
+            const limit = params?.[0];
+            return cb(null, { d: !limit || date <= limit ? date : limit });
         },
     };
 }
@@ -102,7 +121,8 @@ test('previous day missing in the trend: change is null, not zero', async () => 
 });
 
 test('F1.3 / F4.1 list every BCVH, lowest rate first, with gap to target and failed count', async () => {
-    const rows = [99, 50, 80, 91, 70, 60].map((r, i) => ({ ma_bcvh: `U${i}`, ten_bcvh: `Unit ${i}`, total_bg: 10, passed_rate: r, total_failed: 10 - Math.round(r / 10) }));
+    const rows = [99, 50, 80, 91, 70, 60].map((r, i) => ({ ma_bcvh: CANONICAL_CODES[i], ten_bcvh: `Unit ${i}`, total_bg: 10, passed_rate: r, total_failed: 10 - Math.round(r / 10) }));
+    rows.push({ ma_bcvh: '531120', ten_bcvh: 'Khách hàng lớn', total_bg: 1, passed_rate: 0, total_failed: 1 }); // not a BCVH: left out
     const out = await service(all4(adapter({ rows }))).getExecutive();
     for (const index of [2, 3]) {
         const focus = out.indicators[index].focus_units;
@@ -221,4 +241,110 @@ test('national ranking rejects an unknown indicator and a bad date', async () =>
     const s = service(all4(adapter()));
     await assert.rejects(() => s.getNationalRanking({ indicator: 'f99' }), { code: 'INVALID_INDICATOR' });
     await assert.rejects(() => s.getExecutive({ anchorDate: '2026-13-40' }), { code: 'INVALID_DATE' });
+});
+
+// ---- period filter (HOME-BI-02): week / month cards and the back button ---------------------------------------
+
+// Daily series, 10 parcels a day, 9 passed; the period counts below are what the fake summary returns.
+function periodAdapter(extra = {}) {
+    const a = adapter();
+    const calls = { summary: [], rank: [] };
+    const counts = { '2026-10-15..2026-10-20': [60, 54], '2026-10-08..2026-10-14': [70, 63], '2026-10-01..2026-10-20': [200, 180], '2026-09-01..2026-09-30': [300, 240] };
+    a.summary = async (from, to) => {
+        calls.summary.push(`${from}..${to}`);
+        const [total, passed] = counts[`${from}..${to}`] || [0, 0];
+        return { total_bg: total, total_passed: passed, total_failed: total - passed, passed_rate: total ? Math.round((passed / total) * 10000) / 100 : 0 };
+    };
+    a.rank.getNationalRankSummary = async (from, to) => {
+        calls.rank.push(`${from}..${to}`);
+        const rank = { '2026-10-15..2026-10-20': 4, '2026-10-08..2026-10-14': 6, '2026-10-01..2026-10-20': 5, '2026-09-01..2026-09-30': 14 }[`${from}..${to}`];
+        return rank ? { available: true, rank, total: 34, metric_value: 90 } : { available: false };
+    };
+    a.trend = async (from, to) => {
+        const items = [];
+        for (let d = new Date(`${from}T00:00:00Z`); d <= new Date(`${to}T00:00:00Z`); d.setUTCDate(d.getUTCDate() + 1)) {
+            const date = d.toISOString().slice(0, 10);
+            items.push({ date, total_volume: 10, passed: 9, failed: 1, quality_rate: 90, data_available: true });
+        }
+        return { items };
+    };
+    return Object.assign(a, extra, { calls });
+}
+
+test('week filter: whole-week figures, change against the previous full week, rank movement on the same basis', async () => {
+    const a = periodAdapter();
+    const out = await service(all4(a), { fact_x: '2026-10-20' }).getExecutive({ period: 'week' });
+    const card = out.indicators[2];
+    assert.equal(card.period, 'week');
+    assert.equal(card.period_from, '2026-10-15');
+    assert.equal(card.period_to, '2026-10-20'); // running week: read to date
+    assert.equal(card.period_partial, true);
+    assert.equal(card.period_week, 42);
+    assert.equal(card.volume, 60);
+    assert.equal(card.rate, 90); // 54 / 60, from summed counts
+    assert.equal(card.previous_rate, 90);
+    assert.equal(card.rate_change, 0);
+    assert.equal(card.rank, 4);
+    assert.equal(card.previous_rank, 6);
+    assert.equal(card.rank_movement, 2); // 6 -> 4
+    assert.equal(card.trend_kind, 'week');
+    assert.ok(a.calls.summary.includes('2026-10-08..2026-10-14'));
+    assert.equal(out.period_info.period_week, 42);
+    assert.equal(out.period_info.has_next, false);
+    assert.equal(out.period_info.has_previous, true);
+});
+
+test('week filter, one step back: the whole previous Thursday-Wednesday week, no longer partial', async () => {
+    const out = await service(all4(periodAdapter()), { fact_x: '2026-10-20' }).getExecutive({ period: 'week', offset: -1 });
+    const card = out.indicators[0];
+    assert.equal(card.period_from, '2026-10-08');
+    assert.equal(card.period_to, '2026-10-14');
+    assert.equal(card.period_partial, false);
+    assert.equal(card.period_week, 41);
+    assert.equal(card.rank, 6);
+    assert.equal(out.period_info.offset, -1);
+    assert.equal(out.period_info.has_next, true);
+});
+
+test('month filter: month to date against the whole previous month; series is monthly', async () => {
+    const out = await service(all4(periodAdapter()), { fact_x: '2026-10-20' }).getExecutive({ period: 'month' });
+    const card = out.indicators[0];
+    assert.equal(card.period_from, '2026-10-01');
+    assert.equal(card.period_to, '2026-10-20');
+    assert.equal(card.period_partial, true);
+    assert.equal(card.rate, 90);
+    assert.equal(card.previous_rate, 80); // September in full: 240 / 300
+    assert.equal(card.rate_change, 10);
+    assert.equal(card.rank_movement, 9); // 14 -> 5
+    assert.equal(card.trend_kind, 'month');
+    assert.equal(card.trend.at(-1).date, '2026-10-01');
+    assert.equal(card.trend.at(-1).rate, card.rate); // the month on screen carries the card's own rate
+});
+
+test('day filter, one step back: the previous loaded day', async () => {
+    const out = await service(all4(periodAdapter()), { fact_x: '2026-10-20' }).getExecutive({ period: 'day', offset: -1 });
+    assert.equal(out.indicators[0].period_to, '2026-10-19');
+    assert.equal(out.period_info.period_to, '2026-10-19');
+});
+
+test('a period with no counts is an explicit unavailable card, not zero', async () => {
+    const out = await service(all4(periodAdapter()), { fact_x: '2026-10-20' }).getExecutive({ period: 'month', offset: -2 });
+    assert.equal(out.indicators[0].available, false);
+    assert.equal(out.indicators[0].rate, null);
+});
+
+test('invalid period / offset are rejected', async () => {
+    const s = service(all4(adapter()));
+    await assert.rejects(() => s.getExecutive({ period: 'year' }), { code: 'MISSING_PARAM' });
+    await assert.rejects(() => s.getExecutive({ offset: 1 }), { code: 'INVALID_RANGE' });
+    await assert.rejects(() => s.getExecutive({ offset: Number('x') }), { code: 'INVALID_RANGE' });
+});
+
+test('national ranking follows the same period and offset as the cards', async () => {
+    const calls = [];
+    const a = periodAdapter();
+    const base = a.rank.getNationalRanking;
+    a.rank.getNationalRanking = async (from, to) => { calls.push(`${from}..${to}`); return base(from, to); };
+    await service(all4(a), { fact_x: '2026-10-20' }).getNationalRanking({ indicator: 'f13', period: 'week', offset: -1 });
+    assert.equal(calls[0], '2026-10-08..2026-10-14');
 });

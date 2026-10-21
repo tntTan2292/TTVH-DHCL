@@ -1322,7 +1322,7 @@ class F13DashboardService {
         });
 
         const normalizedBcvh = normalizeDashboardBcvhCode(filters.bcvhId);
-        const suppressNationalRank = Boolean(filters.bcvhId && filters.bcvhId !== 'all');
+        const suppressNationalRank = Boolean(filters.bcvhId && filters.bcvhId !== 'all') || Boolean(filters.skipNationalRank);
         const items = rows.map((row) => this._normalizeDailyTrendRow(row));
         const nationalRanksByDate = suppressNationalRank ? {} : await this.getNationalRanksForDates(
             items.filter((item) => item.data_available).map((item) => item.date)

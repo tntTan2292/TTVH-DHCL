@@ -11,14 +11,18 @@
 // Each indicator is its own measure: nothing is compared or summed across indicators.
 
 const { F11NationalRankService, F11_RANK_SOURCE } = require('./F11NationalRankService');
-const { resolvePeriod } = require('./F11RankingService');
+const { resolvePeriod, CANONICAL_CODES } = require('./F11RankingService');
 const defaultDb = require('../config/db').db;
 
 const TARGETS = Object.freeze({ f11: 95, f12: 95, f13: 90, f41: 90 }); // = frontend indicatorConfig.js
 const LABELS = Object.freeze({ f11: 'F1.1', f12: 'F1.2', f13: 'F1.3', f41: 'F4.1' });
 const ORDER = Object.freeze(['f11', 'f12', 'f13', 'f41']);
 const TREND_DAYS = 30;
+const SERIES_WEEKS = 12;
+const PERIODS = Object.freeze(['day', 'week', 'month']);
+const MAX_BACK = 120; // how many periods the back button may go
 const FOCUS_UNITS = 5;
+const CANONICAL_SET = new Set(CANONICAL_CODES.map(String));
 // PO 2026-10-13: what the "units to act on" block lists for each indicator.
 //   f11 - the accepting-office x delivering-BCVH pairs with the largest volume whose rate is below 85 %
 //   f12 - the accepting offices with the largest volume whose rate is below 90 %
@@ -62,6 +66,30 @@ function shiftDate(dateStr, deltaDays) {
     return date.toISOString().slice(0, 10);
 }
 
+// Thursday-Wednesday week (the TCT quality week, PO 2026-10-21): the Thursday it starts on.
+function weekStartOf(dateStr) {
+    const dow = new Date(`${dateStr}T00:00:00Z`).getUTCDay();
+    return shiftDate(dateStr, -((dow - 4 + 7) % 7));
+}
+
+// First day of the month `delta` months away from the month of dateStr.
+function monthShift(dateStr, delta) {
+    return new Date(Date.UTC(Number(dateStr.slice(0, 4)), Number(dateStr.slice(5, 7)) - 1 + delta, 1)).toISOString().slice(0, 10);
+}
+
+// ISO 8601 number of a Thursday-Wednesday week = the ISO week of its own Thursday.
+function isoWeekOfThursday(thursday) {
+    const year = Number(thursday.slice(0, 4));
+    const dayOfYear = Math.round((Date.UTC(year, Number(thursday.slice(5, 7)) - 1, Number(thursday.slice(8, 10))) - Date.UTC(year, 0, 1)) / 86400000) + 1;
+    return { year, week: Math.floor((dayOfYear - 1) / 7) + 1 };
+}
+
+function previousPeriod(period, from) {
+    if (period === 'week') return { from: shiftDate(from, -7), to: shiftDate(from, -1) };
+    const to = shiftDate(from, -1);
+    return { from: `${to.slice(0, 7)}-01`, to };
+}
+
 function monthEnd(monthStart) {
     const next = new Date(Date.UTC(Number(monthStart.slice(0, 4)), Number(monthStart.slice(5, 7)), 1));
     return shiftDate(next.toISOString().slice(0, 10), -1);
@@ -87,6 +115,7 @@ function buildDefaultAdapters(db = defaultDb) {
     const { f12RankingService } = require('./F12RankingService');
     const { f41RankingService } = require('./F41RankingService');
     const f13DashboardService = require('./F13DashboardService');
+    const factBuuGuiRepo = require('../repositories/FactBuuGuiRepository');
     const { f12NationalRankService } = require('./F12NationalRankService');
     const { f11NationalRankService } = require('./F11NationalRankService');
 
@@ -97,30 +126,44 @@ function buildDefaultAdapters(db = defaultDb) {
     return {
         f11: {
             summary: (from, to) => f11RankingService.getSummary(from, to, {}),
-            trend: (from, to) => f11RankingService.getDailyTrend(from, to, {}),
+            trend: (from, to, opts) => f11RankingService.getDailyTrend(from, to, { ...opts }),
             ranking: (from, to) => f11RankingService.getBcvhRanking(from, to, 1, 200),
             rank: f11NationalRankService,
-            pairs: (date) => f11RankingService.getPairTable({ period: 'day', anchorDate: date }),
+            pairs: (from, to) => f11RankingService.getPairTable({ fromDate: from, toDate: to }),
             localTable: 'fact_f11',
         },
         f12: {
             summary: (from, to) => f12RankingService.getSummary(from, to, {}),
-            trend: (from, to) => f12RankingService.getDailyTrend(from, to, {}),
+            trend: (from, to, opts) => f12RankingService.getDailyTrend(from, to, { ...opts }),
             ranking: (from, to) => f12RankingService.getBcvhRanking(from, to, 1, 200),
             rank: f12NationalRankService,
-            offices: (date) => f12RankingService.getOfficeRanking(date, date, 1, 200),
+            offices: (from, to) => f12RankingService.getOfficeRanking(from, to, 1, 200),
             localTable: 'fact_f12',
         },
         f13: {
             summary: (from, to) => f13DashboardService.getDashboardKpi(from, to, {}),
-            trend: (from, to) => f13DashboardService.getDailyTrend(from, to, {}),
-            ranking: (from, to) => f13DashboardService.getBcvhRanking(from, to, 1, 200),
+            trend: (from, to, opts) => f13DashboardService.getDailyTrend(from, to, { ...opts }),
+            // The per-BCVH figures straight from the repository the F1.3 ranking itself reads (same counts, same rate
+            // rounding): the service's own getBcvhRanking also loads every shipment of the range for its route
+            // columns, which the Home block does not show and which takes seconds on a month.
+            ranking: async (from, to) => {
+                const result = await factBuuGuiRepo.getBcvhRanking(from, to, 1, 200);
+                return {
+                    data: (result.data || []).map((row) => ({
+                        ma_bcvh: row.ma_bcvh,
+                        ten_bcvh: row.ten_bcvh,
+                        total_bg: row.total_bg,
+                        total_failed: row.total_failed,
+                        passed_rate: f13DashboardService._calculateRate(row.total_passed, row.total_bg),
+                    })),
+                };
+            },
             rank: f13Rank,
             localTable: 'fact_f13',
         },
         f41: {
             summary: (from, to) => f41RankingService.getSummary(from, to, {}),
-            trend: (from, to) => f41RankingService.getDailyTrend(from, to, {}),
+            trend: (from, to, opts) => f41RankingService.getDailyTrend(from, to, { ...opts }),
             ranking: (from, to) => f41RankingService.getBcvhRanking(from, to, 1, 200),
             rank: f41Rank,
             localTable: 'fact_f41',
@@ -156,6 +199,74 @@ class HomeExecutiveService {
         return row?.d || null;
     }
 
+    // The range one indicator shows for a period filter: day = its (offset-th previous) loaded day; week / month =
+    // the Thursday-Wednesday week / calendar month that many periods back from its latest loaded day, read up
+    // to its last loaded day inside the period (so a running period is "to date"). null = no data there.
+    async _range(adapter, period, offset = 0, anchorDate = null) {
+        const latest = await this._dataDate(adapter, anchorDate);
+        if (!latest) return null;
+        const table = adapter.localTable;
+        if (period === 'day') {
+            let day = latest;
+            if (offset < 0 && table) {
+                const row = await this._get(
+                    `SELECT DISTINCT ngay_do_kiem AS d FROM ${table} WHERE ngay_do_kiem <= ? ORDER BY d DESC LIMIT 1 OFFSET ?`,
+                    [latest, -offset]
+                );
+                day = row?.d || null;
+            }
+            return day ? { period, from: day, to: day, full_to: day, latest } : null;
+        }
+        let ref = latest;
+        if (offset < 0) ref = period === 'week' ? shiftDate(latest, 7 * offset) : monthShift(latest, offset);
+        const full = resolvePeriod({ period, anchorDate: ref });
+        const upper = full.to < latest ? full.to : latest;
+        let last = upper;
+        if (table) {
+            const row = await this._get(
+                `SELECT MAX(ngay_do_kiem) AS d FROM ${table} WHERE ngay_do_kiem BETWEEN ? AND ?`,
+                [full.from, upper]
+            );
+            last = row?.d || null;
+        }
+        return last ? { period, from: full.from, to: last, full_to: full.to, latest } : null;
+    }
+
+    _periodFields(range, period) {
+        if (!range) return { period, period_from: null, period_to: null, period_partial: false, period_week: null, period_year: null };
+        const week = period === 'week' ? isoWeekOfThursday(range.from) : null;
+        return {
+            period,
+            period_from: range.from,
+            period_to: range.to,
+            period_partial: range.to < range.full_to,
+            period_week: week ? week.week : null,
+            period_year: week ? week.year : Number(range.from.slice(0, 4)),
+        };
+    }
+
+    // Top-level description of the period every card is showing (taken from the indicator that is furthest ahead).
+    async _periodInfo(ranges, period, offset) {
+        const ref = ranges.filter(Boolean).sort((a, b) => b.to.localeCompare(a.to))[0] || null;
+        const adapters = this._adapters();
+        let earliest = null;
+        for (const id of ORDER) {
+            const table = adapters[id].localTable;
+            if (!table) continue;
+            try {
+                const row = await this._get(`SELECT MIN(ngay_do_kiem) AS d FROM ${table}`);
+                if (row?.d && (!earliest || row.d < earliest)) earliest = row.d;
+            } catch { /* a missing table only means no earlier day is known */ }
+        }
+        return {
+            ...this._periodFields(ref, period),
+            offset,
+            full_to: ref ? ref.full_to : null,
+            has_previous: Boolean(ref && earliest && earliest < ref.from),
+            has_next: offset < 0,
+        };
+    }
+
     _unavailable(id, message, extra = {}) {
         return {
             id,
@@ -184,11 +295,13 @@ class HomeExecutiveService {
         };
     }
 
-    async _indicator(id, anchorDate) {
+    async _indicator(id, period, range) {
         const adapter = this._adapters()[id];
         const target = TARGETS[id];
-        const dataDate = await this._dataDate(adapter, anchorDate);
-        if (!dataDate) return this._unavailable(id, 'Chưa có dữ liệu');
+        if (!range) return this._unavailable(id, 'Chưa có dữ liệu', this._periodFields(null, period));
+        if (period !== 'day') return this._periodIndicator(id, adapter, range, period);
+        const dataDate = range.to;
+        const periodFields = this._periodFields(range, period);
 
         const trendFrom = shiftDate(dataDate, -(TREND_DAYS - 1));
         const [summary, trend, ranking] = await Promise.all([
@@ -198,7 +311,7 @@ class HomeExecutiveService {
         ]);
 
         const volume = Number(summary?.total_bg || 0);
-        if (!volume) return this._unavailable(id, `Chưa có dữ liệu chi tiết ngày ${dataDate}`, { data_date: dataDate });
+        if (!volume) return this._unavailable(id, `Chưa có dữ liệu chi tiết ngày ${dataDate}`, { data_date: dataDate, ...periodFields });
 
         const items = (trend?.items || []).map((item) => ({
             date: item.date,
@@ -213,9 +326,11 @@ class HomeExecutiveService {
         const nationalRank = summary.national_rank?.available ? summary.national_rank : null;
         const previousRate = previousItem ? previousItem.rate : null;
 
-        const focusUnits = await this._focusUnits(id, adapter, dataDate, ranking, target);
+        const focusUnits = await this._focusUnits(id, adapter, dataDate, dataDate, ranking, target);
 
         return {
+            ...periodFields,
+            trend_kind: 'day',
             id,
             label: LABELS[id],
             target_rate: target,
@@ -243,9 +358,91 @@ class HomeExecutiveService {
         };
     }
 
+    // Week / month card: the figures of the whole period (summed counts, never an average of daily rates), the
+    // national rank of the same range, and the change against the previous FULL week / month - the same basis as
+    // the rank movement of the province table and the "Diễn biến hạng lũy kế tháng" block.
+    async _periodIndicator(id, adapter, range, period) {
+        const target = TARGETS[id];
+        const { from, to } = range;
+        const periodFields = this._periodFields(range, period);
+        const prev = previousPeriod(period, from);
+        const seriesFrom = period === 'week' ? shiftDate(weekStartOf(from), -7 * (SERIES_WEEKS - 1)) : `${to.slice(0, 4)}-01-01`;
+        const [summary, prevSummary, ranking, trend, rankNow, rankPrev] = await Promise.all([
+            adapter.summary(from, to),
+            adapter.summary(prev.from, prev.to).catch(() => null),
+            adapter.ranking(from, to).catch(() => null),
+            adapter.trend(seriesFrom, to, { skipNationalRank: true }).catch(() => null),
+            adapter.rank.getNationalRankSummary(from, to).catch(() => null),
+            adapter.rank.getNationalRankSummary(prev.from, prev.to).catch(() => null),
+        ]);
+
+        const volume = Number(summary?.total_bg || 0);
+        if (!volume) return this._unavailable(id, `Chưa có dữ liệu chi tiết ${from} → ${to}`, { data_date: to, ...periodFields });
+
+        const rate = round1(summary.passed_rate);
+        const previousRate = Number(prevSummary?.total_bg || 0) ? round1(prevSummary.passed_rate) : null;
+        const rank = rankNow?.available ? Number(rankNow.rank) : null;
+        const previousRank = rankPrev?.available ? Number(rankPrev.rank) : null;
+
+        return {
+            ...periodFields,
+            trend_kind: period,
+            id,
+            label: LABELS[id],
+            target_rate: target,
+            available: true,
+            message: null,
+            data_date: to,
+            rate,
+            gap_to_target: round1(rate - target),
+            previous_date: previousRate === null ? null : prev.to,
+            previous_from: previousRate === null ? null : prev.from,
+            previous_rate: previousRate,
+            rate_change: previousRate === null ? null : round1(rate - previousRate),
+            rank,
+            total: rankNow?.available ? Number(rankNow.total) : null,
+            rank_basis_rate: rankNow?.available ? num(rankNow.metric_value) : null,
+            previous_rank: previousRank,
+            rank_movement: rank !== null && previousRank !== null ? previousRank - rank : null,
+            previous_rank_date: previousRank !== null ? `${prev.from}..${prev.to}` : null,
+            volume,
+            passed: Number(summary.total_passed || 0),
+            failed: Number(summary.total_failed || 0),
+            trend: this._periodSeries(period, trend?.items || [], from, rate),
+            monthly_rank: await this._monthlyRank(adapter, to),
+            focus_units: await this._focusUnits(id, adapter, from, to, ranking, target),
+        };
+    }
+
+    // Weekly (last 12 Thursday-Wednesday weeks) or monthly (January to the shown month) rate series, built from
+    // the summed daily counts. The point of the period on screen carries the card's own rate.
+    _periodSeries(period, items, currentFrom, currentRate) {
+        const keyOf = (date) => (period === 'week' ? weekStartOf(date) : `${date.slice(0, 7)}-01`);
+        const currentKey = keyOf(currentFrom);
+        const groups = new Map();
+        for (const item of items) {
+            if (!item.data_available) continue;
+            const key = keyOf(item.date);
+            const group = groups.get(key) || { volume: 0, passed: 0 };
+            group.volume += Number(item.total_volume || 0);
+            group.passed += Number(item.passed || 0);
+            groups.set(key, group);
+        }
+        const points = [...groups.entries()]
+            .filter(([, group]) => group.volume > 0)
+            .sort(([a], [b]) => a.localeCompare(b))
+            .map(([key, group]) => ({
+                date: key,
+                rate: key === currentKey ? currentRate : round1((group.passed / group.volume) * 100),
+                rank: null,
+                volume: group.volume,
+            }));
+        return period === 'week' ? points.slice(-SERIES_WEEKS) : points;
+    }
+
     // The "units to act on" of one indicator (see FOCUS). A failure here must not hide the card: the list is
     // simply empty and the block says there is nothing to show.
-    async _focusUnits(id, adapter, dataDate, ranking, target) {
+    async _focusUnits(id, adapter, from, to, ranking, target) {
         const { kind, threshold } = FOCUS[id];
         const gap = (rate) => round1(rate - target);
         const biggestBelow = (items) => items
@@ -254,7 +451,7 @@ class HomeExecutiveService {
             .slice(0, FOCUS_UNITS);
         try {
             if (kind === 'pairs' && adapter.pairs) {
-                const table = await adapter.pairs(dataDate);
+                const table = await adapter.pairs(from, to);
                 const items = [];
                 for (const row of table?.rows || []) {
                     for (const column of table.columns || []) {
@@ -276,7 +473,7 @@ class HomeExecutiveService {
                 return { kind, threshold, items: biggestBelow(items) };
             }
             if (kind === 'offices' && adapter.offices) {
-                const result = await adapter.offices(dataDate);
+                const result = await adapter.offices(from, to);
                 const items = (result?.data || [])
                     .filter((row) => Number(row.total_bg || 0) > 0 && row.passed_rate !== null && row.passed_rate !== undefined)
                     .map((row) => ({
@@ -290,8 +487,9 @@ class HomeExecutiveService {
                     }));
                 return { kind, threshold, items: biggestBelow(items) };
             }
+            // the six canonical BCVH only: a stray code (e.g. the large-customer code with one parcel) is not a BCVH
             const items = (ranking?.data || [])
-                .filter((row) => Number(row.total_bg ?? row.sl_bg_ptc ?? 0) > 0)
+                .filter((row) => CANONICAL_SET.has(String(row.ma_bcvh)) && Number(row.total_bg ?? row.sl_bg_ptc ?? 0) > 0)
                 .sort((a, b) => Number(a.passed_rate) - Number(b.passed_rate))
                 .map((row) => ({
                     key: String(row.ma_bcvh),
@@ -331,21 +529,31 @@ class HomeExecutiveService {
         return results;
     }
 
-    // GET /api/home/executive
-    async getExecutive({ anchorDate } = {}) {
+    // GET /api/home/executive?period=day|week|month&offset=0|-1|-2...  (offset 0 = the latest period with data)
+    async getExecutive({ anchorDate, period = 'day', offset = 0 } = {}) {
         if (anchorDate && !isIsoDate(anchorDate)) throw codedError('INVALID_DATE', 'anchor_date must be a valid ISO date in YYYY-MM-DD format');
-        const indicators = await Promise.all(ORDER.map(async (id) => {
+        if (!PERIODS.includes(period)) throw codedError('MISSING_PARAM', 'period must be one of day, week, month');
+        if (!Number.isInteger(offset) || offset > 0 || offset < -MAX_BACK) throw codedError('INVALID_RANGE', `offset must be an integer from -${MAX_BACK} to 0`);
+        const adapters = this._adapters();
+        const ranges = await Promise.all(ORDER.map((id) => this._range(adapters[id], period, offset, anchorDate || null).catch(() => null)));
+        const indicators = await Promise.all(ORDER.map(async (id, index) => {
             try {
-                return await this._indicator(id, anchorDate || null);
+                return await this._indicator(id, period, ranges[index]);
             } catch (error) {
-                return this._unavailable(id, 'Không đọc được dữ liệu của chỉ tiêu này');
+                return this._unavailable(id, 'Không đọc được dữ liệu của chỉ tiêu này', this._periodFields(null, period));
             }
         }));
-        return { anchor_date: anchorDate || null, indicators };
+        return {
+            anchor_date: anchorDate || null,
+            period,
+            offset,
+            period_info: await this._periodInfo(ranges, period, offset),
+            indicators,
+        };
     }
 
     // GET /api/home/national-ranking?indicator=&period=&anchor_date=
-    async getNationalRanking({ indicator, period = 'day', anchorDate, fromDate, toDate } = {}) {
+    async getNationalRanking({ indicator, period = 'day', anchorDate, fromDate, toDate, offset = 0 } = {}) {
         if (!ORDER.includes(indicator)) throw codedError('INVALID_INDICATOR', 'indicator must be one of f11, f12, f13, f41');
         const adapter = this._adapters()[indicator];
 
@@ -353,11 +561,12 @@ class HomeExecutiveService {
         if (fromDate || toDate) {
             range = resolvePeriod({ fromDate, toDate });
         } else {
-            const effective = anchorDate || await this._dataDate(adapter, null);
-            if (!effective) return this._emptyRanking(indicator, 'Chưa có dữ liệu xếp hạng toàn quốc');
-            range = resolvePeriod({ period, anchorDate: effective });
-            // A week / month still running is read up to the anchor, never past the last loaded day.
-            if (range.to > effective) range = { ...range, to: effective };
+            if (!PERIODS.includes(period)) throw codedError('MISSING_PARAM', 'period must be one of day, week, month');
+            if (!Number.isInteger(offset) || offset > 0 || offset < -MAX_BACK) throw codedError('INVALID_RANGE', `offset must be an integer from -${MAX_BACK} to 0`);
+            // The same range the cards show (a running week / month is read up to its last loaded day).
+            const found = await this._range(adapter, period, offset, anchorDate || null);
+            if (!found) return this._emptyRanking(indicator, 'Chưa có dữ liệu xếp hạng toàn quốc');
+            range = { period, from: found.from, to: found.to };
         }
 
         const table = await adapter.rank.getNationalRanking(range.from, range.to);
@@ -416,15 +625,7 @@ class HomeExecutiveService {
     async _movementBasis(adapter, range, table) {
         const dayBasis = { basis: 'day', previous_period: table.previous_period, ranks: null };
         if (range.period !== 'week' && range.period !== 'month') return dayBasis;
-        let from;
-        let to;
-        if (range.period === 'week') {
-            from = shiftDate(range.from, -7);
-            to = shiftDate(range.from, -1);
-        } else {
-            to = shiftDate(range.from, -1);
-            from = `${to.slice(0, 7)}-01`;
-        }
+        const { from, to } = previousPeriod(range.period, range.from);
         let previous = null;
         try {
             previous = await adapter.rank.getNationalRanking(from, to);

@@ -17,6 +17,7 @@ import {
 } from '../../../components/f13/f13HeatmapBandCatalog.js';
 import { shortProvinceName } from '../homeNames.js';
 import { INDICATORS, indicatorTheme } from '../../indicator/indicatorConfig.js';
+import { formatDayMonth, previousBasisLabel } from '../homePeriod.js';
 import { IndicatorProvider } from '../../indicator/IndicatorContext.js';
 import {
   filterProvincesByMode,
@@ -30,7 +31,6 @@ export default function NationalRankingBlock({
   selectedIndicator = 'f11',
   onSelectIndicator,
   period = 'day',
-  onPeriodChange,
   rankingData,
   loading,
 }) {
@@ -58,10 +58,15 @@ export default function NationalRankingBlock({
     return filterProvincesByMode(sortedItems, viewMode);
   }, [sortedItems, viewMode]);
 
-  const movementBasisLabel = { week: 'tuần trước', month: 'tháng trước' }[rankingData?.movement_basis] || 'ngày trước';
+  const movementBasisLabel = rankingData?.movement_basis ? previousBasisLabel(rankingData.movement_basis).replace('hôm', 'ngày') : 'kỳ trước';
   const periodLabel = period === 'day' ? 'Ngày' : period === 'week' ? 'Tuần' : 'Tháng';
   const periodRangeLabel = rankingData?.period_start && rankingData?.period_end
     ? `${rankingData.period_start} → ${rankingData.period_end}`
+    : '';
+  const periodChip = rankingData?.period_start && rankingData?.period_end
+    ? (rankingData.period_start === rankingData.period_end
+      ? formatDayMonth(rankingData.period_end)
+      : `${formatDayMonth(rankingData.period_start)} → ${formatDayMonth(rankingData.period_end)}`)
     : '';
 
   return (
@@ -81,6 +86,11 @@ export default function NationalRankingBlock({
               <span className={`rounded-full border px-2.5 py-0.5 text-xs font-bold ${theme.chip}`}>
                 {indConfig.moduleLabel} · Mục tiêu {targetRate}%
               </span>
+              {periodChip && (
+                <span className="rounded-full border border-slate-200 bg-white px-2.5 py-0.5 text-xs font-bold text-slate-600">
+                  {periodLabel} · {periodChip}
+                </span>
+              )}
             </div>
           </div>
 
@@ -103,31 +113,6 @@ export default function NationalRankingBlock({
                     }`}
                   >
                     {ind.moduleLabel}
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Period switcher */}
-            <div className="flex items-center rounded-xl bg-slate-200/70 p-1 text-xs font-bold">
-              {[
-                { id: 'day', label: 'Ngày' },
-                { id: 'week', label: 'Tuần' },
-                { id: 'month', label: 'Tháng' },
-              ].map((p) => {
-                const active = period === p.id;
-                return (
-                  <button
-                    key={p.id}
-                    type="button"
-                    onClick={() => onPeriodChange(p.id)}
-                    className={`rounded-lg px-2.5 py-1 transition-all cursor-pointer ${
-                      active
-                        ? `${theme.button} shadow-2xs`
-                        : 'text-slate-600 hover:text-slate-900'
-                    }`}
-                  >
-                    {p.label}
                   </button>
                 );
               })}

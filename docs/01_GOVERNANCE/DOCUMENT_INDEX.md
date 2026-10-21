@@ -1103,6 +1103,7 @@ Validation: 15 new backend tests (13 service unit + 2 real in-memory SQLite repo
 | `docs/10_TICKETS/F12-DASHBOARD-UI-01_OPUS_REVIEW_PROMPT.md` | Review Prompt | F12-DASHBOARD-RANKING-01 + F12-DASHBOARD-UI-01: independent Opus review prompt (backend commit e01e413, UI commit cc8fa0e). |
 | `docs/10_TICKETS/F12-DASHBOARD-UI-01_OPUS_REVIEW_PROMPT_R2.md` | Review Prompt | F12 dashboard round 2: Opus re-review of the fixes for blockers C1/C2 and N1-N3 (commit e244a3c). |
 | `docs/10_TICKETS/HOME-BI-01_MANIFEST.md` | Ticket Manifest | HOME-BI-01: executive Home page (rate + national rank of F1.1/F1.2/F1.3/F4.1); backend phase B1 and UI phase U1. |
+| `docs/10_TICKETS/HOME-BI-02_MANIFEST.md` | Ticket Manifest | HOME-BI-02: Home page Ngày / Tuần / Tháng filter with back / forward buttons driving the cards, province ranking and action block. |
 | `docs/10_TICKETS/HOME-BI-01_ANTIGRAVITY_PROMPT.md` | Executor Prompt | HOME-BI-01: lean prompt for Antigravity (send after B1). |
 | `docs/10_TICKETS/HOME-BI-01_ANTIGRAVITY_PROMPT_R1.md` | Executor Prompt | HOME-BI-01 round 1: lean fix prompt for Antigravity (five review defects, manifest Section 8). |
 | `docs/07_REFERENCE/Domains/domain_quality_management/f1.2_chat_luong_thu_gom_lien_tinh/` (8 files) | Domain Reference (SSOT) | F1.2 package: metadata (target 95 %), core_knowledge, business_rules BR-1..BR-10 (PD-F12-1..12), measurement (F12_001..003, 37-unit baseline 10/10), data_blueprint, testing_scenarios, rca_ai_context, changelog. | L2 | Active Onboarding | Before any F1.2 design or code. | Mandatory |
