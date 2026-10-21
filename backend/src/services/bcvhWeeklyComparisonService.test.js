@@ -405,3 +405,83 @@ test('national rank: weekly trend carries a rank per week (display range of that
     const result = await service.trendWeeks('2026-W37');
     assert.deepEqual(result.weeks.map((w) => w.national_rank), [{ rank: 30, total: 34 }, { rank: 25, total: 34 }]);
 });
+
+// UI-TREND-7DAY-CUM-01: rolling 7-day window against the same 7 weekdays one week earlier.
+test('compareRollingWindow: 7 days ending at to_date vs the 7 days ending at to_date-7, same weekdays', async () => {
+    const calls = { bounds: null, ranks: [] };
+    const service = new BcvhWeeklyComparisonService({
+        repository: {
+            getBcvhWeeklyComparisonAggregate: async (boundsA, boundsB) => {
+                calls.bounds = { boundsA, boundsB };
+                // Unequal volumes: the cumulative rate must be summed passed / summed volume.
+                return CODES.map((code, index) => ({
+                    ma_bcvh: code,
+                    volume_a: index === 0 ? 1000 : 10,
+                    passed_a: index === 0 ? 900 : 5,
+                    volume_b: index === 0 ? 500 : 10,
+                    passed_b: index === 0 ? 400 : 5,
+                }));
+            },
+        },
+        dashboardService: {
+            getNationalRankSummary: async (from, to) => {
+                calls.ranks.push([from, to]);
+                return { available: true, rank: calls.ranks.length === 1 ? 3 : 8, total: 34 };
+            },
+        },
+    });
+
+    // 2026-10-20 is a Tuesday: window Wed 14/10..Tue 20/10 against Wed 07/10..Tue 13/10.
+    const result = await service.compareRollingWindow('2026-10-20');
+    assert.deepEqual(calls.bounds.boundsA, { from: '2026-10-14', to: '2026-10-20' });
+    assert.deepEqual(calls.bounds.boundsB, { from: '2026-10-07', to: '2026-10-13' });
+    assert.deepEqual(result.current_range, { from: '2026-10-14', to: '2026-10-20' });
+    assert.deepEqual(result.compare_range, { from: '2026-10-07', to: '2026-10-13' });
+    assert.equal(new Date('2026-10-14T00:00:00Z').getUTCDay(), new Date('2026-10-07T00:00:00Z').getUTCDay());
+    assert.equal(result.window_days, 7);
+    assert.deepEqual(result.scope, { type: 'all' });
+
+    // 950 / 1050 and 425 / 550: not the mean of the six unit rates.
+    assert.equal(result.summary.current.volume, 1050);
+    assert.equal(result.summary.current.passed, 925);
+    assert.equal(result.summary.current.rate, Number(((925 / 1050) * 100).toFixed(4)));
+    assert.equal(result.summary.compare.volume, 550);
+    assert.equal(result.summary.compare.rate, Number(((425 / 550) * 100).toFixed(4)));
+    assert.equal(result.summary.volume_delta, 500);
+    assert.deepEqual(result.national_rank, { current: { rank: 3, total: 34 }, compare: { rank: 8, total: 34 } });
+    assert.deepEqual(calls.ranks.sort(), [['2026-10-07', '2026-10-13'], ['2026-10-14', '2026-10-20']]);
+});
+
+test('compareRollingWindow: a specific BCVH returns its own totals and no national rank', async () => {
+    const service = new BcvhWeeklyComparisonService({
+        repository: {
+            getBcvhWeeklyComparisonAggregate: async () => CODES.map((code, index) => ({
+                ma_bcvh: code, volume_a: 100 * (index + 1), passed_a: 50 * (index + 1), volume_b: 0, passed_b: 0,
+            })),
+        },
+        dashboardService: { getNationalRankSummary: async () => { throw new Error('rank must not be asked'); } },
+    });
+    const result = await service.compareRollingWindow('2026-10-20', { bcvhId: CODES[1] });
+    assert.deepEqual(result.scope, { type: 'bcvh', ma_bcvh: CODES[1] });
+    assert.equal(result.summary.current.volume, 200);
+    assert.equal(result.summary.current.rate, 50);
+    assert.equal(result.summary.compare.rate, null, 'an empty comparison window has no rate, not 0');
+    assert.equal(result.summary.rate_delta, null);
+    assert.equal(result.national_rank, null);
+});
+
+test('compareRollingWindow: rejects a bad date and an unknown BCVH with coded errors', async () => {
+    const service = new BcvhWeeklyComparisonService({ repository: { getBcvhWeeklyComparisonAggregate: async () => [] } });
+    await assert.rejects(() => service.compareRollingWindow('2026-02-30'), { code: 'INVALID_DATE' });
+    await assert.rejects(() => service.compareRollingWindow(undefined), { code: 'INVALID_DATE' });
+    await assert.rejects(() => service.compareRollingWindow('2026-10-20', { bcvhId: '000000' }), { code: 'INVALID_BCVH' });
+});
+
+test('compareRollingWindow: the national rank stays null when no rank service is wired', async () => {
+    const service = new BcvhWeeklyComparisonService({
+        repository: { getBcvhWeeklyComparisonAggregate: async () => [] },
+    });
+    const result = await service.compareRollingWindow('2026-10-20');
+    assert.deepEqual(result.national_rank, { current: null, compare: null });
+    assert.equal(result.summary.current.rate, null);
+});

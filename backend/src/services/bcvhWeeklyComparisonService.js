@@ -346,6 +346,52 @@ class BcvhWeeklyComparisonService {
         };
     }
 
+    // Rolling 7-day window (PO 2026-10-21, UI-TREND-7DAY-CUM-01): the 7 days ending at `toDate` -- the
+    // days on the 7-day chart -- against the 7 days ending at toDate-7, so day N of the window is the
+    // same weekday in both (cut by weekday, not by the Thu-Wed week). The rate is cumulative
+    // (summed passed / summed volume, not a mean of daily rates) and the national rank is of that
+    // whole range. A specific BCVH gets its own totals and no national rank (as the dashboard header).
+    async compareRollingWindow(toDate, { bcvhId = null } = {}) {
+        const isIso = typeof toDate === 'string'
+            && /^\d{4}-\d{2}-\d{2}$/.test(toDate)
+            && new Date(`${toDate}T00:00:00Z`).toISOString().slice(0, 10) === toDate;
+        if (!isIso) {
+            const error = new Error('to_date must be a valid ISO date in YYYY-MM-DD format');
+            error.code = 'INVALID_DATE';
+            throw error;
+        }
+        if (bcvhId && !this.codes.includes(bcvhId)) {
+            const error = new Error('Mã BCVH không hợp lệ.');
+            error.code = 'INVALID_BCVH';
+            throw error;
+        }
+
+        const current = { from: shiftIsoDate(toDate, -6), to: toDate };
+        const compare = { from: shiftIsoDate(toDate, -13), to: shiftIsoDate(toDate, -7) };
+        const [comparison, rankCurrent, rankCompare] = await Promise.all([
+            this._buildComparison(current, compare),
+            bcvhId ? null : this._nationalRank(current.from, current.to),
+            bcvhId ? null : this._nationalRank(compare.from, compare.to),
+        ]);
+        const summary = bcvhId
+            ? comparison.rows.find((row) => row.ma_bcvh === bcvhId)
+            : comparison.total_row;
+
+        return {
+            window_days: 7,
+            current_range: current,
+            compare_range: compare,
+            scope: bcvhId ? { type: 'bcvh', ma_bcvh: bcvhId } : { type: 'all' },
+            summary: {
+                current: summary.current,
+                compare: summary.compare,
+                rate_delta: summary.rate_delta,
+                volume_delta: summary.volume_delta,
+            },
+            national_rank: bcvhId ? null : { current: rankCurrent, compare: rankCompare },
+        };
+    }
+
     async _buildComparison(boundsA, boundsB) {
         const rows = await this.repository.getBcvhWeeklyComparisonAggregate(boundsA, boundsB, this.codes);
         const rowByBcvh = new Map(rows.map((row) => [row.ma_bcvh, row]));

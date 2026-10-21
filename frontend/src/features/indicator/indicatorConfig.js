@@ -22,6 +22,7 @@ const COMMON_ENDPOINTS = Object.freeze({
   overview: '/ranking/bcvh/overview',
   weeks: '/ranking/bcvh/weeks',
   weeklyComparison: '/ranking/bcvh/weekly-comparison',
+  windowComparison: '/ranking/bcvh/window-comparison',
   weeklyTrend: '/ranking/bcvh/weekly-trend',
   months: '/ranking/bcvh/months',
   monthlyComparison: '/ranking/bcvh/monthly-comparison',

@@ -178,6 +178,7 @@ class F41RankingService {
     getOverview(anchorDate) { return this.overviewService.getOverview(anchorDate); }
     listWeeks() { return this.weeklyService.listWeeks(); }
     compareWeeks(week, compareWeek) { return this.weeklyService.compareWeeks(week, compareWeek); }
+    compareRollingWindow(toDate, options) { return this.weeklyService.compareRollingWindow(toDate, options); }
     trendWeeks(week, options) { return this.weeklyService.trendWeeks(week, options); }
     listMonths() { return this.weeklyService.listMonths(); }
     compareMonths(month, compareMonth, options) { return this.weeklyService.compareMonths(month, compareMonth, options); }

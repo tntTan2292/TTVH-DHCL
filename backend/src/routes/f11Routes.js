@@ -23,6 +23,7 @@ router.get('/dashboard/national-ranking', ...allowViewerRead, f11RankingControll
 router.get('/ranking/bcvh/overview', ...allowViewerRead, f11RankingController.getOverview);
 router.get('/ranking/bcvh/weeks', ...allowViewerRead, f11RankingController.getWeeks);
 router.get('/ranking/bcvh/weekly-comparison', ...allowViewerRead, f11RankingController.getWeeklyComparison);
+router.get('/ranking/bcvh/window-comparison', ...allowViewerRead, f11RankingController.getWindowComparison);
 router.get('/ranking/bcvh/weekly-trend', ...allowViewerRead, f11RankingController.getWeeklyTrend);
 router.get('/ranking/bcvh/months', ...allowViewerRead, f11RankingController.getMonths);
 router.get('/ranking/bcvh/monthly-comparison', ...allowViewerRead, f11RankingController.getMonthlyComparison);

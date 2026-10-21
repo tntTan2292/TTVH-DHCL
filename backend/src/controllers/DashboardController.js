@@ -140,6 +140,21 @@ class DashboardController {
         }
     }
 
+    async getBcvhWindowComparison(req, res) {
+        try {
+            const { to_date: toDate, ma_bcvh: maBcvh } = req.query;
+            const bcvhId = maBcvh && maBcvh !== 'all' ? String(maBcvh) : null;
+            const result = await bcvhWeeklyComparisonService.compareRollingWindow(toDate, { bcvhId });
+            res.status(200).json({ success: true, data: result });
+        } catch (error) {
+            const status = ['INVALID_DATE', 'INVALID_BCVH'].includes(error?.code) ? 400 : 500;
+            res.status(status).json({
+                success: false,
+                error: { code: error?.code || 'SERVER_ERROR', message: error.message },
+            });
+        }
+    }
+
     async getBcvhWeeklyTrend(req, res) {
         try {
             const { week, limit } = req.query;

@@ -26,6 +26,7 @@ router.get('/ranking/offices/overview', ...allowViewerRead, f12RankingController
 router.get('/ranking/offices', ...allowViewerRead, f12RankingController.getOfficeRanking);
 router.get('/ranking/bcvh/weeks', ...allowViewerRead, f12RankingController.getWeeks);
 router.get('/ranking/bcvh/weekly-comparison', ...allowViewerRead, f12RankingController.getWeeklyComparison);
+router.get('/ranking/bcvh/window-comparison', ...allowViewerRead, f12RankingController.getWindowComparison);
 router.get('/ranking/bcvh/weekly-trend', ...allowViewerRead, f12RankingController.getWeeklyTrend);
 router.get('/ranking/bcvh/months', ...allowViewerRead, f12RankingController.getMonths);
 router.get('/ranking/bcvh/monthly-comparison', ...allowViewerRead, f12RankingController.getMonthlyComparison);

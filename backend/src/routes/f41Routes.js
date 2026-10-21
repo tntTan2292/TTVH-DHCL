@@ -28,6 +28,7 @@ router.get('/dashboard/daily-trend', ...allowViewerRead, f41RankingController.ge
 router.get('/ranking/bcvh/overview', ...allowViewerRead, f41RankingController.getOverview);
 router.get('/ranking/bcvh/weeks', ...allowViewerRead, f41RankingController.getWeeks);
 router.get('/ranking/bcvh/weekly-comparison', ...allowViewerRead, f41RankingController.getWeeklyComparison);
+router.get('/ranking/bcvh/window-comparison', ...allowViewerRead, f41RankingController.getWindowComparison);
 router.get('/ranking/bcvh/weekly-trend', ...allowViewerRead, f41RankingController.getWeeklyTrend);
 router.get('/ranking/bcvh/months', ...allowViewerRead, f41RankingController.getMonths);
 router.get('/ranking/bcvh/monthly-comparison', ...allowViewerRead, f41RankingController.getMonthlyComparison);

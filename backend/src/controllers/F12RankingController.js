@@ -99,6 +99,10 @@ function createController(service = f12RankingService) {
             try { ok(res, { data: await service.compareWeeks(req.query.week, req.query.compare_week) }); } catch (error) { fail(res, error); }
         },
 
+        async getWindowComparison(req, res) {
+            try { ok(res, { data: await service.compareRollingWindow(req.query.to_date, { bcvhId: bcvhParam(req.query.ma_bcvh) }) }); } catch (error) { fail(res, error); }
+        },
+
         async getWeeklyTrend(req, res) {
             try { ok(res, { data: await service.trendWeeks(req.query.week, { limit: req.query.limit }) }); } catch (error) { fail(res, error); }
         },

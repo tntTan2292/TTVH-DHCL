@@ -2385,3 +2385,7 @@ The interactive DKCL window was hidden only after a typed login; it stayed visib
 ## 2026-10-21 - AUTO-IMPORT-SCHEDULE-01 FIX: DKCL LOGIN WINDOW NO LONGER VANISHES ON "ĐĂNG NHẬP QUA PORTAL"
 
 Live check found the window disappearing as soon as "Đăng nhập qua portal" was clicked: the portal redirect cancelled the window's own page load (net::ERR_ABORTED), which was treated as a failed opening and closed the window. A cancelled navigation is now tolerated, only a DKCL-host page counts as signed in, and the window is never hidden before sign-in is confirmed. 3 new tests; a live re-check by the PO is pending. Manifest: docs/10_TICKETS/AUTO-IMPORT-SCHEDULE-01_MANIFEST.md Section 7.1.
+
+## 2026-10-21 - UI-TREND-7DAY-CUM-01 BACKEND: 7-DAY CUMULATIVE RATE AND NATIONAL RANK
+
+PO asked for a compact "Xu hướng điều hành tổng hợp" block, a bigger chart and table, the cumulative rate and national rank of the 7 days on the chart against the same 7 weekdays one week earlier, and no "Theo BCVH" tab. New GET /ranking/bcvh/window-comparison for F1.3, F4.1, F1.1, F1.2 (shared service method compareRollingWindow); 4 new tests, real-DB smoke on all four. UI handed to Antigravity, then Opus review and PO check. Manifest: docs/10_TICKETS/UI-TREND-7DAY-CUM-01_MANIFEST.md.
