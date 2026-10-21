@@ -104,4 +104,8 @@ PO đánh giá: bản `d60c4dc` (mục 9) **quá hẹp, "sát rạt, chi chít c
 >   7. *Cắt cột bảng ở màn hẹp:* Thiết lập `min-w-[560px]` kèm `overflow-x-auto min-w-full`, bảng cuộn ngang mượt mà khi cửa sổ quá hẹp thay vì cắt chữ.
 > - **Tầm nhìn màn hình đầu tiên (1366 × 768 @ 100%):** Tổng chiều cao từ đỉnh trang đến các hàng đầu của bảng xếp hạng ~510px, hoàn toàn hiển thị trọn vẹn: Thanh điều hành + 4 thẻ chỉ tiêu + Tiêu đề & 4 ô Huế & đầu bảng xếp hạng 34 tỉnh. Phần còn lại cuộn dọc mượt mà.
 > - **Chất lượng kiểm tra:** Build xanh (`vite build` 1.86s), lint xanh (0 error), toàn bộ 31 test home (`src/features/home/**/*.test.js`) và 617 test frontend (`src/features/**/*.test.js`) đều PASS. Dừng ở `READY FOR PO CHECK`.
+>
+> - **Chỉnh sửa theo góp ý của PO (2026-10-21, vòng 2):**
+>   1. *Cân bằng chiều cao:* Thiết lập `items-stretch` ở lưới trang + `flex-1` ở `ActionUnitsBlock`, đảm bảo mép dưới của khối xếp hạng 34 tỉnh và mép dưới của khối phải luôn thẳng hàng bằng nhau về chiều cao (không bị hẫng khoảng trống dưới khối phải). Hàng bảng vẫn giữ nguyên chiều cao tự nhiên (~36px) chứ không bị kéo giãn.
+>   2. *Sửa đè chữ "Xem đầy đủ":* Tách chip phụ của `ActionUnitsBlock` thành dòng nhãn riêng phía dưới header, giúp nút "Xem đầy đủ" và camera trên thanh tiêu đề hoàn toàn thông thoáng, triệt tiêu 100% hiện tượng đè chữ với huy hiệu.
 
