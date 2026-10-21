@@ -45,3 +45,11 @@ Not verified live: a real 07:30 run and whether the keep-alive extends the real 
 
 The PO asked to delete the DKCL account keys from `.env`: they had been replaced many times and the sign-in is manual (portal.vnpost.vn with a captcha). Removed from the local `.env` (not tracked) and from `.env.example`: `PORTAL_HUE_USERNAME`, `PORTAL_HUE_PASSWORD`, `PORTAL_HUE_HRM_CODE`, `PORTAL_NATIONAL_USERNAME`, `PORTAL_NATIONAL_PASSWORD`, and three unused leftover lines (a hangton URL and `Username` / `password`; the hangton job reads `HANGTON_*` from `backend/.hangton.env`). Kept: `PORTAL_BASE_URL`, the `DKCL_HUE_*` settings, `QIS_VIEWER_*`, `QIS_AGG_READ`.
 Effect: nothing in the Auto Backfill flow reads these keys (it uses the live session or `requireExistingSession`). Only the old Data Import Center HUE F1.3 panel (`/import/dkcl/hue/f13/sync` and `backfill-queue`, `dkclHueF13SyncService.runWorkflow`) tried a form login with them, which the SSO portal no longer allows; it now stops with `MISSING_CREDENTIALS` instead of a failed login. `AUTO-IMPORT-001_SECURE_LOCAL_CREDENTIAL_SETUP.md` (2026-07-19) describes the old setup and is historical.
+
+
+## 7. DKCL browser window hides once the session is ready (2026-10-21)
+
+Defect: the interactive DKCL window was hidden only after a typed login. It stayed on screen when the saved session was already valid at open (`interactiveAuthenticatedOnOpen`, the case every `reattachSession` window is in) and when the F1.3 page became ready only on a later probe (SOURCE_PAGE_REQUIRED recovery, `probeAndMaybeExpireClient`). A failed hide was never retried.
+Fix (`dkclSessionPreflightService.js`): one `hideWindowIfVisible()` used by the login task and by every ready outcome of the probe. It does nothing when the window is already hidden or an operation owns the session, tolerates a client without a hide function, and a hide that failed is retried by the next ready probe.
+Validation: `src/services/dkclSessionWindowHide.test.js` 7/7 (5 of them fail on the previous code); `autoImport015.test.js` 7/7, `test_autoImportScheduler.js` 14/14, `test_autoBackfillSafety.js` 11/11. Not verified live on Windows (needs a backend restart and a look at the real window).
+Residual: HUE broker mode has no hide logic (off today).

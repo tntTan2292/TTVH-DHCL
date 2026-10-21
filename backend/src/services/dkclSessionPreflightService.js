@@ -251,6 +251,25 @@ class DkclSessionPreflightService {
         return { record, recoveredState };
     }
 
+    /**
+     * Puts the interactive browser window away once the session is ready (the login is over and the work runs in the
+     * background). Does nothing while the window is already hidden or while an operation owns the session; a hide that
+     * failed is retried on the next ready probe. Resolves whether the window is now hidden and never throws.
+     */
+    async hideWindowIfVisible(sourceConfig, entry, client, profileDir = undefined) {
+        if (entry.windowHidden) return true;
+        if (!client || entry.activeOperation) return false;
+        const hideWindow = client.hideWindow || client.hideBrowserWindow;
+        if (typeof hideWindow !== 'function') return false;
+        const hidden = Boolean(await hideWindow.call(client).catch(() => false));
+        this.transitionEntry(sourceConfig.source, entry, DKCL_LIFECYCLE_STATES.F13_READY, {
+            hideAttempted: true,
+            windowHidden: hidden,
+            ...(profileDir ? { profileDir } : {})
+        });
+        return hidden;
+    }
+
     async reuseInteractiveClient(sourceConfig, entry) {
         if (!entry.client) return null;
 
@@ -453,20 +472,24 @@ class DkclSessionPreflightService {
             return { ready, authenticated, hasLoginInput };
         };
 
+        // The F1.3 page may only become ready on a later probe (SOURCE_PAGE_REQUIRED recovery) while the window was
+        // left visible for the login: once the session is ready, put the window away exactly as a fresh login does.
+        const readyResponse = async () => {
+            entry.lastValidatedDate = today;
+            entry.lastValidatedAt = Date.now();
+            this.transitionEntry(sourceConfig.source, entry, DKCL_LIFECYCLE_STATES.F13_READY, { authenticated: true, backgroundReady: true });
+            await this.hideWindowIfVisible(sourceConfig, entry, client);
+            return { source: sourceConfig.source, status: PREFLIGHT_STATUSES.SESSION_VALID, interactive: true, source_page_ready: true, ...lifecyclePayload(entry) };
+        };
+
         let probe = await check();
         if (!probe.ready && probe.authenticated) {
             this.transitionEntry(sourceConfig.source, entry, DKCL_LIFECYCLE_STATES.F13_OPENING, { authenticated: true, backgroundReady: false });
             await client.openF13Report?.().catch(() => {});
-            entry.lastValidatedDate = today;
-            entry.lastValidatedAt = Date.now();
-            this.transitionEntry(sourceConfig.source, entry, DKCL_LIFECYCLE_STATES.F13_READY, { authenticated: true, backgroundReady: true });
-            return { source: sourceConfig.source, status: PREFLIGHT_STATUSES.SESSION_VALID, interactive: true, source_page_ready: true, ...lifecyclePayload(entry) };
+            return readyResponse();
         }
         if (probe.ready) {
-            entry.lastValidatedDate = today;
-            entry.lastValidatedAt = Date.now();
-            this.transitionEntry(sourceConfig.source, entry, DKCL_LIFECYCLE_STATES.F13_READY, { authenticated: true, backgroundReady: true });
-            return { source: sourceConfig.source, status: PREFLIGHT_STATUSES.SESSION_VALID, interactive: true, source_page_ready: true, ...lifecyclePayload(entry) };
+            return readyResponse();
         }
 
         // Bounded retry before concluding anything — a single false reading is plausibly a
@@ -478,16 +501,10 @@ class DkclSessionPreflightService {
         if (!probe.ready && probe.authenticated) {
             this.transitionEntry(sourceConfig.source, entry, DKCL_LIFECYCLE_STATES.F13_OPENING, { authenticated: true, backgroundReady: false });
             await client.openF13Report?.().catch(() => {});
-            entry.lastValidatedDate = today;
-            entry.lastValidatedAt = Date.now();
-            this.transitionEntry(sourceConfig.source, entry, DKCL_LIFECYCLE_STATES.F13_READY, { authenticated: true, backgroundReady: true });
-            return { source: sourceConfig.source, status: PREFLIGHT_STATUSES.SESSION_VALID, interactive: true, source_page_ready: true, ...lifecyclePayload(entry) };
+            return readyResponse();
         }
         if (probe.ready) {
-            entry.lastValidatedDate = today;
-            entry.lastValidatedAt = Date.now();
-            this.transitionEntry(sourceConfig.source, entry, DKCL_LIFECYCLE_STATES.F13_READY, { authenticated: true, backgroundReady: true });
-            return { source: sourceConfig.source, status: PREFLIGHT_STATUSES.SESSION_VALID, interactive: true, source_page_ready: true, ...lifecyclePayload(entry) };
+            return readyResponse();
         }
 
         // An owning operation may have started while we were probing/retrying — defer to it,
@@ -892,26 +909,13 @@ class DkclSessionPreflightService {
                             profileDir
                         });
 
-                        if (client.interactiveAuthenticatedOnOpen) {
-                            this.transitionEntry(sourceConfig.source, entry, DKCL_LIFECYCLE_STATES.F13_READY, {
-                                hideAttempted: false,
-                                windowHidden: false,
-                                backgroundReady: true,
-                                profileDir
-                            });
-                        } else {
-                            const hideWindow = client.hideWindow || client.hideBrowserWindow;
-                            const hideSuccess = entry.hideAttempted
-                                ? entry.windowHidden
-                                : await hideWindow.call(client).catch(() => false);
-
-                            this.transitionEntry(sourceConfig.source, entry, DKCL_LIFECYCLE_STATES.F13_READY, {
-                                hideAttempted: true,
-                                windowHidden: Boolean(hideSuccess),
-                                backgroundReady: true,
-                                profileDir
-                            });
-                        }
+                        // Hide the window both after a typed login and when the saved session was already valid at
+                        // open (interactiveAuthenticatedOnOpen): either way the work continues in the background.
+                        await this.hideWindowIfVisible(sourceConfig, entry, client, profileDir);
+                        this.transitionEntry(sourceConfig.source, entry, DKCL_LIFECYCLE_STATES.F13_READY, {
+                            backgroundReady: true,
+                            profileDir
+                        });
                     } catch (err) {
                         // AUTO-IMPORT-013: waitInteractiveAuthentication() throws AUTHENTICATION_REQUIRED
                         // from exactly one place — waitForManualAuthentication() returning false after its
