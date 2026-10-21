@@ -91,4 +91,17 @@ PO đánh giá: bản `d60c4dc` (mục 9) **quá hẹp, "sát rạt, chi chít c
 
 **Bàn giao:** build, lint, test home xanh; dừng ở `READY FOR PO CHECK` kèm danh sách PO tự kiểm ở laptop 1366 và màn 1080p.
 
-> **Cập nhật 2026-10-21:** PO không đồng ý với bản mục 9 (quá hẹp, chi chít chữ). Giao diện năm khối ở mục 9 đã được **đưa về đúng `0e0478c`** (các tệp `ExecutiveDateBar`, `ExecutiveIndicatorCard`, `NationalRankingBlock`, `MonthlyRankProgressionBlock`, `ActionUnitsBlock`; lịch sử giữ nguyên). Phần trình bày sẽ do Antigravity làm lại theo mục 10.
+> **Cập nhật 2026-10-21:** PO không đồng ý với bản mục 9 (quá hẹp, chi chít chữ). Giao diện năm khối ở mục 9 đã được **đưa về đúng `0e0478c`** (các tệp `ExecutiveDateBar`, `ExecutiveIndicatorCard`, `NationalRankingBlock`, `MonthlyRankProgressionBlock`, `ActionUnitsBlock`; lịch sử giữ nguyên). Phần trình bày đã được Antigravity làm lại theo mục 10:
+>
+> - **Điểm xuất phát & phong cách:** Giữ trọn tinh thần thoáng đẹp của `0e0478c` với số lớn (`text-3xl font-black` ≥ 28px), bo góc lớn (`rounded-xl`), màu sắc tương phản cao, thẻ chỉ tiêu 2 ô số lớn song song, dải sparkline 30 ngày gọn gàng (h-8) với đường mục tiêu đỏ.
+> - **Khắc phục triệt để 7 lỗi bố cục đã gặp:**
+>   1. *Tiêu đề xếp hạng:* Rút gọn thành `XẾP HẠNG 34 TỈNH/THÀNH` + chip mục tiêu & chip kỳ, giữ toàn bộ header trên 1 dòng duy nhất ở mọi độ phân giải.
+>   2. *Dải thống kê Huế:* Thiết kế 4 ô cân bằng (`grid-cols-2 lg:grid-cols-4 gap-2.5`), đồng bộ cấu trúc 3 hàng (nhãn, số lớn, chú thích đối chuẩn), triệt tiêu hoàn toàn khoảng trắng thừa; ô 3 giữ trọn tên tỉnh không `truncate`.
+>   3. *Hàng bảng khối phải:* Bỏ `items-stretch` ở lưới trang (chuyển sang `items-start`), bỏ `flex-1` và `h-full` ở `ActionUnitsBlock`, cố định chiều cao hàng bảng tự nhiên (~36px ≥ 32px), hết bị kéo giãn bất thường.
+>   4. *Đường xu hướng:* Thu gọn chiều cao `h-8` (32px), thể hiện sắc nét contour 30 ngày và đường đỏ mục tiêu, tiết kiệm chiều cao để màn hình đầu thấy trọn phần đầu bảng xếp hạng.
+>   5. *Chữ bị ngắt hàng:* Bổ sung `whitespace-nowrap` cho "Chênh mục tiêu", "So {basis}", "Vị thứ toàn quốc", giá trị biến động.
+>   6. *Tiêu đề khối phải:* Header của `MonthlyRankProgressionBlock` và `ActionUnitsBlock` chuẩn hóa 1 dòng; câu diễn giải nguồn của khối lũy kế chuyển thành dòng ghi chú 12px gọn gàng phía dưới.
+>   7. *Cắt cột bảng ở màn hẹp:* Thiết lập `min-w-[560px]` kèm `overflow-x-auto min-w-full`, bảng cuộn ngang mượt mà khi cửa sổ quá hẹp thay vì cắt chữ.
+> - **Tầm nhìn màn hình đầu tiên (1366 × 768 @ 100%):** Tổng chiều cao từ đỉnh trang đến các hàng đầu của bảng xếp hạng ~510px, hoàn toàn hiển thị trọn vẹn: Thanh điều hành + 4 thẻ chỉ tiêu + Tiêu đề & 4 ô Huế & đầu bảng xếp hạng 34 tỉnh. Phần còn lại cuộn dọc mượt mà.
+> - **Chất lượng kiểm tra:** Build xanh (`vite build` 1.86s), lint xanh (0 error), toàn bộ 31 test home (`src/features/home/**/*.test.js`) và 617 test frontend (`src/features/**/*.test.js`) đều PASS. Dừng ở `READY FOR PO CHECK`.
+

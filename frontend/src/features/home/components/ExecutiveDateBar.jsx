@@ -27,21 +27,21 @@ export default function ExecutiveDateBar({
   return (
     <div
       ref={barRef}
-      className="rounded-xl border border-slate-200/80 bg-white/95 px-3 py-1.5 shadow-sm"
+      className="rounded-xl border border-slate-200/90 bg-white px-3.5 py-2 shadow-xs"
     >
-      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5">
+        <div className="flex items-center gap-x-3 gap-y-1">
           <div className="flex items-center gap-2">
             <span className="h-4 w-1.5 rounded-full bg-[var(--color-vnpost-blue)]" />
-            <h2 className="text-base font-black tracking-tight text-slate-900">TRANG CHỦ ĐIỀU HÀNH CHẤT LƯỢNG</h2>
+            <h2 className="text-base font-black tracking-tight text-slate-900 whitespace-nowrap">TRANG CHỦ ĐIỀU HÀNH CHẤT LƯỢNG</h2>
           </div>
-          <div className="flex flex-wrap items-center gap-1.5">
+          <div className="hidden flex-wrap items-center gap-1.5 min-[1500px]:flex">
             {indicators.map((ind) => {
               const hasData = ind.available;
               return (
                 <div
                   key={ind.id}
-                  className={`inline-flex items-center gap-1 rounded-md border px-1.5 py-0 text-[11px] font-semibold ${
+                  className={`inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[11px] font-semibold ${
                     hasData
                       ? 'border-slate-200 bg-slate-50 text-slate-700'
                       : 'border-amber-200 bg-amber-50 text-amber-800'

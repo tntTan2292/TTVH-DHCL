@@ -76,15 +76,15 @@ export default function ActionUnitsBlock({
     <IndicatorProvider indicator={indConfig}>
       <section
         ref={blockRef}
-        className="flex flex-1 flex-col rounded-xl border border-slate-200/90 bg-white p-2.5 shadow-sm"
+        className="flex flex-col rounded-xl border border-slate-200/90 bg-white p-3 shadow-xs"
       >
         <div className="flex items-center justify-between gap-2 border-b border-slate-100 pb-2">
-          <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5">
+          <div className="flex min-w-0 items-center gap-2">
             <span className={`h-4 w-1.5 shrink-0 rounded-full ${theme.accentBar}`} />
-            <h3 className="text-sm font-black tracking-tight text-slate-900">
+            <h3 className="whitespace-nowrap text-sm font-black tracking-tight text-slate-900">
               {spec.title} — {indConfig.moduleLabel}
             </h3>
-            <span className="rounded-md border border-rose-200 bg-rose-50 px-1.5 py-0.5 text-[10px] font-bold text-rose-700">
+            <span className="shrink-0 rounded-md border border-rose-200 bg-rose-50 px-1.5 py-0.5 text-[10px] font-bold text-rose-700">
               {badge}
             </span>
           </div>
@@ -92,7 +92,7 @@ export default function ActionUnitsBlock({
             <button
               type="button"
               onClick={() => navigate(rankingUrl)}
-              className="inline-flex cursor-pointer items-center gap-1 text-[11px] font-bold text-blue-600 hover:text-blue-800 hover:underline"
+              className="inline-flex cursor-pointer items-center gap-1 text-xs font-bold text-blue-600 hover:text-blue-800 hover:underline"
               title={`Xem đầy đủ bảng xếp hạng ${indConfig.moduleLabel}`}
             >
               <span>Xem đầy đủ</span>
@@ -106,30 +106,30 @@ export default function ActionUnitsBlock({
           </div>
         </div>
 
-        <div className="mt-1 flex-1 overflow-x-auto">
+        <div className="mt-2 overflow-x-auto min-w-full">
           {!sortedUnits.length ? (
             <div className="py-5 text-center text-xs font-medium text-slate-400">
               {emptyText}
             </div>
           ) : (
-            <table className="h-full w-full whitespace-nowrap border-collapse text-left text-sm">
-              <thead className="border-b border-slate-200 text-[11px] font-bold uppercase tracking-normal text-slate-600">
+            <table className="w-full whitespace-nowrap border-collapse text-left text-sm">
+              <thead className="border-b border-slate-200 text-xs font-bold uppercase tracking-normal text-slate-600">
                 <tr>
-                  <SortableTh field="ten_bcvh" sort={sort} onSort={handleSort} className="px-1.5 py-1.5 text-left">
+                  <SortableTh field="ten_bcvh" sort={sort} onSort={handleSort} className="px-2.5 py-2 text-left">
                     {spec.nameHeader}
                   </SortableTh>
                   {kind === 'pairs' && (
-                    <SortableTh field="ten_phat" sort={sort} onSort={handleSort} className="px-1.5 py-1.5 text-left">
+                    <SortableTh field="ten_phat" sort={sort} onSort={handleSort} className="px-2.5 py-2 text-left">
                       Phát
                     </SortableTh>
                   )}
-                  <SortableTh field="rate" sort={sort} onSort={handleSort} className="px-1.5 py-1.5 text-right">
+                  <SortableTh field="rate" sort={sort} onSort={handleSort} className="px-2.5 py-2 text-right">
                     Tỷ lệ
                   </SortableTh>
-                  <SortableTh field="failed" sort={sort} onSort={handleSort} className="px-1.5 py-1.5 text-right">
+                  <SortableTh field="failed" sort={sort} onSort={handleSort} className="px-2.5 py-2 text-right">
                     Không đạt
                   </SortableTh>
-                  <SortableTh field="volume" sort={sort} onSort={handleSort} className="px-1.5 py-1.5 text-right">
+                  <SortableTh field="volume" sort={sort} onSort={handleSort} className="px-2.5 py-2 text-right">
                     Sản lượng
                   </SortableTh>
                 </tr>
@@ -144,23 +144,23 @@ export default function ActionUnitsBlock({
                       className="cursor-pointer transition-colors hover:bg-slate-50/80"
                       title="Đi tới bảng xếp hạng chi tiết"
                     >
-                      <td className="px-1.5 py-1.5 font-bold text-slate-900">{u.ten_bcvh}</td>
+                      <td className="px-2.5 py-2 font-bold text-slate-900">{u.ten_bcvh}</td>
                       {kind === 'pairs' && (
-                        <td className="px-1.5 py-1.5 font-bold text-slate-900">{shortBcvhName(u.ten_phat)}</td>
+                        <td className="px-2.5 py-2 font-bold text-slate-900">{shortBcvhName(u.ten_phat)}</td>
                       )}
-                      <td className="px-1.5 py-1.5 text-right tabular-nums">
+                      <td className="px-2.5 py-2 text-right tabular-nums">
                         <span
-                          className={`rounded-md border px-1.5 py-0.5 text-sm font-black ${below
+                          className={`rounded-md border px-2 py-0.5 text-sm font-black ${below
                             ? 'border-rose-200 bg-rose-50 text-rose-700'
                             : 'border-emerald-200 bg-emerald-50 text-emerald-700'}`}
                         >
                           {Number(u.rate).toFixed(1)}%
                         </span>
                       </td>
-                      <td className="px-1.5 py-1.5 text-right font-black tabular-nums text-rose-600">
+                      <td className="px-2.5 py-2 text-right font-black tabular-nums text-rose-600">
                         {Number(u.failed || 0).toLocaleString('vi-VN')}
                       </td>
-                      <td className="px-1.5 py-1.5 text-right font-semibold tabular-nums text-slate-600">
+                      <td className="px-2.5 py-2 text-right font-semibold tabular-nums text-slate-700">
                         {Number(u.volume || 0).toLocaleString('vi-VN')}
                       </td>
                     </tr>
