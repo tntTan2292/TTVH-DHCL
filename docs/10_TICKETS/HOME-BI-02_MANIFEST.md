@@ -90,3 +90,5 @@ PO đánh giá: bản `d60c4dc` (mục 9) **quá hẹp, "sát rạt, chi chít c
 **Phải giữ nguyên chức năng:** bộ lọc Ngày/Tuần/Tháng + nút lùi/tiến + "Mới nhất" + cảnh báo "kỳ khác nhau"; nút camera thanh đầu chụp cả trang (không có nút điều khiển trong ảnh), camera từng khối; bấm tên cột để sắp xếp; đường mục tiêu và màu theo từng chỉ tiêu; "Huế & lân cận" mặc định; chip ngày từng chỉ tiêu; nhãn kỳ ("Tuần 42 · đến 20/10") trên thẻ và chú thích ảnh; khối cặp/bưu cục/BCVH theo kỳ; `report_block_ui_standard.md`.
 
 **Bàn giao:** build, lint, test home xanh; dừng ở `READY FOR PO CHECK` kèm danh sách PO tự kiểm ở laptop 1366 và màn 1080p.
+
+> **Cập nhật 2026-10-21:** PO không đồng ý với bản mục 9 (quá hẹp, chi chít chữ). Giao diện năm khối ở mục 9 đã được **đưa về đúng `0e0478c`** (các tệp `ExecutiveDateBar`, `ExecutiveIndicatorCard`, `NationalRankingBlock`, `MonthlyRankProgressionBlock`, `ActionUnitsBlock`; lịch sử giữ nguyên). Phần trình bày sẽ do Antigravity làm lại theo mục 10.

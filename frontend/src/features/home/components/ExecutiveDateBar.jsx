@@ -35,7 +35,7 @@ export default function ExecutiveDateBar({
             <span className="h-4 w-1.5 rounded-full bg-[var(--color-vnpost-blue)]" />
             <h2 className="text-base font-black tracking-tight text-slate-900">TRANG CHỦ ĐIỀU HÀNH CHẤT LƯỢNG</h2>
           </div>
-          <div className="hidden flex-wrap items-center gap-1.5 min-[1500px]:flex">
+          <div className="flex flex-wrap items-center gap-1.5">
             {indicators.map((ind) => {
               const hasData = ind.available;
               return (

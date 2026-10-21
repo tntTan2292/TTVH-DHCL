@@ -25,7 +25,7 @@ const KINDS = Object.freeze({
     defaultSort: { field: 'rate', direction: 'asc' },
   },
   pairs: {
-    title: 'CẶP CHẤP NHẬN – PHÁT',
+    title: 'CẶP BƯU CỤC CHẤP NHẬN – PHÁT',
     badge: (threshold) => `5 cặp sản lượng lớn, dưới ${threshold}%`,
     nameHeader: 'Chấp nhận',
     defaultSort: { field: 'volume', direction: 'desc' },
@@ -76,16 +76,16 @@ export default function ActionUnitsBlock({
     <IndicatorProvider indicator={indConfig}>
       <section
         ref={blockRef}
-        className="@container flex flex-1 flex-col rounded-xl border border-slate-300 bg-white p-2.5 shadow-sm"
+        className="flex flex-1 flex-col rounded-xl border border-slate-200/90 bg-white p-2.5 shadow-sm"
       >
         <div className="flex items-center justify-between gap-2 border-b border-slate-100 pb-2">
           <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5">
             <span className={`h-4 w-1.5 shrink-0 rounded-full ${theme.accentBar}`} />
             <h3 className="text-sm font-black tracking-tight text-slate-900">
-              {spec.title}
+              {spec.title} — {indConfig.moduleLabel}
             </h3>
             <span className="rounded-md border border-rose-200 bg-rose-50 px-1.5 py-0.5 text-[10px] font-bold text-rose-700">
-              {indConfig.moduleLabel} · {badge}
+              {badge}
             </span>
           </div>
           <div data-no-capture="true" className="flex shrink-0 items-center gap-2">
@@ -126,7 +126,7 @@ export default function ActionUnitsBlock({
                   <SortableTh field="rate" sort={sort} onSort={handleSort} className="px-1.5 py-1.5 text-right">
                     Tỷ lệ
                   </SortableTh>
-                  <SortableTh field="failed" sort={sort} onSort={handleSort} className={`w-16 px-1.5 py-1.5 text-right ${kind === 'pairs' ? 'hidden @[540px]:table-cell' : ''}`}>
+                  <SortableTh field="failed" sort={sort} onSort={handleSort} className="px-1.5 py-1.5 text-right">
                     Không đạt
                   </SortableTh>
                   <SortableTh field="volume" sort={sort} onSort={handleSort} className="px-1.5 py-1.5 text-right">
@@ -157,7 +157,7 @@ export default function ActionUnitsBlock({
                           {Number(u.rate).toFixed(1)}%
                         </span>
                       </td>
-                      <td className={`px-1.5 py-1.5 text-right font-black tabular-nums text-rose-600 ${kind === 'pairs' ? 'hidden @[540px]:table-cell' : ''}`}>
+                      <td className="px-1.5 py-1.5 text-right font-black tabular-nums text-rose-600">
                         {Number(u.failed || 0).toLocaleString('vi-VN')}
                       </td>
                       <td className="px-1.5 py-1.5 text-right font-semibold tabular-nums text-slate-600">
