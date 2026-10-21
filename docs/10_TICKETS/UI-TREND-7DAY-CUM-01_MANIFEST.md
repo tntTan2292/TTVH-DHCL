@@ -67,3 +67,18 @@ PO verdict on round 2: the chart looks too short (also on the 30-day tab, which 
 1. **Chart first.** Restore a generous chart height in both tabs (30-day: at least its original 300 px; 7-day: at least about 320 px at 100 % zoom) and drop the viewport clamp `CHART_HEIGHT_FIXED/ZOOM`. Make room by shrinking everything else instead: D-1/D-7 into one thin strip, evidence table as a compact table, legend tightened. The chart must be fully visible on one screen at 100 % zoom; the whole block may need one scroll, never three.
 2. **Cumulative figures must stand out and sit smartly.** "Kỳ hiện tại: x% - r/34" and "Kỳ so sánh: x% - r/34" (data unchanged, model `sevenDayRollingComparisonData.js`): large bold numbers, colours matching the chart series (current = indicator colour, compare = grey), shown inside the chart area in a spot that covers no bar, no line and no data label (for example a reserved band at the top of the plot, aligned with the target-line label), not as a separate row that adds height. Keep the date range small and secondary.
 3. Keep everything else of Section 4-5 (hard guard, no backend change, camera capture covers the whole block). Do not reintroduce the removed widget. Same technical validation and stop at `READY FOR PO UI CHECK`.
+
+PO confirmation (2026-10-21): the content changes Antigravity made in round 3 were requested by the PO and are accepted as scope: the "Không đạt" row is removed from the "Bằng chứng so cùng kỳ 7 ngày" cells, and a "Chênh lệch" (rate delta, current period minus comparison period) chip is shown next to the two cumulative figures.
+
+## 9. Opus review of round 3 (2026-10-21): BLOCKER, fixes go to Antigravity
+
+Frontend `features/**` 608/608, but `src/components/**` 58/59: `glassTheme.test.js` (UI-GLASS-THEME-03) fails because the cumulative chips use `backdrop-blur-xs` inside the camera-captured block. Run BOTH `node --test "src/features/**/*.test.js"` and `node --test "src/components/**/*.test.js"` before handover.
+
+Fixes required (round 4, Antigravity):
+1. **Blocker:** remove `backdrop-blur-xs` from both chips. Use solid backgrounds (no alpha, no blur): chip 1 the theme soft background + theme border, chip 2 `bg-slate-100`.
+2. Figures in `theme.text` (dark shade), not `theme.primary` (too pale for F1.1 green and F4.1 orange); keep the dot in the primary colour.
+3. **Overlay must never cover bars, lines, labels, the target label or the 100 % tick:** right edge `right-[94px]` (plot edge), force one row (`flex-nowrap`, shorten/hide the date range and the "Chênh lệch" chip on narrow widths, below `sm` move the figures out of the chart), and reserve the band by measuring the overlay (ResizeObserver) and using it as the chart top margin; with the 95 % target (F1.1/F1.2) the band must also clear the target label.
+4. Show "—" instead of hiding the figures while loading or on error (no layout jump).
+5. Window-comparison fetch: reset the stored data to null when `to_date`, indicator or BCVH changes (and on `success:false`), so a previous payload (for example the national rank) is never shown for a new selection.
+
+Accepted as is: "Không đạt" row removed and the "Chênh lệch" chip (PO), chart heights 340/360 and 320/340, hook order, no undefined identifiers.
