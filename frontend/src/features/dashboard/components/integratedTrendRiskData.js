@@ -5,7 +5,6 @@ import { shiftIsoDate } from './qualityTrendlineWindow.js';
 export const TREND_MODES = [
   { id: '30-days', label: '30 ngày' },
   { id: '7-days', label: '7 ngày so sánh' },
-  { id: 'by-bcvh', label: 'Theo BCVH' },
 ];
 
 export function getFailedRate(point) {
@@ -51,16 +50,6 @@ export function buildSevenDayComparisonRows(items = [], toDate, targetRate = QUA
       previous_point: previous,
     };
   });
-}
-
-export function buildBcvhModeRows(items = []) {
-  return items
-    .filter((item) => item?.data_available)
-    .slice(-7)
-    .map((item) => ({
-      ...withTrendSemantics(item),
-      date_label: item.date?.slice(5) || item.date,
-    }));
 }
 
 function isWithinSelectedRange(item, fromDate, toDate) {
@@ -215,7 +204,6 @@ export function buildSevenDayVisibleComparisonEvidence(items = [], toDate) {
 
 export function buildIntegratedTrendRows({ mode, items = [], toDate, targetRate = QUALITY_TARGET_RATE } = {}) {
   if (mode === '7-days') return buildSevenDayComparisonRows(items, toDate, targetRate);
-  if (mode === 'by-bcvh') return buildBcvhModeRows(items);
   return buildThirtyDayTrendRows(items, targetRate);
 }
 

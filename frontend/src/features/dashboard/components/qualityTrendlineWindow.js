@@ -35,7 +35,7 @@ export function resolveRollingTrendlineWindow({ reportingToDate, latestDate } = 
   };
 }
 
-export function buildTrendlineRequestParams({ reportingFromDate, reportingToDate, latestDate, maBcvh, mode = '30-days' } = {}) {
+export function buildTrendlineRequestParams({ reportingFromDate: _reportingFromDate, reportingToDate, latestDate, maBcvh, mode = '30-days' } = {}) {
   const trendEndDate = isIsoDate(reportingToDate)
     ? reportingToDate
     : isIsoDate(latestDate)
@@ -45,19 +45,6 @@ export function buildTrendlineRequestParams({ reportingFromDate, reportingToDate
   if (mode === '7-days' && trendEndDate) {
     const params = {
       from_date: shiftIsoDate(trendEndDate, -13),
-      to_date: trendEndDate,
-    };
-
-    if (maBcvh && maBcvh !== 'all') {
-      params.ma_bcvh = maBcvh;
-    }
-
-    return params;
-  }
-
-  if (mode === 'by-bcvh' && trendEndDate) {
-    const params = {
-      from_date: shiftIsoDate(trendEndDate, -6),
       to_date: trendEndDate,
     };
 

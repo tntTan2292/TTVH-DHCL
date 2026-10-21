@@ -1,4 +1,5 @@
-import { useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import api from '../../../api/client';
 import BlockCaptureButton from '../../../components/common/BlockCaptureButton';
 import {
   Bar,
@@ -12,7 +13,6 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
-import { Layers, TrendingUp } from 'lucide-react';
 import { CardContainer, EmptyState, ErrorState, LoadingState, StatusBadge } from '../../../components/shared/SharedComponents';
 import {
   formatNumber,
@@ -20,7 +20,7 @@ import {
   getVolumeAxisMax,
 } from './comboTrendlineData';
 import { useIndicator } from '../../indicator/IndicatorContext.js';
-import { indicatorTargetRate, indicatorTheme } from '../../indicator/indicatorConfig.js';
+import { indicatorEndpoint, indicatorTargetRate, indicatorTheme } from '../../indicator/indicatorConfig.js';
 import { DASHBOARD_LABELS, DASHBOARD_SEMANTIC_COLORS } from './dashboardSemantics';
 import { ReferenceTargetLabel, renderRateLabel, renderVolumeBarLabel } from './ChartLabelRenderers';
 import ChartZoomFrame from './ChartZoomFrame';
@@ -32,6 +32,8 @@ import {
   buildSevenDayVisibleComparisonEvidence,
   TREND_MODES,
 } from './integratedTrendRiskData';
+import { isIsoDate } from './qualityTrendlineWindow';
+import { buildSevenDayWindowComparisonModel } from './sevenDayRollingComparisonData';
 
 const COLORS = {
   volume: DASHBOARD_SEMANTIC_COLORS.volume,
@@ -41,6 +43,11 @@ const COLORS = {
   warning: DASHBOARD_SEMANTIC_COLORS.warning,
   unknown: DASHBOARD_SEMANTIC_COLORS.unknown,
 };
+
+// The block has to fit one screen at 100 % zoom (PO rule): the chart takes what the rest of the
+// block (header, comparison strip, lines, evidence table, legend) leaves of the viewport height.
+const CHART_HEIGHT_FIXED = 'clamp(200px, calc(100vh - 440px), 460px)';
+const CHART_HEIGHT_ZOOM = 'clamp(200px, calc(100vh - 520px), 460px)';
 
 function formatDayPointLabel(row, idx) {
   if (!row) return `Ngày ${idx + 1}`;
@@ -146,7 +153,7 @@ function TrendChart({ rows, mode }) {
 
           return (
             <div>
-              <div className="h-[280px] lg:h-[300px] w-full">
+              <div className="w-full" style={{ height: canZoom ? CHART_HEIGHT_ZOOM : CHART_HEIGHT_FIXED }}>
                 <TrendChartPlot rows={visibleRows} mode={mode} />
               </div>
               {canZoom ? (
@@ -178,7 +185,7 @@ function TrendChartPlot({ rows, mode }) {
   const targetRate = indicatorTargetRate(indicator);
   const theme = indicatorTheme(indicator);
   const volumeAxisMax = getVolumeAxisMax(rows);
-  const xKey = mode === '7-days' ? 'dayLabel' : mode === 'by-bcvh' ? 'date_label' : 'date';
+  const xKey = mode === '7-days' ? 'dayLabel' : 'date';
   const rateLabelIndexes = selectLabelIndexes(rows, 'quality_rate');
   const volumeLabelIndexes = selectLabelIndexes(rows, 'total_volume');
   const previousRateLabelIndexes = selectLabelIndexes(rows, 'previous_quality_rate');
@@ -294,86 +301,87 @@ function getDirectionLabel(value) {
   return Number(value) > 0 ? 'Tăng' : 'Giảm';
 }
 
+function ComparisonMetric({ label, current, previous, previousLabel, delta, tone, direction }) {
+  return (
+    <div className="flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5">
+      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">{label}</span>
+      <span className="text-base font-black tabular-nums leading-none text-slate-900">{current}</span>
+      <StatusBadge label={delta} tone={tone} className="text-[10px] px-1 py-0" />
+      <span className="text-[10px] font-bold text-slate-700">{direction}</span>
+      <span className="text-[11px] text-slate-600">{previousLabel}: <strong className="tabular-nums text-slate-900">{previous}</strong></span>
+    </div>
+  );
+}
+
 function LeadershipComparisonCard({ comparison }) {
-  const theme = indicatorTheme(useIndicator());
-  const metrics = comparison?.available ? [
-    {
-      id: 'pass-rate',
-      label: 'Tỷ lệ đạt',
-      value: formatRate(comparison.pass_rate.current),
-      comparisonValue: formatRate(comparison.pass_rate.previous),
-      delta: formatDeltaValue(comparison.pass_rate.delta, (delta) => `${Number(delta).toFixed(2)}%`),
-      tone: getDeltaTone(comparison.pass_rate.delta, 'rate'),
-      rawDelta: comparison.pass_rate.delta,
-    },
-    {
-      id: 'total-volume',
-      label: 'Sản lượng',
-      value: formatNumber(comparison.total_volume.current),
-      comparisonValue: formatNumber(comparison.total_volume.previous),
-      delta: formatDeltaValue(comparison.total_volume.delta, formatNumber),
-      tone: getDeltaTone(comparison.total_volume.delta, 'volume'),
-      rawDelta: comparison.total_volume.delta,
-    },
-  ] : [];
+  if (!comparison) return null;
+
+  const dateSub = comparison?.current_date && comparison?.previous_date
+    ? `${comparison.current_date} so với ${comparison.previous_date}`
+    : 'Dựa trên ngày mới nhất có dữ liệu trong phạm vi đang chọn.';
 
   return (
-    <div className="rounded-xl border border-slate-200/90 bg-gradient-to-br from-slate-50/90 via-white to-slate-50/40 p-3 shadow-2xs hover:shadow-md transition-all duration-150 motion-reduce:transition-none">
-      <div className="flex flex-wrap items-start justify-between gap-2">
-        <div>
-          <h4 className="text-xs font-bold text-slate-900">{comparison?.title}</h4>
-          <p className="mt-0.5 text-[11px] font-medium text-slate-500">
-            {comparison?.current_date && comparison?.previous_date
-              ? `${comparison.current_date} so với ${comparison.previous_date}`
-              : 'Dựa trên ngày mới nhất có dữ liệu trong phạm vi đang chọn.'}
-          </p>
+    <div className="rounded-xl border border-slate-200/90 bg-gradient-to-br from-slate-50/90 via-white to-slate-50/40 px-3 py-2 shadow-2xs">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+        <div className="flex items-center gap-1.5 min-w-0">
+          <StatusBadge label={comparison?.id === 'd-7' ? 'D-7' : 'D-1'} tone={comparison?.available ? 'info' : 'neutral'} />
+          <h4 className="text-xs font-bold text-slate-900 truncate" title={dateSub}>{comparison?.title}</h4>
         </div>
-        <StatusBadge label={comparison?.id === 'd-7' ? 'D-7' : 'D-1'} tone={comparison?.available ? 'info' : 'neutral'} />
+        {comparison?.available ? (
+          <>
+            <ComparisonMetric
+              label="Tỷ lệ đạt"
+              current={formatRate(comparison.pass_rate?.current)}
+              previous={formatRate(comparison.pass_rate?.previous)}
+              previousLabel={comparison.comparison_label}
+              delta={formatDeltaValue(comparison.pass_rate?.delta, (delta) => `${Number(delta).toFixed(2)}%`)}
+              tone={getDeltaTone(comparison.pass_rate?.delta, 'rate')}
+              direction={getDirectionLabel(comparison.pass_rate?.delta)}
+            />
+            <ComparisonMetric
+              label="Sản lượng"
+              current={formatNumber(comparison.total_volume?.current)}
+              previous={formatNumber(comparison.total_volume?.previous)}
+              previousLabel={comparison.comparison_label}
+              delta={formatDeltaValue(comparison.total_volume?.delta, formatNumber)}
+              tone={getDeltaTone(comparison.total_volume?.delta, 'volume')}
+              direction={getDirectionLabel(comparison.total_volume?.delta)}
+            />
+          </>
+        ) : (
+          <p className="text-xs font-semibold text-slate-500">Không có dữ liệu so sánh</p>
+        )}
       </div>
-
-      {comparison?.available ? (
-        <div className="mt-2.5 grid gap-2.5 sm:grid-cols-2">
-          {metrics.map((metric) => (
-            <div key={metric.id} className="rounded-lg border border-slate-200/80 bg-white p-2.5 shadow-2xs">
-              <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500">{metric.label}</div>
-              <div className="mt-1 flex flex-col gap-1">
-                <div>
-                  <span className={`text-[9px] font-bold uppercase tracking-wider ${theme.text}`}>Hôm nay</span>
-                  <div className={metric.id === 'pass-rate' ? 'text-xl xl:text-2xl font-black tabular-nums text-slate-900 leading-none mt-0.5' : 'text-base xl:text-lg font-black tabular-nums text-slate-900 leading-none mt-0.5'}>
-                    {metric.value}
-                  </div>
-                </div>
-                <div className="border-t border-dashed border-slate-200 my-0.5"></div>
-                <div className="flex flex-wrap items-center justify-between gap-1.5 text-xs text-slate-600">
-                  <div>
-                    <span className="font-medium text-[11px] mr-1">{comparison.comparison_label}:</span>
-                    <span className="font-bold text-[11px] tabular-nums text-slate-900">{metric.comparisonValue}</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <StatusBadge label={metric.delta} tone={metric.tone} />
-                    <span className="text-[10px] font-bold text-slate-700">{getDirectionLabel(metric.rawDelta)}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      ) : (
-        <p className="mt-2 text-xs font-semibold text-slate-500">Không có dữ liệu so sánh</p>
-      )}
     </div>
   );
 }
 
 function LeadershipComparisonGrid({ comparisons }) {
   return (
-    <div className="mb-4">
-      <h4 className="text-base font-bold text-slate-900">So sánh điều hành</h4>
-      <div className="mt-3 grid gap-3 xl:grid-cols-2">
-        {comparisons.map((comparison) => (
-          <LeadershipComparisonCard key={comparison.id} comparison={comparison} />
-        ))}
-      </div>
+    <div className="grid gap-2 md:grid-cols-2">
+      {comparisons.map((comparison) => (
+        <LeadershipComparisonCard key={comparison.id} comparison={comparison} />
+      ))}
+    </div>
+  );
+}
+
+// Two text lines above the chart (PO 2026-10-21): "Kỳ hiện tại: x% - r/34", "Kỳ so sánh: x% - r/34".
+function SevenDayCumulativeLines({ windowData }) {
+  const model = useMemo(() => buildSevenDayWindowComparisonModel(windowData), [windowData]);
+  const renderLine = (label, rangeLabel, period, strong) => (
+    <div className={`text-xs sm:text-sm ${strong ? 'font-bold text-slate-900' : 'font-semibold text-slate-600'}`}>
+      {label}
+      {rangeLabel ? <span className="ml-1 text-[11px] font-medium text-slate-400">({rangeLabel})</span> : null}
+      : <span className="tabular-nums">{period.rate}</span>
+      {period.rank !== '—' ? <span className="tabular-nums"> - {period.rank}</span> : null}
+    </div>
+  );
+
+  return (
+    <div className="px-1">
+      {renderLine('Kỳ hiện tại', model.currentRange, model.current, true)}
+      {renderLine('Kỳ so sánh', model.compareRange, model.compare, false)}
     </div>
   );
 }
@@ -382,37 +390,44 @@ function SevenDayComparisonEvidenceTable({ rows }) {
   if (!rows?.length) return null;
 
   return (
-    <div className="mt-4 rounded-xl border border-slate-200/90 bg-white p-3.5 shadow-2xs">
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <h4 className="text-sm font-bold text-slate-900">Bằng chứng so cùng kỳ 7 ngày</h4>
+    <div className="rounded-xl border border-slate-200/90 bg-white px-3 py-2 shadow-2xs">
+      <div className="mb-1.5 flex items-center justify-between gap-2">
+        <div className="flex items-baseline gap-2">
+          <h4 className="text-sm font-bold text-slate-900">Bằng chứng so cùng kỳ 7 ngày</h4>
+          <span className="text-[11px] font-medium text-slate-500">(So với cùng thứ tuần trước)</span>
+        </div>
         <StatusBadge label="D-7" tone="info" />
       </div>
-      <div className="grid gap-2 md:grid-cols-7">
+      <div className="grid gap-1.5 grid-cols-2 sm:grid-cols-4 md:grid-cols-7">
         {rows.map((row) => (
-          <div key={row.current_date} className="rounded-lg border border-slate-200 bg-slate-50/80 p-2.5 shadow-2xs">
-            <div className="text-xs font-bold text-slate-900">{row.dayLabel}</div>
-            <div className="mt-0.5 text-[11px] font-medium text-slate-500">{row.current_date}</div>
+          <div key={row.current_date} className="rounded-lg border border-slate-200/90 bg-slate-50/70 px-2 py-1.5 shadow-2xs">
+            <div className="flex items-baseline justify-between">
+              <span className="text-xs font-bold text-slate-900">{row.dayLabel}</span>
+              <span className="text-[11px] font-semibold text-slate-500">{row.current_date?.slice(5) || row.current_date}</span>
+            </div>
             {row.available ? (
-              <div className="mt-2 space-y-1 text-[11px] font-medium">
-                <div className="flex justify-between gap-1">
-                  <span className="text-slate-500">Sản lượng</span>
-                  <span className="font-bold tabular-nums text-slate-900">{formatDeltaValue(row.total_volume_delta, formatNumber)}</span>
-                </div>
-                <div className="flex justify-between gap-1">
+              <div className="mt-1 space-y-0.5 text-[11px] font-medium">
+                <div className="flex items-baseline justify-between gap-1">
                   <span className="text-slate-500">Tỷ lệ đạt</span>
-                  <span className={`font-bold tabular-nums ${row.pass_rate_delta > 0 ? 'text-emerald-700' : row.pass_rate_delta < 0 ? 'text-red-600' : 'text-slate-900'}`}>
+                  <span className={`text-xs font-black tabular-nums ${row.pass_rate_delta > 0 ? 'text-emerald-700' : row.pass_rate_delta < 0 ? 'text-rose-600' : 'text-slate-900'}`}>
                     {formatDeltaValue(row.pass_rate_delta, (delta) => `${Number(delta).toFixed(2)}%`)}
                   </span>
                 </div>
-                <div className="flex justify-between gap-1">
+                <div className="flex items-baseline justify-between gap-1">
+                  <span className="text-slate-500">Sản lượng</span>
+                  <span className="font-bold tabular-nums text-slate-900">
+                    {formatDeltaValue(row.total_volume_delta, formatNumber)}
+                  </span>
+                </div>
+                <div className="flex items-baseline justify-between gap-1">
                   <span className="text-slate-500">Không đạt</span>
-                  <span className={`font-bold tabular-nums ${row.failed_count_delta > 0 ? 'text-red-600' : row.failed_count_delta < 0 ? 'text-emerald-700' : 'text-slate-900'}`}>
+                  <span className={`font-bold tabular-nums ${row.failed_count_delta > 0 ? 'text-rose-600' : row.failed_count_delta < 0 ? 'text-emerald-700' : 'text-slate-900'}`}>
                     {formatDeltaValue(row.failed_count_delta, formatNumber)}
                   </span>
                 </div>
               </div>
             ) : (
-              <div className="mt-2 text-[11px] font-semibold text-slate-400">Không có dữ liệu so sánh</div>
+              <div className="mt-1 text-[11px] font-semibold text-slate-400 text-center py-1">Không có dữ liệu so sánh</div>
             )}
           </div>
         ))}
@@ -427,10 +442,12 @@ export default function IntegratedTrendRiskWorkspace({
   error,
   fromDate,
   toDate,
+  latestDate,
   maBcvh,
   kpiData,
   mode = '30-days',
   onModeChange,
+  windowComparisonData = null,
 }) {
   const indicator = useIndicator();
   const targetRate = indicatorTargetRate(indicator);
@@ -447,6 +464,52 @@ export default function IntegratedTrendRiskWorkspace({
   const selectedRangeRankLabel = maBcvh === 'all' ? formatSelectedRangeRank(kpiData?.national_rank) : null;
 
   const cardRef = useRef(null);
+
+  // 7-day rolling window comparison cumulative panel fetch
+  const [fetchedWindowComparison, setFetchedWindowComparison] = useState(null);
+
+  useEffect(() => {
+    if (mode !== '7-days') return;
+    if (windowComparisonData) return;
+
+    const effectiveToDate = isIsoDate(toDate)
+      ? toDate
+      : isIsoDate(latestDate)
+        ? latestDate
+        : null;
+    if (!effectiveToDate) return;
+
+    const controller = typeof globalThis.AbortController !== 'undefined' ? new globalThis.AbortController() : null;
+    const params = { to_date: effectiveToDate };
+    if (maBcvh && maBcvh !== 'all') {
+      params.ma_bcvh = maBcvh;
+    }
+
+    let endpoint;
+    try {
+      endpoint = indicatorEndpoint('windowComparison', indicator);
+    } catch {
+      endpoint = `${indicator?.apiBase || '/f13'}/ranking/bcvh/window-comparison`;
+    }
+
+    api
+      .get(endpoint, { params, signal: controller?.signal })
+      .then((res) => {
+        if (!controller?.signal?.aborted && res?.data?.success) {
+          setFetchedWindowComparison(res.data.data);
+        }
+      })
+      .catch(() => {
+        // Must not blank the chart on error; fallback to null which renders "—"
+        if (!controller?.signal?.aborted) {
+          setFetchedWindowComparison(null);
+        }
+      });
+
+    return () => controller?.abort();
+  }, [indicator, latestDate, maBcvh, mode, toDate, windowComparisonData]);
+
+  const activeWindowComparison = windowComparisonData || fetchedWindowComparison;
 
   const action = (
     <div className="flex flex-wrap items-center gap-2">
@@ -479,10 +542,16 @@ export default function IntegratedTrendRiskWorkspace({
   return (
     <div ref={cardRef}>
       <CardContainer
-        title="Xu hướng điều hành tổng hợp"
-        subtitle="Một vùng xu hướng chính cho sản lượng, tỷ lệ đạt, mục tiêu và ngoại lệ hiện tại."
+        title={
+          <div className="flex flex-wrap items-center gap-2.5">
+            <span className="font-bold text-slate-900">Xu hướng điều hành tổng hợp</span>
+            {selectedRangeRankLabel ? (
+              <span className="text-xs font-medium text-slate-500 hidden sm:inline">({selectedRangeRankLabel})</span>
+            ) : null}
+          </div>
+        }
         action={action}
-        className="overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-sm hover:shadow-md transition-[box-shadow,border-color] duration-150 motion-reduce:transition-none"
+        className="overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-sm hover:shadow-md transition-[box-shadow,border-color] duration-150 motion-reduce:transition-none [&>div:first-child]:py-3 [&>div:first-child]:px-5 [&>div:last-child]:p-3 md:[&>div:last-child]:p-4"
       >
       {loading ? (
         <LoadingState label="Đang tải dữ liệu xu hướng điều hành..." className="min-h-[360px]" />
@@ -491,14 +560,11 @@ export default function IntegratedTrendRiskWorkspace({
       ) : !rows.length ? (
         <EmptyState title="Không có dữ liệu xu hướng" description="Không có dữ liệu bưu gửi hằng ngày cho phạm vi đang chọn." className="min-h-[360px]" />
       ) : (
-          <div className="space-y-3">
-            <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500 font-medium">
-              <StatusBadge label={TREND_MODES.find((item) => item.id === mode)?.label} tone="info" />
-              {selectedRangeRankLabel ? <span>{selectedRangeRankLabel}</span> : null}
-              <span className="inline-flex items-center gap-1"><Layers size={13} /> Chỉ hiển thị một câu chuyện xu hướng chính</span>
-              <span className="inline-flex items-center gap-1"><TrendingUp size={13} /> Mốc dưới mục tiêu hiển thị bằng marker</span>
-            </div>
+          <div className="space-y-2">
             <LeadershipComparisonGrid comparisons={leadershipComparisons} />
+            {mode === '7-days' ? (
+              <SevenDayCumulativeLines windowData={activeWindowComparison} />
+            ) : null}
             <TrendChart rows={rows} mode={mode} />
             {mode === '7-days' ? <SevenDayComparisonEvidenceTable rows={sevenDayEvidence} /> : null}
             <div className="pt-1 flex flex-wrap items-center gap-3.5 text-xs text-slate-600 font-medium border-t border-slate-100">

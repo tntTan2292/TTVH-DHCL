@@ -64,7 +64,6 @@ test('operation dashboard uses one normalized date range for selected-period wid
   assert.match(dashboardSource, /\{showWidgets \? \(/);
   assert.match(trendWindowSource, /buildTrendlineRequestParams/);
   assert.match(trendWindowSource, /mode === '7-days'/);
-  assert.match(trendWindowSource, /mode === 'by-bcvh'/);
   // PO decision 2026-10-10: the operations table follows the dashboard date filter (it used to be pinned
   // to the latest day): the filter's end date is sent as anchor_date and the table refetches on change.
   assert.match(compactTableSource, /anchorDate \|\| globalFilter\?\.dateRange\?\.\[1\]/);

@@ -55,5 +55,7 @@ Backend and the endpoint contract above; the data of the 30-day tab; D-1 / D-7 v
 
 ## 7. Delivery Status
 
-- Backend: delivered 2026-10-21 (this ticket), uncommitted until the commit that adds this manifest.
-- UI: pending (Antigravity). Independent Opus review: pending. PO UI check: pending.
+- Backend: delivered 2026-10-21 (commit fead084).
+- UI round 1 (Antigravity): compact header, taller chart, cumulative widget, "Theo BCVH" tab removed. PO rejected the look on sight: the block needed 3 scrolls at 100 %, and the "Giai đoạn này / Giai đoạn so sánh" widget made it bigger.
+- UI round 2 (Claude Code/Sonnet 5.5, PO instruction 2026-10-21): the widget is replaced by two text lines above the chart ("Kỳ hiện tại (dd/mm–dd/mm): x% - r/34", "Kỳ so sánh (…): x% - r/34"; the rank is left out when a single BCVH is picked or there is no national data); D-1/D-7 cards become one compact row each (heading "So sánh điều hành" and the "Hôm nay" tag dropped, every number kept); the evidence table is compact; the chart height follows the viewport (`clamp(200px, 100vh - 440px, 460px)`; 30-day with zoom bar `100vh - 520px`) so the block fits one screen at 100 % zoom. Two source-pin assertions updated (heading, "Hôm nay", `space-y-2`). Frontend 608/608, build and oxlint clean. Not checked in a browser.
+- Independent Opus review: pending. PO UI check: pending (needs a backend restart for the cumulative lines).

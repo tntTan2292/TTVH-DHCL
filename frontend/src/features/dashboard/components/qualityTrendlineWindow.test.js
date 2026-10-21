@@ -76,21 +76,6 @@ test('single-day 7-day comparison request still returns enough points for chart 
   });
 });
 
-test('BCVH trend request omits BCVH filter when set to all and returns the display window', () => {
-  const params = buildTrendlineRequestParams({
-    reportingFromDate: '2026-07-10',
-    reportingToDate: '2026-07-15',
-    latestDate: '2026-07-15',
-    maBcvh: 'all',
-    mode: 'by-bcvh',
-  });
-
-  assert.deepEqual(params, {
-    from_date: '2026-07-09',
-    to_date: '2026-07-15',
-  });
-});
-
 test('trendline request falls back to rolling latest only without a valid selected range', () => {
   const params = buildTrendlineRequestParams({
     reportingToDate: '2026-07-15',

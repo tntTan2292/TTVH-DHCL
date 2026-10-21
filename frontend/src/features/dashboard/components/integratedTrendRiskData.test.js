@@ -25,8 +25,8 @@ const sampleTrend = [
   { date: '2026-07-15', total_volume: 200, passed: 130, failed: 70, quality_rate: 65, data_available: true },
 ];
 
-test('integrated trend exposes the three approved modes', () => {
-  assert.deepEqual(TREND_MODES.map((mode) => mode.label), ['30 ngày', '7 ngày so sánh', 'Theo BCVH']);
+test('integrated trend exposes the two approved modes', () => {
+  assert.deepEqual(TREND_MODES.map((mode) => mode.label), ['30 ngày', '7 ngày so sánh']);
 });
 
 test('failed rate remains derived data only and does not create unauthorized abnormal-day threshold', () => {
@@ -347,10 +347,8 @@ test('integrated workspace source contains visible leadership comparison labels'
     source.indexOf('function LeadershipComparisonCard'),
     source.indexOf('function SevenDayComparisonEvidenceTable'),
   );
-  assert.match(source, /So sánh điều hành/);
   assert.match(dataSource, /So với hôm qua/);
   assert.match(dataSource, /So với cùng kỳ tuần trước/);
-  assert.match(source, /Hôm nay/);
   assert.match(dataSource, /Hôm qua/);
   assert.match(dataSource, /Cùng kỳ tuần trước/);
   assert.match(source, /Bằng chứng so cùng kỳ 7 ngày/);
@@ -368,7 +366,7 @@ test('integrated workspace uses full chart width in every mode', () => {
   assert.doesNotMatch(source, /<RiskPanel/);
   assert.doesNotMatch(source, /xl:grid-cols-\[minmax\(0,1fr\)_360px\]/);
   assert.doesNotMatch(source, /\/f13\/dashboard\/quality-timeline/);
-  assert.match(source, /<div className="space-y-3">/);
+  assert.match(source, /<div className="space-y-2">/);
 });
 
 test('integrated trend shows backend rank details without adding a rank line or axis', () => {
