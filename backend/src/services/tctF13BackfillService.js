@@ -10,6 +10,7 @@ const {
     NATIONAL_RANKED_PROVINCE_CODES
 } = require('./nationalExcelParser');
 const { importNationalParsedData } = require('./importProcessor');
+const { withImportWriteLock } = require('./importWriteLock');
 const { TctF13Adapter } = require('./f13Adapters');
 const {
     attachSourceEvidence,
@@ -818,12 +819,14 @@ class TctF13BackfillService {
                 throw error;
             }
 
-            const importResult = await this.importNationalParsedData({
+            // This import does not go through executeImport, so it takes the shared-connection write lock itself
+            // (AUTO-BACKFILL-PARALLEL-LANES-01): a HUE import must not be mid-transaction while this one begins.
+            const importResult = await withImportWriteLock(() => this.importNationalParsedData({
                 parsedData: validation.parsed.parsedData,
                 ngay_do_kiem: measurementDate,
                 filename: standardizedFilename(measurementDate),
                 forceReimport: Boolean(existingBeforeImport.incomplete || refreshRequested)
-            });
+            }));
             evidence.imported_database_row_count = importResult.inserted;
             evidence.replaced_incomplete_evidence = Boolean(existingBeforeImport.incomplete || refreshRequested);
             const persistedPath = this.persistProcessedWorkbook(downloadedPath, standardizedFilename(measurementDate));

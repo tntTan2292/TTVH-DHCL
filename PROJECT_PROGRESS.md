@@ -2397,3 +2397,7 @@ Review of the 07:30 schedule (built in another session): code and tests sound, b
 ## 2026-10-21 - AUTO-IMPORT-SCHEDULE-01: REFRESH WINDOW SET TO 2 DAYS
 
 PO decision: scheduled import = new day D-1 plus D-2 and D-3 imported again. The refresh window of F1.1, F1.2, F1.3 and F4.1 is now 2 (was 3); the schedule's "old gap" threshold follows (3). A read-only simulation with the real registry gives 24 jobs for both lanes (8 new + 16 re-import). Related suites green. Manifest Section 9: docs/10_TICKETS/AUTO-IMPORT-SCHEDULE-01_MANIFEST.md.
+
+## 2026-10-21 - AUTO-BACKFILL-PARALLEL-LANES-01: HUE AND TCT QUEUE JOBS CAN RUN IN PARALLEL (OFF BY DEFAULT)
+
+On PO instruction the queue can now run one HUE job and one TCT job at the same time (two portal users, two browser profiles). Per-lane lease and unique index (legacy databases upgraded at start-up), a first-in-first-out write lock around every import because all imports share one SQLite connection (two unlocked imports corrupt each other), one coordinator per lane behind the flag AUTO_BACKFILL_PARALLEL_LANES=true. Opus review: PASS WITH FIXES (TCT F1.3 import outside the lock, cross-lane recovery, pause with two running jobs), all fixed. 14 new tests; not yet run against the real portal. Manifest: docs/10_TICKETS/AUTO-BACKFILL-PARALLEL-LANES-01_MANIFEST.md.

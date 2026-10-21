@@ -19,6 +19,9 @@ class AutoBackfillWorkerCoordinator {
         clock = () => new Date(),
         setTimer = setTimeout,
         clearTimer = clearTimeout,
+        // AUTO-BACKFILL-PARALLEL-LANES-01: a coordinator bound to one source lane drains only that lane's jobs and
+        // reads only that lane's counts and lease; without a lane it drains the whole queue (serial, the default).
+        lane = null,
         onError = (error) => console.error('[AutoBackfillQueue] coordinator drain failed:', error?.code || error?.message || error),
     } = {}) {
         if (typeof queueService?.processNext !== 'function' || typeof queueService?.store?.getCoordinatorState !== 'function') {
@@ -28,6 +31,7 @@ class AutoBackfillWorkerCoordinator {
             throw new Error('Coordinator poll bounds are invalid.');
         }
         this.queueService = queueService;
+        this.lane = lane ? normalizeLane(lane) : null;
         this.minPollMs = minPollMs;
         this.maxPollMs = maxPollMs;
         this.leaseGraceMs = leaseGraceMs;
@@ -89,19 +93,23 @@ class AutoBackfillWorkerCoordinator {
                 if (!this.started) return;
                 try {
                     this.metrics.processNextCount += 1;
-                    const result = await this.queueService.processNext();
+                    const result = this.lane
+                        ? await this.queueService.processNext({ lane: this.lane })
+                        : await this.queueService.processNext();
                     if (!result) break;
                 } catch (error) {
                     this.onError(error);
                     // AB-AUTH-03: record WHICH lane is blocked, then stop this drain pass. The
                     // next scheduling decision is made by nextPollDelay() from persisted state,
                     // so another lane with eligible work still gets polled.
+                    // A coordinator bound to a lane only handles that lane's jobs, so an error that names no lane is
+                    // that lane's and must not halt the other lane's coordinator (UNKNOWN_LANE is for the serial one).
                     if (error?.code === 'AUTHENTICATION_REQUIRED') {
-                        this.authenticationBlockedLanes.add(normalizeLane(error.sourceLane));
+                        this.authenticationBlockedLanes.add(normalizeLane(error.sourceLane || this.lane));
                         break;
                     }
                     if (error?.code === 'AUTO_BACKFILL_INTEGRITY_BLOCKED') {
-                        this.integrityBlockedLanes.add(normalizeLane(error.sourceLane));
+                        this.integrityBlockedLanes.add(normalizeLane(error.sourceLane || this.lane));
                         break;
                     }
                     break;
@@ -111,7 +119,9 @@ class AutoBackfillWorkerCoordinator {
             if (this.isDrainHalted()) return;
             if (this.wakeRequested) continue;
 
-            const state = await this.queueService.store.getCoordinatorState();
+            const state = this.lane
+                ? await this.queueService.store.getCoordinatorState({ lane: this.lane })
+                : await this.queueService.store.getCoordinatorState();
             if (this.wakeRequested) continue;
             const delay = this.nextPollDelay(state);
             if (delay !== null) this.schedule(delay);
@@ -187,6 +197,7 @@ class AutoBackfillWorkerCoordinator {
 
     snapshot() {
         return {
+            ...(this.lane ? { lane: this.lane } : {}),
             started: this.started,
             draining: Boolean(this.drainPromise),
             timerScheduled: Boolean(this.timer),

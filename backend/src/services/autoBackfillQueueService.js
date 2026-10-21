@@ -516,9 +516,14 @@ class AutoBackfillQueueService {
         });
     }
 
-    async processNext({ simulateCrashAfterExecutor = false } = {}) {
-        await this.recoverInterruptedWork();
-        const job = await this.store.acquireNextJob(this.workerId);
+    // AUTO-BACKFILL-PARALLEL-LANES-01: with a lane only that source lane's slot is used (and only its jobs are taken),
+    // so one call per lane can run at the same time; without a lane the queue stays one serial slot.
+    async processNext({ simulateCrashAfterExecutor = false, lane = null } = {}) {
+        if (lane) await this.recoverInterruptedWork({ lane });
+        else await this.recoverInterruptedWork();
+        const job = lane
+            ? await this.store.acquireNextJob(this.workerId, { lane })
+            : await this.store.acquireNextJob(this.workerId);
         if (!job) return null;
 
         // IMPORT-BULK-REIMPORT-ALL-01 Part A (Design of Record v2 §7.4 gate 1): the
@@ -560,7 +565,11 @@ class AutoBackfillQueueService {
                 throw executorError;
             }
             heartbeat = setInterval(() => {
-                this.store.renewLease(job.id, job.lease_token).catch(() => clearInterval(heartbeat));
+                // Only a lost lease ends the heartbeat. A busy database (a long import on the other lane) makes one renewal
+                // fail; the next tick tries again, so a job that is still working is not taken for an interrupted one.
+                this.store.renewLease(job.id, job.lease_token).catch((error) => {
+                    if (error?.code === 'AUTO_BACKFILL_LEASE_LOST') clearInterval(heartbeat);
+                });
             }, this.heartbeatMs);
             heartbeat.unref?.();
             // IMPORT-LOG-AUDIT-01: the import_log rows written under this call carry who asked, the run, the
@@ -658,10 +667,14 @@ class AutoBackfillQueueService {
         }
     }
 
-    async recoverInterruptedWork() {
+    // With a lane only that lane's interrupted jobs are recovered: a RUNNING job of the other lane whose lease looks
+    // expired may well be in flight (a long import can delay its heartbeat), and it is that lane's own loop that owns it.
+    async recoverInterruptedWork({ lane = null } = {}) {
         const recovered = [];
         for (;;) {
-            const job = await this.store.claimInterruptedJobForRecovery();
+            const job = lane
+                ? await this.store.claimInterruptedJobForRecovery({ lane })
+                : await this.store.claimInterruptedJobForRecovery();
             if (!job) break;
             try {
                 const completion = await this.evaluateCompletion(job);

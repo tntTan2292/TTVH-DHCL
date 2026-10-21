@@ -5,6 +5,7 @@ const path = require('path');
 const { get, run, all } = require('../config/db');
 const { insertImportLogRow } = require('./importLogAudit');
 const { bumpCoverageVersion } = require('./coverageVersion');
+const { withImportWriteLock } = require('./importWriteLock');
 const {
     getIndicatorConfig,
     resolveContextFromFilePath,
@@ -159,7 +160,8 @@ function quarantineStaleProcessedEvidence({ indicatorConfig = getIndicatorConfig
  */
 async function executeImport(options) {
     try {
-        return await executeImportInner(options);
+        // The whole import (check, parse, transaction, log, file move) is one unit on the shared connection.
+        return await withImportWriteLock(() => executeImportInner(options));
     } finally {
         bumpCoverageVersion(); // files moved and fact rows committed: cached coverage is stale
     }

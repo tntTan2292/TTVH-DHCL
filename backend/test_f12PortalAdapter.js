@@ -510,7 +510,7 @@ test('executors are created for both lanes with the identities; the registry is 
     const { getIndicatorConfig } = require('./src/services/importIndicatorRegistry');
     const f12 = getIndicatorConfig('F1.2');
     assert.equal(f12.status, 'ACTIVE');
-    assert.equal(f12.refreshWindowDays, 3);
+    assert.equal(f12.refreshWindowDays, 2);
     for (const lane of ['HUE', 'TCT']) {
         assert.equal(f12.lanes[lane].automationMode, 'AUTOMATED');
         assert.equal(f12.lanes[lane].portalAdapter.id, F12_EXECUTOR_IDENTITIES[lane].id);

@@ -768,7 +768,7 @@ CREATE TABLE IF NOT EXISTS auto_backfill_job (
     FOREIGN KEY(run_id) REFERENCES auto_backfill_run(id)
 );
 CREATE UNIQUE INDEX IF NOT EXISTS uq_auto_backfill_active_identity ON auto_backfill_job(indicator, source_lane, business_date) WHERE state IN ('QUEUED', 'RUNNING', 'RECOVERY_CHECK');
-CREATE UNIQUE INDEX IF NOT EXISTS uq_auto_backfill_one_running_job ON auto_backfill_job((1)) WHERE state = 'RUNNING';
+CREATE UNIQUE INDEX IF NOT EXISTS uq_auto_backfill_one_running_job_per_lane ON auto_backfill_job(source_lane) WHERE state = 'RUNNING';
 CREATE INDEX IF NOT EXISTS idx_auto_backfill_job_order ON auto_backfill_job(state, business_date DESC, indicator_priority ASC, lane_priority ASC, created_at ASC);
 CREATE INDEX IF NOT EXISTS idx_auto_backfill_job_run ON auto_backfill_job(run_id, state);
 
@@ -795,7 +795,7 @@ CREATE TABLE IF NOT EXISTS auto_backfill_attempt (
 CREATE INDEX IF NOT EXISTS idx_auto_backfill_attempt_job ON auto_backfill_attempt(job_id, attempt_number);
 
 CREATE TABLE IF NOT EXISTS auto_backfill_worker_lease (
-    lease_name TEXT PRIMARY KEY CHECK (lease_name = 'GLOBAL_DKCL'),
+    lease_name TEXT PRIMARY KEY CHECK (lease_name = 'GLOBAL_DKCL' OR lease_name GLOB 'DKCL_*'),
     job_id TEXT NOT NULL UNIQUE,
     worker_id TEXT NOT NULL,
     lease_token TEXT NOT NULL UNIQUE,

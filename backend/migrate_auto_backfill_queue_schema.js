@@ -6,6 +6,18 @@
 const path = require('path');
 const sqlite3 = require('sqlite3').verbose();
 
+// One lease row per execution slot: 'GLOBAL_DKCL' (everything serial, the default) or 'DKCL_<LANE>' (one slot per source
+// lane when the lanes run in parallel, AUTO-BACKFILL-PARALLEL-LANES-01).
+const AUTO_BACKFILL_WORKER_LEASE_TABLE_SQL = (name) => `CREATE TABLE IF NOT EXISTS ${name} (
+    lease_name TEXT PRIMARY KEY CHECK (lease_name = 'GLOBAL_DKCL' OR lease_name GLOB 'DKCL_*'),
+    job_id TEXT NOT NULL UNIQUE,
+    worker_id TEXT NOT NULL,
+    lease_token TEXT NOT NULL UNIQUE,
+    acquired_at TEXT NOT NULL,
+    expires_at TEXT NOT NULL,
+    FOREIGN KEY(job_id) REFERENCES auto_backfill_job(id)
+);`;
+
 const AUTO_BACKFILL_QUEUE_SCHEMA_SQL = `
 CREATE TABLE IF NOT EXISTS auto_backfill_run (
     id TEXT PRIMARY KEY,
@@ -62,8 +74,10 @@ CREATE UNIQUE INDEX IF NOT EXISTS uq_auto_backfill_active_identity
     ON auto_backfill_job(indicator, source_lane, business_date)
     WHERE state IN ('QUEUED', 'RUNNING', 'RECOVERY_CHECK');
 
-CREATE UNIQUE INDEX IF NOT EXISTS uq_auto_backfill_one_running_job
-    ON auto_backfill_job((1))
+-- AUTO-BACKFILL-PARALLEL-LANES-01: at most one RUNNING job per source lane (it was one in the whole system).
+-- With parallel lanes off the store still runs one job at a time; this index only forbids two jobs of one lane.
+CREATE UNIQUE INDEX IF NOT EXISTS uq_auto_backfill_one_running_job_per_lane
+    ON auto_backfill_job(source_lane)
     WHERE state = 'RUNNING';
 
 CREATE INDEX IF NOT EXISTS idx_auto_backfill_job_order
@@ -93,15 +107,7 @@ CREATE TABLE IF NOT EXISTS auto_backfill_attempt (
 CREATE INDEX IF NOT EXISTS idx_auto_backfill_attempt_job
     ON auto_backfill_attempt(job_id, attempt_number);
 
-CREATE TABLE IF NOT EXISTS auto_backfill_worker_lease (
-    lease_name TEXT PRIMARY KEY CHECK (lease_name = 'GLOBAL_DKCL'),
-    job_id TEXT NOT NULL UNIQUE,
-    worker_id TEXT NOT NULL,
-    lease_token TEXT NOT NULL UNIQUE,
-    acquired_at TEXT NOT NULL,
-    expires_at TEXT NOT NULL,
-    FOREIGN KEY(job_id) REFERENCES auto_backfill_job(id)
-);
+${AUTO_BACKFILL_WORKER_LEASE_TABLE_SQL('auto_backfill_worker_lease')}
 
 CREATE INDEX IF NOT EXISTS idx_auto_backfill_worker_lease_expiry
     ON auto_backfill_worker_lease(expires_at);
@@ -172,11 +178,39 @@ function closeDb(db) {
     return new Promise((resolve, reject) => db.close((error) => error ? reject(error) : resolve()));
 }
 
+/**
+ * AUTO-BACKFILL-PARALLEL-LANES-01: brings a database made before per-lane leases up to date. The lease table's CHECK only
+ * allowed 'GLOBAL_DKCL', and a unique index allowed one RUNNING job in the whole system. Both are replaced; the rows of
+ * the lease table are kept. Idempotent: a database already upgraded is left alone.
+ */
+async function upgradeToPerLaneLeases(db) {
+    const lease = await all(db, "SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'auto_backfill_worker_lease'");
+    const ddl = String(lease[0]?.sql || '');
+    if (ddl && !/(GLOB|LIKE)\s+'DKCL_[*%]'/i.test(ddl)) {
+        await exec(db, 'BEGIN IMMEDIATE');
+        try {
+            await exec(db, 'ALTER TABLE auto_backfill_worker_lease RENAME TO auto_backfill_worker_lease__old');
+            await exec(db, 'DROP INDEX IF EXISTS idx_auto_backfill_worker_lease_expiry');
+            await exec(db, AUTO_BACKFILL_WORKER_LEASE_TABLE_SQL('auto_backfill_worker_lease'));
+            await exec(db, `INSERT INTO auto_backfill_worker_lease (lease_name, job_id, worker_id, lease_token, acquired_at, expires_at)
+                SELECT lease_name, job_id, worker_id, lease_token, acquired_at, expires_at FROM auto_backfill_worker_lease__old`);
+            await exec(db, 'DROP TABLE auto_backfill_worker_lease__old');
+            await exec(db, 'CREATE INDEX IF NOT EXISTS idx_auto_backfill_worker_lease_expiry ON auto_backfill_worker_lease(expires_at)');
+            await exec(db, 'COMMIT');
+        } catch (error) {
+            try { await exec(db, 'ROLLBACK'); } catch (_) { /* keep the original error */ }
+            throw error;
+        }
+    }
+    await exec(db, 'DROP INDEX IF EXISTS uq_auto_backfill_one_running_job');
+}
+
 async function applyAutoBackfillQueueSchema(dbPath) {
     const db = await openDb(dbPath);
     try {
         await exec(db, 'PRAGMA foreign_keys=ON');
         await exec(db, AUTO_BACKFILL_QUEUE_SCHEMA_SQL);
+        await upgradeToPerLaneLeases(db);
         const placeholders = AUTO_BACKFILL_QUEUE_TABLE_NAMES.map(() => '?').join(',');
         const rows = await all(
             db,
@@ -205,6 +239,8 @@ if (require.main === module) {
 
 module.exports = {
     applyAutoBackfillQueueSchema,
+    upgradeToPerLaneLeases,
+    AUTO_BACKFILL_WORKER_LEASE_TABLE_SQL,
     AUTO_BACKFILL_QUEUE_SCHEMA_SQL,
     AUTO_BACKFILL_QUEUE_TABLE_NAMES,
 };

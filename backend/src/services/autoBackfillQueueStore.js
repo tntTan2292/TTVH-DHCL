@@ -33,6 +33,14 @@ const BLOCKED_LANES_SUBQUERY = `
       AND blocked_job.safety_state IN ('WAITING_AUTH', 'BLOCKED_INTEGRITY')
       AND blocked_job.source_lane IS NOT NULL`;
 
+// AUTO-BACKFILL-PARALLEL-LANES-01: one execution slot per source lane ('DKCL_HUE', 'DKCL_TCT'); without a lane the
+// whole queue is one slot, the historical 'GLOBAL_DKCL'.
+const GLOBAL_LEASE_NAME = 'GLOBAL_DKCL';
+function leaseNameFor(lane) {
+    const code = String(lane || '').trim().toUpperCase();
+    return code ? `DKCL_${code}` : GLOBAL_LEASE_NAME;
+}
+
 function queueError(code, message, statusCode = 400) {
     const error = new Error(message);
     error.code = code;
@@ -391,10 +399,19 @@ class AutoBackfillQueueStore {
         });
     }
 
-    async acquireNextJob(workerId) {
+    /**
+     * Leases the next job. Without a lane the queue is one slot (serial, as always). With a lane only that source lane's
+     * slot is looked at: it is free when no lease of that lane and no RUNNING job of that lane exists, and only a job of
+     * that lane is taken, so HUE and TCT can each have one job running at the same time.
+     */
+    async acquireNextJob(workerId, { lane = null } = {}) {
+        const laneCode = lane ? String(lane).trim().toUpperCase() : null;
+        const leaseName = leaseNameFor(laneCode);
         return this.transaction(async (db) => {
-            const existingLease = await get(db, "SELECT * FROM auto_backfill_worker_lease WHERE lease_name = 'GLOBAL_DKCL'");
-            const runningJob = await get(db, "SELECT id FROM auto_backfill_job WHERE state = 'RUNNING'");
+            const existingLease = await get(db, 'SELECT * FROM auto_backfill_worker_lease WHERE lease_name = ?', [leaseName]);
+            const runningJob = laneCode
+                ? await get(db, "SELECT id FROM auto_backfill_job WHERE state = 'RUNNING' AND source_lane = ?", [laneCode])
+                : await get(db, "SELECT id FROM auto_backfill_job WHERE state = 'RUNNING'");
             if (existingLease || runningJob) return null;
 
             // AB-AUTH-03: the former global block -- "if ANY RUNNING run is WAITING_AUTH or
@@ -410,10 +427,11 @@ class AutoBackfillQueueStore {
                     AND (j.safety_state IS NULL OR (j.safety_state = 'RETRY_WAIT' AND j.next_attempt_at <= ?))
                     AND (r.safety_state IS NULL OR r.safety_state = 'CIRCUIT_OPEN')
                     AND j.source_lane NOT IN (${BLOCKED_LANES_SUBQUERY})
+                    ${laneCode ? 'AND j.source_lane = ?' : ''}
                  ORDER BY j.business_date DESC, j.indicator_priority ASC,
                           j.lane_priority ASC, j.created_at ASC, j.id ASC
                  LIMIT 1`,
-                [this.nowIso()],
+                laneCode ? [this.nowIso(), laneCode] : [this.nowIso()],
             );
             if (!job) return null;
 
@@ -444,8 +462,8 @@ class AutoBackfillQueueStore {
                 db,
                 `INSERT INTO auto_backfill_worker_lease
                     (lease_name, job_id, worker_id, lease_token, acquired_at, expires_at)
-                 VALUES ('GLOBAL_DKCL', ?, ?, ?, ?, ?)`,
-                [job.id, workerId, leaseToken, now, expiresAt],
+                 VALUES (?, ?, ?, ?, ?, ?)`,
+                [leaseName, job.id, workerId, leaseToken, now, expiresAt],
             );
             await this.appendEvent(db, {
                 runId: job.run_id,
@@ -454,8 +472,8 @@ class AutoBackfillQueueStore {
                 eventType: 'JOB_LEASED',
                 fromState: 'QUEUED',
                 toState: 'RUNNING',
-                reasonCode: 'GLOBAL_DKCL_LEASE_ACQUIRED',
-                payload: { worker_id: workerId, attempt_number: attemptNumber },
+                reasonCode: `${leaseName}_LEASE_ACQUIRED`,
+                payload: { worker_id: workerId, attempt_number: attemptNumber, lease_name: leaseName },
                 createdAt: now,
             });
             return {
@@ -477,10 +495,10 @@ class AutoBackfillQueueStore {
             const lease = await run(
                 db,
                 `UPDATE auto_backfill_worker_lease SET expires_at = ?
-                 WHERE lease_name = 'GLOBAL_DKCL' AND job_id = ? AND lease_token = ?`,
+                 WHERE job_id = ? AND lease_token = ?`,
                 [expiresAt, jobId, leaseToken],
             );
-            if (lease.changes !== 1) throw queueError('AUTO_BACKFILL_LEASE_LOST', 'The global DKCL lease is no longer owned by this worker.', 409);
+            if (lease.changes !== 1) throw queueError('AUTO_BACKFILL_LEASE_LOST', 'The DKCL lease is no longer owned by this worker.', 409);
             await run(
                 db,
                 'UPDATE auto_backfill_job SET lease_expires_at = ?, updated_at = ? WHERE id = ? AND lease_token = ?',
@@ -521,7 +539,7 @@ class AutoBackfillQueueStore {
                     classification = ?, error_signature = ?, action_required = ? WHERE id = ?`,
                 [state, now, reasonCode, serializeJson(evidence), classification, errorSignature, actionRequired, attempt.id],
             );
-            await run(db, "DELETE FROM auto_backfill_worker_lease WHERE lease_name = 'GLOBAL_DKCL' AND lease_token = ?", [leaseToken]);
+            await run(db, 'DELETE FROM auto_backfill_worker_lease WHERE lease_token = ?', [leaseToken]);
             await this.appendEvent(db, {
                 runId: job.run_id,
                 jobId,
@@ -686,7 +704,7 @@ class AutoBackfillQueueStore {
                     attempt.id,
                 ],
             );
-            await run(db, "DELETE FROM auto_backfill_worker_lease WHERE lease_name = 'GLOBAL_DKCL' AND lease_token = ?", [leaseToken]);
+            await run(db, 'DELETE FROM auto_backfill_worker_lease WHERE lease_token = ?', [leaseToken]);
             await this.appendEvent(db, {
                 runId: job.run_id,
                 jobId,
@@ -811,13 +829,16 @@ class AutoBackfillQueueStore {
             db,
             `SELECT
                 SUM(CASE WHEN state IN ('QUEUED', 'RUNNING', 'RECOVERY_CHECK') THEN 1 ELSE 0 END) AS active_count,
+                SUM(CASE WHEN state = 'RUNNING' THEN 1 ELSE 0 END) AS running_count,
                 SUM(CASE WHEN state = 'FAILED_TERMINAL' THEN 1 ELSE 0 END) AS failed_count
              FROM auto_backfill_job WHERE run_id = ?`,
             [runId],
         );
         let nextStatus = runRecord.status;
         let reason = null;
-        if (runRecord.status === 'PAUSING') {
+        // PAUSING becomes PAUSED only when no job of the run is still RUNNING: with parallel lanes one run can have a HUE
+        // and a TCT job running, and the first to finish must not mark the run paused under the other.
+        if (runRecord.status === 'PAUSING' && Number(counts.running_count || 0) === 0) {
             nextStatus = 'PAUSED';
             reason = 'ACTIVE_JOB_FINISHED_AFTER_PAUSE';
         } else if (runRecord.status === 'RUNNING' && Number(counts.active_count || 0) === 0) {
@@ -964,7 +985,8 @@ class AutoBackfillQueueStore {
         return this.getRun(runId);
     }
 
-    async claimInterruptedJobForRecovery() {
+    async claimInterruptedJobForRecovery({ lane = null } = {}) {
+        const laneCode = lane ? String(lane).trim().toUpperCase() : null;
         return this.transaction(async (db) => {
             const now = this.nowIso();
             const job = await get(
@@ -972,8 +994,9 @@ class AutoBackfillQueueStore {
                 `SELECT j.* FROM auto_backfill_job j
                  LEFT JOIN auto_backfill_worker_lease l ON l.job_id = j.id
                  WHERE j.state = 'RUNNING' AND (l.job_id IS NULL OR l.expires_at <= ?)
+                 ${laneCode ? 'AND j.source_lane = ?' : ''}
                  ORDER BY j.started_at ASC LIMIT 1`,
-                [now],
+                laneCode ? [now, laneCode] : [now],
             );
             if (!job) return null;
             const attempt = await get(db, "SELECT * FROM auto_backfill_attempt WHERE job_id = ? AND status = 'RUNNING' ORDER BY attempt_number DESC LIMIT 1", [job.id]);
@@ -1042,7 +1065,15 @@ class AutoBackfillQueueStore {
         });
     }
 
-    async getCoordinatorState() {
+    /**
+     * Counts the coordinator schedules from. With a lane the figures and the lease are those of that source lane only
+     * (one coordinator per lane when the lanes run in parallel); without a lane they cover the whole queue.
+     */
+    async getCoordinatorState({ lane = null } = {}) {
+        const laneCode = lane ? String(lane).trim().toUpperCase() : null;
+        const laneWhere = laneCode ? 'WHERE j.source_lane = ?' : '';
+        const laneAnd = laneCode ? 'AND j.source_lane = ?' : '';
+        const laneParams = laneCode ? [laneCode] : [];
         return this.withDb(async (db) => {
             const counts = await get(
                 db,
@@ -1056,8 +1087,9 @@ class AutoBackfillQueueStore {
                     SUM(CASE WHEN j.safety_state = 'BLOCKED_INTEGRITY' THEN 1 ELSE 0 END) AS integrity_blocked_count,
                     MIN(CASE WHEN j.safety_state = 'RETRY_WAIT' THEN j.next_attempt_at END) AS retry_ready_at
                  FROM auto_backfill_job j
-                 JOIN auto_backfill_run r ON r.id = j.run_id`,
-                [this.nowIso()],
+                 JOIN auto_backfill_run r ON r.id = j.run_id
+                 ${laneWhere}`,
+                [this.nowIso(), ...laneParams],
             );
             // AB-AUTH-03: lane breakdown, added alongside the existing totals (which keep their
             // original meaning so no existing caller changes behaviour). `openLaneEligibleJobCount`
@@ -1073,12 +1105,13 @@ class AutoBackfillQueueStore {
                     MIN(CASE WHEN j.safety_state = 'RETRY_WAIT' THEN j.next_attempt_at END) AS retry_ready_at
                  FROM auto_backfill_job j
                  JOIN auto_backfill_run r ON r.id = j.run_id
-                 WHERE j.source_lane NOT IN (${BLOCKED_LANES_SUBQUERY})`,
-                [this.nowIso()],
+                 WHERE j.source_lane NOT IN (${BLOCKED_LANES_SUBQUERY}) ${laneAnd}`,
+                [this.nowIso(), ...laneParams],
             );
             const lease = await get(
                 db,
-                "SELECT job_id, worker_id, expires_at FROM auto_backfill_worker_lease WHERE lease_name = 'GLOBAL_DKCL'",
+                'SELECT job_id, worker_id, expires_at FROM auto_backfill_worker_lease WHERE lease_name = ?',
+                [leaseNameFor(laneCode)],
             );
             return {
                 eligibleJobCount: Number(counts?.eligible_job_count || 0),
