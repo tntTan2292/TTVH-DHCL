@@ -76,16 +76,16 @@ export default function ActionUnitsBlock({
     <IndicatorProvider indicator={indConfig}>
       <section
         ref={blockRef}
-        className="flex flex-col rounded-xl border border-slate-200/90 bg-white p-3 shadow-xs"
+        className="flex flex-1 flex-col rounded-xl border border-slate-200/90 bg-white p-3 shadow-xs"
       >
         <div className="flex items-center justify-between gap-2 border-b border-slate-100 pb-2">
           <div className="flex min-w-0 items-center gap-2">
             <span className={`h-4 w-1.5 shrink-0 rounded-full ${theme.accentBar}`} />
             <h3 className="whitespace-nowrap text-sm font-black tracking-tight text-slate-900">
-              {spec.title} — {indConfig.moduleLabel}
+              {spec.title}
             </h3>
-            <span className="shrink-0 rounded-md border border-rose-200 bg-rose-50 px-1.5 py-0.5 text-[10px] font-bold text-rose-700">
-              {badge}
+            <span className={`rounded-md border px-1.5 py-0.5 text-[10px] font-bold ${theme.chip}`}>
+              {indConfig.moduleLabel}
             </span>
           </div>
           <div data-no-capture="true" className="flex shrink-0 items-center gap-2">
@@ -106,7 +106,13 @@ export default function ActionUnitsBlock({
           </div>
         </div>
 
-        <div className="mt-2 overflow-x-auto min-w-full">
+        <div className="mt-1.5 flex items-center gap-2">
+          <span className="inline-flex items-center rounded-md border border-rose-200 bg-rose-50 px-2 py-0.5 text-[11px] font-bold text-rose-700">
+            {badge}
+          </span>
+        </div>
+
+        <div className="mt-2 flex-1 overflow-x-auto min-w-full">
           {!sortedUnits.length ? (
             <div className="py-5 text-center text-xs font-medium text-slate-400">
               {emptyText}

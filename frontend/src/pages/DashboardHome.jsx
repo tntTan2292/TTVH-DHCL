@@ -173,8 +173,8 @@ export default function DashboardHome() {
       </section>
 
       {/* 34-province ranking (default "Huế & lân cận") beside the monthly rank and the units to act on */}
-      <div className={`grid grid-cols-1 items-start gap-3 xl:grid-cols-12 transition-opacity ${loadingExecutive || loadingRanking ? "opacity-60" : ""}`}>
-        <div className="xl:col-span-7">
+      <div className={`grid grid-cols-1 items-stretch gap-3 xl:grid-cols-12 transition-opacity ${loadingExecutive || loadingRanking ? "opacity-60" : ""}`}>
+        <div className="flex flex-col xl:col-span-7">
           <NationalRankingBlock
             selectedIndicator={selectedIndicator}
             onSelectIndicator={setSelectedIndicator}

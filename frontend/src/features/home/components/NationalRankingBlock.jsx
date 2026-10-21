@@ -70,7 +70,7 @@ export default function NationalRankingBlock({
     <IndicatorProvider indicator={indConfig}>
       <section
         ref={blockRef}
-        className="h-full rounded-xl border border-slate-200/90 bg-white shadow-sm hover:shadow-md transition-[box-shadow,border-color] duration-150"
+        className="flex h-full flex-col rounded-xl border border-slate-200/90 bg-white shadow-sm hover:shadow-md transition-[box-shadow,border-color] duration-150"
       >
         {/* Header */}
         <div className="flex items-center justify-between gap-2 border-b border-slate-200/80 px-3.5 py-2 bg-slate-50/70 rounded-t-xl">
@@ -273,7 +273,7 @@ export default function NationalRankingBlock({
         </div>
 
         {/* Table Area */}
-        <div className="overflow-x-auto min-w-full">
+        <div className="overflow-x-auto min-w-full flex-1">
           {loading ? (
             <div className="flex h-56 items-center justify-center">
               <div className="flex items-center gap-2.5 text-sm font-semibold text-slate-500">
