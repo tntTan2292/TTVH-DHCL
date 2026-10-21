@@ -16,6 +16,10 @@
  * previous one began (AUTO_IMPORT_SCHEDULE_RETRY_MS), until everything succeeds or AUTO_IMPORT_SCHEDULE_MAX_ATTEMPTS
  * (default 16) is reached. Because a failed day stays missing / not refreshed, each retry plans exactly what is left.
  *
+ * A day that failed and is older than the new day plus the refresh window (AUTO_IMPORT_SCHEDULE_RECENT_DAYS, default 4
+ * days before the run's business date) is an old gap the person handles by hand: it is still tried by the run, but its
+ * failure does not make the attempt a failure, so it cannot keep the schedule retrying all day.
+ *
  * Off unless AUTO_IMPORT_SCHEDULE_ENABLED=true. A time missed because the backend was down starts its cycle once at
  * start-up if it is less than AUTO_IMPORT_SCHEDULE_CATCHUP_MS late (default 3 h). The cycle state is saved, so a restart
  * neither repeats a slot nor forgets a pending retry.
@@ -92,6 +96,8 @@ class AutoImportScheduler {
     catchupMs() { return this.number('AUTO_IMPORT_SCHEDULE_CATCHUP_MS', 3 * 60 * 60 * 1000); }
 
     retryMs() { return this.number('AUTO_IMPORT_SCHEDULE_RETRY_MS', 60 * 60 * 1000); }
+
+    recentDays() { return Math.floor(this.number('AUTO_IMPORT_SCHEDULE_RECENT_DAYS', 4)); }
 
     maxAttempts() { return Math.max(1, Math.floor(this.number('AUTO_IMPORT_SCHEDULE_MAX_ATTEMPTS', 16))); }
 
@@ -208,6 +214,13 @@ class AutoImportScheduler {
                 const status = await this.runStatus(entry.runId);
                 if (!TERMINAL_RUN_STATUSES.has(status)) { pending = true; continue; }
                 results[lane] = status === 'COMPLETED' ? 'OK' : `RUN_${status}`;
+                if (status === 'COMPLETED_WITH_ERRORS') {
+                    const ignored = await this.oldFailuresOnly(entry.runId);
+                    if (ignored) {
+                        results[lane] = 'OK';
+                        this.logger.warn?.(`[AUTO-IMPORT-SCHEDULE][${lane}] ignoring failed old day(s) for the retry decision: ${ignored.join(', ')}`);
+                    }
+                }
             } else {
                 results[lane] = entry.outcome === 'NOTHING_TO_IMPORT' ? 'OK' : entry.outcome;
             }
@@ -237,6 +250,27 @@ class AutoImportScheduler {
             return result?.run?.status || 'UNKNOWN';
         } catch (_) {
             return 'UNKNOWN';
+        }
+    }
+
+    /**
+     * For a run that ended with errors: the failed days (as "indicator/lane/date") when EVERY failure is older than the
+     * recent days, else null. Unknown detail counts as a real failure.
+     */
+    async oldFailuresOnly(runId) {
+        try {
+            const detail = await this.queueService.store.getRun(runId);
+            const asOf = detail?.run?.as_of_business_date;
+            if (!/^\d{4}-\d{2}-\d{2}$/.test(String(asOf || '')) || !Array.isArray(detail.jobs)) return null;
+            const cutoff = new Date(`${asOf}T00:00:00Z`);
+            cutoff.setUTCDate(cutoff.getUTCDate() - this.recentDays());
+            const cutoffDay = cutoff.toISOString().slice(0, 10);
+            const bad = detail.jobs.filter((job) => !['SUCCESS', 'SKIPPED_ALREADY_SUCCESS'].includes(job.state));
+            if (bad.length === 0) return null;
+            if (!bad.every((job) => job.state === 'FAILED_TERMINAL' && job.business_date < cutoffDay)) return null;
+            return bad.map((job) => `${job.indicator}/${job.source_lane}/${job.business_date}`);
+        } catch (_) {
+            return null;
         }
     }
 

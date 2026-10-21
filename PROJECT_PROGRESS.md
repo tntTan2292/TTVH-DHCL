@@ -2389,3 +2389,7 @@ Live check found the window disappearing as soon as "Đăng nhập qua portal" w
 ## 2026-10-21 - UI-TREND-7DAY-CUM-01 BACKEND: 7-DAY CUMULATIVE RATE AND NATIONAL RANK
 
 PO asked for a compact "Xu hướng điều hành tổng hợp" block, a bigger chart and table, the cumulative rate and national rank of the 7 days on the chart against the same 7 weekdays one week earlier, and no "Theo BCVH" tab. New GET /ranking/bcvh/window-comparison for F1.3, F4.1, F1.1, F1.2 (shared service method compareRollingWindow); 4 new tests, real-DB smoke on all four. UI handed to Antigravity, then Opus review and PO check. Manifest: docs/10_TICKETS/UI-TREND-7DAY-CUM-01_MANIFEST.md.
+
+## 2026-10-21 - AUTO-IMPORT-SCHEDULE-01 REVIEW: OLD FAILED DAYS NO LONGER KEEP THE SCHEDULE RETRYING
+
+Review of the 07:30 schedule (built in another session): code and tests sound, but it is still switched off in `.env`, and five old days that always fail reconciliation would have made every cycle retry 16 times. Per PO decision those days are left to the PO; failures older than the new day plus the 3-day refresh window no longer count against the retry decision. Test suite 16/16. Manifest Section 8: docs/10_TICKETS/AUTO-IMPORT-SCHEDULE-01_MANIFEST.md.

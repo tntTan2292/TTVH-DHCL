@@ -27,7 +27,7 @@ const at = (hhmm, day = '2026-10-21') => new Date(`${day}T${hhmm}:00+07:00`);
  * sessions: { LANE: status or [statuses over successive checks] }
  * runStatuses: { runId: status or [statuses over successive reads] }
  */
-function build({ env = {}, now = at('07:30'), sessions = {}, runStatuses = {}, createRun = null } = {}) {
+function build({ env = {}, now = at('07:30'), sessions = {}, runStatuses = {}, runJobs = null, createRun = null } = {}) {
     const stateDir = fs.mkdtempSync(path.join(os.tmpdir(), 'auto-import-'));
     const calls = [];
     let clockNow = now;
@@ -47,7 +47,7 @@ function build({ env = {}, now = at('07:30'), sessions = {}, runStatuses = {}, c
             runCounter += 1;
             return { run: { id: `run-${args.lane}-${runCounter}` }, jobs: [1, 2], creation: { created: true } };
         },
-        store: { async getRun(id) { return { run: { status: pick(runStatuses, id, 'COMPLETED') } }; } },
+        store: { async getRun(id) { return { run: { status: pick(runStatuses, id, 'COMPLETED'), as_of_business_date: '2026-10-21' }, jobs: (runJobs && runJobs[id]) || undefined }; } },
     };
     const scheduler = new AutoImportScheduler({
         queueService,
@@ -342,4 +342,47 @@ test('the scheduler reopens a lost window before it checks the session', async (
         await t.scheduler.tick();
         assert.deepEqual(order.slice(0, 4), ['reattach:HUE', 'preflight:HUE', 'reattach:TCT', 'preflight:TCT']);
     } finally { t.cleanup(); }
+});
+
+function job(indicator, lane, business_date, state) { return { indicator, source_lane: lane, business_date, state }; }
+
+test('failed old days (before the new day and the refresh window) do not keep the schedule retrying', async () => {
+    // business date 2026-10-21: recent = 2026-10-17 and later; 2026-01-08 and 2026-03-20 are old gaps
+    const t = build({
+        env: { AUTO_IMPORT_SCHEDULE_LANES: 'HUE' },
+        runStatuses: { 'run-HUE-1': 'COMPLETED_WITH_ERRORS' },
+        runJobs: { 'run-HUE-1': [
+            job('F1.1', 'HUE', '2026-10-20', 'SUCCESS'),
+            job('F1.1', 'HUE', '2026-03-20', 'FAILED_TERMINAL'),
+            job('F1.1', 'HUE', '2026-01-08', 'FAILED_TERMINAL'),
+        ] },
+    });
+    try {
+        await t.scheduler.tick();
+        await t.scheduler.tick();
+        assert.equal(t.state().cycle.done, true, 'only old gaps failed: the day is done');
+        assert.equal(t.state().cycle.attempts, 1);
+    } finally { t.cleanup(); }
+});
+
+test('a failed recent day, or any unknown detail, still counts as a failure and is retried', async () => {
+    const recent = build({
+        env: { AUTO_IMPORT_SCHEDULE_LANES: 'HUE' },
+        runStatuses: { 'run-HUE-1': 'COMPLETED_WITH_ERRORS' },
+        runJobs: { 'run-HUE-1': [job('F1.1', 'HUE', '2026-03-20', 'FAILED_TERMINAL'), job('F1.3', 'HUE', '2026-10-19', 'FAILED_TERMINAL')] },
+    });
+    const unknown = build({ env: { AUTO_IMPORT_SCHEDULE_LANES: 'HUE' }, runStatuses: { 'run-HUE-1': 'COMPLETED_WITH_ERRORS' } });
+    const cancelled = build({
+        env: { AUTO_IMPORT_SCHEDULE_LANES: 'HUE' },
+        runStatuses: { 'run-HUE-1': 'COMPLETED_WITH_ERRORS' },
+        runJobs: { 'run-HUE-1': [job('F1.1', 'HUE', '2026-03-20', 'FAILED_TERMINAL'), job('F1.1', 'HUE', '2026-03-21', 'CANCELLED')] },
+    });
+    try {
+        for (const t of [recent, unknown, cancelled]) {
+            await t.scheduler.tick();
+            await t.scheduler.tick();
+            assert.equal(t.state().cycle.done, false);
+            assert.equal(t.state().cycle.nextAttemptAt, at('08:30').getTime());
+        }
+    } finally { recent.cleanup(); unknown.cleanup(); cancelled.cleanup(); }
 });
