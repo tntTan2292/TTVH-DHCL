@@ -71,3 +71,22 @@ PO: ở zoom 67 % chữ nhỏ, mờ, còn khoảng trắng và dòng bị ngắt
 - Viền khung đậm hơn (slate-300), chữ phụ slate-600/700 thay cho slate-400/500.
 
 Đo (nội dung, headless): laptop 1366 px 1.281 px → 662 px; 1920 px (1080p, zoom 100 %) 1.133 px → 643 px, vừa hẳn một màn hình; ở laptop 1366 x 768 vừa ở zoom khoảng 85-90 %. Test home 31/31, build và lint không thêm cảnh báo.
+
+## 10. Giao diện trang chủ: làm lại phần trình bày (PO 2026-10-21, giao Antigravity)
+
+PO đánh giá: bản `d60c4dc` (mục 9) **quá hẹp, "sát rạt, chi chít chữ", không đẹp**; bản trước đó, commit `0e0478c` (ảnh chụp toàn trang PO đã khen "OK tuyệt vời"), **đẹp hơn** và chỉ cần gọn hơn chứ không nhồi nhét. Việc: Antigravity thiết kế lại **chỉ phần trình bày** của trang chủ.
+
+**Điểm xuất phát:** lấy bản `0e0478c` làm gốc nhìn (`git show 0e0478c:<tệp>` cho từng tệp dưới đây), không phải `d60c4dc`. Giữ mọi chức năng của mục 1-9.
+
+**Tệp trong phạm vi:** `frontend/src/pages/DashboardHome.jsx`; `frontend/src/features/home/components/{ExecutiveDateBar,ExecutiveIndicatorCard,NationalRankingBlock,MonthlyRankProgressionBlock,ActionUnitsBlock}.jsx`; test `frontend/src/features/home/dashboardHome.test.js` (cập nhật chuỗi nếu đổi). Không đổi backend, `homePeriod.js`, tên prop, dữ liệu.
+
+**Nguyên tắc nhìn (PO):**
+1. Đẹp, thoáng, dễ đọc ngay không cần zoom: số lớn là nhân vật chính (tỷ lệ, hạng ≥ 28 px), chữ nhãn ≥ 12 px, chữ bảng ≥ 14 px, hàng bảng cao ≥ 32 px, khoảng cách khối ≥ 12 px, bo góc lớn như `0e0478c`. Không nhồi nhiều thông tin vào một dòng.
+2. Được phép cuộn dọc ở phần dưới; nhưng **màn hình đầu tiên (laptop 1366 x 768, zoom 100 %) phải thấy trọn thanh đầu + 4 thẻ chỉ tiêu + phần đầu bảng xếp hạng**. Phần còn lại cuộn.
+3. Không xuống dòng vô lý, không khoảng trắng thừa: đã gặp các lỗi sau, không để tái diễn: tiêu đề bảng xếp hạng bị đẩy chip ngày xuống hàng hai; hai hàng ô thống kê Huế với khoảng trống bên dưới; hàng bảng khối phải bị kéo giãn rất cao; đường xu hướng trong thẻ quá cao; chữ "So hôm trước"/"Chênh mục tiêu" bị ngắt; tiêu đề khối phải xuống hai dòng; cột bị cắt ở màn hẹp.
+4. Số đo thật để tính (không có trình duyệt): ở 1366 px, vùng nội dung rộng ~1230 px, mỗi thẻ ~300 px, khối phải ~480 px; ở 1920 px: mỗi thẻ ~470 px, khối phải ~690 px. Thiết kế phải đọc tốt từ 1280 đến 1920 px và không bị cắt/ngắt xấu ở các mốc 1280, 1366, 1536, 1920.
+5. Màu sáng, tương phản đủ (chữ chính slate-900, phụ không nhạt hơn slate-600); không tím, không nền tối; mỗi chỉ tiêu giữ màu riêng (F1.1 xanh lá, F1.2 ngọc, F1.3 xanh dương, F4.1 cam).
+
+**Phải giữ nguyên chức năng:** bộ lọc Ngày/Tuần/Tháng + nút lùi/tiến + "Mới nhất" + cảnh báo "kỳ khác nhau"; nút camera thanh đầu chụp cả trang (không có nút điều khiển trong ảnh), camera từng khối; bấm tên cột để sắp xếp; đường mục tiêu và màu theo từng chỉ tiêu; "Huế & lân cận" mặc định; chip ngày từng chỉ tiêu; nhãn kỳ ("Tuần 42 · đến 20/10") trên thẻ và chú thích ảnh; khối cặp/bưu cục/BCVH theo kỳ; `report_block_ui_standard.md`.
+
+**Bàn giao:** build, lint, test home xanh; dừng ở `READY FOR PO CHECK` kèm danh sách PO tự kiểm ở laptop 1366 và màn 1080p.
