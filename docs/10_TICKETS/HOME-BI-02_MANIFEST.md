@@ -52,3 +52,7 @@ Hạng, biến động, khoảng kỳ và so kỳ trước khớp giữa thẻ, 
 
 Còn mở (cần PO quyết): (1) quanh ranh giới tuần/tháng các thẻ có thể ở hai kỳ khác nhau (mỗi chỉ tiêu đọc kỳ mới nhất của nó) — giữ như vậy hay dùng một kỳ chung và hiện "Chưa có dữ liệu" cho chỉ tiêu về trễ; (2) thẻ lấy tỷ lệ từ dữ liệu chi tiết còn khối lũy kế / bảng 34 tỉnh lấy từ báo cáo toàn quốc nên có thể lệch 0,1-0,3 điểm cùng kỳ (đã ghi nguồn trên khối lũy kế); (3) F1.1 có thể liệt kê bưu cục chấp nhận 531120 "Khách hàng lớn" trong khi khối BCVH của F1.3 loại mã này (đúng vì không phải BCVH).
 Chưa có: test hành vi giao diện (chỉ dò nguồn + hàm nhãn/`navState`), đo trên trình duyệt thật.
+
+## 7. Thu gọn trang chủ (PO 2026-10-21)
+
+PO: thanh đầu trang gọn một hàng, widget nhỏ lại (đặc biệt đường biểu đồ), để thấy hết trang khi zoom 67 %. Chỉ đổi khoảng cách và cỡ chữ, không đổi số liệu. Đo bằng trình duyệt headless ở độ rộng 2040 px (tương đương zoom 67 % của PO): chiều cao nội dung 1.133 px → 877 px (thanh đầu 94 → 40, bốn widget 287 → 232, khối xếp hạng + khối phải 688 → 565). Chip chỉ số ở thanh đầu rút còn "20/10", "Tuần 42", "T10" (kỳ đầy đủ nằm trên từng thẻ và trong tooltip). Số lớn trong widget text-4xl → text-3xl; đường xu hướng cao 56 → 32 px.

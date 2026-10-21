@@ -92,7 +92,7 @@ export default function DashboardHome() {
   const activeIndicatorData = indicators.find((ind) => ind.id === selectedIndicator) || indicators[0] || null;
 
   return (
-    <div className="mx-auto max-w-[1920px] space-y-3 p-3 sm:p-4 xl:p-5">
+    <div className="mx-auto max-w-[1920px] space-y-2 p-2 sm:p-3">
       <ExecutiveDateBar
         period={period}
         onPeriodChange={(next) => {
@@ -145,7 +145,7 @@ export default function DashboardHome() {
       {/* Four indicator cards: rate, national rank, gap to target, change, own 30-day line */}
       <section aria-label="Thẻ chỉ tiêu điều hành" aria-busy={loadingExecutive} className={loadingExecutive ? "opacity-60 transition-opacity" : "transition-opacity"}>
         {loadingExecutive && !indicators.length ? (
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-4">
             {[1, 2, 3, 4].map((i) => (
               <div key={i} className="h-60 animate-pulse rounded-2xl border border-slate-200/80 bg-white p-4">
                 <div className="h-4 w-24 rounded bg-slate-200" />
@@ -157,7 +157,7 @@ export default function DashboardHome() {
             ))}
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-4">
             {indicators.map((ind) => (
               <ExecutiveIndicatorCard
                 key={ind.id}
@@ -171,7 +171,7 @@ export default function DashboardHome() {
       </section>
 
       {/* 34-province ranking (default "Huế & lân cận") beside the monthly rank and the units to act on */}
-      <div className={`grid grid-cols-1 items-stretch gap-3 xl:grid-cols-12 transition-opacity ${loadingExecutive || loadingRanking ? "opacity-60" : ""}`}>
+      <div className={`grid grid-cols-1 items-stretch gap-2 xl:grid-cols-12 transition-opacity ${loadingExecutive || loadingRanking ? "opacity-60" : ""}`}>
         <div className="xl:col-span-7">
           <NationalRankingBlock
             selectedIndicator={selectedIndicator}
@@ -182,7 +182,7 @@ export default function DashboardHome() {
             loading={loadingRanking}
           />
         </div>
-        <div className="flex flex-col gap-3 xl:col-span-5">
+        <div className="flex flex-col gap-2 xl:col-span-5">
           <MonthlyRankProgressionBlock
             indicatorData={activeIndicatorData}
             selectedIndicator={selectedIndicator}

@@ -76,7 +76,7 @@ export default function ActionUnitsBlock({
     <IndicatorProvider indicator={indConfig}>
       <section
         ref={blockRef}
-        className="flex flex-1 flex-col rounded-2xl border border-slate-200/90 bg-white p-3.5 shadow-sm"
+        className="flex flex-1 flex-col rounded-xl border border-slate-200/90 bg-white p-2.5 shadow-sm"
       >
         <div className="flex items-center justify-between gap-2 border-b border-slate-100 pb-2">
           <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5">

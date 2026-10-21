@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { navState, periodShortTitle, periodTitle, previousBasisLabel, sparkCaption } from './homePeriod.js';
+import { navState, periodChipTitle, periodShortTitle, periodTitle, previousBasisLabel, sparkCaption } from './homePeriod.js';
 
 test('previousBasisLabel names what the change is read against', () => {
   assert.equal(previousBasisLabel('day'), 'hôm trước');
@@ -38,4 +38,11 @@ test('navState: back needs earlier data and a free request, forward only when no
   assert.equal(navState({ periodInfo: info, offset: -120, loading: false }).canGoBack, false);
   assert.equal(navState({ periodInfo: { has_previous: false }, offset: 0, loading: false }).canGoBack, false);
   assert.equal(navState({ periodInfo: null, offset: 0, loading: false }).canGoBack, false);
+});
+
+test('periodChipTitle is the shortest name of the period', () => {
+  assert.equal(periodChipTitle({ period: 'day', period_to: '2026-10-20' }), '20/10');
+  assert.equal(periodChipTitle({ period: 'week', period_week: 42, period_to: '2026-10-20' }), 'Tuần 42');
+  assert.equal(periodChipTitle({ period: 'month', period_from: '2026-10-01', period_to: '2026-10-20' }), 'T10');
+  assert.equal(periodChipTitle(null), '—');
 });

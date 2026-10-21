@@ -18,7 +18,7 @@ export default function MonthlyRankProgressionBlock({
     <IndicatorProvider indicator={indConfig}>
       <section
         ref={blockRef}
-        className="rounded-2xl border border-slate-200/90 bg-white p-3.5 shadow-sm"
+        className="rounded-xl border border-slate-200/90 bg-white p-2.5 shadow-sm"
       >
         <div className="flex items-center justify-between gap-2 border-b border-slate-100 pb-2">
           <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5">
@@ -45,7 +45,7 @@ export default function MonthlyRankProgressionBlock({
             Chưa có dữ liệu xếp hạng theo tháng.
           </div>
         ) : (
-          <div className="mt-2.5 grid grid-cols-5 gap-2">
+          <div className="mt-1.5 grid grid-cols-5 gap-1.5">
             {monthlyRank.map((m) => {
               const monthLabel = m.month ? `T${Number(m.month.slice(5))}` : '—';
               const hasRank = m.rank != null;
@@ -54,7 +54,7 @@ export default function MonthlyRankProgressionBlock({
               return (
                 <div
                   key={m.month}
-                  className={`rounded-lg border px-1.5 py-1.5 text-center ${
+                  className={`rounded-lg border px-1.5 py-1 text-center ${
                     hasRank ? 'border-slate-200/80 bg-slate-50/70' : 'border-slate-100 bg-slate-50/30 opacity-60'
                   }`}
                 >

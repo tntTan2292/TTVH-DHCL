@@ -74,6 +74,14 @@ export function navState({ periodInfo, offset, loading }) {
   };
 }
 
+/** Tiny form for the chips of the control bar: "20/10", "Tuần 42", "T10". */
+export function periodChipTitle(info) {
+  if (!info || !info.period_to) return '—';
+  if (info.period === 'week') return `Tuần ${info.period_week}`;
+  if (info.period === 'month') return `T${Number(String(info.period_from || info.period_to).split('-')[1])}`;
+  return formatDayMonth(info.period_to);
+}
+
 /** Caption of the small line chart inside a card. */
 export function sparkCaption(trendKind) {
   if (trendKind === 'week') return '12 tuần gần nhất';

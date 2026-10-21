@@ -33,7 +33,7 @@ export default function ExecutiveIndicatorCard({ data, isSelected, onSelect }) {
   const targetRate = data?.target_rate ?? indConfig.targetRate;
   const fullName = INDICATOR_FULL_NAMES[data?.id] || '';
 
-  const frame = `@container group relative rounded-2xl border p-3.5 transition-all duration-200 cursor-pointer ${
+  const frame = `@container group relative rounded-xl border p-2.5 transition-all duration-200 cursor-pointer ${
     isSelected
       ? `border-slate-900 bg-white shadow-lg ring-2 ${theme.ring}`
       : 'border-slate-200/90 bg-white shadow-xs hover:shadow-md hover:border-slate-300'
@@ -104,7 +104,7 @@ export default function ExecutiveIndicatorCard({ data, isSelected, onSelect }) {
     <IndicatorProvider indicator={indConfig}>
       <div ref={cardRef} onClick={onSelect} className={frame}>
         {/* Header: indicator, its name, target and camera */}
-        <div className="flex items-start justify-between gap-2 border-b border-slate-100 pb-2">
+        <div className="flex items-start justify-between gap-2 border-b border-slate-100 pb-1.5">
           <div className="min-w-0">
             <div className="flex items-center gap-2">
               <span className={`h-4 w-1.5 shrink-0 rounded-full ${theme.accentBar}`} />
@@ -113,7 +113,7 @@ export default function ExecutiveIndicatorCard({ data, isSelected, onSelect }) {
                 Mục tiêu {targetRate}%
               </span>
             </div>
-            <div className="mt-1 flex items-center gap-2 text-xs font-semibold text-slate-500" title={`Kỳ số liệu của chỉ tiêu ${data.label}: ${periodTitle(data)}`}>
+            <div className="mt-0.5 flex items-center gap-2 text-xs font-semibold text-slate-500" title={`Kỳ số liệu của chỉ tiêu ${data.label}: ${periodTitle(data)}`}>
               <span className="truncate">{fullName}</span>
               <span className="inline-flex shrink-0 items-center gap-1 rounded bg-slate-100 px-1.5 py-0.5 text-[11px] font-bold text-slate-600">
                 <Calendar size={11} className="text-slate-400" />
@@ -131,8 +131,8 @@ export default function ExecutiveIndicatorCard({ data, isSelected, onSelect }) {
         </div>
 
         {/* The two numbers leaders read first: rate and national rank */}
-        <div className="mt-2.5 grid grid-cols-1 gap-2 @[300px]:grid-cols-2">
-          <div className="rounded-xl border border-slate-100 bg-slate-50/90 px-3 py-2">
+        <div className="mt-1.5 grid grid-cols-1 gap-1.5 @[300px]:grid-cols-2">
+          <div className="rounded-lg border border-slate-100 bg-slate-50/90 px-2.5 py-1.5">
             <div className="flex items-center justify-between gap-1">
               <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Tỷ lệ đạt</span>
               {isTargetMet ? (
@@ -146,7 +146,7 @@ export default function ExecutiveIndicatorCard({ data, isSelected, onSelect }) {
               )}
             </div>
             <div className="mt-0.5 flex items-baseline gap-1">
-              <span className="text-4xl font-black leading-tight tracking-tight text-slate-900 tabular-nums">
+              <span className="text-3xl font-black leading-tight tracking-tight text-slate-900 tabular-nums">
                 {rate != null ? rate.toFixed(1) : '—'}
               </span>
               <span className="text-lg font-extrabold text-slate-500">%</span>
@@ -163,13 +163,13 @@ export default function ExecutiveIndicatorCard({ data, isSelected, onSelect }) {
             </div>
           </div>
 
-          <div className="rounded-xl border border-rose-100/90 bg-rose-50/50 px-3 py-2">
+          <div className="rounded-lg border border-rose-100/90 bg-rose-50/50 px-2.5 py-1.5">
             <div className="flex items-center justify-between">
               <span className="text-[11px] font-bold uppercase tracking-wider text-rose-800">Vị thứ toàn quốc</span>
               <Award size={15} className="shrink-0 text-rose-500" />
             </div>
             <div className="mt-0.5 flex items-baseline gap-1">
-              <span className="text-4xl font-black leading-tight tracking-tight text-rose-600 tabular-nums">
+              <span className="text-3xl font-black leading-tight tracking-tight text-rose-600 tabular-nums">
                 {rank != null ? rank : '—'}
               </span>
               <span className="text-base font-bold text-rose-400">/{total}</span>
@@ -182,10 +182,10 @@ export default function ExecutiveIndicatorCard({ data, isSelected, onSelect }) {
         </div>
 
         {/* Own 30-day line with the indicator's own target line */}
-        <div className="mt-2 h-14" title={`${caption} · đường đỏ là mục tiêu ${targetRate}%`}>
+        <div className="mt-1 h-8" title={`${caption} · đường đỏ là mục tiêu ${targetRate}%`}>
           {spark.some((point) => point.rate != null) ? (
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={spark} margin={{ top: 4, right: 4, bottom: 2, left: 4 }}>
+              <LineChart data={spark} margin={{ top: 2, right: 4, bottom: 1, left: 4 }}>
                 <YAxis hide domain={sparkDomain} />
                 <ReferenceLine y={targetRate} stroke="#EF4444" strokeDasharray="3 3" strokeWidth={1.2} />
                 <Line
