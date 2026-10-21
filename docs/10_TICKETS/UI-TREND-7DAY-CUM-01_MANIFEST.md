@@ -82,3 +82,5 @@ Fixes required (round 4, Antigravity):
 5. Window-comparison fetch: reset the stored data to null when `to_date`, indicator or BCVH changes (and on `success:false`), so a previous payload (for example the national rank) is never shown for a new selection.
 
 Accepted as is: "Không đạt" row removed and the "Chênh lệch" chip (PO), chart heights 340/360 and 320/340, hook order, no undefined identifiers.
+
+Clarification to Section 9 item 3 (PO screenshot of F1.2, 2026-10-21): with the 95 % target and rates near 95-100 % the chips sit on the "Mục tiêu 95" label and on the rate data labels (95.05 %, 94.36 %, 93.xx %), which are drawn ABOVE their points. The reserved band must therefore clear the data labels too: chip band height + about 16 px of label room above the 100 % line (or the target label and the near-100 % labels must be moved below the band). Check F1.1/F1.2 (target 95 %) explicitly, not only F1.3/F4.1 (90 %).
