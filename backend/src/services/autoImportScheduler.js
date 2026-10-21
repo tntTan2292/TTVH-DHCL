@@ -10,13 +10,13 @@
  * (HUE, TCT; AUTO_IMPORT_SCHEDULE_LANES):
  *   1. checks the DKCL session (preflight); no valid session -> the lane is a failure of this attempt;
  *   2. creates one ordinary Auto Backfill run for the lane (every ACTIVE indicator: the missing days, the newest day
- *      included, plus the 3-day refresh window), requested by the user "scheduler".
+ *      included, plus the 2-day refresh window), requested by the user "scheduler".
  * When the runs of the attempt have ended, the attempt is a success only if every lane had a valid session and its run
  * COMPLETED without a failed job (or had nothing to import). Otherwise the next attempt starts one hour after the
  * previous one began (AUTO_IMPORT_SCHEDULE_RETRY_MS), until everything succeeds or AUTO_IMPORT_SCHEDULE_MAX_ATTEMPTS
  * (default 16) is reached. Because a failed day stays missing / not refreshed, each retry plans exactly what is left.
  *
- * A day that failed and is older than the new day plus the refresh window (AUTO_IMPORT_SCHEDULE_RECENT_DAYS, default 4
+ * A day that failed and is older than the new day plus the refresh window (AUTO_IMPORT_SCHEDULE_RECENT_DAYS, default 3
  * days before the run's business date) is an old gap the person handles by hand: it is still tried by the run, but its
  * failure does not make the attempt a failure, so it cannot keep the schedule retrying all day.
  *
@@ -97,7 +97,7 @@ class AutoImportScheduler {
 
     retryMs() { return this.number('AUTO_IMPORT_SCHEDULE_RETRY_MS', 60 * 60 * 1000); }
 
-    recentDays() { return Math.floor(this.number('AUTO_IMPORT_SCHEDULE_RECENT_DAYS', 4)); }
+    recentDays() { return Math.floor(this.number('AUTO_IMPORT_SCHEDULE_RECENT_DAYS', 3)); }
 
     maxAttempts() { return Math.max(1, Math.floor(this.number('AUTO_IMPORT_SCHEDULE_MAX_ATTEMPTS', 16))); }
 

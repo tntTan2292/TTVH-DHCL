@@ -2393,3 +2393,7 @@ PO asked for a compact "Xu hướng điều hành tổng hợp" block, a bigger 
 ## 2026-10-21 - AUTO-IMPORT-SCHEDULE-01 REVIEW: OLD FAILED DAYS NO LONGER KEEP THE SCHEDULE RETRYING
 
 Review of the 07:30 schedule (built in another session): code and tests sound, but it is still switched off in `.env`, and five old days that always fail reconciliation would have made every cycle retry 16 times. Per PO decision those days are left to the PO; failures older than the new day plus the 3-day refresh window no longer count against the retry decision. Test suite 16/16. Manifest Section 8: docs/10_TICKETS/AUTO-IMPORT-SCHEDULE-01_MANIFEST.md.
+
+## 2026-10-21 - AUTO-IMPORT-SCHEDULE-01: REFRESH WINDOW SET TO 2 DAYS
+
+PO decision: scheduled import = new day D-1 plus D-2 and D-3 imported again. The refresh window of F1.1, F1.2, F1.3 and F4.1 is now 2 (was 3); the schedule's "old gap" threshold follows (3). A read-only simulation with the real registry gives 24 jobs for both lanes (8 new + 16 re-import). Related suites green. Manifest Section 9: docs/10_TICKETS/AUTO-IMPORT-SCHEDULE-01_MANIFEST.md.

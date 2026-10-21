@@ -154,8 +154,8 @@ const INDICATORS = {
         priority: 10,
         badgeTheme: 'blue',
         // The portal revises a day's figures after the first fetch, so each unscoped Auto Backfill run also re-imports
-        // the 3 days before the newest day (PO decision 2026-10-15: now also F1.3 and F4.1, as F1.1 / F1.2).
-        refreshWindowDays: 3,
+        // the 2 days before the newest day (PO decision 2026-10-15: also F1.3 and F4.1; 2026-10-21: 2 days, not 3).
+        refreshWindowDays: 2,
         trackingStartDate: TRACKING_START_DATE,
         businessTimezone: BUSINESS_TIMEZONE,
         folder: 'F1.3',
@@ -200,8 +200,8 @@ const INDICATORS = {
         priority: 20,
         badgeTheme: 'teal',
         // The portal revises a day's figures after the first fetch, so each unscoped Auto Backfill run also re-imports
-        // the 3 days before the newest day (PO decision 2026-10-15: now also F1.3 and F4.1, as F1.1 / F1.2).
-        refreshWindowDays: 3,
+        // the 2 days before the newest day (PO decision 2026-10-15: also F1.3 and F4.1; 2026-10-21: 2 days, not 3).
+        refreshWindowDays: 2,
         trackingStartDate: TRACKING_START_DATE,
         businessTimezone: BUSINESS_TIMEZONE,
         folder: 'F4.1',
@@ -256,8 +256,8 @@ INDICATORS['F1.1'] = {
     priority: 30,
     badgeTheme: 'violet',
     // The portal revises a day's figures after the first fetch (07/10: 2 Hue parcels dropped, TCT counts moved
-    // after 3 days), so each unscoped Auto Backfill run also re-imports the 3 days before the newest day.
-    refreshWindowDays: 3,
+    // after 3 days), so each unscoped Auto Backfill run also re-imports the 2 days before the newest day (PO decision 2026-10-21: 2, not 3).
+    refreshWindowDays: 2,
     trackingStartDate: TRACKING_START_DATE,
     businessTimezone: BUSINESS_TIMEZONE,
     folder: 'F1.1',
@@ -304,7 +304,7 @@ INDICATORS['F1.1'] = {
 // F12-PHASE-2/4/3: F1.2 (thu gom buu gui lien tinh), accepting side only. HUE lane (fact_f12, detail) and TCT lane
 // (fact_f12_national, one row per accepting province). ACTIVE with both lanes AUTOMATED since the PO accepted the
 // supervised DRY run of 2026-10-10 (HUE and TCT reconciled exactly with the portal summary). The portal revises a
-// day after N-1 (10/10: 26 Hue parcels dropped, 'chua du thong tin' 133 -> 17), hence the 3-day refresh window (PD-F12-11).
+// day after N-1 (10/10: 26 Hue parcels dropped, 'chua du thong tin' 133 -> 17), hence the refresh window (PD-F12-11; 2 days since the PO decision of 2026-10-21).
 INDICATORS['F1.2'] = {
     code: 'F1.2',
     key: 'F1.2',
@@ -312,7 +312,7 @@ INDICATORS['F1.2'] = {
     status: 'ACTIVE',
     priority: 40,
     badgeTheme: 'emerald',
-    refreshWindowDays: 3,
+    refreshWindowDays: 2,
     trackingStartDate: TRACKING_START_DATE,
     businessTimezone: BUSINESS_TIMEZONE,
     folder: 'F1.2',
