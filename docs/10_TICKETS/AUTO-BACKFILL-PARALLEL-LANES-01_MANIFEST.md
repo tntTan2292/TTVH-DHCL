@@ -25,17 +25,19 @@ Unchanged on purpose: circuit breakers and safety states stay per scope; a run t
 2. Check the log: `[AUTO-BACKFILL-QUEUE] parallel lanes ON: HUE + TCT run at the same time.`
 3. To go back: remove the line (or set false) and restart; the new index and lease table stay valid for serial running.
 
+
 ## 4. Independent review (Opus, 2026-10-21): PASS WITH FIXES, all fixed
 
-1. **High, fixed:** the TCT F1.3 backfill calls  directly (not through ), so it skipped the write lock; it now takes  itself ().
-2. **High, fixed:** every  ran a global recovery, so one lane could take the other lane's job whose lease looked expired (a long import can delay the heartbeat) and run it twice. Recovery is now lane scoped (), and the heartbeat survives a failed renewal and stops only on .
-3. **Medium, fixed:** a paused run became PAUSED as soon as one job finished although a job of the other lane was still RUNNING; PAUSING now becomes PAUSED only when no job of the run is RUNNING.
+1. **High, fixed:** the TCT F1.3 backfill calls `importNationalParsedData` directly (not through `executeImport`), so it skipped the write lock; it now takes `withImportWriteLock` itself (`tctF13BackfillService.js`).
+2. **High, fixed:** every `processNext` ran a global recovery, so one lane could take the other lane's job whose lease looked expired (a long import can delay the heartbeat) and run it twice. Recovery is now lane scoped (`claimInterruptedJobForRecovery({ lane })`), and the heartbeat survives a failed renewal and stops only on `AUTO_BACKFILL_LEASE_LOST`.
+3. **Medium, fixed:** a paused run became PAUSED as soon as one job finished although a job of the other lane was still RUNNING; PAUSING now becomes PAUSED only when no job of the run is RUNNING (`reconcileRun`).
 4. **Low, residual:** other code opens transactions on the shared connection without the lock (coverage exceptions, holiday calendar, network map import, hangton snapshots). Not a regression, but two lanes make an overlap with an import more likely; to be put behind the same lock in a later ticket if it ever shows.
-5. **Nits, fixed:** a lane coordinator treats an error that names no lane as its own lane; the lease check uses GLOB ( is not a wildcard); the lease error text no longer says "global". Known and accepted: with the flag off the JOB_LEASED event payload gains , and the import lock also queues manual uploads and the file watcher behind backfill imports.
+5. **Nits, fixed:** a lane coordinator treats an error that names no lane as its own lane; the lease check uses `GLOB 'DKCL_*'` (`_` is not a wildcard); the lease error text no longer says "global". Known and accepted: with the flag off the `JOB_LEASED` event payload gains `lease_name`, and the import lock also queues manual uploads and the file watcher behind backfill imports.
 
 ## 5. Validation
 
- 14/14, repeated 12 times without a failure (legacy database upgrade and idempotence, two lanes leased and running at once, one job per lane, serial path unchanged, per-lane coordinators with a rendezvous proving the overlap, a lane waiting for a login does not stop the other, recovery lane scoped, heartbeat, pause, runtime flag, write lock, demonstration that unlocked imports corrupt each other). Related suites unchanged and green: queue service 45/45, safety 11/11, refresh window 6/6, anchor run 5/5, scheduler 16/16, F1.3 executors 19/19, F1.2 pipeline 6/6 and adapter 24/24, queue and safety migrations 2/2 each, backend  import/dkcl/backfill tests 102/102.
-Fixed on the way (stale after the 2-day window decision): the window expectations in , , .
-Already failing before this ticket and untouched:  (2),  (1),  (syntax error), the real-workbook tests ( 8,  14 and 17, the real single-day TCT file test).
+`test_autoBackfillParallelLanes.js` 14/14, repeated 12 times without a failure: legacy database upgrade and idempotence, two lanes leased and running at once, one job per lane, serial path unchanged, per-lane coordinators with a rendezvous proving the overlap, a lane waiting for a login does not stop the other, recovery lane scoped, heartbeat, pause, runtime flag, write lock, and a demonstration that unlocked imports corrupt each other.
+Related suites unchanged and green: queue service 45/45, safety 11/11, refresh window 6/6, anchor run 5/5, scheduler 16/16, F1.3 executors 19/19, F1.2 pipeline 6/6 and adapter 24/24, queue and safety migrations 2/2 each, backend `src` import/dkcl/backfill tests 102/102.
+Fixed on the way (stale after the 2-day window decision): the window expectations in `test_f11ImportPipeline.js`, `test_f12ImportPipeline.js` and `test_f12PortalAdapter.js`.
+Already failing before this ticket and untouched: `test_autoBackfillQueueController.js` (2), `test_autoBackfillCoverageController.js` (1), `test_dkclSessionPreflightService.js` (syntax error), and the real-workbook tests (`test_f11ImportPipeline.js` 8, `test_f11PortalAdapter.js` 14 and 17, the real single-day TCT file test).
 Not verified live: two lanes against the real portal (needs the flag on and a backend restart).
