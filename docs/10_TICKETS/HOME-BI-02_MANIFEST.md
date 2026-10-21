@@ -60,3 +60,14 @@ PO: thanh đầu trang gọn một hàng, widget nhỏ lại (đặc biệt đư
 ## 8. Camera của thanh đầu trang chụp cả trang (PO 2026-10-21)
 
 Nút "Chụp ảnh" ở thanh "TRANG CHỦ ĐIỀU HÀNH CHẤT LƯỢNG" chụp toàn bộ trang (thanh đầu, 4 thẻ, bảng 34 tỉnh, khối lũy kế, khối hành động) thay vì chỉ thanh đầu; các nút điều khiển (bộ lọc, lùi/tiến, camera con) không vào ảnh. Chú thích chân ảnh ghi "QIS" thay vì nhãn F1.3 mặc định (`indicatorOverride` của `BlockCaptureButton`) và kỳ đang xem. Đã chụp thử bằng trình duyệt headless: ảnh 3104 x 1856 px (2x) đủ các khối.
+
+## 9. Bố cục gọn, chữ rõ để đọc ở zoom 100 % (PO 2026-10-21)
+
+PO: ở zoom 67 % chữ nhỏ, mờ, còn khoảng trắng và dòng bị ngắt vô lý; trang chủ phải "nhìn là thấy số". Thiết kế lại bố cục, không đổi số liệu:
+- Thẻ chỉ tiêu: tiêu đề hai hàng đầy chiều rộng (nhãn + mục tiêu + camera / tên chỉ tiêu · kỳ), hai ô số lớn (tỷ lệ, hạng) không ngắt dòng; đường xu hướng chỉ hiện khi thẻ đủ rộng (container ≥ 400 px); bỏ chữ "bậc" khi thẻ hẹp.
+- Thanh đầu: chip các chỉ tiêu chỉ hiện khi màn hình ≥ 1500 px, nên ở laptop 1366 px vẫn đủ một hàng.
+- Bảng 34 tỉnh: tiêu đề một dòng (bỏ chip ngày, kỳ đã ghi ở thanh đầu và ở chú thích ảnh), dải số liệu Huế gộp thành một dòng (Huế, MT, BQ 34 tỉnh, tỉnh liền trên cần thêm), một dòng chế độ xem + nguồn, hàng bảng ~26 px.
+- Khối lũy kế tháng: một hàng 10 ô (số trong ô tròn là hạng); khối hành động: tiêu đề một dòng, ẩn cột "Không đạt" của bảng cặp khi khối < 540 px.
+- Viền khung đậm hơn (slate-300), chữ phụ slate-600/700 thay cho slate-400/500.
+
+Đo (nội dung, headless): laptop 1366 px 1.281 px → 662 px; 1920 px (1080p, zoom 100 %) 1.133 px → 643 px, vừa hẳn một màn hình; ở laptop 1366 x 768 vừa ở zoom khoảng 85-90 %. Test home 31/31, build và lint không thêm cảnh báo.
