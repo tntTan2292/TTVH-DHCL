@@ -217,3 +217,22 @@ Phần lớn là công việc có tiêu đề kiểu `fix(import): …` hoặc k
 4. Nhóm E: xác nhận trạng thái thật của AUTO-IMPORT-006/008/009/012, AUTO-BACKFILL-RUNTIME, F13-STANDARDIZATION-001, HANGTON-INVENTORY-01.
 5. Hai commit `wip`/`chore` ở mục 6.
 6. Thời điểm khởi động lại backend/frontend để các ticket chờ chạy thật (nhóm C) được kiểm.
+
+## 9. Kết quả đã thực hiện (2026-10-22): đưa phần chắc chắn lên `main`
+
+**Quyết định của PO:** cái gì chắc chắn thì đưa lên `main`, cái chưa chắc để lại trên nhánh (PO làm việc ở nhiều tài khoản Claude nên không nhớ hết từng ticket; Claude Code tự tìm bằng chứng trong kho).
+
+**Cách làm:** lịch sử là một đường thẳng nên chỉ đưa lên được theo kiểu **cắt tại một mốc** (fast-forward, không ghi đè). Mốc được chọn là commit ngay trước ticket đầu tiên còn chưa chắc.
+- Bằng chứng bổ sung cho các manifest lỗi thời (commit "close … PO PASS", PROJECT_SNAPSHOT, ghi chú đóng trong tài liệu): AUTO-IMPORT-008 (PO PASS 27/07), AUTO-IMPORT-009 (commit "close PO pass" 27/07), AUTO-IMPORT-012 (đóng cùng ngày, TECHNICAL PASS), AUTO-IMPORT-006 (các giai đoạn đã PO PASS, chỉ còn nhãn ACTIVE), AUTO-BACKFILL-* (gate 4, 5 PASS và COVERAGE-EXCEPTION đóng; sự cố SQLITE_BUSY dưới RUNTIME PO xác nhận 07/09), F13-STANDARDIZATION-001 (các giai đoạn "PO runtime pass"), NETWORK-MANAGEMENT-002 (PO PASS 11/08 theo snapshot). Các ticket này được tính là chắc chắn.
+- Ticket đầu tiên còn chưa chắc: **F13-ROUTE-POSTMAN-IDENTITY-01** (đăng ký ở commit \`425ed1c\`, 15/09): Phase 3 UI "READY FOR PO UI CHECK", hiển thị bưu tá đang TẠM DỪNG theo quyết định PO, kiểm Postman Catalog còn chờ PO.
+
+**Mốc đã đưa lên \`main\`:** \`19b00215\` ("docs(f41-dashboard-minimum-01): Phase B1 Independent Re-Review PASS", 2026-09-15), gồm **477 commit** (20/07 → 15/09). \`origin/main\` chuyển từ \`9bff48d\` sang \`19b00215\` bằng fast-forward.
+
+**Kiểm tra trước khi đẩy** (xuất cây tại mốc ra thư mục tạm, không đụng thư mục làm việc):
+- Frontend: build sạch; 475/479 test đạt. 4 test lỗi là test lỗi thời đã được sửa ở các ticket sau (3 test dashboardFilterOptions / wording, 1 test dataImportBackfillQueue "API base"), không phải lỗi chức năng.
+- Backend (dùng DB thật): 351/355 đạt; 4 lỗi giống hệt đầu nhánh (3 test tích hợp cần backend chạy thật, 1 test timeline dò chuỗi nguồn lỗi thời).
+- Không có tệp \`.env\`, khóa, cookie hay phiên đăng nhập thật được thêm; có \`backend/node_modules/\` gồm một số gói runtime Playwright được theo dõi có chủ đích (commit "materialize HUE playwright runtime packages", 31/07).
+
+**Còn lại trên nhánh (chưa lên \`main\`): 294 commit** (từ 15/09). Trong đó:
+- **Chắc chắn nhưng bị xếp sau ticket Postman** (không tách được vì lịch sử một đường thẳng): F13-BCVH-MONTHLY-CUMULATIVE-01, IMPORT-BULK-REIMPORT-ALL-01, F13-BCVH-DAILY-SAMEWEEKDAY-01, F13-BCVH-WEEKLY-COMPARISON-01, F13-BCVH-MONTHLY-COMPARISON-01, F13-BCVH-WEEKLY-TREND-01, F41-DASHBOARD-RANKING-01, UI-BCVH-RANKING-DECLUTTER-01, UI-CHART-DATA-LABELS-01, UI-IMPORT-DAYVIEW-01, AUTO-IMPORT-015 (đóng tạm), TEST-API-BASE-URL-STALE-01 (sửa 4 test lỗi thời nói trên).
+- **Mốc tiếp theo nếu PO chấp nhận ticket Postman** (hiển thị đang tạm dừng theo quyết định PO, Postman Catalog còn chờ PO kiểm): \`86ef5569\` (09/10, "F41-DASHBOARD-RANKING-01 closed (PO UI PASS)"), thêm **97 commit** gồm toàn bộ các ticket chắc chắn ở trên. Sau mốc này là ticket \`UI-DELTA-WORDING-01\` và chuỗi F11, F12, UI-GLASS, HOME-BI-01/02, PERF-LOAD-01, IMPORT-LOG-AUDIT-01, HANGTON (nhóm B, C, E của mục 4) còn chờ PO.
