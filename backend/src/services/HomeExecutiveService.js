@@ -592,6 +592,21 @@ class HomeExecutiveService {
         const hue = table.items.find((item) => item.is_hue) || null;
         const above = hue && hue.rank > 1 ? table.items[hue.rank - 2] : null;
 
+        const items = table.items.map((item) => ({
+            rank: item.rank,
+            ma_tinh: item.ma_tinh,
+            ten_tinh: item.ten_tinh,
+            rate: item.rate,
+            volume: item.volume,
+            failed: item.failed,
+            previous_rank: movementBasis.ranks ? (movementBasis.ranks.get(String(item.ma_tinh)) || null) : item.previous_rank,
+            movement: movementBasis.ranks
+                ? (movementBasis.ranks.get(String(item.ma_tinh)) ? movementBasis.ranks.get(String(item.ma_tinh)) - item.rank : null)
+                : item.movement,
+            gap_to_target: round1(item.rate - target),
+            is_hue: item.is_hue,
+        }));
+
         return {
             indicator,
             label: LABELS[indicator],
@@ -607,24 +622,14 @@ class HomeExecutiveService {
             hue: hue ? {
                 rank: hue.rank,
                 rate: hue.rate,
+                // rank change against the same basis as the table rows (previous day / week / month)
+                previous_rank: items.find((item) => item.is_hue)?.previous_rank ?? null,
+                movement: items.find((item) => item.is_hue)?.movement ?? null,
                 gap_to_target: round1(hue.rate - target),
                 gap_to_national_rate: nationalRate === null ? null : round1(hue.rate - nationalRate),
                 above: above ? { rank: above.rank, ten_tinh: above.ten_tinh, rate: above.rate, gap: round1(above.rate - hue.rate) } : null,
             } : null,
-            items: table.items.map((item) => ({
-                rank: item.rank,
-                ma_tinh: item.ma_tinh,
-                ten_tinh: item.ten_tinh,
-                rate: item.rate,
-                volume: item.volume,
-                failed: item.failed,
-                previous_rank: movementBasis.ranks ? (movementBasis.ranks.get(String(item.ma_tinh)) || null) : item.previous_rank,
-                movement: movementBasis.ranks
-                    ? (movementBasis.ranks.get(String(item.ma_tinh)) ? movementBasis.ranks.get(String(item.ma_tinh)) - item.rank : null)
-                    : item.movement,
-                gap_to_target: round1(item.rate - target),
-                is_hue: item.is_hue,
-            })),
+            items,
         };
     }
 

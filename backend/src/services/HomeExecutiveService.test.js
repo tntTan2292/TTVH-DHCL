@@ -246,6 +246,13 @@ test('national ranking, day view keeps the previous-day movement', async () => {
     assert.equal(out.items[1].movement, 1);
 });
 
+test('national ranking: Huế carries its own rank movement, on the same basis as its table row', async () => {
+    const day = await service(all4(adapter())).getNationalRanking({ indicator: 'f13', period: 'day', anchorDate: '2026-10-11' });
+    assert.equal(day.hue.movement, 1); // was 3rd, now 2nd
+    assert.equal(day.hue.previous_rank, 3);
+    assert.equal(day.hue.movement, day.items.find((i) => i.is_hue).movement);
+});
+
 test('national ranking rejects an unknown indicator and a bad date', async () => {
     const s = service(all4(adapter()));
     await assert.rejects(() => s.getNationalRanking({ indicator: 'f99' }), { code: 'INVALID_INDICATOR' });

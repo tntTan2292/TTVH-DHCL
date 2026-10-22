@@ -124,3 +124,5 @@ PO: giao diện phải tự co giãn từ laptop đến TV 51 / 62 inch, không 
 - Hạn chế đã biết: `zoom` cần Chrome / Edge, Firefox từ bản 126, Safari mới; trình duyệt cũ hiển thị cỡ gốc (không phóng).
 
 > **Sửa 2026-10-22:** nút TV chỉ còn biểu tượng (tooltip và `aria-label` nói rõ), và chip chỉ tiêu ở thanh đầu hiện theo **bề rộng thực của thanh** (`@container`, từ 1500 px logic) thay vì theo màn hình, vì trang đang được phóng / thu bằng `zoom` nên câu hỏi màn hình không còn phản ánh chỗ trống. Thanh đầu luôn một hàng (~46 px logic) ở 1366, 1600, 1920 và TV.
+
+> **Sửa 2026-10-22 (PO hỏi "Biến động" ở ô "Vị thứ BĐTP Huế" không có số):** giao diện đọc `hue.movement` nhưng máy chủ chưa bao giờ gửi, nên luôn hiện "—". `getNationalRanking` nay trả `hue.movement` và `hue.previous_rank` cùng cơ sở với hàng bảng (ngày trước / tuần trước / tháng trước); nhãn ô đổi thành "So hôm trước / tuần trước / tháng trước" như các thẻ. Đã đối chiếu 12 tổ hợp (4 chỉ tiêu x ngày/tuần/tháng): hạng và biến động ở ô Huế bằng thẻ chỉ tiêu. Test backend 26/26.

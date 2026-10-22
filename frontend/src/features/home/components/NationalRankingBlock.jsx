@@ -142,7 +142,7 @@ export default function NationalRankingBlock({
                 </div>
               </div>
               <div className="mt-1 flex items-center justify-between border-t border-rose-200/60 pt-1 text-xs text-slate-600">
-                <span>Biến động</span>
+                <span title="Thay đổi hạng của Huế">So {previousBasisLabel(rankingData?.movement_basis || period)}</span>
                 <span className="font-bold">
                   {hue?.movement != null ? (
                     hue.movement > 0 ? (
