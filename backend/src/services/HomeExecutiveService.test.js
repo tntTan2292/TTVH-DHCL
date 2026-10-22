@@ -132,7 +132,7 @@ test('F1.3 / F4.1 list every BCVH, lowest rate first, with gap to target and fai
     }
 });
 
-test('F1.1 lists the 5 accepting-office x delivering-BCVH pairs with the largest volume below 85 %', async () => {
+test('F1.1 lists the accepting-office x delivering-BCVH pairs with the largest volume below 85 %', async () => {
     const cell = (volume, rate) => ({ volume, passed: Math.round(volume * rate / 100), failed: volume - Math.round(volume * rate / 100), blank: 0, rate });
     const a = adapter();
     a.pairs = async () => ({
@@ -150,14 +150,14 @@ test('F1.1 lists the 5 accepting-office x delivering-BCVH pairs with the largest
     assert.equal(focus.kind, 'pairs');
     assert.equal(focus.threshold, 85);
     // "Khác" column and pairs at/above 85 % are left out; the rest are ordered by volume
-    assert.deepEqual(focus.items.map((u) => `${u.ma_bcvh}>${u.ten_phat}`), ['O1>BCVH Một', 'O2>BCVH Một', 'O2>BCVH Hai', 'O4>BCVH Một', 'O4>BCVH Hai']);
+    assert.deepEqual(focus.items.map((u) => `${u.ma_bcvh}>${u.ten_phat}`), ['O1>BCVH Một', 'O2>BCVH Một', 'O2>BCVH Hai', 'O4>BCVH Một', 'O4>BCVH Hai', 'O5>BCVH Một', 'O3>BCVH Hai']);
     assert.equal(focus.items[0].ten_bcvh, 'Office 1');
     assert.equal(focus.items[0].volume, 50);
     assert.equal(focus.items[0].failed, 30);
     assert.equal(focus.items[0].gap_to_target, -55);
 });
 
-test('F1.2 lists the 5 accepting offices with the largest volume below 90 %', async () => {
+test('F1.2 lists the accepting offices with the largest volume below 90 %', async () => {
     const a = adapter();
     a.offices = async () => ({ data: [
         { ma_bcvh: 'A', ten_bcvh: 'A', total_bg: 10, passed_rate: 50, total_failed: 5 },
@@ -175,6 +175,15 @@ test('F1.2 lists the 5 accepting offices with the largest volume below 90 %', as
     assert.equal(focus.threshold, 90);
     assert.deepEqual(focus.items.map((u) => u.ma_bcvh), ['C', 'E', 'F', 'G', 'A']);
     assert.equal(focus.items[0].gap_to_target, -5.1);
+});
+
+test('F1.2 sends at most 10 offices, biggest volume first, so the screen can fill its height', async () => {
+    const a = adapter();
+    a.offices = async () => ({ data: Array.from({ length: 14 }, (_, i) => ({ ma_bcvh: `O${i}`, ten_bcvh: `Office ${i}`, total_bg: 10 + i, passed_rate: 50, total_failed: 5 })) });
+    const out = await service({ f11: adapter(), f12: a, f13: adapter(), f41: adapter() }).getExecutive();
+    const items = out.indicators[1].focus_units.items;
+    assert.equal(items.length, 10);
+    assert.deepEqual(items.map((u) => u.volume), [23, 22, 21, 20, 19, 18, 17, 16, 15, 14]);
 });
 
 test('a failing pair / office source leaves an empty list, not a broken card', async () => {

@@ -21,11 +21,13 @@ const TREND_DAYS = 30;
 const SERIES_WEEKS = 12;
 const PERIODS = Object.freeze(['day', 'week', 'month']);
 const MAX_BACK = 120; // how many periods the back button may go
-const FOCUS_UNITS = 5;
+// The block fills the height it is given, so the server sends up to this many below-threshold units (biggest
+// volume first) and the screen shows as many as fit (PO 2026-10-22).
+const FOCUS_UNITS = 10;
 const CANONICAL_SET = new Set(CANONICAL_CODES.map(String));
 // PO 2026-10-13: what the "units to act on" block lists for each indicator.
-//   f11 - the accepting-office x delivering-BCVH pairs with the largest volume whose rate is below 85 %
-//   f12 - the accepting offices with the largest volume whose rate is below 90 %
+//   f11 - the accepting-office x delivering-BCVH pairs with the largest volume whose rate is below 85 % (up to 10)
+//   f12 - the accepting offices with the largest volume whose rate is below 90 % (up to 10)
 //   f13 / f41 - every BCVH (the six canonical ones), lowest rate first
 const FOCUS = Object.freeze({
     f11: { kind: 'pairs', threshold: 85 },

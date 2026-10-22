@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ExternalLink } from 'lucide-react';
 import BlockCaptureButton from '../../../components/common/BlockCaptureButton.jsx';
@@ -15,8 +15,9 @@ import {
 
 // PO 2026-10-13: what the block lists depends on the indicator (the backend sends it as `focus_units`).
 //   bcvh    (F1.3, F4.1) - quality of all six BCVH, lowest rate first
-//   pairs   (F1.1)       - the 5 accepting-office x delivering-BCVH pairs with the largest volume below the threshold
-//   offices (F1.2)       - the 5 accepting offices with the largest volume below the threshold
+//   pairs   (F1.1)       - the accepting-office x delivering-BCVH pairs with the largest volume below the threshold
+//   offices (F1.2)       - the accepting offices with the largest volume below the threshold
+// The server sends up to 10 of them (biggest volume first); the block shows as many as fit its height (PO 2026-10-22).
 const KINDS = Object.freeze({
   bcvh: {
     title: 'CHẤT LƯỢNG CÁC BCVH',
@@ -26,13 +27,13 @@ const KINDS = Object.freeze({
   },
   pairs: {
     title: 'CẶP BƯU CỤC CHẤP NHẬN – PHÁT',
-    badge: (threshold) => `5 cặp sản lượng lớn, dưới ${threshold}%`,
+    badge: (threshold, shown) => `${shown} cặp sản lượng lớn, dưới ${threshold}%`,
     nameHeader: 'Chấp nhận',
     defaultSort: { field: 'volume', direction: 'desc' },
   },
   offices: {
     title: 'BƯU CỤC CHẤP NHẬN',
-    badge: (threshold) => `5 bưu cục sản lượng lớn, dưới ${threshold}%`,
+    badge: (threshold, shown) => `${shown} bưu cục sản lượng lớn, dưới ${threshold}%`,
     nameHeader: 'Bưu cục chấp nhận',
     defaultSort: { field: 'volume', direction: 'desc' },
   },
@@ -63,11 +64,35 @@ export default function ActionUnitsBlock({
     }));
   };
 
+  // Rows that fit the height the block is given (the block takes the height of the ranking table beside it).
+  // BCVH lists are never cut: there are only six. For pairs / offices the server list is biggest-volume first,
+  // so the first `fit` entries are kept and only then put in the order the leader clicked.
+  const bodyRef = useRef(null);
+  const headRef = useRef(null);
+  const rowRef = useRef(null);
+  const [fit, setFit] = useState(Infinity);
   const rawUnits = focus?.items;
-  const sortedUnits = useMemo(() => sortLowestUnits(rawUnits || [], sort), [rawUnits, sort]);
+  useLayoutEffect(() => {
+    const el = bodyRef.current;
+    if (!el || typeof ResizeObserver === 'undefined') return undefined;
+    const measure = () => {
+      const headHeight = headRef.current?.offsetHeight || 36;
+      const rowHeight = rowRef.current?.offsetHeight || 38;
+      setFit(Math.max(3, Math.floor((el.clientHeight - headHeight) / rowHeight)));
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [kind, rawUnits]);
+  const shownUnits = useMemo(
+    () => (kind === 'bcvh' ? (rawUnits || []) : (rawUnits || []).slice(0, fit)),
+    [kind, rawUnits, fit]
+  );
+  const sortedUnits = useMemo(() => sortLowestUnits(shownUnits, sort), [shownUnits, sort]);
 
   const rankingUrl = indConfig.routes?.ranking || `/${selectedIndicator}/ranking/bcvh`;
-  const badge = typeof spec.badge === 'function' ? spec.badge(threshold) : spec.badge;
+  const badge = typeof spec.badge === 'function' ? spec.badge(threshold, sortedUnits.length) : spec.badge;
   const emptyText = kind === 'bcvh'
     ? 'Chưa có dữ liệu phân rã đơn vị cho kỳ này.'
     : `Không có ${kind === 'pairs' ? 'cặp bưu cục' : 'bưu cục'} nào dưới ${threshold}% trong kỳ này.`;
@@ -112,14 +137,16 @@ export default function ActionUnitsBlock({
           </span>
         </div>
 
-        <div className="mt-2 flex-1 overflow-x-auto min-w-full">
+        {/* The table sits in an absolutely placed box: its rows never push the block taller than the ranking table */}
+        <div className="relative mt-2 min-h-[9rem] min-w-full flex-1">
+          <div ref={bodyRef} className="absolute inset-0 overflow-x-auto overflow-y-hidden">
           {!sortedUnits.length ? (
             <div className="py-5 text-center text-xs font-medium text-slate-400">
               {emptyText}
             </div>
           ) : (
             <table className="w-full whitespace-nowrap border-collapse text-left text-sm">
-              <thead className="border-b border-slate-200 text-xs font-bold uppercase tracking-normal text-slate-600">
+              <thead ref={headRef} className="border-b border-slate-200 text-xs font-bold uppercase tracking-normal text-slate-600">
                 <tr>
                   <SortableTh field="ten_bcvh" sort={sort} onSort={handleSort} className="px-2.5 py-2 text-left">
                     {spec.nameHeader}
@@ -141,10 +168,11 @@ export default function ActionUnitsBlock({
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 font-medium">
-                {sortedUnits.map((u) => {
+                {sortedUnits.map((u, index) => {
                   const below = Number.isFinite(target) ? Number(u.rate) < target : true;
                   return (
                     <tr
+                      ref={index === 0 ? rowRef : undefined}
                       key={u.key || u.ma_bcvh}
                       onClick={() => navigate(rankingUrl)}
                       className="cursor-pointer transition-colors hover:bg-slate-50/80"
@@ -175,6 +203,7 @@ export default function ActionUnitsBlock({
               </tbody>
             </table>
           )}
+          </div>
         </div>
       </section>
     </IndicatorProvider>

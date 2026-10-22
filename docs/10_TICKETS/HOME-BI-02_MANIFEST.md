@@ -109,3 +109,7 @@ PO đánh giá: bản `d60c4dc` (mục 9) **quá hẹp, "sát rạt, chi chít c
 >   1. *Cân bằng chiều cao:* Thiết lập `items-stretch` ở lưới trang + `flex-1` ở `ActionUnitsBlock`, đảm bảo mép dưới của khối xếp hạng 34 tỉnh và mép dưới của khối phải luôn thẳng hàng bằng nhau về chiều cao (không bị hẫng khoảng trống dưới khối phải). Hàng bảng vẫn giữ nguyên chiều cao tự nhiên (~36px) chứ không bị kéo giãn.
 >   2. *Sửa đè chữ "Xem đầy đủ":* Tách chip phụ của `ActionUnitsBlock` thành dòng nhãn riêng phía dưới header, giúp nút "Xem đầy đủ" và camera trên thanh tiêu đề hoàn toàn thông thoáng, triệt tiêu 100% hiện tượng đè chữ với huy hiệu.
 
+
+## 11. Khối "cặp / bưu cục cần hành động" tự lấp đầy chỗ trống (PO 2026-10-22)
+
+PO thấy khoảng trống dưới bảng cặp F1.1 (5 dòng không đủ lấp chiều cao khối). Nay máy chủ trả tối đa **10** cặp (F1.1) / bưu cục (F1.2) dưới ngưỡng 85 % / 90 %, sản lượng lớn trước; màn hình hiện **đúng số dòng vừa chiều cao khối** (đo bằng `ResizeObserver`, tối thiểu 3), rồi xếp theo cột PO bấm. Nhãn "N cặp / N bưu cục sản lượng lớn, dưới X %" theo số dòng đang hiện. Khối BCVH (F1.3, F4.1) luôn đủ 6 BCVH. Bảng nằm trong hộp định vị tuyệt đối nên số dòng không làm khối cao thêm. Test backend 25/25 (thêm ca 14 bưu cục → 10), frontend home 31/31, build và lint sạch.
