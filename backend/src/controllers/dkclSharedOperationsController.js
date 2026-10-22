@@ -64,6 +64,47 @@ class DkclSharedOperationsController {
         }
     }
  
+    // IMPORT-SESSION-01: the state of both DKCL sources without opening a browser (safe to poll).
+    async sessionStatus(req, res) {
+        try {
+            const svc = this?.sessionPreflightService || sessionPreflightService;
+            const requested = req.query?.source;
+            const sources = requested ? [requested] : ['HUE', 'TCT'];
+            const data = {};
+            for (const source of sources) {
+                const status = await svc.getSessionStatus(source);
+                data[status.source] = status;
+            }
+            return res.status(200).json({ success: true, data: { sources: data, checked_at: new Date().toISOString() } });
+        } catch (error) {
+            return res.status(400).json({
+                success: false,
+                error: {
+                    code: error.code || 'SESSION_STATUS_REJECTED',
+                    message: error.message || 'Không đọc được trạng thái phiên DKCL.'
+                }
+            });
+        }
+    }
+
+    // IMPORT-SESSION-01: end a source's session (sign out, wipe the saved cookies, no automatic reattach).
+    async disconnect(req, res) {
+        try {
+            const svc = this?.sessionPreflightService || sessionPreflightService;
+            const data = await svc.disconnect(req.body?.source || req.query?.source);
+            return res.status(200).json({ success: true, data });
+        } catch (error) {
+            console.error('[disconnect] Error details:', error);
+            return res.status(error.code === 'SESSION_BUSY' ? 409 : 400).json({
+                success: false,
+                error: {
+                    code: error.code || 'SESSION_DISCONNECT_REJECTED',
+                    message: error.message || 'Không ngắt được phiên DKCL.'
+                }
+            });
+        }
+    }
+
     async cancelLogin(req, res) {
         try {
             const result = await sessionPreflightService.cancelInteractiveLogin(req.body?.source || req.query?.source);

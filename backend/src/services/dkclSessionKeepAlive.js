@@ -89,8 +89,12 @@ class DkclSessionKeepAlive {
                 let status;
                 try {
                     let client = this.sessionService.getInteractiveClient(source);
-                    if (!client) client = await this.tryReattach(source);
-                    status = client ? (await this.sessionService.preflight(source))?.status || 'UNKNOWN' : 'NO_SESSION';
+                    if (!client && this.sessionService.isDisconnected?.(source)) {
+                        status = 'DISCONNECTED';
+                    } else {
+                        if (!client) client = await this.tryReattach(source);
+                        status = client ? (await this.sessionService.preflight(source))?.status || 'UNKNOWN' : 'NO_SESSION';
+                    }
                 } catch (error) {
                     status = `CHECK_ERROR_${error?.code || 'UNKNOWN'}`;
                 }

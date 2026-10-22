@@ -375,6 +375,17 @@ class DkclHueF13PortalClient {
         this.ownsLock = true;
     }
 
+    /**
+     * IMPORT-SESSION-01: ends the portal session for good -- a best-effort sign-out on the portal, then every cookie of
+     * the browser context (DKCL and the portal.vnpost.vn single sign-on). Never throws; the caller closes the client.
+     */
+    async signOutAndClearCookies({ logoutTimeoutMs = 8000 } = {}) {
+        if (this.page && !this.page.isClosed?.() && this.baseUrl) {
+            await this.page.goto(`${this.baseUrl}/logout`, { waitUntil: 'domcontentloaded', timeout: logoutTimeoutMs }).catch(() => {});
+        }
+        await this.context?.clearCookies?.().catch(() => {});
+    }
+
     async close() {
         if (this.context) {
             await this.context.close().catch(() => {});

@@ -4,6 +4,7 @@ import { AlertTriangle, CalendarDays, CheckCircle2, Clock, Database, FileSpreads
 import api from '../api/client';
 import UploadWidget from '../components/UploadWidget';
 import AutoBackfillOperatorPanel from '../components/AutoBackfillOperatorPanel';
+import DkclSessionStrip from '../components/DkclSessionStrip';
 import { buildImportReconciliationContext } from './importDashboardReconciliation';
 import {
   clearDateSelection,
@@ -850,6 +851,8 @@ export default function DataImportCenter() {
           </button>
         </div>
       </div>
+
+      <DkclSessionStrip onChanged={(code) => { if (code === 'HUE') preflightHueSession(); else preflightTctSession(); }} />
 
       {statusError && (
         <div className="p-4 rounded-xl border border-red-200 bg-red-50 flex items-start gap-3">

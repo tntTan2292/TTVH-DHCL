@@ -5,6 +5,7 @@ const { DkclHueF13PortalClient } = require('./dkclHueF13PortalClient');
 const processManager = require('./browserProcessManager');
 const { DkclSessionCoordinator } = require('./dkclSessionCoordinator');
 const { DkclHueBrokerClient, isHueBrokerEnabled } = require('./dkclHueBrokerClient');
+const { DkclDisconnectFlags, clearProfileCookies } = require('./dkclSessionDisconnect');
 const {
     DKCL_LIFECYCLE_STATES,
     DKCL_LEGACY_STATES,
@@ -164,6 +165,8 @@ class DkclSessionPreflightService {
         this.reprobeRetryDelayMs = Number.isFinite(options.reprobeRetryDelayMs)
             ? options.reprobeRetryDelayMs
             : Number(process.env.DKCL_REPROBE_RETRY_MS || 750);
+        // IMPORT-SESSION-01: a source the person disconnected stays disconnected (no automatic reattach) until they sign in.
+        this.disconnectFlags = options.disconnectFlags || new DkclDisconnectFlags(options.disconnectFlagOptions);
         // AUTO-IMPORT-015: day-rollover & idle active revalidation threshold
         this.idleRevalidateMs = Number.isFinite(options.idleRevalidateMs)
             ? options.idleRevalidateMs
@@ -634,6 +637,21 @@ class DkclSessionPreflightService {
         if (entry.client) {
             return this.probeAndMaybeExpireClient(sourceConfig, entry);
         }
+        // IMPORT-SESSION-01: disconnected on purpose -- do not open a browser on the profile; sign-in is the person's step.
+        const disconnectedAt = this.disconnectFlags.get(sourceConfig.source);
+        if (disconnectedAt) {
+            return {
+                source: sourceConfig.source,
+                status: PREFLIGHT_STATUSES.AUTHENTICATION_REQUIRED,
+                disconnected: true,
+                disconnected_at: disconnectedAt,
+                ...lifecyclePayload(entry),
+                error: {
+                    code: 'DISCONNECTED_BY_USER',
+                    message: `Phiên DKCL ${sourceConfig.displayName} đã được ngắt. Nhấn "Đăng nhập" để mở lại.`
+                }
+            };
+        }
         const profileDir = resolveProfileDir(sourceConfig);
         const inspection = await processManager.findBrowserProcessByProfile(profileDir).catch(() => ({ inspectionStatus: 'FAILED', matchingProcesses: [] }));
         const recovered = this.recoverFromCoordinator(sourceConfig, entry, profileDir, inspection);
@@ -747,6 +765,8 @@ class DkclSessionPreflightService {
 
     async interactiveAuthenticate(source) {
         const sourceConfig = this.normalizeSource(source);
+        // IMPORT-SESSION-01: signing in is the person's explicit wish to reconnect.
+        this.disconnectFlags.clear(sourceConfig.source);
         if (sourceConfig.source === 'HUE' && this.hueBrokerEnabled) {
             return this.interactiveAuthenticateViaHueBroker(sourceConfig);
         }
@@ -1039,6 +1059,7 @@ class DkclSessionPreflightService {
             return { attached: false, reason: 'INVALID_SOURCE' };
         }
         if (sourceConfig.source === 'HUE' && this.hueBrokerEnabled) return { attached: false, reason: 'BROKER_MODE' };
+        if (this.disconnectFlags.isSet(sourceConfig.source)) return { attached: false, reason: 'DISCONNECTED_BY_USER' };
         const entry = getOrCreateRegistryEntry(sourceConfig.source);
         if (entry.client && entry.authenticated) return { attached: true, reason: 'ALREADY_ATTACHED' };
         if (DKCL_IN_PROGRESS_STATES.has(entry.state) || entry.openingPromise) return { attached: false, reason: 'LOGIN_IN_PROGRESS' };
@@ -1106,6 +1127,137 @@ class DkclSessionPreflightService {
             was_in_progress: wasInProgress,
             ...lifecyclePayload(entry)
         };
+    }
+
+    isDisconnected(source) {
+        return this.disconnectFlags.isSet(this.normalizeSource(source).source);
+    }
+
+    /**
+     * IMPORT-SESSION-01: what the service knows about a source WITHOUT touching a browser (cheap, safe to poll).
+     * `status` is SESSION_VALID once a check found the source ready (last_validated_at says when); a source never
+     * checked is NOT_CHECKED (a saved session may still be valid -- a preflight or the keep-alive finds out), or
+     * DISCONNECTED when the person ended it.
+     */
+    async getSessionStatus(source) {
+        const sourceConfig = this.normalizeSource(source);
+        const disconnectedAt = this.disconnectFlags.get(sourceConfig.source);
+        if (sourceConfig.source === 'HUE' && this.hueBrokerEnabled) {
+            const brokered = await this.preflightViaHueBroker(sourceConfig);
+            return {
+                source: sourceConfig.source,
+                display_name: sourceConfig.displayName,
+                status: disconnectedAt && brokered.status !== PREFLIGHT_STATUSES.SESSION_VALID ? 'DISCONNECTED' : brokered.status,
+                broker: true,
+                has_window: false,
+                login_in_progress: brokered.status === PREFLIGHT_STATUSES.LOGIN_IN_PROGRESS,
+                busy: false,
+                disconnected: Boolean(disconnectedAt),
+                disconnected_at: disconnectedAt,
+                last_validated_at: null,
+                last_error: brokered.error?.message || null,
+                updated_at: brokered.updated_at || null
+            };
+        }
+        const entry = getOrCreateRegistryEntry(sourceConfig.source);
+        const loginInProgress = DKCL_IN_PROGRESS_STATES.has(entry.state) && !entry.pendingSourcePageWait;
+        // a background probe leaves the source F13_READY without a window, so readiness does not need the window
+        const ready = Boolean(entry.authenticated && entry.state === DKCL_LIFECYCLE_STATES.F13_READY);
+        let status = 'NOT_CHECKED';
+        if (loginInProgress) status = PREFLIGHT_STATUSES.LOGIN_IN_PROGRESS;
+        else if (ready) status = PREFLIGHT_STATUSES.SESSION_VALID;
+        else if (disconnectedAt && !entry.client) status = 'DISCONNECTED';
+        else if (entry.state === DKCL_LEGACY_STATES.SESSION_EXPIRED) status = PREFLIGHT_STATUSES.AUTHENTICATION_REQUIRED;
+        else if (entry.state === DKCL_LEGACY_STATES.LOGIN_TIMEOUT) status = PREFLIGHT_STATUSES.LOGIN_TIMEOUT;
+        return {
+            source: sourceConfig.source,
+            display_name: sourceConfig.displayName,
+            status,
+            lifecycle_state: entry.lifecycleState || entry.state,
+            broker: false,
+            has_window: Boolean(entry.client),
+            window_hidden: Boolean(entry.windowHidden),
+            login_in_progress: loginInProgress,
+            busy: Boolean(entry.activeOperation),
+            disconnected: Boolean(disconnectedAt),
+            disconnected_at: disconnectedAt,
+            last_validated_at: entry.lastValidatedAt ? new Date(entry.lastValidatedAt).toISOString() : null,
+            last_error: entry.lastError || null,
+            updated_at: entry.updatedAt || null
+        };
+    }
+
+    /**
+     * IMPORT-SESSION-01: ends a source's DKCL session so the person can sign in again at once (e.g. after changing the
+     * account password): signs out on the portal, closes the window, wipes the cookies saved in the browser profile and
+     * marks the source as disconnected so neither the keep-alive nor the scheduler reattaches the old session.
+     * Refused while an import operation is using the session. Never signs in.
+     */
+    async disconnect(source) {
+        const sourceConfig = this.normalizeSource(source);
+        const entry = getOrCreateRegistryEntry(sourceConfig.source);
+        if (entry.activeOperation) {
+            const error = new Error(`Phiên DKCL ${sourceConfig.displayName} đang được một tác vụ nhập dữ liệu sử dụng. Hãy đợi tác vụ xong hoặc tạm dừng rồi ngắt phiên.`);
+            error.code = 'SESSION_BUSY';
+            throw error;
+        }
+
+        if (sourceConfig.source === 'HUE' && this.hueBrokerEnabled) {
+            await this.hueBrokerClient.close().catch(() => {});
+            this.disconnectFlags.set(sourceConfig.source);
+            return {
+                source: sourceConfig.source,
+                status: 'DISCONNECTED',
+                disconnected: true,
+                disconnected_at: this.disconnectFlags.get(sourceConfig.source),
+                cookies_cleared: false,
+                note: 'Chế độ broker Huế: đã đóng trình duyệt broker, chưa xoá được cookie đã lưu.'
+            };
+        }
+
+        return this.withSourceLock(sourceConfig.source, async () => {
+            // mark first: from here nothing reattaches the old session while the cleanup runs
+            this.disconnectFlags.set(sourceConfig.source);
+            const profileDir = resolveProfileDir(sourceConfig);
+            const client = entry.client;
+            if (client) {
+                await client.signOutAndClearCookies?.().catch(() => {});
+            }
+            this.transitionEntry(sourceConfig.source, entry, DKCL_LEGACY_STATES.NOT_AUTHENTICATED, {
+                client: null,
+                openingPromise: null,
+                authenticated: false,
+                backgroundReady: false,
+                windowHidden: false,
+                hideAttempted: false,
+                pendingSourcePageWait: false,
+                lastValidatedAt: null,
+                lastValidatedDate: null,
+                lastError: null
+            });
+            if (this.coordinatorEnabled) {
+                this.coordinator.clearSession(sourceConfig.source);
+            }
+            if (client) {
+                await client.close().catch(() => {});
+            }
+
+            // end a browser left over for this profile, then wipe the saved cookies if nothing uses the profile
+            await this.reclaimLeftoverProfile(sourceConfig, entry, profileDir).catch(() => false);
+            const inspection = await processManager.findBrowserProcessByProfile(profileDir).catch(() => null);
+            const profileFree = inspection?.inspectionStatus === 'SUCCESS' && inspection.matchingProcesses.length === 0;
+            const removed = profileFree ? clearProfileCookies(profileDir) : [];
+            return {
+                source: sourceConfig.source,
+                status: 'DISCONNECTED',
+                disconnected: true,
+                disconnected_at: this.disconnectFlags.get(sourceConfig.source),
+                was_signed_in: Boolean(client),
+                cookies_cleared: profileFree,
+                cookie_files_removed: removed.length,
+                ...lifecyclePayload(entry)
+            };
+        });
     }
 
     getRegistryState(source) {
