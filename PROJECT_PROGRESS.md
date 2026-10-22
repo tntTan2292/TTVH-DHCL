@@ -2409,3 +2409,7 @@ PO request after the TCT password-change policy: sign in to Huế and TCT on pur
 ## 2026-10-22 - IMPORT-DAILYLOG-01: "LOG NGAY MOI" TAB ON THE IMPORT PAGE
 
 PO asked to see at once whether the 24 jobs of the new day (4 indicators x 2 sources x 3 days) finished and which new or re-imported files failed. New read-only GET /import/daily-log (cell states from the day's jobs and the import log, verdict line, ordered needs-attention list, schedule cycle, sessions, runs, old failed days kept apart, failed/manual imports) and a new tab with a red count badge visible from every tab. Tests 8/8; real database smoke 24/24 in 41 ms; PO UI check pending; backend restart needed. Manifest: docs/10_TICKETS/IMPORT-DAILYLOG-01_MANIFEST.md.
+
+## 2026-10-22 - IMPORT-SESSION-01 AND IMPORT-DAILYLOG-01: PO UI PASS / CLOSED
+
+The Product Owner restarted the backend, checked the session strip (sign in, disconnect) and the "Log ngày mới" tab on the Import page, and confirmed PO UI PASS. Both tickets closed. Manifests: docs/10_TICKETS/IMPORT-SESSION-01_MANIFEST.md, docs/10_TICKETS/IMPORT-DAILYLOG-01_MANIFEST.md.

@@ -1,6 +1,6 @@
 # IMPORT-SESSION-01 - Sign in and disconnect the Huế / TCT DKCL sessions at any time from the Import page
 
-Status: IMPLEMENTED / TECHNICAL VALIDATION DONE / READY FOR PO CHECK (PO UI Check Required = Yes)
+Status: IMPLEMENTED / PO UI PASS / CLOSED (2026-10-22)
 Owner: Claude Code (Sonnet), 2026-10-22. Does not change the Current Ticket.
 
 ## 1. PO request (2026-10-22)
