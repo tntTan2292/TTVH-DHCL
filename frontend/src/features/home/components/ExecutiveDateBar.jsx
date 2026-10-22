@@ -29,7 +29,7 @@ export default function ExecutiveDateBar({
   return (
     <div
       ref={barRef}
-      className="rounded-xl border border-slate-200/90 bg-white px-3.5 py-2 shadow-xs"
+      className="@container rounded-xl border border-slate-200/90 bg-white px-3.5 py-2 shadow-xs"
     >
       <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5">
         <div className="flex items-center gap-x-3 gap-y-1">
@@ -37,7 +37,7 @@ export default function ExecutiveDateBar({
             <span className="h-4 w-1.5 rounded-full bg-[var(--color-vnpost-blue)]" />
             <h2 className="text-base font-black tracking-tight text-slate-900 whitespace-nowrap">TRANG CHỦ ĐIỀU HÀNH CHẤT LƯỢNG</h2>
           </div>
-          <div className="hidden flex-wrap items-center gap-1.5 min-[1500px]:flex">
+          <div className="hidden flex-wrap items-center gap-1.5 @[1500px]:flex">
             {indicators.map((ind) => {
               const hasData = ind.available;
               return (
@@ -145,13 +145,13 @@ export default function ExecutiveDateBar({
               type="button"
               onClick={onToggleTv}
               aria-pressed={tvActive}
-              className={`inline-flex cursor-pointer items-center gap-1 rounded-lg border px-2 py-0.5 text-xs font-bold ${
+              className={`inline-flex h-7 w-7 cursor-pointer items-center justify-center rounded-lg border ${
                 tvActive ? 'border-blue-300 bg-blue-50 text-blue-700' : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
               }`}
               title={tvActive ? 'Thoát chế độ TV (phím Esc)' : 'Chế độ TV: toàn màn hình, tự phóng to cho vừa màn hình'}
+              aria-label={tvActive ? 'Thoát chế độ TV' : 'Chế độ TV'}
             >
-              <Tv size={13} />
-              <span>{tvActive ? 'Thoát TV' : 'Chế độ TV'}</span>
+              <Tv size={15} />
             </button>
           )}
 

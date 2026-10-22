@@ -150,7 +150,9 @@ test('HOME-BI-02: the page scales to the screen by itself and has a TV mode (PO 
   assert.doesNotMatch(pageSrc, /max-w-\[1920px\]/);
 
   const barSrc = readSource('./components/ExecutiveDateBar.jsx');
+  // icon only (PO 2026-10-22): the tooltip and the aria-label say what it does
   assert.match(barSrc, /Chế độ TV/);
-  assert.match(barSrc, /Thoát TV/);
+  assert.match(barSrc, /aria-label=\{tvActive/);
+  assert.doesNotMatch(barSrc, /<span>\{tvActive/);
   assert.match(barSrc, /onToggleTv/);
 });

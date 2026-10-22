@@ -122,3 +122,5 @@ PO: giao diện phải tự co giãn từ laptop đến TV 51 / 62 inch, không 
 - Ảnh chụp (camera) vẫn đúng tỷ lệ ở mọi mức phóng: cùng một bố cục logic (rộng ~1959 px x 2 lần) trên 1080p và 4K.
 - Đã chụp thử trên dữ liệu thật: 1366 px (0,74), 1600 px (0,91), TV 1920 x 1080 (0,98) và TV 4K 3840 x 2160 (1,96): trang vừa khít không cuộn, không chữ chồng. Test home 36/36 (có 4 test cho hệ số phóng), build và lint sạch.
 - Hạn chế đã biết: `zoom` cần Chrome / Edge, Firefox từ bản 126, Safari mới; trình duyệt cũ hiển thị cỡ gốc (không phóng).
+
+> **Sửa 2026-10-22:** nút TV chỉ còn biểu tượng (tooltip và `aria-label` nói rõ), và chip chỉ tiêu ở thanh đầu hiện theo **bề rộng thực của thanh** (`@container`, từ 1500 px logic) thay vì theo màn hình, vì trang đang được phóng / thu bằng `zoom` nên câu hỏi màn hình không còn phản ánh chỗ trống. Thanh đầu luôn một hàng (~46 px logic) ở 1366, 1600, 1920 và TV.
