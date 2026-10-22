@@ -113,3 +113,12 @@ PO đánh giá: bản `d60c4dc` (mục 9) **quá hẹp, "sát rạt, chi chít c
 ## 11. Khối "cặp / bưu cục cần hành động" tự lấp đầy chỗ trống (PO 2026-10-22)
 
 PO thấy khoảng trống dưới bảng cặp F1.1 (5 dòng không đủ lấp chiều cao khối). Nay máy chủ trả tối đa **10** cặp (F1.1) / bưu cục (F1.2) dưới ngưỡng 85 % / 90 %, sản lượng lớn trước; màn hình hiện **đúng số dòng vừa chiều cao khối** (đo bằng `ResizeObserver`, tối thiểu 3), rồi xếp theo cột PO bấm. Nhãn "N cặp / N bưu cục sản lượng lớn, dưới X %" theo số dòng đang hiện. Khối BCVH (F1.3, F4.1) luôn đủ 6 BCVH. Bảng nằm trong hộp định vị tuyệt đối nên số dòng không làm khối cao thêm. Test backend 25/25 (thêm ca 14 bưu cục → 10), frontend home 31/31, build và lint sạch.
+
+## 12. Tự co giãn theo màn hình, chế độ TV (PO 2026-10-22)
+
+PO: giao diện phải tự co giãn từ laptop đến TV 51 / 62 inch, không phải sửa theo từng khổ. Cách làm: bố cục được thiết kế ở một bề rộng logic cố định rồi phóng / thu **cả trang** bằng CSS `zoom` (`frontend/src/features/home/homeFit.js`), nên mọi màn hình thấy cùng một tỷ lệ, chữ không chồng / bị cắt khác nhau.
+- **Chế độ thường** (laptop, máy tính): thu nhỏ khi cửa sổ hẹp hơn 1400 px logic (không nhỏ hơn 0,7; laptop 1366 px có menu mở → 0,74, menu thu gọn → 0,88), không phóng to quá 100 %.
+- **Chế độ TV**: nút "Chế độ TV" trên thanh đầu (vào toàn màn hình của trình duyệt, che thanh menu; Esc hoặc "Thoát TV" để thoát; ghi nhớ lựa chọn trên máy). Phóng sao cho **cả dashboard vừa khít màn hình, không cuộn**: hệ số = nhỏ hơn của (rộng / 1500, cao / 1100), từ 0,8 đến 4. Màn rộng từ 3000 px (TV 4K mở ở 100 %) tự vào chế độ TV; màn 2560 px của máy tính thì không tự vào.
+- Ảnh chụp (camera) vẫn đúng tỷ lệ ở mọi mức phóng: cùng một bố cục logic (rộng ~1959 px x 2 lần) trên 1080p và 4K.
+- Đã chụp thử trên dữ liệu thật: 1366 px (0,74), 1600 px (0,91), TV 1920 x 1080 (0,98) và TV 4K 3840 x 2160 (1,96): trang vừa khít không cuộn, không chữ chồng. Test home 36/36 (có 4 test cho hệ số phóng), build và lint sạch.
+- Hạn chế đã biết: `zoom` cần Chrome / Edge, Firefox từ bản 126, Safari mới; trình duyệt cũ hiển thị cỡ gốc (không phóng).

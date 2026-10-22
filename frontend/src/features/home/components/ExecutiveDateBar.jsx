@@ -1,5 +1,5 @@
 import React, { useRef } from 'react';
-import { RefreshCw, AlertCircle, CheckCircle2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { RefreshCw, AlertCircle, CheckCircle2, ChevronLeft, ChevronRight, Tv } from 'lucide-react';
 import BlockCaptureButton from '../../../components/common/BlockCaptureButton.jsx';
 import { navState, PERIOD_OPTIONS, periodChipTitle, periodTitle } from '../homePeriod.js';
 
@@ -17,6 +17,8 @@ export default function ExecutiveDateBar({
   periodInfo,
   captureRef = null,
   onRefresh,
+  tvActive = false,
+  onToggleTv = null,
   loading,
   indicators = [],
 }) {
@@ -137,6 +139,21 @@ export default function ExecutiveDateBar({
             <RefreshCw size={13} className={loading ? 'animate-spin text-blue-600' : 'text-slate-500'} />
             <span>Làm mới</span>
           </button>
+
+          {onToggleTv && (
+            <button
+              type="button"
+              onClick={onToggleTv}
+              aria-pressed={tvActive}
+              className={`inline-flex cursor-pointer items-center gap-1 rounded-lg border px-2 py-0.5 text-xs font-bold ${
+                tvActive ? 'border-blue-300 bg-blue-50 text-blue-700' : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
+              }`}
+              title={tvActive ? 'Thoát chế độ TV (phím Esc)' : 'Chế độ TV: toàn màn hình, tự phóng to cho vừa màn hình'}
+            >
+              <Tv size={13} />
+              <span>{tvActive ? 'Thoát TV' : 'Chế độ TV'}</span>
+            </button>
+          )}
 
           <BlockCaptureButton
             targetRef={captureRef || barRef}

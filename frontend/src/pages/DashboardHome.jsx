@@ -1,9 +1,10 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import api from '../api/client';
 import ExecutiveDateBar from '../features/home/components/ExecutiveDateBar.jsx';
 import ExecutiveIndicatorCard from '../features/home/components/ExecutiveIndicatorCard.jsx';
 import NationalRankingBlock from '../features/home/components/NationalRankingBlock.jsx';
 import { periodTitle } from '../features/home/homePeriod.js';
+import { computeHomeZoom, isAutoTv } from '../features/home/homeFit.js';
 import ActionUnitsBlock from '../features/home/components/ActionUnitsBlock.jsx';
 import MonthlyRankProgressionBlock from '../features/home/components/MonthlyRankProgressionBlock.jsx';
 
@@ -17,6 +18,8 @@ import MonthlyRankProgressionBlock from '../features/home/components/MonthlyRank
  * Data: GET /api/home/executive and GET /api/home/national-ranking.
  * Each indicator is its own measure: nothing is compared or summed across indicators.
  */
+const TV_PREF_KEY = 'qis_home_tv';
+
 export default function DashboardHome() {
   const [selectedIndicator, setSelectedIndicator] = useState('f11');
   // One filter for the whole page (HOME-BI-02): the period and how many periods back from the latest (0, -1, -2 ...).
@@ -32,6 +35,59 @@ export default function DashboardHome() {
   const [errorRanking, setErrorRanking] = useState(null);
 
   const pageRef = useRef(null); // the camera in the top bar shoots the whole page
+
+  // ---- screen fit (HOME-BI-02, PO 2026-10-22): the page scales as a whole, laptop to TV ----
+  // tvPref: '1' = TV mode chosen, '0' = explicitly off, null = automatic (on for a very wide screen).
+  const frameRef = useRef(null);
+  const fullscreenRef = useRef(false);
+  const [tvPref, setTvPref] = useState(() => {
+    try { return globalThis.localStorage?.getItem(TV_PREF_KEY) ?? null; } catch { return null; }
+  });
+  const [screen, setScreen] = useState(() => ({ viewportW: window.innerWidth, viewportH: window.innerHeight, frameW: 0 }));
+  useLayoutEffect(() => {
+    const frame = frameRef.current;
+    const update = () => setScreen((current) => {
+      const next = { viewportW: window.innerWidth, viewportH: window.innerHeight, frameW: frame?.clientWidth || 0 };
+      return current.viewportW === next.viewportW && current.viewportH === next.viewportH && current.frameW === next.frameW ? current : next;
+    });
+    update();
+    window.addEventListener('resize', update);
+    const observer = typeof ResizeObserver !== 'undefined' && frame ? new ResizeObserver(update) : null;
+    if (observer) observer.observe(frame);
+    return () => {
+      window.removeEventListener('resize', update);
+      if (observer) observer.disconnect();
+    };
+  }, []);
+  const tvActive = tvPref === '1' || (tvPref === null && isAutoTv(screen.viewportW));
+  const zoom = computeHomeZoom({
+    width: tvActive ? screen.viewportW : screen.frameW,
+    height: screen.viewportH,
+    tv: tvActive,
+  });
+  const chooseTv = useCallback((on) => {
+    setTvPref(on ? '1' : '0');
+    try { globalThis.localStorage?.setItem(TV_PREF_KEY, on ? '1' : '0'); } catch { /* the choice just is not remembered */ }
+    if (on) {
+      const request = document.documentElement.requestFullscreen?.();
+      if (request) request.then(() => { fullscreenRef.current = true; }).catch(() => {});
+    } else if (document.fullscreenElement) {
+      fullscreenRef.current = false;
+      document.exitFullscreen?.().catch(() => {});
+    }
+  }, []);
+  useEffect(() => {
+    if (!tvActive) return undefined;
+    const onKey = (event) => { if (event.key === 'Escape') chooseTv(false); };
+    // leaving the browser's full screen with its own key also leaves TV mode
+    const onFullscreen = () => { if (!document.fullscreenElement && fullscreenRef.current) { fullscreenRef.current = false; chooseTv(false); } };
+    window.addEventListener('keydown', onKey);
+    document.addEventListener('fullscreenchange', onFullscreen);
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      document.removeEventListener('fullscreenchange', onFullscreen);
+    };
+  }, [tvActive, chooseTv]);
   const execRequestSeqRef = useRef(0);
   const rankRequestSeqRef = useRef(0);
 
@@ -93,8 +149,14 @@ export default function DashboardHome() {
   const activeIndicatorData = indicators.find((ind) => ind.id === selectedIndicator) || indicators[0] || null;
 
   return (
-    <div ref={pageRef} className="mx-auto max-w-[1920px] space-y-3 p-2 sm:p-3">
+    <div
+      ref={frameRef}
+      className={tvActive ? 'fixed inset-0 z-[60] overflow-auto bg-gradient-to-br from-slate-100 via-white to-blue-50' : ''}
+    >
+    <div ref={pageRef} style={{ zoom }} className="mx-auto max-w-[2200px] space-y-3 p-2 sm:p-3">
       <ExecutiveDateBar
+        tvActive={tvActive}
+        onToggleTv={() => chooseTv(!tvActive)}
         captureRef={pageRef}
         period={period}
         onPeriodChange={(next) => {
@@ -195,6 +257,7 @@ export default function DashboardHome() {
           />
         </div>
       </div>
+    </div>
     </div>
   );
 }

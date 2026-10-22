@@ -137,3 +137,20 @@ test('HOME-BI-02: the whole-page picture is not captioned as an F1.3 picture', (
   const buttonSrc = readSource('../../components/common/BlockCaptureButton.jsx');
   assert.match(buttonSrc, /indicatorOverride \|\| indicator\?\.moduleLabel/);
 });
+
+test('HOME-BI-02: the page scales to the screen by itself and has a TV mode (PO 2026-10-22)', () => {
+  const pageSrc = readSource('../../pages/DashboardHome.jsx');
+  assert.match(pageSrc, /computeHomeZoom/);
+  assert.match(pageSrc, /style=\{\{ zoom \}\}/);
+  assert.match(pageSrc, /isAutoTv/);
+  assert.match(pageSrc, /fixed inset-0/);
+  assert.match(pageSrc, /requestFullscreen/);
+  assert.match(pageSrc, /Escape/);
+  // the page no longer has a hard width cap that fights the zoom
+  assert.doesNotMatch(pageSrc, /max-w-\[1920px\]/);
+
+  const barSrc = readSource('./components/ExecutiveDateBar.jsx');
+  assert.match(barSrc, /Chế độ TV/);
+  assert.match(barSrc, /Thoát TV/);
+  assert.match(barSrc, /onToggleTv/);
+});
