@@ -153,7 +153,8 @@ export default function DashboardHome() {
       ref={frameRef}
       className={tvActive ? 'fixed inset-0 z-[60] overflow-auto bg-gradient-to-br from-slate-100 via-white to-blue-50' : ''}
     >
-    <div ref={pageRef} style={{ zoom }} className="mx-auto max-w-[2200px] space-y-3 p-2 sm:p-3">
+    <div style={{ zoom }}>
+    <div ref={pageRef} className="mx-auto max-w-[2200px] space-y-3 p-2 sm:p-3">
       <ExecutiveDateBar
         tvActive={tvActive}
         onToggleTv={() => chooseTv(!tvActive)}
@@ -257,6 +258,7 @@ export default function DashboardHome() {
           />
         </div>
       </div>
+    </div>
     </div>
     </div>
   );

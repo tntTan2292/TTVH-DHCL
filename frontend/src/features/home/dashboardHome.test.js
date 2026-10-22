@@ -156,3 +156,11 @@ test('HOME-BI-02: the page scales to the screen by itself and has a TV mode (PO 
   assert.doesNotMatch(barSrc, /<span>\{tvActive/);
   assert.match(barSrc, /onToggleTv/);
 });
+
+test('HOME-BI-02: the zoom is on its own wrapper, so the whole-page picture carries no second zoom', () => {
+  const pageSrc = readSource('../../pages/DashboardHome.jsx');
+  // the element the camera shoots (pageRef) must not carry the zoom itself, or the picture shrinks inside its canvas
+  assert.doesNotMatch(pageSrc, /ref=\{pageRef\}[^>]*style=\{\{ zoom \}\}/);
+  assert.doesNotMatch(pageSrc, /style=\{\{ zoom \}\}[^>]*ref=\{pageRef\}/);
+  assert.match(pageSrc, /<div style=\{\{ zoom \}\}>/);
+});
