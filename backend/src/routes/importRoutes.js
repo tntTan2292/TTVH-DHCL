@@ -40,6 +40,7 @@ router.get('/auto-backfill/runs/:runId/events', requireAuth, autoBackfillQueueCo
 router.get('/auto-backfill/runs/:runId/report', requireAuth, autoBackfillQueueController.getReport.bind(autoBackfillQueueController));
 router.post('/dkcl/session/preflight', ...adminOnly, dkclSharedOperationsController.preflight.bind(dkclSharedOperationsController));
 router.post('/dkcl/session/interactive-auth', ...adminOnly, dkclSharedOperationsController.interactiveAuthenticate.bind(dkclSharedOperationsController));
+router.get('/daily-log', ...adminOnly, dkclSharedOperationsController.dailyLog.bind(dkclSharedOperationsController));
 router.get('/dkcl/session/status', ...adminOnly, dkclSharedOperationsController.sessionStatus.bind(dkclSharedOperationsController));
 router.post('/dkcl/session/disconnect', ...adminOnly, dkclSharedOperationsController.disconnect.bind(dkclSharedOperationsController));
 router.post('/dkcl/session/cancel-login', ...adminOnly, dkclSharedOperationsController.cancelLogin.bind(dkclSharedOperationsController));

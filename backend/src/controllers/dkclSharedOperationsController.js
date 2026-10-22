@@ -3,6 +3,7 @@
 const { all, get } = require('../config/db');
 const { DkclSessionPreflightService } = require('../services/dkclSessionPreflightService');
 const { TctF13BackfillService } = require('../services/tctF13BackfillService');
+const { ImportDailyLogService } = require('../services/importDailyLogService');
 
 const sessionPreflightService = new DkclSessionPreflightService();
 const tctBackfillService = new TctF13BackfillService({ db: { all, get }, sessionPreflightService });
@@ -83,6 +84,25 @@ class DkclSharedOperationsController {
                     code: error.code || 'SESSION_STATUS_REJECTED',
                     message: error.message || 'Không đọc được trạng thái phiên DKCL.'
                 }
+            });
+        }
+    }
+
+    // IMPORT-DAILYLOG-01: has the automatic import of a business day finished, and what needs the PO (read-only).
+    async dailyLog(req, res) {
+        try {
+            if (!this.dailyLogService) {
+                this.dailyLogService = new ImportDailyLogService({
+                    db: { all, get },
+                    sessionService: this?.sessionPreflightService || sessionPreflightService
+                });
+            }
+            const data = await this.dailyLogService.build({ date: String(req.query?.date || '').trim() || null });
+            return res.status(200).json({ success: true, data });
+        } catch (error) {
+            return res.status(error.code === 'INVALID_DATE' ? 400 : 500).json({
+                success: false,
+                error: { code: error.code || 'DAILY_LOG_FAILED', message: error.message || 'Không dựng được Log ngày mới.' }
             });
         }
     }

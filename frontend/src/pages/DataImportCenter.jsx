@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { AlertTriangle, CalendarDays, CheckCircle2, Clock, Database, FileSpreadsheet, HardDrive, Play, RefreshCw, RotateCcw, Search, Square, XCircle, Zap } from 'lucide-react';
+import { AlertTriangle, CalendarDays, CheckCircle2, ClipboardList, Clock, Database, FileSpreadsheet, HardDrive, Play, RefreshCw, RotateCcw, Search, Square, XCircle, Zap } from 'lucide-react';
 import api from '../api/client';
 import UploadWidget from '../components/UploadWidget';
 import AutoBackfillOperatorPanel from '../components/AutoBackfillOperatorPanel';
 import DkclSessionStrip from '../components/DkclSessionStrip';
+import ImportDailyLogPanel from '../components/ImportDailyLogPanel';
+import { countHigh } from '../components/importDailyLogModel';
 import { buildImportReconciliationContext } from './importDashboardReconciliation';
 import {
   clearDateSelection,
@@ -238,6 +240,23 @@ export default function DataImportCenter() {
     }, 5000);
     return () => clearInterval(interval);
   }, [fetchStatus, page, pageSize, preflightHueSession, preflightTctSession]);
+
+  // IMPORT-DAILYLOG-01: red badge on the "Log ngày mới" tab while something needs the PO, whichever tab is open
+  const [dailyLogHigh, setDailyLogHigh] = useState(0);
+  useEffect(() => {
+    let cancelled = false;
+    const loadBadge = async () => {
+      try {
+        const res = await api.get('/import/daily-log');
+        if (!cancelled) setDailyLogHigh(countHigh(res.data?.data));
+      } catch {
+        // the tab itself reports a load error; the badge just stays as it was
+      }
+    };
+    loadBadge();
+    const timer = setInterval(loadBadge, 60000);
+    return () => { cancelled = true; clearInterval(timer); };
+  }, []);
 
   const fetchCoverage = useCallback(async (range = null) => {
     setCoverageError(null);
@@ -827,6 +846,22 @@ export default function DataImportCenter() {
           </button>
           <button
             type="button"
+            onClick={() => setImportMode('DAILYLOG')}
+            data-testid="tab-daily-log"
+            className={`inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-bold transition-[color,background-color,box-shadow,transform] duration-150 active:scale-[0.98] shadow-2xs cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-vnpost-blue)]/40 ${
+              importMode === 'DAILYLOG'
+                ? 'bg-gradient-to-r from-sky-600 to-cyan-600 text-white ring-2 ring-sky-400/40 shadow-sky-500/20'
+                : 'bg-slate-100/90 text-slate-700 hover:bg-slate-200/80 hover:text-slate-900 border border-slate-200/80'
+            }`}
+          >
+            <ClipboardList size={15} className={importMode === 'DAILYLOG' ? 'text-sky-100' : 'text-slate-400'} />
+            Log ngày mới
+            {dailyLogHigh > 0 && (
+              <span className="ml-1 inline-flex min-w-[18px] items-center justify-center rounded-full bg-red-600 px-1.5 text-[10px] font-black text-white" title="Số việc cần PO xử lý">{dailyLogHigh}</span>
+            )}
+          </button>
+          <button
+            type="button"
             onClick={() => setImportMode('REPORTS')}
             className={`inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-bold transition-[color,background-color,box-shadow,transform] duration-150 active:scale-[0.98] shadow-2xs cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-purple-400/40 ${
               importMode === 'REPORTS'
@@ -864,6 +899,11 @@ export default function DataImportCenter() {
       {/* Tab 1: Auto Backfill Platform Hero */}
       {importMode === 'PLATFORM' && (
         <AutoBackfillOperatorPanel />
+      )}
+
+      {/* Tab: Log ngày mới (IMPORT-DAILYLOG-01) */}
+      {importMode === 'DAILYLOG' && (
+        <ImportDailyLogPanel onOpenTab={(target) => setImportMode(target === 'MANUAL' ? 'MANUAL' : 'PLATFORM')} />
       )}
 
       {/* Tab 2: PO Reconciliation Reports ONLY */}
