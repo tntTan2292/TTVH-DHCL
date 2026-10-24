@@ -1,6 +1,6 @@
-# RBAC-01 Design of Record (v1, for PO review)
+# RBAC-01 Design of Record (v1, PO approved)
 
-Date 2026-10-24. Author Claude Code (Sonnet 5.5). Status: `DRAFT / AWAITING PO APPROVAL`. No code written. Business rules are those of `docs/10_TICKETS/RBAC-01_MANIFEST.md` (DEC-022) and are not restated here; this document only says how to build them. Evidence of the current system: `docs/06_REVIEWS/Shared/RBAC-01_DISCOVERY_001.md`.
+Date 2026-10-24. Author Claude Code (Sonnet 5.5). Status: `APPROVED BY PO 2026-10-24 (O1 amended, O2-O4 accepted as proposed)`. No code written. Business rules are those of `docs/10_TICKETS/RBAC-01_MANIFEST.md` (DEC-022) and are not restated here; this document only says how to build them. Evidence of the current system: `docs/06_REVIEWS/Shared/RBAC-01_DISCOVERY_001.md`.
 
 ## 1. Data model (SQLite, additive migration `migrate_rbac_01_schema.js`, registered in `server.js` startup like the other `migrate_*` files; no existing table touched)
 
@@ -29,7 +29,7 @@ Static mapping in code (`access/officeMap.js`, tested): BCVH code to Hàng tồn
 - Hàng tồn for STAFF: screens `office`, `compare` only; offices = map of the BCVH scope plus `530100` for the F1.2 specialist.
 - `crossBcvhBlocks` (summary table "tại các BCVH", bảng đối chiếu, national rank) is true only where the module mode is `all`.
 - `home` is true for every authenticated user and Trang chủ routes are not scoped.
-- Multi-BCVH users (Minh: Phú Lộc + A Lưới) get `bcvh: [537220, 535790]`. Services accept a list; when the client sends no BCVH the default is the whole list aggregated, and a BCVH selector limited to the list is offered. (Open item O1.)
+- Multi-BCVH users (Minh: Phú Lộc + A Lưới) get `bcvh: [537220, 535790]`. PO decision O1: **never aggregate** BCVH (a merged figure would be wrong for per-BCVH analysis). Single-unit endpoints (KPI, trend, route ranking) take one BCVH: the requested one if in scope, otherwise the first code of the scope; the frontend shows a selector limited to the scope. List endpoints (Type B tables) return one row per BCVH in the scope, side by side.
 
 ## 3. Middleware contract
 
@@ -38,7 +38,7 @@ Static mapping in code (`access/officeMap.js`, tested): BCVH code to Hàng tồn
 `requireModule('f13')` returns 403 when mode is `none`, otherwise sets `req.scope = { mode, bcvh }`. Routes are migrated module by module from `requireRole(['admin','viewer'])`; `requireRole` keeps working during the migration, so the system is never half-open.
 
 Scope helpers used by controllers:
-- `effectiveBcvh(req, requested)` is the only way a controller gets a BCVH filter. Mode `all`: the requested value or none. Mode `bcvh`: requested value must be in scope, otherwise 403 `OUT_OF_SCOPE`; absent means the whole scope list. Query values never widen scope.
+- `effectiveBcvh(req, requested)` is the only way a controller gets a BCVH filter. Mode `all`: the requested value or none. Mode `bcvh`: requested value must be in scope, otherwise 403 `OUT_OF_SCOPE`; absent means the first code of the scope for single-unit endpoints and the whole scope list for list endpoints (rows stay separate, never summed). Query values never widen scope.
 - Type B list endpoints (all-BCVH rows) filter inside the service by `IN (scope)`. They must not return any number derived from other BCVH (city totals, ranks, averages): those fields are removed for mode `bcvh`.
 - `requireAdmin` closes the GETs under `/api/import` that today need only `requireAuth` (Discovery 1.8).
 - `requireCrossBcvh('f13')` guards `bcvh-reconciliation`, national rankings and `include_national_rank`.
@@ -81,9 +81,9 @@ Input: path to `User QIS.xlsx` (outside git, remains untracked). Dry-run by defa
 
 Tests: unit tests of `resolveAccess` for every row of the Excel (expected modules per person); password policy; lockout; session survives restart; forced-change gating; `effectiveBcvh` rejects an out-of-scope `ma_bcvh`; cache isolation test; a **leak test** that calls every scoped endpoint as a BCVH user against a fixture holding two BCVH and fails if the response body contains the other BCVH's code or name; seed dry-run and idempotence; admin API refuses non-ADMIN.
 
-## 9. Open items for the PO
+## 9. PO decisions on the open items (2026-10-24)
 
-- **O1.** Default view for a multi-BCVH user (Minh): both BCVH aggregated (proposed) or one BCVH chosen first?
-- **O2.** Lockout 5 failures / 15 minutes and 12 h session: accept or change?
-- **O3.** ADMIN account username and how it is handed over (proposed: `QIS_ADMIN_USERNAME` already used by the system; initial password via `QIS_INITIAL_PASSWORD`, changed at first login).
-- **O4.** Hàng tồn for the F1.2 specialist (Dũng): "Theo bưu cục" and "So sánh hai mốc" for KTC1 `530100` only (assumption in the manifest).
+- O1: no aggregation across BCVH; selector per BCVH; tables show each BCVH of the scope as its own row (section 2).
+- O2: accepted, lockout 5 failures / 15 minutes, session 12 h.
+- O3: accepted as proposed.
+- O4: accepted, Dũng sees Hàng tồn "Theo bưu cục" and "So sánh hai mốc" for KTC1 `530100` only.
