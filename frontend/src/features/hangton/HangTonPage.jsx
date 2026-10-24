@@ -304,6 +304,7 @@ export default function HangTonPage() {
                 currentSnapshot={currentSnapshot}
                 baseSnapshot={baseSnapshot}
                 selectedCustomers={selectedCustomers}
+                onDrilldownToOffice={handleDrilldownToOffice}
               />
             )}
 

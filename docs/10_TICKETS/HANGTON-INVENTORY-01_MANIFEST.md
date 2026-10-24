@@ -203,3 +203,34 @@ Compact filter bar (PO 2026-10-24, seen at 90% zoom): the customer-group bar was
 - Tests: existing hangton tests pass; add tests for any new pure helper.
 
 **Deliver.** Short proposal first (what you saw, what you will change, why), then the build, then manifest Section 17 with the result; stop at `READY FOR PO UI CHECK`.
+
+## 17. Overview & charts redesign (2026-10-24, Antigravity) — READY FOR PO UI CHECK
+
+Redesigned the **Tổng quan** tab and its charts according to PO feedback (Section 16), solving information hierarchy, wasted space at 90% zoom, and executive actionability:
+1. **Executive Triage & Priority Actions ("Xử lý gì trước")**:
+   - Added an actionable Executive Triage block at the top synthesizing data across `by_office`, `by_customer`, and `by_level`:
+     - 🔴 **Cảnh báo bưu gửi tồn nặng**: Phát hiện các bưu gửi ≥14 ngày (báo động đỏ) và ≥7 ngày (cảnh báo cao), COD tồn ≥5 ngày toàn tỉnh.
+     - 🏢 **Điểm nóng bưu cục dồn tải**: Nêu đích danh bưu cục có tồn ≥5 ngày cao nhất (tỷ trọng %, số lượng bưu gửi, tiền COD).
+     - 👥 **Nhóm khách hàng rủi ro**: Nhận diện nhóm khách hàng trọng điểm/KHL2/sàn TMĐT có tồn lâu cần can thiệp chăm sóc khẩn cấp.
+2. **Compact & Intelligent 2-Column Grid Layout (Tối ưu màn hình laptop & zoom 90%)**:
+   - Replaced tall 100% full-width stacked blocks with a balanced responsive multi-column layout:
+     - **Grid Row 1**:
+       - *Cột trái (7 cols)*: Biểu đồ cơ cấu Loại tồn (mặc định từ ≥3 ngày, đổi ngay khi chọn nhóm KH hoặc mức tồn, đường mục tiêu ≥5 ngày = 0, camera button).
+       - *Cột phải (5 cols)*: Khối **Điểm nóng Bưu cục (Top BC tồn ≥5 ngày)** với số lượng, thanh tỷ trọng % tồn nặng, tiền COD và nút liên kết xem nhanh bưu gửi.
+     - **Grid Row 2**:
+       - *Cột trái (6 cols)*: Khối **Phân bổ theo Nhóm Khách Hàng** (thứ tự ưu tiên xử lý: Trọng điểm, KHL2, Shopee, Tiktok, Mới, Thường; hiển thị rõ cột Tổng tồn, Tồn ≥5 ngày kèm badge đỏ nếu > 0, và COD).
+       - *Cột phải (6 cols)*: Khối **Trạng thái TMS & Chi tiết 9 mức tồn** dạng tab chuyển đổi nhanh (Chi tiết 9 mức / 5 Trạng thái TMS) giúp tiết kiệm diện tích cuộn dọc.
+3. **Ergonomic Quick Navigation**:
+   - `HangTonOverviewTab` receives `onDrilldownToOffice`: clicking an office in the hot-spot block jumps directly to the parcel list for that office.
+4. **Standards & Constraints preserved**:
+   - Only existing API data used (`overview`, `compare`). Backend untouched.
+   - PO decisions maintained: RED gradient deepening with age, Target ≥5 ngày = 0, default chart from ≥3 ngày, camera button on every block (`data-no-capture="true"` on controls).
+   - Strict font size compliance: no text under 12 px (all labels 12–16 px).
+   - Pure logic encapsulated in `frontend/src/features/hangton/hangtonOverviewHelpers.js` with comprehensive unit tests (`hangtonOverviewHelpers.test.js`).
+5. **Quality gates**:
+   - Tests: 45/45 PASS (`node --test src/features/hangton/hangtonHelpers.test.js src/features/hangton/hangtonOverviewHelpers.test.js src/features/hangton/hangtonPage.test.js src/features/hangton/api/hangtonClient.test.js src/navigation/appNavigation.test.js`).
+   - `npm run build` (vite build): clean.
+   - `npm run lint` (oxlint): 0 errors on modified files.
+   - `oxlint -D no-undef src/features/hangton`: clean (only standard browser globals).
+   - No browser, Playwright, dev server, screenshot, or login executed. Stopped at `READY FOR PO UI CHECK`.
+
