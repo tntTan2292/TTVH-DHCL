@@ -2,6 +2,7 @@ const express = require('express');
 const multer = require('multer');
 const router = express.Router();
 const { requireAuth, requireRole } = require('../middleware/authMiddleware');
+const { requireNetworkAccess } = require('../middleware/accessScope');
 const networkMapController = require('../controllers/NetworkMapController');
 const networkImportController = require('../controllers/NetworkImportController');
 const postmanCatalogController = require('../controllers/PostmanCatalogController');
@@ -9,6 +10,9 @@ const postmanCatalogController = require('../controllers/PostmanCatalogControlle
 const allowViewerRead = [requireAuth, requireRole(['admin', 'viewer'])];
 const allowAdminOnly = [requireAuth, requireRole(['admin'])];
 const upload = multer({ storage: multer.memoryStorage() });
+
+// RBAC-01: the whole Quan ly mang luoi module (reads and admin writes) is for LEADER and ADMIN only.
+router.use(requireAuth, requireNetworkAccess);
 
 // ---- Read (admin + viewer) ----
 router.get('/service-points', ...allowViewerRead, networkMapController.listServicePoints);

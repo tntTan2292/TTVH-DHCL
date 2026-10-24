@@ -35,6 +35,27 @@ function requireCityWide(req, res, next) {
     return next();
 }
 
+/**
+ * Hang ton: the user needs one of the given screens ('overview'|'office'|'compare'|'items'); sets
+ * req.hangtonOffices to null (all offices) or the list of office codes the user may see.
+ */
+function requireHangton(...screens) {
+    return (req, res, next) => {
+        if (!req.auth?.user || !req.access) return sendUnauthorized(res);
+        const hangton = req.access.hangton;
+        if (!hangton || !screens.some((screen) => hangton.screens.includes(screen))) return sendForbidden(res);
+        req.hangtonOffices = hangton.offices === 'all' ? null : [...hangton.offices];
+        return next();
+    };
+}
+
+/** Quan ly mang luoi: LEADER and ADMIN only. */
+function requireNetworkAccess(req, res, next) {
+    if (!req.auth?.user || !req.access) return sendUnauthorized(res);
+    if (!req.access.network) return sendForbidden(res);
+    return next();
+}
+
 /** ADMIN only, decided from the resolved access object (not from the legacy role string). */
 function requireAdminAccess(req, res, next) {
     if (!req.auth?.user || !req.access) return sendUnauthorized(res);
@@ -98,6 +119,8 @@ module.exports = {
     requireModule,
     requireAdminAccess,
     requireCityWide,
+    requireHangton,
+    requireNetworkAccess,
     effectiveBcvh,
     resolveBcvh,
     scopedBcvhList,

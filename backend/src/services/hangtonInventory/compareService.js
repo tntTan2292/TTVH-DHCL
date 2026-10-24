@@ -46,8 +46,30 @@ function customerClause(customers, { alias = '', numberedFrom = null } = {}) {
     return { sql: ` AND ${alias}customer_class IN (${marks})`, params: list };
 }
 
-async function overview(db, snapshotId, { customers } = {}) {
-    const c = customerClause(customers);
+// RBAC-01: "offices" = office codes a scoped user may see (array) or null/undefined for no restriction.
+// An empty array means "nothing" and must match no row.
+function officeList(offices) {
+    return Array.isArray(offices) ? offices.map((v) => String(v).trim()).filter(Boolean) : null;
+}
+
+function officeClause(offices, { alias = '' } = {}) {
+    const list = officeList(offices);
+    if (list === null) return { sql: '', params: [] };
+    if (list.length === 0) return { sql: ' AND 1 = 0', params: [] };
+    return { sql: ` AND ${alias}office_code IN (${list.map(() => '?').join(',')})`, params: list };
+}
+
+// Snapshot headers carry the size of the whole portal extract: a scoped user does not get those two counts.
+function publicSnapshot(snapshot, offices) {
+    if (!snapshot || officeList(offices) === null) return snapshot;
+    const { source_row_count, kept_row_count, ...rest } = snapshot;
+    return rest;
+}
+
+async function overview(db, snapshotId, { customers, offices } = {}) {
+    const c0 = customerClause(customers);
+    const o = officeClause(offices);
+    const c = { sql: c0.sql + o.sql, params: [...c0.params, ...o.params] };
     const p = [snapshotId, ...c.params];
     const byLevel = await db.all(
         `SELECT ton_level, ton_rank, COUNT(*) AS n, COALESCE(SUM(cod), 0) AS cod
@@ -69,7 +91,7 @@ async function overview(db, snapshotId, { customers } = {}) {
     const byCustomer = await db.all(
         `SELECT customer_class, COUNT(*) AS n, COALESCE(SUM(cod), 0) AS cod,
                 SUM(CASE WHEN ton_rank >= 5 THEN 1 ELSE 0 END) AS n_ge5
-           FROM hangton_snapshot_item WHERE snapshot_id = ? GROUP BY customer_class ORDER BY n DESC`, [snapshotId]);
+           FROM hangton_snapshot_item WHERE snapshot_id = ?${o.sql} GROUP BY customer_class ORDER BY n DESC`, [snapshotId, ...o.params]);
     const total = byLevel.reduce((sum, r) => sum + r.n, 0);
     const ge5 = byLevel.filter((r) => r.ton_rank >= 5).reduce((sum, r) => sum + r.n, 0);
     return {
@@ -91,9 +113,11 @@ function parseLevels(levels) {
     return list.map((l) => String(l).trim()).filter(Boolean);
 }
 
-async function items(db, snapshotId, { office, minRank, levels, customers, status, sort = 'rank', dir, limit = 200, offset = 0 } = {}) {
+async function items(db, snapshotId, { office, offices, minRank, levels, customers, status, sort = 'rank', dir, limit = 200, offset = 0 } = {}) {
     const where = ['snapshot_id = ?'];
     const params = [snapshotId];
+    const scoped = officeClause(offices);
+    if (scoped.sql) { where.push(scoped.sql.replace(/^ AND /, '')); params.push(...scoped.params); }
     if (office) { where.push('office = ?'); params.push(office); }
     if (minRank !== undefined && minRank !== '' && !Number.isNaN(Number(minRank))) { where.push('ton_rank >= ?'); params.push(Number(minRank)); }
     const levelList = parseLevels(levels);
@@ -116,10 +140,13 @@ const DETAIL_CAP = 1000;
 
 // Parcels in A (left join B) plus parcels only in B. ?1 = from snapshot, ?2 = to snapshot, ?3 = change (detail lists),
 // ?4.. = customer groups (optional): the comparison is made between the selected groups of both snapshots.
-function classified(customers) {
+function classified(customers, offices) {
     const list = parseList(customers);
     const marks = list.map((_, i) => `?${4 + i}`).join(',');
-    const on = (alias) => (list.length ? ` AND ${alias}.customer_class IN (${marks})` : '');
+    const officeCodes = officeList(offices);
+    const officeMarks = (officeCodes || []).map((_, i) => `?${4 + list.length + i}`).join(',');
+    const on = (alias) => (list.length ? ` AND ${alias}.customer_class IN (${marks})` : '')
+        + (officeCodes === null ? '' : officeCodes.length === 0 ? ' AND 1 = 0' : ` AND ${alias}.office_code IN (${officeMarks})`);
     return `
     SELECT a.item_code AS item_code,
            CASE WHEN b.item_code IS NULL THEN 'resolved'
@@ -142,11 +169,13 @@ function classified(customers) {
        AND NOT EXISTS (SELECT 1 FROM hangton_snapshot_item p WHERE p.snapshot_id = ?1 AND p.item_code = n.item_code${on('p')})`;
 }
 
-async function compare(db, fromId, toId, { detail = false, customers } = {}) {
-    const sql = classified(customers);
+async function compare(db, fromId, toId, { detail = false, customers, offices } = {}) {
+    const sql = classified(customers, offices);
     const cust = parseList(customers);
-    // ?3 is only referenced by the detail lists; a statement with no ?3 and no group takes just ?1 and ?2
-    const base = cust.length ? [fromId, toId, null, ...cust] : [fromId, toId];
+    const officeCodes = officeList(offices) || [];
+    const extra = [...cust, ...officeCodes];
+    // ?3 is only referenced by the detail lists; a statement with no ?3 and no extra parameter takes just ?1 and ?2
+    const base = extra.length ? [fromId, toId, null, ...extra] : [fromId, toId];
     const summaryRows = await db.all(`SELECT change, COUNT(*) AS n FROM (${sql}) GROUP BY change`, base);
     const byOffice = await db.all(
         `SELECT office, change, COUNT(*) AS n FROM (${sql}) GROUP BY office, change ORDER BY office`, base);
@@ -155,7 +184,7 @@ async function compare(db, fromId, toId, { detail = false, customers } = {}) {
     const result = { from_snapshot_id: fromId, to_snapshot_id: toId, summary, by_office: byOffice };
     if (detail) {
         const list = (change) => db.all(
-            `SELECT * FROM (${sql}) WHERE change = ?3 ORDER BY office, item_code LIMIT ${DETAIL_CAP}`, [fromId, toId, change, ...cust]);
+            `SELECT * FROM (${sql}) WHERE change = ?3 ORDER BY office, item_code LIMIT ${DETAIL_CAP}`, [fromId, toId, change, ...extra]);
         result.resolved = await list('resolved');
         result.aged_up = await list('aged_up');
         result.new = await list('new');
@@ -164,4 +193,4 @@ async function compare(db, fromId, toId, { detail = false, customers } = {}) {
     return result;
 }
 
-module.exports = { ITEMS_MAX_LIMIT, listSnapshots, getSnapshot, resolveSnapshot, resolveDefaultBase, overview, compare, items };
+module.exports = { ITEMS_MAX_LIMIT, publicSnapshot, listSnapshots, getSnapshot, resolveSnapshot, resolveDefaultBase, overview, compare, items };
