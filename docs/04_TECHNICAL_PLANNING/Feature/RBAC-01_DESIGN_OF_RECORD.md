@@ -87,3 +87,12 @@ Tests: unit tests of `resolveAccess` for every row of the Excel (expected module
 - O2: accepted, lockout 5 failures / 15 minutes, session 12 h.
 - O3: accepted as proposed.
 - O4: accepted, Dũng sees Hàng tồn "Theo bưu cục" and "So sánh hai mốc" for KTC1 `530100` only.
+
+## 10. Implementation notes, step 2a (2026-10-24)
+
+Deviations from the sections above, all technical:
+
+- Sessions: `AuthSessionStore` keeps reads synchronous and in memory; with the persistence adapter attached at startup every stored-user session is also written to `qis_session` (sha256 of the id) and reloaded by `restore()`. Same guarantees (survive restart, revocable), no async change in `requireAuth`.
+- `crossBcvhBlocks` is not a field of the access object: cross-BCVH blocks are shown for a module when `modules[m].mode === 'all'`.
+- `runtimeUsers.js` and `generateViewerPasswordHash.js` are deleted outright; there is no env bootstrap login. The ADMIN account exists only after `seed-rbac-users.js --apply` with `QIS_ADMIN_USERNAME` set.
+- **Deployment gate:** after the seed every account has `must_change_password=1` and the backend answers 403 `PASSWORD_CHANGE_REQUIRED` to everything but `/api/auth/*`. The current frontend has no change-password page, so the backend must not be restarted on the operational database with this code until step 2c (login redirect + change-password page) is delivered. The auto-sync script (`scripts/auto-sync-missing-days.js`) logs in as admin with `QIS_ADMIN_USERNAME/QIS_ADMIN_PASSWORD`: after the first password change it must be given the new password.

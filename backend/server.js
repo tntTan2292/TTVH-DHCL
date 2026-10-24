@@ -2,13 +2,13 @@ const express = require('express');
 const cors = require('cors');
 const compression = require('compression');
 const { loadLocalEnv } = require('./src/config/env');
-const { getViewerConfigStatus } = require('./src/services/auth/runtimeUsers');
 
 const envLoadResult = loadLocalEnv();
 
 const f13Routes = require('./src/routes/f13Routes');
 const importRoutes = require('./src/routes/importRoutes');
 const authRoutes = require('./src/routes/authRoutes');
+const adminUserRoutes = require('./src/routes/adminUserRoutes');
 const networkMapRoutes = require('./src/routes/networkMapRoutes');
 const f41Routes = require('./src/routes/f41Routes');
 const f11Routes = require('./src/routes/f11Routes');
@@ -26,6 +26,7 @@ const { applyF41Phase2Schema } = require('./migrate_f41_phase2_schema');
 const { applyF11Phase1Schema } = require('./migrate_f11_phase1_schema');
 const { applyF11Phase4Schema } = require('./migrate_f11_phase4_schema');
 const { applyF12Schema } = require('./migrate_f12_schema');
+const { applyRbac01Schema } = require('./migrate_rbac_01_schema');
 const { applyAutoBackfillQueueSchema } = require('./migrate_auto_backfill_queue_schema');
 const { applyAutoBackfillSafetySchema } = require('./migrate_auto_backfill_safety_schema');
 const { applyAutoBackfillCoverageExceptionSchema } = require('./migrate_auto_backfill_coverage_exception_schema');
@@ -43,7 +44,6 @@ let activeServer = null;
 let shutdownPromise = null;
 
 const logRuntimeBanner = () => {
-    const viewerConfig = getViewerConfigStatus();
     const loadedEnvPath =
         envLoadResult.loadedFiles[0] ||
         envLoadResult.candidates.find(Boolean) ||
@@ -56,9 +56,6 @@ const logRuntimeBanner = () => {
     console.log(`Host: ${HOST}`);
     console.log(`Port: ${PORT}`);
     console.log(`Loaded .env: ${loadedEnvPath}`);
-    console.log(`Viewer username: ${viewerConfig.viewerUsername || 'N/A'}`);
-    console.log(`Viewer enabled: ${viewerConfig.viewerEnabled ? 'yes' : 'no'}`);
-    console.log(`Viewer hash valid: ${viewerConfig.hashFormatValid ? 'yes' : 'no'}`);
     console.log(`Time: ${new Date().toISOString()}`);
     console.log('====================================');
 };
@@ -123,6 +120,7 @@ app.use(compression());
 app.use(express.json());
 
 app.use('/api/auth', authRoutes);
+app.use('/api/admin/users', adminUserRoutes);
 app.use('/api/f13', f13Routes);
 app.use('/api/import', importRoutes);
 app.use('/api/network-map', networkMapRoutes);
@@ -154,6 +152,7 @@ async function ensureStartupSchemaMigrations(dbPath = activeDbPath) {
     await applyImportLogAudit01Schema(dbPath);
     await applyPerfLoad01AggSchema(dbPath);
     await applyHangtonInventory01Schema(dbPath);
+    await applyRbac01Schema(dbPath);
 }
 
 // HANGTON-INVENTORY-01: three daily stock snapshots (07:30, 11:30, 21:00). Off in tests, with
@@ -194,6 +193,11 @@ function startAutoImportSchedule() {
 function startServer() {
     return ensureStartupSchemaMigrations(activeDbPath)
         .then(async () => {
+            // RBAC-01: persistent sessions survive a restart.
+            const authSessionStore = require('./src/services/auth/AuthSessionStore');
+            authSessionStore.attachPersistence(require('./src/services/auth/sessionPersistence'));
+            const restoredSessions = await authSessionStore.restore();
+            console.log(`[auth] restored ${restoredSessions} session(s)`);
             const { startAutoBackfillQueueRuntime } = require('./src/services/autoBackfillQueueRuntime');
             await startAutoBackfillQueueRuntime();
             startAutoImportSchedule();

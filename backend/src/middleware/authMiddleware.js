@@ -36,6 +36,17 @@ function requireAuth(req, res, next) {
         return sendUnauthorized(res);
     }
 
+    // RBAC-01: until the first-login password change is done, nothing but /api/auth/* is reachable.
+    if (session.user?.must_change_password) {
+        return res.status(403).json({
+            success: false,
+            error: {
+                code: 'PASSWORD_CHANGE_REQUIRED',
+                message: 'Bạn phải đổi mật khẩu trước khi sử dụng hệ thống',
+            },
+        });
+    }
+
     req.auth = {
         sessionId,
         user: {
@@ -43,6 +54,7 @@ function requireAuth(req, res, next) {
             role: normalizeRole(session.user?.role),
         },
     };
+    req.access = session.user?.access || null;
 
     return next();
 }
