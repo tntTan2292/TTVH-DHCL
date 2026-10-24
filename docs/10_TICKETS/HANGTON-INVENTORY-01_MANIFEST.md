@@ -187,3 +187,19 @@ PO: the stacked chart by customer group drowned in the "<1 ngày" bulk and showe
 - Tests: hangton/navigation 41/41, lint clean, build OK; the one failure of the full frontend sweep is the known `dashboardLoadPerformance` test caused by another session's uncommitted `IntegratedTrendRiskWorkspace.jsx` edit.
 
 Compact filter bar (PO 2026-10-24, seen at 90% zoom): the customer-group bar was wrapping onto a second row. Chips are smaller (13 px text, tighter padding, short "Tất cả", badge "≥5:n"), the "Đang xem" line is gone (the dark chips already show the selection; the full count stays in the tooltip), so the six groups fit one row at 90% zoom. Presentation only.
+
+## 16. UI brief — redesign of the Tổng quan screen and its charts (PO 2026-10-24; for Antigravity, creative freedom)
+
+**Why.** The PO is not satisfied with Tổng quan: the stacked chart by customer group is hard to read (little is learnt from it), space is wasted at 90 % zoom, and the screen is not "smart" enough for a leader who runs the stock group by group and level by level. The PO asked Antigravity to review the whole screen and propose the layout itself.
+
+**Your freedom.** Judge the current Tổng quan (`HangTonOverviewTab.jsx`, `HangTonCustomerChart.jsx`, the cards, the 9-level table, the status block, the filter bars) and redesign it as you think best for the leader's questions: where is the heavy stock (≥5 / ≥7 / ≥14 ngày), which customer group and which office carries it, what changed against the base snapshot, what to handle first. New chart types, another arrangement of cards and blocks, small multiples per group, a group × level matrix or heat map, a focused "from 5 days" view — all allowed, provided it reads well when captured by the camera button.
+
+**Must stay (function, not look).**
+- Data only from the existing `GET /api/hangton/*` responses the page already loads: `overview` (`by_level`, `by_level_customer`, `by_customer`, `by_status`, `by_office`, totals), `compare` (`summary`); props of `HangTonOverviewTab` and the page state stay compatible (`selectedCustomers`, the snapshot picker, `qis.hangton.chartLevels` default "from ≥3 ngày", `useStoredHiddenLevels`, `LevelPicker`, `chartMode`, `buildCustomerChart`). Selecting groups and levels must change the charts at once. If a design needs data the API does not give, say so in the report; do not change the backend.
+- PO decisions: D4 target ≥5 ngày = 0 (target line / note); D10–D11 stock age in RED, deeper with age, ≥5 heavier, ≥7 again, ≥14 heaviest; no numeric alert thresholds; the customer-group colours are not red; every figure belongs to one snapshot (date + slot); "—" with a note when there is no comparison base.
+- Report-block standard (`docs/05_DEVELOPMENT/Implementation/report_block_ui_standard.md`): camera button on every block, no undefined identifiers.
+- Readability: no text under 12 px (PO checks the captured pictures); use the space well at 90 % zoom and on a laptop; the screen must still work at phone width.
+- Other tabs (Theo bưu cục, So sánh hai mốc, Chi tiết), their behaviour and tests do not change; shared components (`LevelPicker`, `CustomerFilterBar`) may be restyled but keep their props.
+- Tests: existing hangton tests pass; add tests for any new pure helper.
+
+**Deliver.** Short proposal first (what you saw, what you will change, why), then the build, then manifest Section 17 with the result; stop at `READY FOR PO UI CHECK`.

@@ -1129,6 +1129,7 @@ Validation: 15 new backend tests (13 service unit + 2 real in-memory SQLite repo
 | `docs/10_TICKETS/HANGTON-INVENTORY-01_MANIFEST.md` | Ticket Manifest | HANGTON-INVENTORY-01: "Chỉ số rà soát Hàng tồn" (hangton portal audit, PO decisions D1-D11, open points, phases); planned, no code |
 | `docs/10_TICKETS/HANGTON-INVENTORY-01_ANTIGRAVITY_PROMPT.md` | Executor Prompt | HANGTON-INVENTORY-01: lean prompt for Antigravity (Hàng tồn screens, phase 3) |
 | `docs/10_TICKETS/HANGTON-INVENTORY-01_OPUS_REVIEW_PROMPT.md` | Executor Prompt | HANGTON-INVENTORY-01: independent review prompt for Claude Code (Opus), commit 1c22c62 (auto-start supervisor, bigger text, column hiding, module navigation) |
+| `docs/10_TICKETS/HANGTON-INVENTORY-01_ANTIGRAVITY_UI_REDESIGN_PROMPT.md` | Executor Prompt | HANGTON-INVENTORY-01: lean prompt for Antigravity to review and redesign the Tổng quan screen and charts with its own proposal (manifest Section 16) |
 | `docs/10_TICKETS/IMPORT-COVERAGE-SPEED-01_MANIFEST.md` | Ticket Manifest | IMPORT-COVERAGE-SPEED-01: batched coverage scan, scan cache with invalidation, faster /import/status, Server-Timing; backend only |
 | `docs/10_TICKETS/AUTO-LOGIN-01_MANIFEST.md` | Ticket Manifest | AUTO-LOGIN-01: unattended DKCL sign-in; CLOSED, not feasible (the portal sign-in has a captcha), code removed |
 | `docs/10_TICKETS/AUTO-IMPORT-SCHEDULE-01_MANIFEST.md` | Ticket Manifest | AUTO-IMPORT-SCHEDULE-01: scheduled import (07:30) with hourly retries until all lanes succeed, DKCL session keep-alive and expiry measurement; backend only |
