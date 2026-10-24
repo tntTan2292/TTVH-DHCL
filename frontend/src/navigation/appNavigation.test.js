@@ -93,14 +93,15 @@ test('Module 2 (Quản lý mạng lưới) retains all 5 network map sub-menus i
   assert.equal(networkModule.roles, undefined, 'Network management must have no top-level role restriction');
 });
 
-test('Module 3 (System Administration) is restricted to ADMIN and keeps all 3 functions intact', () => {
+test('Module 3 (System Administration) is restricted to ADMIN and keeps all 4 functions intact', () => {
   const { ROOT_ITEMS } = loadNavigationModule();
   const adminModule = ROOT_ITEMS[2];
 
   assert.deepEqual(toPlain(adminModule.roles), ['admin']);
-  assert.equal(adminModule.subItems.length, 3);
+  assert.equal(adminModule.subItems.length, 4);
   const paths = adminModule.subItems.map((item) => item.path);
   assert.deepEqual(toPlain(paths), [
+    '/admin/users',
     '/import',
     '/kpi-config',
     '/system-info',

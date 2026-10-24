@@ -2,6 +2,8 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
 import CollapsedFlyout from './CollapsedFlyout';
 import { Target, Activity, Settings, Database, Info, FileSpreadsheet, ChevronLeft, ChevronRight, BarChart2, ChevronDown, MapPin, Users, Pin, Search, Package } from 'lucide-react';
+import { useAuth } from '../auth/AuthContext';
+import { filterNavigationByAccess } from '../auth/accessModel.js';
 
 function normalizeNavText(text = '') {
   return text
@@ -32,6 +34,7 @@ function getModuleIndicatorDot(title = '') {
 
 export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse }) {
   const location = useLocation();
+  const { user } = useAuth();
   const [pinnedGroups, setPinnedGroups] = useState({
     'Quản lý chất lượng': true,
     'F1.1 – Chất lượng toàn trình nội tỉnh': true,
@@ -142,6 +145,7 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
       icon: <Settings size={20} />,
       roles: ['admin'],
       subItems: [
+        { name: 'Quản lý người dùng', path: '/admin/users', icon: <Users size={18} /> },
         { name: 'Trung tâm nạp dữ liệu', path: '/import', icon: <FileSpreadsheet size={18} /> },
         { name: 'Cấu hình chỉ tiêu', path: '/kpi-config', icon: <Settings size={18} /> },
         { name: 'Thông tin hệ thống', path: '/system-info', icon: <Info size={18} /> },
@@ -149,8 +153,12 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
     },
   ];
 
+  const accessibleMenuItems = useMemo(() => {
+    return filterNavigationByAccess(menuItems, user?.access, user?.role);
+  }, [menuItems, user?.access, user?.role]);
+
   useEffect(() => {
-    menuItems.forEach((group) => {
+    accessibleMenuItems.forEach((group) => {
       if (!group.subItems) return;
       const hasActiveChild = group.subItems.some((sub) => {
         if (sub.subItems) {
@@ -172,13 +180,13 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
       }
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [location.pathname]);
+  }, [location.pathname, accessibleMenuItems]);
 
   const filteredMenuItems = useMemo(() => {
     const q = normalizeNavText(searchQuery.trim());
-    if (!q) return menuItems;
+    if (!q) return accessibleMenuItems;
 
-    return menuItems
+    return accessibleMenuItems
       .map((group) => {
         if (!group.subItems) {
           return normalizeNavText(group.name || group.title).includes(q) ? group : null;

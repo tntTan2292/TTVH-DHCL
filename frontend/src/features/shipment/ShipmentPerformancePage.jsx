@@ -18,6 +18,8 @@ import {
   resolveContextTotal,
   runGuardedRouteGroupFetch,
 } from './shipmentPerformanceData';
+import { useAuth } from '../../auth/AuthContext';
+import { getModuleAccess } from '../../auth/accessModel.js';
 
 const ALL_ROUTES_OPTION = { value: '', label: 'Tất cả tuyến' };
 const PAGE_SIZE = 50;
@@ -54,6 +56,11 @@ function sortShipmentRows(rows, sort, order) {
 }
 
 export default function ShipmentPerformancePage() {
+  const { user } = useAuth();
+  const moduleAccess = getModuleAccess(user?.access, 'f13');
+  const isBcvhMode = moduleAccess.mode === 'bcvh';
+  const allowedBcvhCodes = isBcvhMode ? moduleAccess.bcvh : null;
+
   const [searchParams, setSearchParams] = useSearchParams();
   const [status, setStatus] = useState('loading');
   const [error, setError] = useState(null);
@@ -117,7 +124,10 @@ export default function ShipmentPerformancePage() {
   const toDate = resolveDefaultRouteDate({ param: toDateParam, metaMaxDate });
   const analysisDate = resolveDefaultRouteDate({ param: toDateParam || fromDateParam, metaMaxDate });
 
-  const bcvhId = bcvhIdParam || bcvhOptions[0]?.value || '';
+  const defaultBcvhId = isBcvhMode && allowedBcvhCodes?.[0] ? allowedBcvhCodes[0] : (bcvhOptions[0]?.value || '');
+  const bcvhId = isBcvhMode && allowedBcvhCodes
+    ? (allowedBcvhCodes.includes(bcvhIdParam) ? bcvhIdParam : defaultBcvhId)
+    : (bcvhIdParam || defaultBcvhId);
   const bcvhName = bcvhNameParam || bcvhOptions.find((opt) => opt.value === bcvhId)?.label || bcvhId;
   const routeName = routeIdParam ? (routeNameParam || routeOptions.find((opt) => opt.value === routeIdParam)?.label || routeIdParam) : ALL_ROUTES_OPTION.label;
 
@@ -142,7 +152,10 @@ export default function ShipmentPerformancePage() {
         const result = await f13DashboardClient.getDashboardMeta();
         if (!mounted) return;
         setMetaMaxDate(result?.data?.max_date || null);
-        const units = Array.isArray(result?.data?.bcvh_units) ? result.data.bcvh_units : [];
+        let units = Array.isArray(result?.data?.bcvh_units) ? result.data.bcvh_units : [];
+        if (isBcvhMode && Array.isArray(allowedBcvhCodes)) {
+          units = units.filter((unit) => allowedBcvhCodes.includes(String(unit.ma_bcvh || unit.value)));
+        }
         setBcvhOptions(units.map((unit) => ({
           value: unit.ma_bcvh || unit.value,
           label: unit.ten_bcvh ? `BCVH ${unit.ten_bcvh.replace(/^BCVH\s+/i, '')}` : (unit.label || unit.ma_bcvh),
@@ -157,7 +170,7 @@ export default function ShipmentPerformancePage() {
     };
     fetchMeta();
     return () => { mounted = false; };
-  }, []);
+  }, [allowedBcvhCodes, isBcvhMode]);
 
   useEffect(() => {
     let mounted = true;

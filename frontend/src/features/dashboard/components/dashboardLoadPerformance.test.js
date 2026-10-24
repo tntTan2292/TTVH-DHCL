@@ -37,7 +37,7 @@ test('operating patterns lazy-loads inactive tabs through compatible timeline mo
   assert.match(componentSource, /mode:\s*activeTab/);
   assert.match(componentSource, /\[activeTab, maBcvh, toDate\]/);
   assert.match(controllerSource, /const \{ toDate, ma_bcvh, mode, include_national_rank \} = req\.query/);
-  assert.match(controllerSource, /getQualityTimeline\(toDate, ma_bcvh, \{/);
+  assert.match(controllerSource, /getQualityTimeline\(toDate, (?:ma_bcvh|scopedBcvh), \{/);
   assert.match(serviceSource, /_normalizeTimelineMode/);
   assert.match(serviceSource, /const includeDaily = mode === 'all'/);
   assert.match(serviceSource, /const includeWeekly = mode === 'all' \|\| mode === 'weekday'/);

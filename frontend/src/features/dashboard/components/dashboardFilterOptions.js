@@ -51,10 +51,22 @@ export function validateBcvhUnits(units = [], { anyUnits = false } = {}) {
 }
 
 export function buildBcvhOptions(units = [], options = {}) {
-  const validation = validateBcvhUnits(units, options);
+  const { allowedCodes = null, ...validateOptions } = options;
+  const validation = validateBcvhUnits(units, validateOptions);
   if (!validation.ok) {
     return [];
   }
+
+  if (Array.isArray(allowedCodes)) {
+    const allowedSet = new Set(allowedCodes.map(String));
+    return units
+      .filter((unit) => allowedSet.has(String(unit.ma_bcvh)))
+      .map((unit) => ({
+        value: String(unit.ma_bcvh),
+        label: String(unit.ten_bcvh),
+      }));
+  }
+
   const allOption = options.anyUnits && options.unitLabel
     ? { value: ALL_BCVH_OPTION.value, label: `Tất cả ${String(options.unitLabel).toLowerCase()}` }
     : ALL_BCVH_OPTION;

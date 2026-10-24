@@ -7,6 +7,8 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { useAuth } from '../../auth/AuthContext.jsx';
+import { getAllowedHangtonScreens } from '../../auth/accessModel.js';
 import { PageContainer } from '../../components/shared/SharedComponents.jsx';
 import { LoadingLayout, ErrorLayout, EmptyLayout } from '../../components/common/StateLayouts.jsx';
 import { resolveHangtonTab, isHangtonTab } from './hangtonTabs.js';
@@ -17,6 +19,7 @@ import HangTonOverviewTab from './components/HangTonOverviewTab.jsx';
 import HangTonByOfficeTab from './components/HangTonByOfficeTab.jsx';
 import HangTonCompareTab from './components/HangTonCompareTab.jsx';
 import HangTonItemsTab from './components/HangTonItemsTab.jsx';
+import HangTonItemsModal from './components/HangTonItemsModal.jsx';
 import { fetchSnapshots, fetchOverview, fetchCompare } from './api/hangtonClient.js';
 
 const TABS = [
@@ -27,6 +30,15 @@ const TABS = [
 ];
 
 export default function HangTonPage() {
+  const { user } = useAuth();
+  const allowedScreens = useMemo(() => {
+    return getAllowedHangtonScreens(user?.access);
+  }, [user?.access]);
+
+  const visibleTabs = useMemo(() => {
+    return TABS.filter((t) => allowedScreens.includes(t.id));
+  }, [allowedScreens]);
+
   const [snapshots, setSnapshots] = useState([]);
   const [selectedSnapshotId, setSelectedSnapshotId] = useState(null);
   const [baseSnapshotId, setBaseSnapshotId] = useState(null); // manual choice only; default base = compare.from
@@ -34,12 +46,25 @@ export default function HangTonPage() {
   const { tab } = useParams();
   const navigate = useNavigate();
   const activeTab = resolveHangtonTab(tab);
+
   useEffect(() => {
     // /hangton/<unknown> -> the real overview URL, so the address and the menu agree
-    if (!isHangtonTab(tab)) navigate('/hangton/overview', { replace: true });
-  }, [tab, navigate]);
+    if (!isHangtonTab(tab)) {
+      navigate('/hangton/overview', { replace: true });
+      return;
+    }
+    if (!allowedScreens.includes(tab)) {
+      if (tab === 'overview' && allowedScreens.length > 0) {
+        navigate(`/hangton/${allowedScreens[0]}`, { replace: true });
+      } else {
+        navigate('/unauthorized', { replace: true });
+      }
+    }
+  }, [tab, allowedScreens, navigate]);
+
   const setActiveTab = (id) => navigate(`/hangton/${id}`);
   const [selectedOfficeDrilldown, setSelectedOfficeDrilldown] = useState('');
+  const [modalOffice, setModalOffice] = useState(null);
 
   const [overview, setOverview] = useState(null);
   const [compare, setCompare] = useState(null);
@@ -139,10 +164,14 @@ export default function HangTonPage() {
       .sort((a, b) => a.localeCompare(b, 'vi'));
   }, [overview]);
 
-  // Switch to Chi tiết tab and pre-filter office
+  // Switch to Chi tiết tab or open modal if items screen is not allowed
   const handleDrilldownToOffice = (officeName) => {
-    setSelectedOfficeDrilldown(officeName);
-    setActiveTab('items');
+    if (allowedScreens.includes('items')) {
+      setSelectedOfficeDrilldown(officeName);
+      setActiveTab('items');
+    } else {
+      setModalOffice(officeName);
+    }
   };
 
   const handleSelectSnapshot = (id) => {
@@ -237,7 +266,7 @@ export default function HangTonPage() {
 
         {/* Navigation Tabs Bar */}
         <div className="flex flex-wrap items-center gap-2 border-b border-slate-200/90 pb-2">
-          {TABS.map((tab) => {
+          {visibleTabs.map((tab) => {
             const Icon = tab.icon;
             const active = activeTab === tab.id;
             return (
@@ -309,6 +338,18 @@ export default function HangTonPage() {
             )}
           </div>
         )}
+
+        {/* Drilldown modal when items tab is not allowed */}
+        {modalOffice ? (
+          <HangTonItemsModal
+            isOpen={Boolean(modalOffice)}
+            onClose={() => setModalOffice(null)}
+            snapshot={currentSnapshot}
+            office={modalOffice}
+            customers={selectedCustomers}
+            title={`Danh sách bưu gửi tồn — ${modalOffice}`}
+          />
+        ) : null}
       </div>
     </PageContainer>
   );

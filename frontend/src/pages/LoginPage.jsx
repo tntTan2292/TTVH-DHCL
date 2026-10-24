@@ -24,8 +24,12 @@ export default function LoginPage() {
         setError('');
 
         try {
-            await login(username, password);
-            navigate(from, { replace: true });
+            const res = await login(username, password);
+            if (res?.data?.user?.must_change_password) {
+                navigate('/change-password', { replace: true });
+            } else {
+                navigate(from, { replace: true });
+            }
         } catch (err) {
             setError(err?.message || 'Đăng nhập thất bại');
         } finally {

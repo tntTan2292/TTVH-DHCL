@@ -43,10 +43,17 @@ class HttpClient {
                     localStorage.removeItem(SESSION_KEY);
                 }
 
+                if (response.status === 403 && data?.error?.code === 'PASSWORD_CHANGE_REQUIRED') {
+                    if (typeof window !== 'undefined' && window.location?.pathname !== '/change-password') {
+                        window.location.href = '/change-password';
+                    }
+                }
+
                 throw {
                     status: response.status,
                     code: data?.error?.code || 'NETWORK_ERROR',
-                    message: data?.error?.message || 'Có lỗi xảy ra từ máy chủ.'
+                    message: data?.error?.message || 'Có lỗi xảy ra từ máy chủ.',
+                    problems: data?.error?.problems,
                 };
             }
 

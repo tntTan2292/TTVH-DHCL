@@ -248,18 +248,20 @@ function sortValue(row, field) {
   return field.split('.').reduce((value, key) => (value === null || value === undefined ? value : value[key]), row);
 }
 
-function UnifiedHeader({ columns, sort, onSort }) {
+function UnifiedHeader({ columns, sort, onSort, hasRank = true }) {
   const indicator = useIndicator();
   const { features } = indicator;
   const theme = indicatorTheme(indicator);
   const rankingTable = indicator.rankingTable || null;
   const d1Span = 2 + (columns.d1Volume ? 1 : 0) + (columns.d1Rate ? 1 : 0);
   const d7Span = 2 + (columns.d7Volume ? 1 : 0) + (columns.d7Rate ? 1 : 0);
+  const stickyCode = hasRank ? STICKY_CODE : 'sticky left-0 z-20';
+  const stickyName = hasRank ? STICKY_NAME : 'sticky left-[108px] z-20';
 
   return (
     <thead className="sticky top-0 z-10 bg-white text-[11px] uppercase text-[var(--color-text-muted)]">
       <tr className="border-b border-[var(--color-surface-200)]">
-        <HeaderGroup label={TEXT.identity} colSpan={3} className={GROUP_STYLES.identity.header} />
+        <HeaderGroup label={TEXT.identity} colSpan={hasRank ? 3 : 2} className={GROUP_STYLES.identity.header} />
         <HeaderGroup label={TEXT.currentDay} colSpan={4} className={GROUP_STYLES.currentDay.header} />
         {features.lateCash ? <HeaderGroup label={TEXT.lateCash} colSpan={2} className={GROUP_STYLES.lateCash.header} /> : null}
         <HeaderGroup label={TEXT.comparisonD1} colSpan={d1Span} className={GROUP_STYLES.d1.header} />
@@ -268,9 +270,11 @@ function UnifiedHeader({ columns, sort, onSort }) {
         {features.routes ? <HeaderGroup label={TEXT.action} colSpan={1} className={GROUP_STYLES.action.header} /> : null}
       </tr>
       <tr className="border-b border-[var(--color-surface-200)]">
-        <SortableTh field="rank" sort={sort} onSort={onSort} activeClassName={theme.sortActive} className={`${STICKY_RANK} ${GROUP_STYLES.identity.cell} ${GROUP_STYLES.identity.divider} px-3 py-3 text-right`}>{TEXT.rank}</SortableTh>
-        <SortableTh field="ma_bcvh" sort={sort} onSort={onSort} activeClassName={theme.sortActive} className={`${STICKY_CODE} ${GROUP_STYLES.identity.cell} ${GROUP_STYLES.identity.divider} px-3 py-3 text-left`}>{rankingTable ? rankingTable.codeHeader : TEXT.code}</SortableTh>
-        <SortableTh field="ten_bcvh" sort={sort} onSort={onSort} activeClassName={theme.sortActive} className={`${STICKY_NAME} ${GROUP_STYLES.identity.cell} ${GROUP_STYLES.currentDay.divider} px-3 py-3 text-left`}>{rankingTable ? rankingTable.nameHeader : TEXT.name}</SortableTh>
+        {hasRank ? (
+          <SortableTh field="rank" sort={sort} onSort={onSort} activeClassName={theme.sortActive} className={`${STICKY_RANK} ${GROUP_STYLES.identity.cell} ${GROUP_STYLES.identity.divider} px-3 py-3 text-right`}>{TEXT.rank}</SortableTh>
+        ) : null}
+        <SortableTh field="ma_bcvh" sort={sort} onSort={onSort} activeClassName={theme.sortActive} className={`${stickyCode} ${GROUP_STYLES.identity.cell} ${GROUP_STYLES.identity.divider} px-3 py-3 text-left`}>{rankingTable ? rankingTable.codeHeader : TEXT.code}</SortableTh>
+        <SortableTh field="ten_bcvh" sort={sort} onSort={onSort} activeClassName={theme.sortActive} className={`${stickyName} ${GROUP_STYLES.identity.cell} ${GROUP_STYLES.currentDay.divider} px-3 py-3 text-left`}>{rankingTable ? rankingTable.nameHeader : TEXT.name}</SortableTh>
 
         <SortableTh field="current_day.volume" sort={sort} onSort={onSort} activeClassName={theme.sortActive} className={`${GROUP_STYLES.currentDay.cell} px-3 py-3 text-right`}>{TEXT.volume}</SortableTh>
         <SortableTh field="current_day.pass_count" sort={sort} onSort={onSort} activeClassName={theme.sortActive} className={`${GROUP_STYLES.currentDay.cell} px-3 py-3 text-right`}>{TEXT.pass}</SortableTh>
@@ -393,12 +397,14 @@ function AnalysisPanel({ row, onOpenDetail }) {
   );
 }
 
-function Row({ row, columns, expandedRowId, onToggleAnalysis, onOpenDetail }) {
+function Row({ row, columns, expandedRowId, onToggleAnalysis, onOpenDetail, hasRank = true }) {
   const { features } = useIndicator();
   const isTotal = row.is_total;
   const stickyBg = isTotal ? 'bg-[var(--color-primary-50)]' : GROUP_STYLES.identity.cell;
   const isExpanded = expandedRowId === row.id;
-  const colSpan = 18 + (columns.d1Volume ? 1 : 0) + (columns.d1Rate ? 1 : 0) + (columns.d7Volume ? 1 : 0) + (columns.d7Rate ? 1 : 0) - (features.lateCash ? 0 : 2) - (features.routes ? 0 : 7);
+  const colSpan = 18 + (hasRank ? 0 : -1) + (columns.d1Volume ? 1 : 0) + (columns.d1Rate ? 1 : 0) + (columns.d7Volume ? 1 : 0) + (columns.d7Rate ? 1 : 0) - (features.lateCash ? 0 : 2) - (features.routes ? 0 : 7);
+  const stickyCode = hasRank ? STICKY_CODE : 'sticky left-0 z-20';
+  const stickyName = hasRank ? STICKY_NAME : 'sticky left-[108px] z-20';
 
   return (
     <>
@@ -406,9 +412,11 @@ function Row({ row, columns, expandedRowId, onToggleAnalysis, onOpenDetail }) {
         className={`border-b ${isTotal ? 'border-[var(--color-primary-200)] bg-[var(--color-primary-50)] font-semibold' : 'border-slate-100 cursor-pointer hover:bg-slate-50/80 transition-colors duration-150'}`}
         onClick={isTotal ? undefined : () => onToggleAnalysis(row.id)}
       >
-        <td className={`${STICKY_RANK} ${stickyBg} border-r border-slate-200 px-3 py-3 text-right ${isTotal ? 'text-[12px] font-bold text-[var(--color-primary-800)] shadow-[1px_0_0_0_var(--color-primary-200)]' : 'shadow-[1px_0_0_0_var(--color-surface-200)]'}`}>{row.rank ?? DASH}</td>
-        <td className={`${STICKY_CODE} ${stickyBg} border-r border-slate-200 px-3 py-3 font-mono text-[11px] ${isTotal ? 'text-[var(--color-text-muted)] shadow-[1px_0_0_0_var(--color-primary-200)]' : 'text-[var(--color-text-muted)] shadow-[1px_0_0_0_var(--color-surface-200)]'}`}>{row.ma_bcvh || DASH}</td>
-        <td className={`${STICKY_NAME} ${stickyBg} border-r border-sky-200 px-3 py-3 ${isTotal ? 'text-[15px] font-black uppercase tracking-wide text-[var(--color-primary-900)] shadow-[8px_0_12px_-12px_rgba(59,130,246,0.25)]' : 'text-[14px] font-semibold text-[var(--color-text-main)] shadow-[8px_0_12px_-12px_rgba(15,23,42,0.35)]'}`}>{row.ten_bcvh}</td>
+        {hasRank ? (
+          <td className={`${STICKY_RANK} ${stickyBg} border-r border-slate-200 px-3 py-3 text-right ${isTotal ? 'text-[12px] font-bold text-[var(--color-primary-800)] shadow-[1px_0_0_0_var(--color-primary-200)]' : 'shadow-[1px_0_0_0_var(--color-surface-200)]'}`}>{row.rank ?? DASH}</td>
+        ) : null}
+        <td className={`${stickyCode} ${stickyBg} border-r border-slate-200 px-3 py-3 font-mono text-[11px] ${isTotal ? 'text-[var(--color-text-muted)] shadow-[1px_0_0_0_var(--color-primary-200)]' : 'text-[var(--color-text-muted)] shadow-[1px_0_0_0_var(--color-surface-200)]'}`}>{row.ma_bcvh || DASH}</td>
+        <td className={`${stickyName} ${stickyBg} border-r border-sky-200 px-3 py-3 ${isTotal ? 'text-[15px] font-black uppercase tracking-wide text-[var(--color-primary-900)] shadow-[8px_0_12px_-12px_rgba(59,130,246,0.25)]' : 'text-[14px] font-semibold text-[var(--color-text-main)] shadow-[8px_0_12px_-12px_rgba(15,23,42,0.35)]'}`}>{row.ten_bcvh}</td>
 
         <td className="px-3 py-3 text-right">{formatNumber(row.current_day.volume, isTotal)}</td>
         <td className="px-3 py-3 text-right">{formatNumber(row.current_day.pass_count, isTotal)}</td>
@@ -560,10 +568,14 @@ export default function UnifiedBcvhAnalysisTable({
     });
   }, [maBcvh, search, state.data?.rows]);
 
+  const hasRank = useMemo(() => {
+    return filteredRows.some((row) => row.rank !== null && row.rank !== undefined && row.rank !== '');
+  }, [filteredRows]);
+
   // Click-to-order (PO 2026-10-10): null = the server's rank order, as before. The total row stays on top.
   const [sort, setSort] = useState(null);
-  const handleSort = (field) => setSort((current) => nextSortState(current || { field: 'rank', direction: 'asc' }, field, { textFields: ['ma_bcvh', 'ten_bcvh'] }));
-  const headerSort = sort || { field: 'rank', direction: 'asc' };
+  const handleSort = (field) => setSort((current) => nextSortState(current || { field: hasRank ? 'rank' : 'ma_bcvh', direction: 'asc' }, field, { textFields: ['ma_bcvh', 'ten_bcvh'] }));
+  const headerSort = sort || { field: hasRank ? 'rank' : 'ma_bcvh', direction: 'asc' };
   const orderedRows = useMemo(
     () => (sort ? sortRowsBy(filteredRows, sort.field, sort.direction, sortValue) : filteredRows),
     [filteredRows, sort],
@@ -611,11 +623,11 @@ export default function UnifiedBcvhAnalysisTable({
           <p className="text-xs text-[var(--color-text-muted)]">
             {TEXT.source} · {state.data?.meta?.evaluation_label || UNAVAILABLE_TEXT}
           </p>
-          <p className="mt-0.5 text-xs font-black text-rose-600">
-            {state.data?.meta?.national_rank
-              ? `VỊ THỨ TOÀN QUỐC: ${state.data.meta.national_rank.rank}/${state.data.meta.national_rank.total}`
-              : 'VỊ THỨ TOÀN QUỐC: —'}
-          </p>
+          {state.data?.meta?.national_rank ? (
+            <p className="mt-0.5 text-xs font-black text-rose-600">
+              {`VỊ THỨ TOÀN QUỐC: ${state.data.meta.national_rank.rank}/${state.data.meta.national_rank.total}`}
+            </p>
+          ) : null}
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {indicator.features.routes ? <StatusBadge label="KPI 2026" tone="neutral" /> : null}
@@ -630,7 +642,7 @@ export default function UnifiedBcvhAnalysisTable({
       </div>
       <div className="overflow-x-auto">
         <table className="min-w-[2200px] table-auto text-xs">
-          <UnifiedHeader columns={columns} sort={headerSort} onSort={handleSort} />
+          <UnifiedHeader columns={columns} sort={headerSort} onSort={handleSort} hasRank={hasRank} />
           <tbody>
             {state.data?.total_row ? (
               <Row
@@ -639,6 +651,7 @@ export default function UnifiedBcvhAnalysisTable({
                 expandedRowId={expandedRowId}
                 onToggleAnalysis={toggleAnalysis}
                 onOpenDetail={handleOpenDetail}
+                hasRank={hasRank}
               />
             ) : null}
             {orderedRows.map((row) => (
@@ -649,6 +662,7 @@ export default function UnifiedBcvhAnalysisTable({
                 expandedRowId={expandedRowId}
                 onToggleAnalysis={toggleAnalysis}
                 onOpenDetail={handleOpenDetail}
+                hasRank={hasRank}
               />
             ))}
           </tbody>

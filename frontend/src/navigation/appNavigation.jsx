@@ -79,11 +79,14 @@ const NETWORK_MANAGEMENT_GROUP = {
   ],
 };
 
+import { canAccessPath, filterNavigationByAccess } from '../auth/accessModel.js';
+
 const ADMIN_ONLY_GROUP = {
   title: 'Quản trị hệ thống',
   icon: <Settings size={20} />,
   roles: [ROLE_ADMIN],
   subItems: [
+    { name: 'Quản lý người dùng', path: '/admin/users', icon: <Users size={18} /> },
     { name: 'Trung tâm nạp dữ liệu', path: '/import', icon: <FileSpreadsheet size={18} /> },
     { name: 'Cấu hình chỉ tiêu', path: '/kpi-config', icon: <Settings size={18} /> },
     { name: 'Thông tin hệ thống', path: '/system-info', icon: <Info size={18} /> },
@@ -117,14 +120,22 @@ function filterNavItems(items, role) {
     });
 }
 
-export function getNavigationForRole(role) {
+export function getNavigationForRole(role, access = null) {
+  if (access) {
+    return filterNavigationByAccess(ROOT_ITEMS, access, role);
+  }
   return filterNavItems(ROOT_ITEMS, role);
 }
 
-export function getDashboardQuickLinks(role) {
-  return [
+export function getDashboardQuickLinks(role, access = null) {
+  const items = [
     { label: 'F1.3 – Bảng điều hành', path: '/f13/dashboard', color: 'bg-vnpost-blue', description: 'KPI chất lượng phát liên tỉnh' },
     { label: 'Phân tích BCVH', path: '/f13/ranking/bcvh', color: 'bg-green-600', description: 'So sánh hiệu quả theo bưu cục' },
     { label: 'Trung tâm nạp dữ liệu', path: '/import', color: 'bg-vnpost-orange', description: 'Nạp & quản lý dữ liệu Excel', roles: [ROLE_ADMIN] },
-  ].filter((item) => isAllowed(item, role));
+  ];
+
+  if (access) {
+    return items.filter((item) => canAccessPath(access, item.path, role));
+  }
+  return items.filter((item) => isAllowed(item, role));
 }

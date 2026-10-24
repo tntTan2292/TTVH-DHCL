@@ -12,6 +12,8 @@ import { ROLE_ADMIN, ROLE_VIEWER, getDefaultRouteForRole } from './auth/roles';
 import DataImportCenter from './pages/DataImportCenter';
 import KpiConfiguration from './pages/KpiConfiguration';
 import SystemInformation from './pages/SystemInformation';
+import ChangePasswordPage from './pages/ChangePasswordPage';
+import UserManagementPage from './pages/UserManagementPage';
 
 import DashboardPage from './features/dashboard/DashboardPage';
 import F11DashboardPage from './features/f11/F11DashboardPage';
@@ -35,9 +37,16 @@ import { ErrorLayout } from './components/common/StateLayouts';
 
 function HomeRoute() {
   const { user } = useAuth();
-  const target = getDefaultRouteForRole(user?.role);
+  if (user?.must_change_password) {
+    return <Navigate to="/change-password" replace />;
+  }
 
-  if (target !== '/') {
+  if (user?.access?.home) {
+    return <DashboardHome />;
+  }
+
+  const target = getDefaultRouteForRole(user?.role);
+  if (target !== '/' && !user?.access) {
     return <Navigate to={target} replace />;
   }
 
@@ -74,6 +83,7 @@ function App() {
       <Router>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/change-password" element={<ProtectedRoute><ChangePasswordPage /></ProtectedRoute>} />
           <Route path="/unauthorized" element={<UnauthorizedPage />} />
           <Route
             path="/dev/shared-components"
@@ -112,6 +122,7 @@ function App() {
             <Route path="f41/ranking/bcvh" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN, ROLE_VIEWER]}><F41BcvhRankingPage /></ProtectedRoute>} />
             <Route path="hangton" element={<Navigate to="/hangton/overview" replace />} />
             <Route path="hangton/:tab" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN, ROLE_VIEWER]}><HangTonPage /></ProtectedRoute>} />
+            <Route path="admin/users" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN]}><UserManagementPage /></ProtectedRoute>} />
             <Route path="import" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN]}><DataImportCenter /></ProtectedRoute>} />
             <Route path="kpi-config" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN]}><KpiConfiguration /></ProtectedRoute>} />
             <Route path="system-info" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN]}><SystemInformation /></ProtectedRoute>} />

@@ -21,6 +21,24 @@ class AuthClient {
         return httpClient.get('/auth/me');
     }
 
+    async changePassword(current_password, new_password) {
+        const response = await httpClient.post('/auth/change-password', {
+            current_password,
+            new_password,
+        });
+        const sessionId = response?.data?.session_id;
+        const user = response?.data?.user;
+        if (!sessionId || !user) {
+            throw {
+                status: 0,
+                code: 'AUTH_CONTRACT_INVALID',
+                message: 'Phản hồi đổi mật khẩu không hợp lệ.',
+            };
+        }
+        localStorage.setItem(SESSION_KEY, sessionId);
+        return response;
+    }
+
     async logout() {
         try {
             await httpClient.post('/auth/logout', {});

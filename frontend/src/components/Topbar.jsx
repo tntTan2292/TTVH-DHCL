@@ -13,7 +13,9 @@ export default function Topbar({ onMenuClick }) {
     navigate('/login', { replace: true });
   };
 
-  const roleLabel = user?.role === ROLE_VIEWER ? 'Viewer F1.3' : (user?.role || 'Admin');
+  const tierLabel = user?.tier
+    ? (user.tier === 'ADMIN' ? 'Quản trị viên' : user.tier === 'LEADER' ? 'Lãnh đạo' : 'Chuyên viên')
+    : (user?.role === ROLE_VIEWER ? 'Viewer F1.3' : (user?.role || 'Admin'));
 
   return (
     <header className="glass-header h-16 flex items-center justify-between px-4 md:px-6 sticky top-0 z-30 transition-all">
@@ -21,7 +23,7 @@ export default function Topbar({ onMenuClick }) {
       <div className="flex items-center gap-3">
         <button
           onClick={onMenuClick}
-          className="md:hidden p-2 text-slate-600 hover:text-slate-900 hover:bg-white/80 rounded-xl transition-all border border-transparent hover:border-slate-200/80 active:scale-95"
+          className="md:hidden p-2 text-slate-600 hover:text-slate-900 hover:bg-white/80 rounded-xl transition-all border border-transparent hover:border-slate-200/80 active:scale-95 cursor-pointer"
           aria-label="Mở menu điều hướng"
         >
           <Menu size={22} />
@@ -36,54 +38,46 @@ export default function Topbar({ onMenuClick }) {
       </div>
 
       {/* Right Controls: Notifications & User Profile */}
-      <div className="flex items-center gap-3 md:gap-4">
-        {/* Notification Bell with Glass hover */}
-        <button 
-          className="relative p-2 rounded-xl text-slate-500 hover:text-[var(--color-vnpost-blue)] hover:bg-white/80 border border-transparent hover:border-slate-200/60 transition-all active:scale-95"
-          title="Thông báo"
-          aria-label="Xem thông báo"
-        >
-          <Bell size={19} />
-          <span className="absolute top-1.5 right-1.5 flex h-2 w-2">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
-          </span>
-        </button>
-
+      <div className="flex items-center gap-2 sm:gap-3">
         {/* User Info & Profile */}
-        <div className="flex items-center gap-2 sm:gap-3 pl-2 sm:pl-3 border-l border-slate-200/80">
-          <div className="flex items-center gap-2.5 px-2 py-1 rounded-xl hover:bg-white/60 transition-all cursor-pointer group">
-            <div className="text-right hidden sm:block">
-              <p className="text-xs md:text-sm font-bold text-slate-800 leading-tight group-hover:text-[var(--color-vnpost-blue)] transition-colors">
-                {user?.display_name || 'Quản trị viên'}
-              </p>
-              <div className="flex items-center justify-end gap-1 mt-0.5">
-                <span className="inline-block px-1.5 py-0.2 rounded-md bg-blue-50 text-[10px] font-bold uppercase tracking-wider text-blue-700 border border-blue-200/60">
-                  {roleLabel}
-                </span>
-              </div>
+        <div className="flex items-center gap-2.5 px-2 py-1 rounded-xl">
+          <div className="text-right hidden sm:block">
+            <p className="text-xs md:text-sm font-bold text-slate-800 leading-tight">
+              {user?.display_name || user?.username || 'Người dùng'}
+            </p>
+            <div className="flex items-center justify-end gap-1 mt-0.5">
+              <span className="inline-block px-1.5 py-0.2 rounded-md bg-blue-50 text-[10px] font-bold uppercase tracking-wider text-blue-700 border border-blue-200/60">
+                {tierLabel}
+              </span>
             </div>
-
-            <div className="relative">
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[var(--color-vnpost-blue)] to-blue-700 flex items-center justify-center text-white font-bold text-sm shadow-sm ring-2 ring-white/80 overflow-hidden group-hover:ring-blue-200 transition-all">
-                <UserCircle size={24} />
-              </div>
-              <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 rounded-full ring-2 ring-white" />
-            </div>
-
-            <ChevronDown size={14} className="text-slate-400 group-hover:text-slate-600 transition-transform group-hover:translate-y-0.5" />
           </div>
 
-          {/* Quick Logout Button */}
-          <button
-            onClick={handleLogout}
-            className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200/80 bg-white/70 hover:bg-red-50 hover:border-red-200 hover:text-red-700 px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-2xs backdrop-blur-xs transition-all active:scale-95"
-            title="Đăng xuất khỏi hệ thống"
-          >
-            <LogOut size={14} />
-            <span className="hidden md:inline">Đăng xuất</span>
-          </button>
+          <div className="relative">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[var(--color-vnpost-blue)] to-blue-700 flex items-center justify-center text-white font-bold text-sm shadow-sm ring-2 ring-white/80 overflow-hidden">
+              <UserCircle size={24} />
+            </div>
+            <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 rounded-full ring-2 ring-white" />
+          </div>
         </div>
+
+        {/* Change Password Button */}
+        <button
+          onClick={() => navigate('/change-password')}
+          className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200/80 bg-white/70 hover:bg-slate-100 hover:border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-2xs backdrop-blur-xs transition-all active:scale-95 cursor-pointer"
+          title="Đổi mật khẩu"
+        >
+          <span className="hidden sm:inline">Đổi mật khẩu</span>
+        </button>
+
+        {/* Quick Logout Button */}
+        <button
+          onClick={handleLogout}
+          className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200/80 bg-white/70 hover:bg-red-50 hover:border-red-200 hover:text-red-700 px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-2xs backdrop-blur-xs transition-all active:scale-95 cursor-pointer"
+          title="Đăng xuất khỏi hệ thống"
+        >
+          <LogOut size={14} />
+          <span className="hidden md:inline">Đăng xuất</span>
+        </button>
       </div>
     </header>
   );

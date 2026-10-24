@@ -117,3 +117,14 @@ test('dashboard page renders current command, trend, action, and BCVH surfaces',
   assert.doesNotMatch(dashboardSource, /TopListAdapter/);
   assert.doesNotMatch(dashboardSource, /f13_303_rate.*Xếp hạng/s);
 });
+
+test('buildBcvhOptions with allowedCodes filters units and omits allOption', () => {
+  const options = buildBcvhOptions(canonicalBcvhUnits, { allowedCodes: ['533140', '535470'] });
+  assert.equal(options.length, 2);
+  assert.deepEqual(options, [
+    { value: '535470', label: 'BCVH Hương Trà' },
+    { value: '533140', label: 'BCVH Thuận Hóa' },
+  ]);
+  assert.ok(!options.some((opt) => opt.value === 'all'));
+});
+

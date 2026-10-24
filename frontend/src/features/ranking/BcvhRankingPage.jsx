@@ -17,6 +17,8 @@ import BcvhWeeklyComparisonBlock from './BcvhWeeklyComparisonBlock';
 import { indicatorLabel, indicatorTheme } from '../indicator/indicatorConfig.js';
 import { useIndicator } from '../indicator/IndicatorContext.js';
 import { useIndicatorApi } from '../indicator/useIndicatorApi.js';
+import { useAuth } from '../../auth/AuthContext';
+import { getModuleAccess } from '../../auth/accessModel.js';
 
 function toneFromKpi(rate, heatmapFloors) {
   if (rate === null || rate === undefined) return 'neutral';
@@ -93,7 +95,12 @@ function DoughnutSummary({ routeDistribution }) {
 }
 
 export default function BcvhRankingPage() {
+  const { user } = useAuth();
   const indicator = useIndicator();
+  const moduleAccess = getModuleAccess(user?.access, indicator.id);
+  const isBcvhMode = moduleAccess.mode === 'bcvh';
+  const allowedBcvhCodes = isBcvhMode ? moduleAccess.bcvh : null;
+  const defaultBcvh = isBcvhMode && allowedBcvhCodes?.[0] ? allowedBcvhCodes[0] : 'all';
   const { features } = indicator;
   const api = useIndicatorApi();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -123,7 +130,7 @@ export default function BcvhRankingPage() {
   const toDateParam = searchParams.get('to_date') || '';
   const fromDate = fromDateParam || metaState.maxDate || '';
   const toDate = toDateParam || metaState.maxDate || '';
-  const maBcvh = searchParams.get('bcvh_id') || searchParams.get('ma_bcvh') || 'all';
+  const maBcvh = searchParams.get('bcvh_id') || searchParams.get('ma_bcvh') || defaultBcvh;
   const search = searchParams.get('search') || '';
   const interval = searchParams.get('interval') || (fromDate === toDate ? 'daily' : 'range');
 
@@ -137,7 +144,7 @@ export default function BcvhRankingPage() {
   const updateBcvhParam = (value) => {
     const next = new URLSearchParams(searchParams);
     next.delete('ma_bcvh');
-    if (value === undefined || value === null || value === '' || value === 'all') {
+    if (value === undefined || value === null || value === '' || (!isBcvhMode && value === 'all')) {
       next.delete('bcvh_id');
     } else {
       next.set('bcvh_id', value);
@@ -159,7 +166,11 @@ export default function BcvhRankingPage() {
         }
         setMetaState({
           status: 'success',
-          options: buildBcvhOptions(units, { anyUnits: Boolean(indicator.dynamicUnits), unitLabel: indicator.unitLabel }),
+          options: buildBcvhOptions(units, {
+            anyUnits: Boolean(indicator.dynamicUnits),
+            unitLabel: indicator.unitLabel,
+            allowedCodes: allowedBcvhCodes,
+          }),
           units: indicator.dynamicUnits ? units : null,
           error: null,
           maxDate: res.data?.data?.max_date || null,
@@ -181,8 +192,10 @@ export default function BcvhRankingPage() {
 
   // Overview API fetch effect (Phase F1 - Exactly 1 request per anchor_date)
   useEffect(() => {
-    fetchOverviewRef.current(toDate);
-  }, [toDate, overviewRetrySeq]);
+    if (!isBcvhMode && toDate) {
+      fetchOverviewRef.current(toDate);
+    }
+  }, [toDate, overviewRetrySeq, isBcvhMode]);
 
   useEffect(() => {
     let active = true;
@@ -306,10 +319,10 @@ export default function BcvhRankingPage() {
       <div className="space-y-5">
         {/* Bảng trọng tâm điều hành (PO 2026-10-05): so sánh tuần/tháng, đặt trên cùng. Luồng tải riêng,
             độc lập với bộ lọc chung bên dưới, /overview và khối 5. */}
-        <BcvhWeeklyComparisonBlock />
+        {!isBcvhMode ? <BcvhWeeklyComparisonBlock /> : null}
 
         {/* Khối 1: Xu hướng chất lượng theo tháng (đặt ngay dưới biểu đồ Diễn biến chất lượng theo tuần) */}
-        {overviewState.processed ? (
+        {!isBcvhMode && overviewState.processed ? (
           <BcvhMonthlyTrendBlock data={overviewState.processed} />
         ) : null}
 
@@ -338,30 +351,32 @@ export default function BcvhRankingPage() {
         ) : null}
 
         {/* Phase F1 Overview Section - 4 Overview Blocks */}
-        {overviewState.status === 'loading' ? (
-          <div className="flex h-32 items-center justify-center rounded-2xl border border-[var(--color-surface-200)] bg-white p-6 shadow-sm">
-            <div className="flex items-center gap-3 text-sm text-[var(--color-text-muted)]">
-              <div className="h-5 w-5 animate-spin rounded-full border-2 border-[var(--color-primary-600)] border-t-transparent" />
-              <span>{indicatorLabel('Đang tải dữ liệu tổng quan BCVH...', indicator)}</span>
+        {!isBcvhMode && (
+          overviewState.status === 'loading' ? (
+            <div className="flex h-32 items-center justify-center rounded-2xl border border-[var(--color-surface-200)] bg-white p-6 shadow-sm">
+              <div className="flex items-center gap-3 text-sm text-[var(--color-text-muted)]">
+                <div className="h-5 w-5 animate-spin rounded-full border-2 border-[var(--color-primary-600)] border-t-transparent" />
+                <span>{indicatorLabel('Đang tải dữ liệu tổng quan BCVH...', indicator)}</span>
+              </div>
             </div>
-          </div>
-        ) : overviewState.status === 'error' ? (
-          <div className="rounded-2xl border border-red-200/90 bg-red-50/70 p-5 shadow-2xs">
-            <ErrorState
-              title={indicatorLabel('Không thể tải dữ liệu tổng quan BCVH', indicator)}
-              description={overviewState.error}
-              action={
-                <button
-                  type="button"
-                  onClick={() => setOverviewRetrySeq((s) => s + 1)}
-                  className="rounded-lg bg-red-600 px-4 py-2 text-xs font-semibold text-white shadow-2xs hover:bg-red-700 active:scale-[0.98] outline-none focus-visible:ring-2 focus-visible:ring-red-400 transition-[background-color,transform] duration-150 cursor-pointer"
-                >
-                  Thử lại
-                </button>
-              }
-            />
-          </div>
-        ) : null}
+          ) : overviewState.status === 'error' ? (
+            <div className="rounded-2xl border border-red-200/90 bg-red-50/70 p-5 shadow-2xs">
+              <ErrorState
+                title={indicatorLabel('Không thể tải dữ liệu tổng quan BCVH', indicator)}
+                description={overviewState.error}
+                action={
+                  <button
+                    type="button"
+                    onClick={() => setOverviewRetrySeq((s) => s + 1)}
+                    className="rounded-lg bg-red-600 px-4 py-2 text-xs font-semibold text-white shadow-2xs hover:bg-red-700 active:scale-[0.98] outline-none focus-visible:ring-2 focus-visible:ring-red-400 transition-[background-color,transform] duration-150 cursor-pointer"
+                  >
+                    Thử lại
+                  </button>
+                }
+              />
+            </div>
+          ) : null
+        )}
 
         {/* Single-day Ranking Table & Cards (Khối 5 - Unchanged) */}
         {rankingState.status === 'error' ? (

@@ -11,6 +11,8 @@ import { ArrowUpDown, ArrowUp, ArrowDown, ChevronRight, ChevronLeft, AlertTriang
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
 import { renderRateLabel } from '../dashboard/components/ChartLabelRenderers';
 import { selectLabelIndexes } from '../dashboard/components/chartDataLabels';
+import { useAuth } from '../../auth/AuthContext';
+import { getModuleAccess } from '../../auth/accessModel.js';
 
 const ROUTE_BCVH_OPTIONS = [
   { value: '533140', label: 'BCVH Thuận Hóa' },
@@ -658,6 +660,11 @@ function ReconciliationStrip({ reconciliation, anchorDate, periodLabel, onToggle
 }
 
 export default function RoutePerformancePage() {
+  const { user } = useAuth();
+  const moduleAccess = getModuleAccess(user?.access, 'f13');
+  const isBcvhMode = moduleAccess.mode === 'bcvh';
+  const allowedBcvhCodes = isBcvhMode ? moduleAccess.bcvh : null;
+
   const [searchParams, setSearchParams] = useSearchParams();
   const [status, setStatus] = useState('loading');
   const [error, setError] = useState(null);
@@ -677,9 +684,11 @@ export default function RoutePerformancePage() {
   const [metaMaxDate, setMetaMaxDate] = useState(null);
   const [metaStatus, setMetaStatus] = useState('loading');
 
+  const defaultBcvhId = isBcvhMode && allowedBcvhCodes?.[0] ? allowedBcvhCodes[0] : '533140';
   const fromDateParam = searchParams.get('from_date') || '';
   const toDateParam = searchParams.get('to_date') || '';
-  const bcvhId = searchParams.get('bcvh_id') || searchParams.get('ma_bcvh') || '533140';
+  const rawBcvhId = searchParams.get('bcvh_id') || searchParams.get('ma_bcvh');
+  const bcvhId = isBcvhMode && allowedBcvhCodes ? (allowedBcvhCodes.includes(rawBcvhId) ? rawBcvhId : defaultBcvhId) : (rawBcvhId || defaultBcvhId);
   const bcvhName = searchParams.get('bcvh_name') || 'BCVH Thuận Hóa';
   const search = searchParams.get('search') || '';
   const sort = searchParams.get('sort') || 'day_rate';
@@ -708,7 +717,7 @@ export default function RoutePerformancePage() {
   const updateBcvhParam = (value) => {
     const params = new URLSearchParams(searchParams);
     params.delete('ma_bcvh');
-    if (value === undefined || value === null || value === '' || value === 'all') {
+    if (value === undefined || value === null || value === '' || (!isBcvhMode && value === 'all')) {
       params.delete('bcvh_id');
     } else {
       params.set('bcvh_id', value);
@@ -720,6 +729,12 @@ export default function RoutePerformancePage() {
   const [bcvhOptions, setBcvhOptions] = useState(ROUTE_BCVH_OPTIONS);
 
   useEffect(() => {
+    if (isBcvhMode && Array.isArray(allowedBcvhCodes)) {
+      setBcvhOptions((prev) => prev.filter((opt) => allowedBcvhCodes.includes(opt.value)));
+    }
+  }, [allowedBcvhCodes, isBcvhMode]);
+
+  useEffect(() => {
     let mounted = true;
     const fetchMeta = async () => {
       try {
@@ -727,11 +742,17 @@ export default function RoutePerformancePage() {
         if (!mounted) return;
         setMetaMaxDate(result?.data?.max_date || null);
         if (Array.isArray(result?.data?.bcvh_units) && result.data.bcvh_units.length > 0) {
-          const formattedOptions = result.data.bcvh_units.map((unit) => ({
+          let units = result.data.bcvh_units;
+          if (isBcvhMode && Array.isArray(allowedBcvhCodes)) {
+            units = units.filter((unit) => allowedBcvhCodes.includes(String(unit.ma_bcvh || unit.value)));
+          }
+          const formattedOptions = units.map((unit) => ({
             value: unit.ma_bcvh || unit.value,
             label: unit.ten_bcvh ? `BCVH ${unit.ten_bcvh.replace(/^BCVH\s+/i, '')}` : (unit.label || unit.ma_bcvh),
           }));
           setBcvhOptions(formattedOptions);
+        } else if (isBcvhMode && Array.isArray(allowedBcvhCodes)) {
+          setBcvhOptions(ROUTE_BCVH_OPTIONS.filter((opt) => allowedBcvhCodes.includes(opt.value)));
         }
         setMetaStatus('ready');
       } catch {
@@ -744,7 +765,7 @@ export default function RoutePerformancePage() {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [allowedBcvhCodes, isBcvhMode]);
 
   useEffect(() => {
     let mounted = true;

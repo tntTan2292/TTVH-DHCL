@@ -40,6 +40,13 @@ export function AuthProvider({ children }) {
         return response;
     };
 
+    const changePassword = async (currentPassword, newPassword) => {
+        const response = await authClient.changePassword(currentPassword, newPassword);
+        const freshUser = response?.data?.user || null;
+        setUser(freshUser ? { ...freshUser, role: normalizeRole(freshUser.role) } : null);
+        return response;
+    };
+
     const logout = async () => {
         try {
             await authClient.logout();
@@ -49,7 +56,7 @@ export function AuthProvider({ children }) {
     };
 
     return (
-        <AuthContext.Provider value={{ user, loading, isAuthenticated: !!user, login, logout }}>
+        <AuthContext.Provider value={{ user, loading, isAuthenticated: !!user, login, logout, changePassword }}>
             {children}
         </AuthContext.Provider>
     );

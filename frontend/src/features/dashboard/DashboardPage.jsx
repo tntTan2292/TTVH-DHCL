@@ -25,9 +25,16 @@ import { useIndicator } from '../indicator/IndicatorContext.js';
 import { useIndicatorApi } from '../indicator/useIndicatorApi.js';
 import { BcvhUnitsProvider } from '../indicator/BcvhUnitsContext.js';
 import { indicatorLabel, indicatorTargetRate, indicatorTheme } from '../indicator/indicatorConfig.js';
+import { useAuth } from '../../auth/AuthContext';
+import { getModuleAccess, isModuleAllMode } from '../../auth/accessModel.js';
 
 export default function DashboardPage() {
+  const { user } = useAuth();
   const indicator = useIndicator();
+  const moduleAccess = getModuleAccess(user?.access, indicator.id);
+  const isBcvhMode = moduleAccess.mode === 'bcvh';
+  const allowedBcvhCodes = isBcvhMode ? moduleAccess.bcvh : null;
+  const showOperationTable = !user?.access || isModuleAllMode(user?.access, indicator.id);
   const api = useIndicatorApi();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -74,7 +81,11 @@ export default function DashboardPage() {
 
         setMetadataState({
           status: 'success',
-          bcvhOptions: buildBcvhOptions(data.bcvh_units, { anyUnits: Boolean(indicator.dynamicUnits), unitLabel: indicator.unitLabel }),
+          bcvhOptions: buildBcvhOptions(data.bcvh_units, {
+            anyUnits: Boolean(indicator.dynamicUnits),
+            unitLabel: indicator.unitLabel,
+            allowedCodes: allowedBcvhCodes,
+          }),
           units: indicator.dynamicUnits ? data.bcvh_units : null,
           error: null,
         });
@@ -103,7 +114,8 @@ export default function DashboardPage() {
   const fromDate = range.fromDate;
   const toDate = range.toDate;
   const interval = searchParams.get('interval') || 'daily';
-  const maBcvh = searchParams.get('bcvh_id') || searchParams.get('ma_bcvh') || 'all';
+  const defaultBcvh = isBcvhMode && allowedBcvhCodes?.[0] ? allowedBcvhCodes[0] : 'all';
+  const maBcvh = searchParams.get('bcvh_id') || searchParams.get('ma_bcvh') || defaultBcvh;
   const search = searchParams.get('search') || '';
   const dashboardReady = metadataState.status === 'success' && range.ready && !range.normalized && Boolean(fromDate && toDate);
 
@@ -244,7 +256,13 @@ export default function DashboardPage() {
     }
 
     const dynamicUnitCodes = indicator.dynamicUnits ? metadataState.bcvhOptions.map((option) => option.value) : null;
-    if (!isCanonicalBcvhCode(maBcvh, dynamicUnitCodes)) {
+    if (isBcvhMode && allowedBcvhCodes?.length > 0) {
+      if (!allowedBcvhCodes.includes(maBcvh)) {
+        params.delete('ma_bcvh');
+        params.set('bcvh_id', allowedBcvhCodes[0]);
+        changed = true;
+      }
+    } else if (!isCanonicalBcvhCode(maBcvh, dynamicUnitCodes)) {
       params.set('ma_bcvh', 'all');
       changed = true;
     }
@@ -252,7 +270,7 @@ export default function DashboardPage() {
     if (changed) {
       setSearchParams(params, { replace: true });
     }
-  }, [indicator.dynamicUnits, maBcvh, metadataState.bcvhOptions, metadataState.status, range.fromDate, range.normalized, range.ready, range.toDate, searchParams, setSearchParams]);
+  }, [allowedBcvhCodes, indicator.dynamicUnits, isBcvhMode, maBcvh, metadataState.bcvhOptions, metadataState.status, range.fromDate, range.normalized, range.ready, range.toDate, searchParams, setSearchParams]);
 
   const updateParam = (key, value) => {
     const params = new URLSearchParams(searchParams);
@@ -267,7 +285,7 @@ export default function DashboardPage() {
   const updateBcvhParam = (value) => {
     const params = new URLSearchParams(searchParams);
     params.delete('ma_bcvh');
-    if (value === undefined || value === null || value === '' || value === 'all') {
+    if (value === undefined || value === null || value === '' || (!isBcvhMode && value === 'all')) {
       params.delete('bcvh_id');
     } else {
       params.set('bcvh_id', value);
@@ -345,7 +363,9 @@ export default function DashboardPage() {
               bcvhLabel={selectedBcvhLabel}
             />
 
-        <BcvhOperationTableAdapter fromDate={fromDate} toDate={toDate} interval={interval} maBcvh={maBcvh} />
+        {showOperationTable ? (
+          <BcvhOperationTableAdapter fromDate={fromDate} toDate={toDate} interval={interval} maBcvh={maBcvh} />
+        ) : null}
 
         <IntegratedTrendRiskWorkspace
           data={trendState.data}

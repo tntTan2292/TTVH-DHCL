@@ -56,4 +56,29 @@ Update this manifest (Section 6), `DOCUMENT_INDEX.md` if new docs are added, rep
 
 ## 6. Status log
 
-(empty: filled by the executor)
+- **2026-10-24 — Antigravity (Gemini)**: Implementation completed, verified via build, lint, and unit tests. Status set to `READY FOR PO UI CHECK`.
+  - **Artifacts Created / Modified**:
+    - `frontend/src/auth/accessModel.js`: Pure helper defining canonical BCVH mapping, `canAccessPath`, `getModuleAccess`, `isModuleAllMode`, `isModuleBcvhMode`, `getAllowedBcvhCodes`, `getAllowedHangtonScreens`, `filterNavigationByAccess`.
+    - `frontend/src/auth/accessModel.test.js`: 8 unit test suites for ADMIN, LEADER, Thuận Hóa director, Hương Trà + F1.1, Phú Lộc + A Lưới, F1.2 specialist, and navigation tree pruning.
+    - `frontend/src/api/authClient.js` & `httpClient.js`: Support for `changePassword(current_password, new_password)`, automatic interception of 403 `PASSWORD_CHANGE_REQUIRED` redirecting to `/change-password`, extraction of `problems[]` array.
+    - `frontend/src/auth/AuthContext.jsx`: Exposed `changePassword`, maintaining `user.access` and `user.must_change_password`.
+    - `frontend/src/pages/ChangePasswordPage.jsx`: Full-screen forced password change page outside `MainLayout` with real-time rule checklist and backend Vietnamese `problems[]` display.
+    - `frontend/src/components/Topbar.jsx`: Tier badge display (ADMIN, LEADER, STAFF) and "Đổi mật khẩu" action menu item.
+    - `frontend/src/components/ProtectedRoute.jsx`: Enforces `must_change_password` redirect, access-based gating via `canAccessPath`, fallback role check for legacy routes.
+    - `frontend/src/pages/LoginPage.jsx`: Auto-redirect to `/change-password` when `user.must_change_password` is true.
+    - `frontend/src/api/adminClient.js` & `frontend/src/pages/UserManagementPage.jsx`: Admin user management under `/admin/users` (searchable table, tier/indicators/BCVH create/edit modal with STAFF-only scoping, activate/deactivate, unlock, reset password confirmation dialog displaying temporary password).
+    - `frontend/src/navigation/appNavigation.jsx` & `frontend/src/navigation/appNavigation.test.js`: Navigation tree integration of `/admin/users`, `getNavigationForRole(role, access)`, `getDashboardQuickLinks(role, access)`.
+    - `frontend/src/components/Sidebar.jsx` & `frontend/src/components/shared/SharedLayout.jsx`: Navigation pruning via `filterNavigationByAccess`, breadcrumb support for new routes.
+    - `frontend/src/App.jsx`: Route registration for `/change-password` and `/admin/users`.
+    - `frontend/src/features/dashboard/components/dashboardFilterOptions.js` & `.test.js`: Added `allowedCodes` filtering to `buildBcvhOptions` (omits "Tất cả" option and restricts selectable units in BCVH mode).
+    - `frontend/src/features/dashboard/DashboardPage.jsx`: Restricted BCVH selector in BCVH mode, defaulted to allowed BCVH, conditionally hid `BcvhOperationTableAdapter` when mode is not `'all'`.
+    - `frontend/src/features/dashboard/components/UnifiedBcvhAnalysisTable.jsx`: Dynamic table rendering without rank column when no row has rank (adjusts sticky offsets), safe rendering when `total_row` or `national_rank` are absent.
+    - `frontend/src/features/ranking/BcvhRankingPage.jsx`: Filtered BCVH options, defaulted selector to allowed BCVH, hidden cross-BCVH comparison blocks (`BcvhWeeklyComparisonBlock`, `BcvhMonthlyTrendBlock`, overview blocks) in BCVH mode.
+    - `frontend/src/features/route/RoutePerformancePage.jsx` & `ShipmentPerformancePage.jsx`: BCVH selectors filtered by user's allowed scope.
+    - `frontend/src/features/hangton/HangTonPage.jsx`: Tab bar derived from `hangton.screens`, direct unauthorized URL redirect to `/unauthorized`, drilldown modal (`HangTonItemsModal`) when user without `items` screen clicks office figures in "Theo bưu cục".
+    - `frontend/src/features/dashboard/components/dashboardLoadPerformance.test.js`: Updated regex to support `scopedBcvh` from backend scoping changes.
+  - **Quality Gates**:
+    - Build: `npm run build` -> Clean pass (1.37s).
+    - Lint: `oxlint` -> 0 errors (42 pre-existing warnings in unrelated files).
+    - Tests: All 31 targeted RBAC & dashboard test suites pass (100%), 0 fails.
+

@@ -51,7 +51,7 @@ export function SidebarNavigation({ isOpen, onClose, isCollapsed, onToggleCollap
   const [searchQuery, setSearchQuery] = useState('');
   // Memoized: the effect below depends on navGroups; a fresh array on every render re-ran it forever
   // (setPinnedGroups -> render -> new navGroups -> effect ...), which blanked every module page.
-  const navGroups = useMemo(() => getNavigationForRole(user?.role), [user?.role]);
+  const navGroups = useMemo(() => getNavigationForRole(user?.role, user?.access), [user?.role, user?.access]);
 
   const togglePinGroup = (groupTitle) => {
     setPinnedGroups((prev) => ({
@@ -509,6 +509,8 @@ const BREADCRUMB_LABELS = {
   route: 'Tuyến phát',
   evidence: 'Dữ liệu minh chứng',
   shipment: 'Chi tiết bưu gửi',
+  users: 'Quản lý người dùng',
+  'change-password': 'Đổi mật khẩu',
   import: 'Trung tâm nạp dữ liệu',
   'kpi-config': 'Cấu hình chỉ tiêu',
   'system-info': 'Thông tin hệ thống',
