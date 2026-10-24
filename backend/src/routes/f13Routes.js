@@ -32,12 +32,12 @@ router.get('/dashboard/top', ...allowViewerRead, scopeBcvhResponse(), kpiControl
 router.get('/dashboard/meta', ...allowViewerRead, scopeBcvhResponse(), kpiController.getDashboardMeta);
 router.get('/ranking/bcvh/overview', ...allowViewerRead, scopeBcvhResponse({ drop: ['data.mtd[].rank', 'data.meta.national_rank'] }), dashboardController.getBcvhOverview);
 router.get('/ranking/bcvh/weeks', ...allowViewerRead, dashboardController.getBcvhWeeks);
-router.get('/ranking/bcvh/weekly-comparison', ...allowViewerRead, scopeBcvhResponse({ drop: ['data.total_row'] }), dashboardController.getBcvhWeeklyComparison);
+router.get('/ranking/bcvh/weekly-comparison', ...allowViewerRead, scopeBcvhResponse({ drop: ['data.total_row', 'data.meta.national_rank'] }), dashboardController.getBcvhWeeklyComparison);
 router.get('/ranking/bcvh/window-comparison', ...allowViewerRead, scopeBcvhResponse({ drop: ['data.national_rank'] }), dashboardController.getBcvhWindowComparison);
 router.get('/ranking/bcvh/weekly-trend', ...allowViewerRead, scopeBcvhResponse({ drop: ['data.weeks[].total', 'data.weeks[].national_rank'] }), dashboardController.getBcvhWeeklyTrend);
 router.get('/ranking/bcvh/months', ...allowViewerRead, dashboardController.getBcvhMonths);
-router.get('/ranking/bcvh/monthly-comparison', ...allowViewerRead, scopeBcvhResponse({ drop: ['data.total_row'] }), dashboardController.getBcvhMonthlyComparison);
-router.get('/ranking/bcvh', ...allowViewerRead, scopeBcvhResponse({ drop: ['meta.total_row', 'meta.national_rank', 'data[].rank'] }), dashboardController.getBcvh);
+router.get('/ranking/bcvh/monthly-comparison', ...allowViewerRead, scopeBcvhResponse({ drop: ['data.total_row', 'data.meta.national_rank'] }), dashboardController.getBcvhMonthlyComparison);
+router.get('/ranking/bcvh', ...allowViewerRead, scopeBcvhResponse({ drop: ['meta.total_row', 'meta.national_rank', 'data[].rank', 'data[].comparisons.d1.comparison_rank', 'data[].comparisons.d1.rank_movement', 'data[].comparisons.d7.comparison_rank', 'data[].comparisons.d7.rank_movement'] }), dashboardController.getBcvh);
 router.get('/ranking/route', ...allowViewerRead, dashboardController.getRoute);
 router.get('/ranking/route/periods', ...allowViewerRead, dashboardController.getRoutePeriods);
 router.get('/recommendations', ...allowViewerRead, scopeBcvhResponse(), kpiController.getRecommendations);

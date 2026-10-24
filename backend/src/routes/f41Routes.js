@@ -8,6 +8,8 @@ const express = require('express');
 const router = express.Router();
 const { requireAuth, requireRole } = require('../middleware/authMiddleware');
 const { cachedRead } = require('../middleware/responseCache');
+const { requireModule, requireCityWide } = require('../middleware/accessScope');
+const { scopeBcvhResponse, restrictPairTable } = require('../services/auth/access/scopeResponse');
 
 const f41DashboardController = require('../controllers/F41DashboardController');
 const f41RankingController = require('../controllers/F41RankingController');
@@ -15,23 +17,26 @@ const f41RankingController = require('../controllers/F41RankingController');
 const allowViewerRead = [requireAuth, requireRole(['admin', 'viewer'])];
 
 // PERF-LOAD-01: every route here is a viewer-level read, so all GETs are cacheable.
-router.use(requireAuth, requireRole(['admin', 'viewer']), cachedRead());
+// RBAC-01 step 3: requireModule sets req.scope BEFORE cachedRead (per-scope cache keys); the router-level
+// sanitiser removes rows of any BCVH outside the scope from every body, route-level drops add the city totals.
+router.use(requireAuth, requireRole(['admin', 'viewer']), requireModule('f41'), cachedRead());
+router.use(scopeBcvhResponse());
 
 router.get('/dashboard/kpi', ...allowViewerRead, f41DashboardController.getKpi);
-router.get('/dashboard/meta', ...allowViewerRead, f41DashboardController.getMeta);
-router.get('/dashboard/bcvh-reconciliation', ...allowViewerRead, f41DashboardController.getBcvhReconciliation);
+router.get('/dashboard/meta', ...allowViewerRead, scopeBcvhResponse({ drop: ['data.kpi_scope_note', 'data.kpi_includes_non_canonical_bcvh'] }), f41DashboardController.getMeta);
+router.get('/dashboard/bcvh-reconciliation', ...allowViewerRead, requireCityWide, f41DashboardController.getBcvhReconciliation);
 
 // F41-DASHBOARD-RANKING-01 (T1/T2): Operation Dashboard + BCVH Ranking read endpoints.
 // Same paths/shapes as the /api/f13 twins (Design of Record 4.3). Read-only, admin + viewer.
-router.get('/dashboard/summary', ...allowViewerRead, f41RankingController.getSummary);
+router.get('/dashboard/summary', ...allowViewerRead, scopeBcvhResponse({ drop: ['data.national_rank'] }), f41RankingController.getSummary);
 router.get('/dashboard/daily-trend', ...allowViewerRead, f41RankingController.getDailyTrend);
-router.get('/ranking/bcvh/overview', ...allowViewerRead, f41RankingController.getOverview);
+router.get('/ranking/bcvh/overview', ...allowViewerRead, scopeBcvhResponse({ drop: ['data.mtd[].rank', 'data.meta.national_rank'] }), f41RankingController.getOverview);
 router.get('/ranking/bcvh/weeks', ...allowViewerRead, f41RankingController.getWeeks);
-router.get('/ranking/bcvh/weekly-comparison', ...allowViewerRead, f41RankingController.getWeeklyComparison);
-router.get('/ranking/bcvh/window-comparison', ...allowViewerRead, f41RankingController.getWindowComparison);
-router.get('/ranking/bcvh/weekly-trend', ...allowViewerRead, f41RankingController.getWeeklyTrend);
+router.get('/ranking/bcvh/weekly-comparison', ...allowViewerRead, scopeBcvhResponse({ drop: ['data.total_row', 'data.meta.national_rank'] }), f41RankingController.getWeeklyComparison);
+router.get('/ranking/bcvh/window-comparison', ...allowViewerRead, scopeBcvhResponse({ drop: ['data.national_rank'] }), f41RankingController.getWindowComparison);
+router.get('/ranking/bcvh/weekly-trend', ...allowViewerRead, scopeBcvhResponse({ drop: ['data.weeks[].total', 'data.weeks[].national_rank'] }), f41RankingController.getWeeklyTrend);
 router.get('/ranking/bcvh/months', ...allowViewerRead, f41RankingController.getMonths);
-router.get('/ranking/bcvh/monthly-comparison', ...allowViewerRead, f41RankingController.getMonthlyComparison);
-router.get('/ranking/bcvh', ...allowViewerRead, f41RankingController.getBcvhRanking);
+router.get('/ranking/bcvh/monthly-comparison', ...allowViewerRead, scopeBcvhResponse({ drop: ['data.total_row', 'data.meta.national_rank'] }), f41RankingController.getMonthlyComparison);
+router.get('/ranking/bcvh', ...allowViewerRead, scopeBcvhResponse({ drop: ['meta.total_row', 'meta.national_rank', 'data[].rank', 'data[].comparisons.d1.comparison_rank', 'data[].comparisons.d1.rank_movement', 'data[].comparisons.d7.comparison_rank', 'data[].comparisons.d7.rank_movement'] }), f41RankingController.getBcvhRanking);
 
 module.exports = router;

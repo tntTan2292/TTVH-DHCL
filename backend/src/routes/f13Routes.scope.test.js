@@ -93,6 +93,18 @@ function foreignHits(text, allowedCodes) {
     return hits;
 }
 
+// Keys that only exist to rank a BCVH against the others (or the province against the country).
+function rankKeys(value, found = []) {
+    if (Array.isArray(value)) value.forEach((item) => rankKeys(item, found));
+    else if (value && typeof value === 'object') {
+        for (const [key, child] of Object.entries(value)) {
+            if (/rank/i.test(key) && !/period/i.test(key) && child !== null) found.push(key); // a null rank (not computed for a single BCVH) holds no number
+            rankKeys(child, found);
+        }
+    }
+    return found;
+}
+
 async function weekAndMonthIds(sessionId) {
     const weeks = (await get(sessionId, '/ranking/bcvh/weeks')).body.data.weeks;
     const months = (await get(sessionId, '/ranking/bcvh/months')).body.data.months;
@@ -138,6 +150,8 @@ test('BCVH user: no F1.3 endpoint ever returns another BCVH (codes or names, key
         assert.equal(first.status, 200, `${endpoint} -> ${first.status} ${first.text.slice(0, 200)}`);
         const hits = foreignHits(first.text, [OWN]);
         assert.deepEqual(hits, [], `LEAK in ${endpoint}: ...${hits.length ? first.text.slice(Math.max(0, first.text.indexOf(hits[0]) - 80), first.text.indexOf(hits[0]) + 80) : ''}...`);
+        // route ranks order the routes INSIDE the own BCVH, so only the cross-BCVH endpoints are scanned
+        if (!endpoint.startsWith('/ranking/route')) assert.deepEqual(rankKeys(first.body), [], `rank key in ${endpoint}`);
         // the cached copy must be just as clean
         const second = await get(sessionId, endpoint);
         assert.deepEqual(foreignHits(second.text, [OWN]), [], `LEAK in cached ${endpoint}`);

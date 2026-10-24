@@ -6,6 +6,7 @@
 // Read-only; every response is no-store like the existing F4.1 endpoints.
 
 const { f41RankingService } = require('../services/F41RankingService');
+const { resolveBcvh, sendIfOutOfScope } = require('../middleware/accessScope');
 
 const BAD_REQUEST_CODES = new Set([
     'MISSING_PARAM',
@@ -25,6 +26,7 @@ function setNoStore(res) {
 }
 
 function fail(res, error) {
+    if (sendIfOutOfScope(res, error)) return;
     const code = error?.code || 'SERVER_ERROR';
     const status = BAD_REQUEST_CODES.has(code) ? 400 : 500;
     res.status(status).json({ success: false, error: { code, message: error.message } });
@@ -48,7 +50,7 @@ function createController(service = f41RankingService) {
                 if (!from_date || !to_date) {
                     return res.status(400).json({ success: false, error: { code: 'MISSING_PARAM', message: 'Yêu cầu from_date và to_date' } });
                 }
-                const data = await service.getSummary(from_date, to_date, { bcvhId: bcvhParam(req.query.ma_bcvh) });
+                const data = await service.getSummary(from_date, to_date, { bcvhId: resolveBcvh(req, bcvhParam(req.query.ma_bcvh)) });
                 ok(res, { data });
             } catch (error) { fail(res, error); }
         },
@@ -60,7 +62,7 @@ function createController(service = f41RankingService) {
                 if (!from_date || !to_date) {
                     return res.status(400).json({ success: false, error: { code: 'MISSING_PARAM', message: 'Yêu cầu from_date và to_date' } });
                 }
-                const data = await service.getDailyTrend(from_date, to_date, { bcvhId: bcvhParam(req.query.ma_bcvh || req.query.bcvh_id || req.query.bcvh) });
+                const data = await service.getDailyTrend(from_date, to_date, { bcvhId: resolveBcvh(req, bcvhParam(req.query.ma_bcvh || req.query.bcvh_id || req.query.bcvh)) });
                 ok(res, { data });
             } catch (error) { fail(res, error); }
         },
@@ -81,7 +83,7 @@ function createController(service = f41RankingService) {
 
         async getWindowComparison(req, res) {
             try {
-                ok(res, { data: await service.compareRollingWindow(req.query.to_date, { bcvhId: bcvhParam(req.query.ma_bcvh) }) });
+                ok(res, { data: await service.compareRollingWindow(req.query.to_date, { bcvhId: resolveBcvh(req, bcvhParam(req.query.ma_bcvh)) }) });
             } catch (error) { fail(res, error); }
         },
 

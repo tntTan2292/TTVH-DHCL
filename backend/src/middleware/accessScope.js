@@ -28,6 +28,13 @@ function requireModule(moduleKey) {
     };
 }
 
+/** 403 unless the user sees the module city-wide (mode 'all'): national rankings, cross-BCVH reconciliation. */
+function requireCityWide(req, res, next) {
+    if (!req.auth?.user || !req.access) return sendUnauthorized(res);
+    if (!req.scope || req.scope.mode !== 'all') return sendForbidden(res);
+    return next();
+}
+
 /** ADMIN only, decided from the resolved access object (not from the legacy role string). */
 function requireAdminAccess(req, res, next) {
     if (!req.auth?.user || !req.access) return sendUnauthorized(res);
@@ -90,6 +97,7 @@ module.exports = {
     scopeKey,
     requireModule,
     requireAdminAccess,
+    requireCityWide,
     effectiveBcvh,
     resolveBcvh,
     scopedBcvhList,

@@ -74,6 +74,40 @@ function dropPaths(value, paths) {
     return root;
 }
 
+const SUM_FIELDS = ['volume', 'passed', 'failed', 'blank'];
+
+function sumCells(cells) {
+    const total = {};
+    for (const field of SUM_FIELDS) total[field] = 0;
+    for (const cell of Object.values(cells || {})) {
+        for (const field of SUM_FIELDS) total[field] += Number(cell?.[field]) || 0;
+    }
+    total.rate = total.volume > 0 ? Math.round((total.passed / total.volume) * 10000) / 100 : null;
+    return total;
+}
+
+/**
+ * F1.1 accepting-office x delivering-BCVH matrix (PO rule 2): every accepting row stays, but only the
+ * delivering columns of the scope remain (the "Khac" column of non-canonical delivering units goes too)
+ * and the row / grand totals are recomputed from those columns, so no cross-BCVH number is left.
+ */
+function restrictPairTable(data, allowedCodes) {
+    if (!isPlainObject(data) || !Array.isArray(data.rows)) return data;
+    const allowed = new Set(allowedCodes.map(String));
+    const onlyAllowed = (cells) => Object.fromEntries(Object.entries(cells || {}).filter(([code]) => allowed.has(code)));
+    const out = { ...data };
+    if (Array.isArray(data.columns)) out.columns = data.columns.filter((column) => allowed.has(String(column.ma_bcvh)));
+    out.rows = data.rows.map((row) => {
+        const cells = onlyAllowed(row.cells);
+        return { ...row, cells, total: sumCells(cells) };
+    });
+    if (isPlainObject(data.total_row)) {
+        const cells = onlyAllowed(data.total_row.cells);
+        out.total_row = { ...data.total_row, cells, total: sumCells(cells) };
+    }
+    return out;
+}
+
 /** Full transform for one payload. */
 function sanitizeForBcvhScope(payload, allowedCodes, drop = []) {
     return dropPaths(restrictToBcvh(payload, allowedCodes), drop);
@@ -84,13 +118,14 @@ function sanitizeForBcvhScope(payload, allowedCodes, drop = []) {
  * the response cache stores it, so the cache holds the sanitised body under the scoped key).
  * Mount AFTER cachedRead() / requireModule().
  */
-function scopeBcvhResponse({ drop = [] } = {}) {
+function scopeBcvhResponse({ drop = [], transform = null } = {}) {
     return (req, res, next) => {
         if (!req.scope || req.scope.mode !== 'bcvh') return next();
         const originalJson = res.json.bind(res);
         res.json = (payload) => {
             if (res.statusCode === 200 && payload && typeof payload === 'object') {
-                return originalJson(sanitizeForBcvhScope(payload, req.scope.bcvh, drop));
+                const clean = sanitizeForBcvhScope(payload, req.scope.bcvh, drop);
+                return originalJson(transform ? transform(clean, req.scope.bcvh) : clean);
             }
             return originalJson(payload);
         };
@@ -98,4 +133,4 @@ function scopeBcvhResponse({ drop = [] } = {}) {
     };
 }
 
-module.exports = { restrictToBcvh, dropPaths, sanitizeForBcvhScope, scopeBcvhResponse };
+module.exports = { restrictToBcvh, restrictPairTable, dropPaths, sanitizeForBcvhScope, scopeBcvhResponse };

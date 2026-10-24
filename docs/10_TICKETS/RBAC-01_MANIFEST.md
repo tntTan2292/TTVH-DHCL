@@ -1,6 +1,6 @@
 # RBAC-01 Manifest
 
-Status: `PHASE 1 DONE / DESIGN OF RECORD APPROVED / STEP 2a + 2b IMPLEMENTED / STEP 3 F1.3 ENFORCEMENT IMPLEMENTED, TECH PASS (2026-10-24); NOT DEPLOYED`; next step 3 for F1.1, F4.1, Hang ton, Mang luoi; 2c UI (Antigravity). Do not restart the operational backend with this code before 2c (DoR section 10).
+Status: `PHASE 1 DONE / DESIGN OF RECORD APPROVED / STEP 2a + 2b IMPLEMENTED / STEP 3 ENFORCEMENT IMPLEMENTED FOR F1.1, F1.2, F1.3, F4.1, TECH PASS (2026-10-24); NOT DEPLOYED`; next step 3 for Hang ton and Mang luoi; 2c UI (Antigravity). Do not restart the operational backend with this code before 2c (DoR section 10).
 
 Required Reading: `docs/05_DEVELOPMENT/Implementation/report_block_ui_standard.md` (any report block touched keeps its camera, ordering, target line, colour family, date filter).
 

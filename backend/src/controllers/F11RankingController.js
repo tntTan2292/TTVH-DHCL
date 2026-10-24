@@ -5,6 +5,7 @@
 // mirrors the /api/f41 twins. Read-only; every response is no-store.
 
 const { f11RankingService } = require('../services/F11RankingService');
+const { resolveBcvh, sendIfOutOfScope } = require('../middleware/accessScope');
 
 const BAD_REQUEST_CODES = new Set([
     'MISSING_PARAM',
@@ -24,6 +25,7 @@ function setNoStore(res) {
 }
 
 function fail(res, error) {
+    if (sendIfOutOfScope(res, error)) return;
     const code = error?.code || 'SERVER_ERROR';
     const status = BAD_REQUEST_CODES.has(code) ? 400 : 500;
     res.status(status).json({ success: false, error: { code, message: error.message } });
@@ -46,7 +48,7 @@ function createController(service = f11RankingService) {
             try {
                 const { from_date, to_date } = req.query;
                 if (!from_date || !to_date) return missingRange(res);
-                ok(res, { data: await service.getSummary(from_date, to_date, { bcvhId: bcvhParam(req.query.ma_bcvh) }) });
+                ok(res, { data: await service.getSummary(from_date, to_date, { bcvhId: resolveBcvh(req, bcvhParam(req.query.ma_bcvh)) }) });
             } catch (error) { fail(res, error); }
         },
 
@@ -55,7 +57,7 @@ function createController(service = f11RankingService) {
                 const from_date = req.query.from_date || req.query.fromDate;
                 const to_date = req.query.to_date || req.query.toDate;
                 if (!from_date || !to_date) return missingRange(res);
-                ok(res, { data: await service.getDailyTrend(from_date, to_date, { bcvhId: bcvhParam(req.query.ma_bcvh || req.query.bcvh_id || req.query.bcvh) }) });
+                ok(res, { data: await service.getDailyTrend(from_date, to_date, { bcvhId: resolveBcvh(req, bcvhParam(req.query.ma_bcvh || req.query.bcvh_id || req.query.bcvh)) }) });
             } catch (error) { fail(res, error); }
         },
 
@@ -84,7 +86,7 @@ function createController(service = f11RankingService) {
         },
 
         async getWindowComparison(req, res) {
-            try { ok(res, { data: await service.compareRollingWindow(req.query.to_date, { bcvhId: bcvhParam(req.query.ma_bcvh) }) }); } catch (error) { fail(res, error); }
+            try { ok(res, { data: await service.compareRollingWindow(req.query.to_date, { bcvhId: resolveBcvh(req, bcvhParam(req.query.ma_bcvh)) }) }); } catch (error) { fail(res, error); }
         },
 
         async getWeeklyTrend(req, res) {

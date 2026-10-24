@@ -6,6 +6,7 @@
 // read endpoints.
 const { f41DashboardService } = require('../services/F41DashboardService');
 const { CANONICAL_BCVH_UNITS } = require('../config/canonicalBcvhUnits');
+const { resolveBcvh, sendIfOutOfScope } = require('../middleware/accessScope');
 
 const canonicalBcvhCodes = new Set(CANONICAL_BCVH_UNITS.map((unit) => unit.ma_bcvh));
 
@@ -49,9 +50,10 @@ class F41DashboardController {
                 return res.status(400).json({ success: false, error: { code: 'INVALID_PARAM', message: 'Mã BCVH không hợp lệ.' } });
             }
             setNoStore(res);
-            const result = await f41DashboardService.getDashboardKpi(from_date, to_date, { bcvhId: normalizedBcvh });
+            const result = await f41DashboardService.getDashboardKpi(from_date, to_date, { bcvhId: resolveBcvh(req, normalizedBcvh) });
             res.status(200).json({ success: true, data: result });
         } catch (error) {
+            if (sendIfOutOfScope(res, error)) return;
             res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: error.message } });
         }
     }
