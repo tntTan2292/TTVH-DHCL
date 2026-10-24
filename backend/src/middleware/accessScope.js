@@ -56,6 +56,18 @@ function requireNetworkAccess(req, res, next) {
     return next();
 }
 
+/**
+ * Blocks whose content is, by nature, a comparison with the other BCVH (best/lowest lists, recommendations
+ * quoting the city average): a BCVH-mode user gets an empty but well-formed 200 so the screen shows its
+ * empty state; city-wide users reach the handler. Mount after requireModule.
+ */
+function emptyForBcvhScope(emptyData) {
+    return (req, res, next) => {
+        if (req.scope?.mode !== 'bcvh') return next();
+        return res.status(200).json({ success: true, data: typeof emptyData === 'function' ? emptyData() : emptyData });
+    };
+}
+
 /** ADMIN only, decided from the resolved access object (not from the legacy role string). */
 function requireAdminAccess(req, res, next) {
     if (!req.auth?.user || !req.access) return sendUnauthorized(res);
@@ -119,6 +131,7 @@ module.exports = {
     requireModule,
     requireAdminAccess,
     requireCityWide,
+    emptyForBcvhScope,
     requireHangton,
     requireNetworkAccess,
     effectiveBcvh,

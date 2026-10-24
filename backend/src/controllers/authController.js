@@ -1,7 +1,7 @@
 const authSessionStore = require('../services/auth/AuthSessionStore');
 const userStore = require('../services/auth/userStore');
 const { validateNewPassword } = require('../services/auth/passwordPolicy');
-const { verifyPassword } = require('../services/auth/passwordHash');
+const { verifyPasswordAsync } = require('../services/auth/passwordHash');
 
 const getSessionId = (req) => req.header('x-session-id') || req.header('authorization')?.replace(/^Bearer\s+/i, '') || '';
 
@@ -100,13 +100,21 @@ exports.changePassword = async (req, res) => {
 
     try {
         const row = await userStore.findById(session.user.id);
-        if (!row || !row.is_active || !verifyPassword(currentPassword, row.password_hash)) {
+        if (!row || !row.is_active) {
+            return res.status(400).json({ success: false, error: { code: 'WRONG_CURRENT_PASSWORD', message: 'Mật khẩu hiện tại không đúng' } });
+        }
+        if (row.locked_until && row.locked_until > Date.now()) {
+            return res.status(429).json({ success: false, error: { code: 'ACCOUNT_LOCKED', message: 'Tài khoản đang tạm khóa do nhập sai nhiều lần, thử lại sau' } });
+        }
+        if (!(await verifyPasswordAsync(currentPassword, row.password_hash))) {
+            // A stolen session must not be able to guess the real password: wrong attempts count like wrong logins.
+            await userStore.recordFailure(row, 'bad_current_password', clientIp(req));
             return res.status(400).json({ success: false, error: { code: 'WRONG_CURRENT_PASSWORD', message: 'Mật khẩu hiện tại không đúng' } });
         }
 
         const problems = validateNewPassword(newPassword, {
             username: row.username,
-            isSameAsCurrent: verifyPassword(newPassword, row.password_hash),
+            isSameAsCurrent: await verifyPasswordAsync(newPassword, row.password_hash),
         });
         if (problems.length > 0) {
             return res.status(400).json({ success: false, error: { code: 'WEAK_PASSWORD', message: problems.join('; '), problems } });

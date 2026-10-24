@@ -257,6 +257,21 @@ test('F1.3 specialist (indicator scope) sees the whole city, same as a leader', 
     assert.ok('total_row' in ranking.meta);
 });
 
+test('top and recommendations are comparisons with the other BCVH: empty for a BCVH user, full for city-wide users (review M1)', async () => {
+    const own = session('STAFF', { bcvh: [OWN] });
+    const top = await get(own, `/dashboard/top?fromDate=2026-10-01&toDate=${ANCHOR}`);
+    assert.equal(top.status, 200);
+    assert.deepEqual(top.body.data, { best: [], lowest: [] });
+    const recommendations = await get(own, `/recommendations?fromDate=2026-10-01&toDate=${ANCHOR}`);
+    assert.equal(recommendations.status, 200);
+    assert.deepEqual(recommendations.body.data, []);
+    assert.doesNotMatch(recommendations.text, /trung bình|toàn mạng/i);
+
+    const leader = session('LEADER');
+    const leaderTop = (await get(leader, `/dashboard/top?fromDate=2026-10-01&toDate=${ANCHOR}`)).body.data;
+    assert.ok(leaderTop.best.length + leaderTop.lowest.length > 0);
+});
+
 test('route wiring: requireModule(f13) is mounted before cachedRead', () => {
     const source = fs.readFileSync(path.join(__dirname, 'f13Routes.js'), 'utf8');
     assert.match(source, /requireModule\('f13'\), cachedRead\(/);

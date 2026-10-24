@@ -1,6 +1,13 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
+// RBAC-01: these tests drive the RUNNING backend on 127.0.0.1:5050. They no longer carry a hard-coded admin
+// password (the default admin login was removed); give them an account via QIS_LIVE_TEST_USERNAME and
+// QIS_LIVE_TEST_PASSWORD, otherwise they are skipped. A failed login here counts toward that account's lockout.
+const LIVE_USER = process.env.QIS_LIVE_TEST_USERNAME;
+const LIVE_PASSWORD = process.env.QIS_LIVE_TEST_PASSWORD;
+const liveTest = LIVE_USER && LIVE_PASSWORD ? test : test.skip;
+
 // Self-contained request helpers using 127.0.0.1 explicitly (not "localhost"):
 // Node's fetch/undici resolves "localhost" to ::1 first in this environment, which
 // this backend (bound to 0.0.0.0, IPv4) refuses, unrelated to any Route Ranking code.
@@ -39,8 +46,8 @@ async function requestJsonWithQuery(path, params = {}, sessionId = null) {
 // API response, exercised against the running backend and its real database.
 // Uses the project's known test admin fixture (also used by
 // DashboardController.r6.integration.test.js), not a real user credential.
-test('route ranking delayed-cash metrics flow correctly end-to-end through the live API', async () => {
-  const login = await requestJson('/auth/login', { username: 'admin', password: 'admin123' });
+liveTest('route ranking delayed-cash metrics flow correctly end-to-end through the live API', async () => {
+  const login = await requestJson('/auth/login', { username: LIVE_USER, password: LIVE_PASSWORD });
   const sessionId = login.body?.data?.session_id;
   assert.ok(sessionId, 'expected a session id from /auth/login');
 
@@ -102,8 +109,8 @@ test('route ranking delayed-cash metrics flow correctly end-to-end through the l
   }
 });
 
-test('SSOT correction: the delayed-cash eligible denominator equals Không đạt only, excluding Chuyển hoàn (BLACK)', async () => {
-  const login = await requestJson('/auth/login', { username: 'admin', password: 'admin123' });
+liveTest('SSOT correction: the delayed-cash eligible denominator equals Không đạt only, excluding Chuyển hoàn (BLACK)', async () => {
+  const login = await requestJson('/auth/login', { username: LIVE_USER, password: LIVE_PASSWORD });
   const sessionId = login.body?.data?.session_id;
 
   const response = await requestJsonWithQuery('/f13/ranking/route', {
@@ -124,8 +131,8 @@ test('SSOT correction: the delayed-cash eligible denominator equals Không đạ
   assert.ok(sumReturned > 0, 'sanity check: this date/BCVH has Chuyển hoàn facts to actually exclude');
 });
 
-test('paginating the route list does not shrink the delayed-cash aggregate', async () => {
-  const login = await requestJson('/auth/login', { username: 'admin', password: 'admin123' });
+liveTest('paginating the route list does not shrink the delayed-cash aggregate', async () => {
+  const login = await requestJson('/auth/login', { username: LIVE_USER, password: LIVE_PASSWORD });
   const sessionId = login.body?.data?.session_id;
 
   const fullPage = await requestJsonWithQuery('/f13/ranking/route', {

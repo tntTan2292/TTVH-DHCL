@@ -1,6 +1,6 @@
 # RBAC-01 Manifest
 
-Status: `PHASE 1 DONE / DESIGN OF RECORD APPROVED / STEP 2a + 2b IMPLEMENTED / STEP 3 DATA ENFORCEMENT IMPLEMENTED FOR ALL MODULES (F1.1, F1.2, F1.3, F4.1, Hang ton, Mang luoi), TECH PASS (2026-10-24); NOT DEPLOYED`; remaining: 2c UI (Antigravity: login redirect, change-password page, admin users page, menus and blocks by access), Opus independent review, PO UI check. Do not restart the operational backend with this code before 2c (DoR section 10).
+Status: `STEPS 1-3 AND 2c IMPLEMENTED, PUSHED; INDEPENDENT OPUS REVIEW DONE (DoR section 15), TECHNICAL FIXES APPLIED; AWAITING PO DECISIONS M2/M3/HANGTON, THEN SEED 15 USERS AND PO UI CHECK (2026-10-24)`.
 
 Required Reading: `docs/05_DEVELOPMENT/Implementation/report_block_ui_standard.md` (any report block touched keeps its camera, ordering, target line, colour family, date filter).
 

@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { requireAuth, requireRole } = require('../middleware/authMiddleware');
 const { cachedRead } = require('../middleware/responseCache');
-const { requireModule } = require('../middleware/accessScope');
+const { requireModule, emptyForBcvhScope } = require('../middleware/accessScope');
 const { scopeBcvhResponse } = require('../services/auth/access/scopeResponse');
 
 const importController = require('../controllers/ImportController');
@@ -27,7 +27,9 @@ router.post('/import/confirm', ...allowAdminOnly, importController.confirm);
 router.get('/dashboard/kpi', ...allowViewerRead, dashboardController.getKpi);
 router.get('/dashboard/daily-trend', ...allowViewerRead, dashboardController.getDailyTrend);
 router.get('/dashboard/quality-timeline', ...allowViewerRead, dashboardController.getQualityTimeline);
-router.get('/dashboard/top', ...allowViewerRead, scopeBcvhResponse(), kpiController.getDashboardTop);
+// Best/lowest BCVH and the recommendations (which quote the city average) are comparisons with the other BCVH:
+// empty for a BCVH-scope user (RBAC-01 review M1).
+router.get('/dashboard/top', ...allowViewerRead, emptyForBcvhScope(() => ({ best: [], lowest: [] })), scopeBcvhResponse(), kpiController.getDashboardTop);
 // bcvh_units is the BCVH selector source: a BCVH user gets only their own units.
 router.get('/dashboard/meta', ...allowViewerRead, scopeBcvhResponse(), kpiController.getDashboardMeta);
 router.get('/ranking/bcvh/overview', ...allowViewerRead, scopeBcvhResponse({ drop: ['data.mtd[].rank', 'data.meta.national_rank'] }), dashboardController.getBcvhOverview);
@@ -40,7 +42,7 @@ router.get('/ranking/bcvh/monthly-comparison', ...allowViewerRead, scopeBcvhResp
 router.get('/ranking/bcvh', ...allowViewerRead, scopeBcvhResponse({ drop: ['meta.total_row', 'meta.national_rank', 'data[].rank', 'data[].comparisons.d1.comparison_rank', 'data[].comparisons.d1.rank_movement', 'data[].comparisons.d7.comparison_rank', 'data[].comparisons.d7.rank_movement'] }), dashboardController.getBcvh);
 router.get('/ranking/route', ...allowViewerRead, dashboardController.getRoute);
 router.get('/ranking/route/periods', ...allowViewerRead, dashboardController.getRoutePeriods);
-router.get('/recommendations', ...allowViewerRead, scopeBcvhResponse(), kpiController.getRecommendations);
+router.get('/recommendations', ...allowViewerRead, emptyForBcvhScope(() => []), scopeBcvhResponse(), kpiController.getRecommendations);
 
 router.get('/rca/pareto', ...allowAdminOnly, dashboardController.getPareto);
 router.get('/evidence-list', ...allowViewerRead, dashboardController.getEvidence);

@@ -32,3 +32,10 @@ test('stops on an unknown unit, an empty staff row and a duplicate HRM code', ()
         row('1', 'B', 'Giám đốc BCVH', 'BCVH Thuận An', ''),
     ]), /trùng/);
 });
+
+test('rejects an indicator the database would refuse (before any write) and reads decomposed diacritics', () => {
+    assert.throws(() => parseRows([row('1', 'A', 'Chuyên quản', 'Không', 'F9.9')]), /không hợp lệ/);
+    assert.equal(parseRows([row('1', 'A', 'Chuyên quản', 'Không', 'hangton')])[0].indicators[0], 'HANGTON');
+    const decomposed = 'Lãnh đạo BĐTP'.normalize('NFD');
+    assert.equal(parseRows([row('2', 'B', decomposed, '', '')])[0].tier, 'LEADER');
+});

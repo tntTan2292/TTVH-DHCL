@@ -1,13 +1,17 @@
 'use strict';
 
 const { run, get, all } = require('../../config/db');
-const { hashPassword, verifyPassword } = require('./passwordHash');
+const { hashPassword, verifyPasswordAsync } = require('./passwordHash');
 const { resolveAccess } = require('./access/resolveAccess');
 
 const MAX_FAILED_ATTEMPTS = 5;
 const LOCK_MS = 15 * 60 * 1000;
 
 const now = () => Date.now();
+
+// Verified against on every early-return path so the response time does not tell an unknown, inactive or
+// locked account from a wrong password (account enumeration by timing, review minor).
+const DUMMY_HASH = hashPassword(`dummy-${Math.random()}`);
 
 async function loadScopes(userId) {
     const bcvhRows = await all('SELECT ma_bcvh FROM qis_user_bcvh WHERE user_id = ? ORDER BY ma_bcvh', [userId]);
@@ -59,25 +63,22 @@ async function logEvent({ userId = null, username = null, event, detail = null, 
 async function authenticate(username, password, { ip = null } = {}) {
     const row = await findByUsername(username);
     if (!row) {
+        await verifyPasswordAsync(password, DUMMY_HASH);
         await logEvent({ username: String(username || '').trim(), event: 'LOGIN_FAIL', detail: 'unknown_user', ip });
         return { ok: false, code: 'UNKNOWN_USER' };
     }
     if (!row.is_active) {
+        await verifyPasswordAsync(password, DUMMY_HASH);
         await logEvent({ userId: row.id, username: row.username, event: 'LOGIN_FAIL', detail: 'inactive', ip });
         return { ok: false, code: 'INACTIVE' };
     }
     if (row.locked_until && row.locked_until > now()) {
+        await verifyPasswordAsync(password, DUMMY_HASH);
         await logEvent({ userId: row.id, username: row.username, event: 'LOGIN_FAIL', detail: 'locked', ip });
         return { ok: false, code: 'LOCKED' };
     }
-    if (!verifyPassword(password, row.password_hash)) {
-        const attempts = (row.failed_attempts || 0) + 1;
-        const lock = attempts >= MAX_FAILED_ATTEMPTS;
-        await run(
-            'UPDATE qis_user SET failed_attempts = ?, locked_until = ?, updated_at = ? WHERE id = ?',
-            [lock ? 0 : attempts, lock ? now() + LOCK_MS : null, now(), row.id],
-        );
-        await logEvent({ userId: row.id, username: row.username, event: lock ? 'LOCKED' : 'LOGIN_FAIL', detail: 'bad_password', ip });
+    if (!(await verifyPasswordAsync(password, row.password_hash))) {
+        await recordFailure(row, 'bad_password', ip);
         return { ok: false, code: 'BAD_PASSWORD' };
     }
     await run(
@@ -86,6 +87,18 @@ async function authenticate(username, password, { ip = null } = {}) {
     );
     await logEvent({ userId: row.id, username: row.username, event: 'LOGIN_OK', ip });
     return { ok: true, row };
+}
+
+/** Counts one wrong secret against the account (login or the current password of a change); the 5th locks it. */
+async function recordFailure(row, detail, ip = null) {
+    const attempts = (row.failed_attempts || 0) + 1;
+    const lock = attempts >= MAX_FAILED_ATTEMPTS;
+    await run(
+        'UPDATE qis_user SET failed_attempts = ?, locked_until = ?, updated_at = ? WHERE id = ?',
+        [lock ? 0 : attempts, lock ? now() + LOCK_MS : null, now(), row.id],
+    );
+    await logEvent({ userId: row.id, username: row.username, event: lock ? 'LOCKED' : 'LOGIN_FAIL', detail, ip });
+    return { locked: lock };
 }
 
 async function setPassword(userId, newPassword, { mustChange = false, actor = null } = {}) {
@@ -160,6 +173,7 @@ module.exports = {
     findById,
     toSessionUser,
     authenticate,
+    recordFailure,
     setPassword,
     setScopes,
     setActive,

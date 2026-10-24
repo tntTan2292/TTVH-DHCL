@@ -174,6 +174,28 @@ test('change-password enforces the policy, drops old sessions and issues a worki
     assert.equal((await login('00062571', 'Hue#2026x')).statusCode, 200);
 });
 
+test('wrong current passwords on change-password count toward the lockout (stolen session cannot guess)', async () => {
+    const first = await login('00062571', INITIAL);
+    const headers = { 'x-session-id': first.body.data.session_id };
+    for (let i = 0; i < 5; i += 1) {
+        const res = createResponse();
+        await authController.changePassword(createRequest({ headers, body: { current_password: 'nope', new_password: 'Hue#2026x' } }), res);
+        assert.equal(res.body.error.code, 'WRONG_CURRENT_PASSWORD');
+    }
+    const locked = createResponse();
+    await authController.changePassword(createRequest({ headers, body: { current_password: INITIAL, new_password: 'Hue#2026x' } }), locked);
+    assert.equal(locked.statusCode, 429);
+    assert.equal(locked.body.error.code, 'ACCOUNT_LOCKED');
+    assert.equal((await login('00062571', INITIAL)).statusCode, 401, 'the account is locked for logins too');
+});
+
+test('unknown, inactive and locked accounts still pay the scrypt cost (no timing oracle)', async () => {
+    const timeOf = async (username) => { const t = process.hrtime.bigint(); await login(username, 'whatever'); return Number(process.hrtime.bigint() - t) / 1e6; };
+    const wrong = await timeOf('00062571');
+    const unknown = await timeOf('99999999');
+    assert.ok(unknown > wrong / 4, `unknown user answered in ${unknown}ms vs ${wrong}ms for a wrong password`);
+});
+
 test('sessions of stored users persist and are restored after a restart, without storing the raw id', async () => {
     authSessionStore.attachPersistence(sessionPersistence);
     const res = await login('00061914', INITIAL);

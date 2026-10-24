@@ -22,9 +22,11 @@ const { bcvhCodeFromName } = require('../src/services/auth/access/officeMap');
 const { validateNewPassword } = require('../src/services/auth/passwordPolicy');
 
 const LEADER_TITLES = ['lãnh đạo bđtp', 'lãnh đạo ttvh', 'it bđtp'];
-const INDICATOR_PATTERN = /^F\d\.\d$/i;
+// Same list as the database CHECK constraint and the admin API: a value outside it must stop the run BEFORE any write.
+const ALLOWED_INDICATORS = new Set(['F1.1', 'F1.2', 'F1.3', 'F4.1', 'HANGTON']);
 
-const cell = (value) => String(value ?? '').trim();
+// NFC so that titles and unit names typed with decomposed diacritics still match.
+const cell = (value) => String(value ?? '').normalize('NFC').trim();
 
 /** Pure: turns sheet rows (objects keyed by the Excel headers) into user definitions. Throws on an unknown unit. */
 function parseRows(rows) {
@@ -50,7 +52,7 @@ function parseRows(rows) {
         const indicatorText = cell(row['Chỉ tiêu quản lý']);
         if (tier === 'STAFF' && indicatorText) {
             for (const part of indicatorText.split(',').map((item) => item.trim()).filter(Boolean)) {
-                if (!INDICATOR_PATTERN.test(part)) throw new Error(`Dòng ${line} (${username}): chỉ tiêu "${part}" không hợp lệ`);
+                if (!ALLOWED_INDICATORS.has(part.toUpperCase())) throw new Error(`Dòng ${line} (${username}): chỉ tiêu "${part}" không hợp lệ`);
                 indicators.push(part.toUpperCase());
             }
         }
@@ -143,6 +145,7 @@ async function main(argv) {
         if (result.created) created += 1; else updated += 1;
     }
     console.log(`Done: ${created} created, ${updated} updated. Passwords were not printed.`);
+    if (updated > 0) console.log('Note: scope or tier changes of existing users reach people who are already logged in only after they log in again or the backend restarts.');
     await new Promise((resolve) => db.close(resolve));
     return 0;
 }

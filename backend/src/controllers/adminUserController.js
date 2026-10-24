@@ -59,7 +59,10 @@ exports.update = async (req, res) => {
         const problem = validateScopes(next);
         if (problem) return fail(res, 400, 'INVALID_INPUT', problem);
 
-        const isActive = body.is_active === undefined ? !!row.is_active : !!body.is_active;
+        if (body.is_active !== undefined && typeof body.is_active !== 'boolean') {
+            return fail(res, 400, 'INVALID_INPUT', 'is_active phải là true hoặc false');
+        }
+        const isActive = body.is_active === undefined ? !!row.is_active : body.is_active;
         if (row.tier === 'ADMIN' && (next.tier !== 'ADMIN' || !isActive) && (await userStore.countActiveAdmins()) <= 1) {
             return fail(res, 409, 'LAST_ADMIN', 'Không thể hạ quyền hoặc khóa admin cuối cùng');
         }

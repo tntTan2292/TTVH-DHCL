@@ -126,3 +126,19 @@ Deviations from the sections above, all technical:
 - PO decision 2026-10-24 (confirmed, allow): the Theo buu cuc screen opens a parcel list from its figures (commit 76165ebb) which calls `/items`. BCVH users therefore may call `/items` and `/items/export` for their own offices; their menu still shows only Theo buu cuc and So sanh hai moc (`access.hangton.screens`). If the PO wants the parcel list closed to them, the office screen must stop linking to it and `items` is removed from the office screen's endpoints.
 - Quan ly mang luoi: `router.use(requireAuth, requireNetworkAccess)` before every route of `/api/network-map` (reads and admin writes), so only LEADER and ADMIN get in; the writes keep their admin gate.
 - Test `routes/hangtonNetwork.scope.test.js` (7 tests; a mutation that disables the office filter fails 3 of them): foreign office code / name scan over every Hang ton endpoint incl. csv export and compare details, totals of the own office only, office filter cannot widen, KT A Luoi counted for A Luoi, F1.2 specialist sees KTC1 only, leader and admin see all, no-access user 403, admin-only snapshot run, network 403 for BCVH / F1.2 / F1.3 users.
+
+## 15. Independent review (Opus, 2026-10-24) and fixes
+
+Verdict of the reviewer: READY AFTER FIXES (no blocker in the code). Every area of Design of Record sections 2-14 was re-read adversarially; the reviewer found every server mount gated, the cache isolated per scope, no scope widening through parameters, Hang ton filtered in SQL and sessions dropped on password change, reset, deactivation and scope edit.
+
+Fixed in this round:
+- M1: for a BCVH-scope user `/f13/dashboard/top` and `/f13/recommendations` leaked city-derived numbers (a "lowest BCVH" list, a recommendation quoting the city average) that carry no BCVH code, so the code/name leak scan could not see them. Both now answer an empty, well-formed 200 for BCVH-scope users (`emptyForBcvhScope`); city-wide users unchanged. Lesson recorded: the leak tests catch identities, not derived figures; derived blocks must be listed explicitly.
+- M3 (technical part): scrypt verification is asynchronous (`verifyPasswordAsync`), so a login flood no longer stalls the event loop; wrong `current_password` on change-password now counts toward the lockout (429 `ACCOUNT_LOCKED`); unknown, inactive and locked accounts verify a dummy hash (no timing oracle).
+- M4 and the lock-out of the live admin during test runs: `DashboardController.r6.integration.test.js` and `...routeDelayedCash.integration.test.js` no longer log in as `admin/admin123` to the running server; they take `QIS_LIVE_TEST_USERNAME` / `QIS_LIVE_TEST_PASSWORD` and are skipped otherwise.
+- Seed: indicators are checked against the database list before any write, text is NFC-normalised, and a note tells that scope changes reach logged-in users after re-login or restart. Admin API: `is_active` must be a boolean. New tests: admin-user routes are ADMIN-only (403 for LEADER/STAFF, 401 anonymous), lockout counting on change-password, timing.
+
+Open, for the PO:
+- M2: all new and reset accounts share `QIS_INITIAL_PASSWORD` and HRM codes are guessable, so until a person has logged in once, anyone who knows the initial password could take that account (a LEADER account is the valuable one).
+- M3 (policy): five wrong passwords lock an account 15 minutes with no per-source limit, so anyone on the network can keep a known username (including the admin) locked. All requests reach the backend from the front-end proxy, so a per-IP rule would not tell people apart.
+- The `HANGTON` indicator is accepted by the admin UI and API but `resolveAccess` ignores it.
+- Not changed: the last-admin guard can be raced by two simultaneous demotions (recovery is `seed-rbac-users.js --admin-only`); the front-end `accessModel.js` falls back to full menus when `access` is missing (cosmetic, the backend still enforces); a multi-BCVH user lands on the lowest code of the scope.

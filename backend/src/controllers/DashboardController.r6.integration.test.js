@@ -1,5 +1,12 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
+
+// RBAC-01: these tests drive the RUNNING backend on 127.0.0.1:5050. They no longer carry a hard-coded admin
+// password (the default admin login was removed); give them an account via QIS_LIVE_TEST_USERNAME and
+// QIS_LIVE_TEST_PASSWORD, otherwise they are skipped. A failed login here counts toward that account's lockout.
+const LIVE_USER = process.env.QIS_LIVE_TEST_USERNAME;
+const LIVE_PASSWORD = process.env.QIS_LIVE_TEST_PASSWORD;
+const liveTest = LIVE_USER && LIVE_PASSWORD ? test : test.skip;
 const dbModule = require('../config/db');
 const { requestJson, requestJsonWithQuery } = require('../../test_support/httpTestClient');
 
@@ -15,7 +22,7 @@ function query(sql, params = []) {
   });
 }
 
-test('live KPI database and HTTP payloads stay aligned for canonical BCVH scope', async () => {
+liveTest('live KPI database and HTTP payloads stay aligned for canonical BCVH scope', async () => {
   const aggregateRows = await query(
     `SELECT
       COUNT(ma_bg) AS total_bg,
@@ -40,8 +47,8 @@ test('live KPI database and HTTP payloads stay aligned for canonical BCVH scope'
   );
 
   const login = await requestJson('/auth/login', {
-    username: 'admin',
-    password: 'admin123',
+    username: LIVE_USER,
+    password: LIVE_PASSWORD,
   });
   const sessionId = login.body.data.session_id;
 
@@ -84,10 +91,10 @@ test('live KPI database and HTTP payloads stay aligned for canonical BCVH scope'
   }
 });
 
-test('dashboard KPI invalid code returns HTTP 400', async () => {
+liveTest('dashboard KPI invalid code returns HTTP 400', async () => {
   const login = await requestJson('/auth/login', {
-    username: 'admin',
-    password: 'admin123',
+    username: LIVE_USER,
+    password: LIVE_PASSWORD,
   });
   const sessionId = login.body.data.session_id;
 
