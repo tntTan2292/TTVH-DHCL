@@ -7,13 +7,15 @@ const express = require('express');
 const router = express.Router();
 const { requireAuth, requireRole } = require('../middleware/authMiddleware');
 const { cachedRead } = require('../middleware/responseCache');
+const { requireModule } = require('../middleware/accessScope');
 
 const f12RankingController = require('../controllers/F12RankingController');
 
 const allowViewerRead = [requireAuth, requireRole(['admin', 'viewer'])];
 
 // PERF-LOAD-01: every route here is a viewer-level read, so all GETs are cacheable.
-router.use(requireAuth, requireRole(['admin', 'viewer']), cachedRead());
+// RBAC-01: F1.2 only for ADMIN, LEADER and the F1.2 specialist (requireModule 403s BCVH users and sets the cache scope).
+router.use(requireAuth, requireRole(['admin', 'viewer']), requireModule('f12'), cachedRead());
 
 router.get('/dashboard/summary', ...allowViewerRead, f12RankingController.getSummary);
 router.get('/dashboard/daily-trend', ...allowViewerRead, f12RankingController.getDailyTrend);

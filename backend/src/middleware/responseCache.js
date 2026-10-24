@@ -8,6 +8,7 @@
 
 const { get, all } = require('../config/db');
 const aggReadPolicy = require('../services/aggReadPolicy');
+const { scopeKey } = require('./accessScope');
 
 const DEFAULT_TTL_MS = 10 * 60 * 1000;
 const FINGERPRINT_TTL_MS = 1500;
@@ -99,7 +100,11 @@ function cachedRead(options = {}) {
             return next();
         }
 
-        const key = req.originalUrl;
+        // RBAC-01: the body depends on the user's data scope as well as on the URL. Routes that set
+        // req.scope (requireModule, mounted before this middleware) get a per-scope entry; unscoped
+        // routes (Trang chu) keep the plain URL key.
+        const scopePart = scopeKey(req);
+        const key = scopePart ? `${req.originalUrl}|${scopePart}` : req.originalUrl;
         const hit = store.get(key);
         if (hit && hit.version === version && Date.now() - hit.at < ttlMs) {
             remember(key, hit);

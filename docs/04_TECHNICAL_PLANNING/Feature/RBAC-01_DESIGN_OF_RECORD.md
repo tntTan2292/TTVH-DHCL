@@ -96,3 +96,10 @@ Deviations from the sections above, all technical:
 - `crossBcvhBlocks` is not a field of the access object: cross-BCVH blocks are shown for a module when `modules[m].mode === 'all'`.
 - `runtimeUsers.js` and `generateViewerPasswordHash.js` are deleted outright; there is no env bootstrap login. The ADMIN account exists only after `seed-rbac-users.js --apply` with `QIS_ADMIN_USERNAME` set.
 - **Deployment gate:** after the seed every account has `must_change_password=1` and the backend answers 403 `PASSWORD_CHANGE_REQUIRED` to everything but `/api/auth/*`. The current frontend has no change-password page, so the backend must not be restarted on the operational database with this code until step 2c (login redirect + change-password page) is delivered. The auto-sync script (`scripts/auto-sync-missing-days.js`) logs in as admin with `QIS_ADMIN_USERNAME/QIS_ADMIN_PASSWORD`: after the first password change it must be given the new password.
+
+## 11. Implementation notes, step 2b (2026-10-24)
+
+- `middleware/accessScope.js`: `requireModule(f11|f12|f13|f41)` (403 on mode `none`, sets `req.scope`), `requireAdminAccess`, `effectiveBcvh` (narrow-only, throws `OutOfScopeError` -> 403 `OUT_OF_SCOPE`, absent -> first code of the scope, never a merged view), `scopedBcvhList`, `scopeKey`.
+- `responseCache.js`: key = URL + `|` + scopeKey when `req.scope` is set; unscoped routes (Trang chu) keep the URL key. `requireModule` must be mounted before `cachedRead()`.
+- Wired now: `/api/f12` (`requireModule('f12')`: BCVH users get 403, F1.2 specialist/leader/admin pass; no filtering needed so enforcement is complete) and the 8 `/api/import` GETs that needed only `requireAuth` are now admin-only.
+- Not wired yet (Phase 3, with the controller filtering that makes them meaningful): `requireModule` on f11/f13/f41, Hang ton, Mang luoi.

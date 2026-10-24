@@ -17,27 +17,26 @@ router.post('/upload', ...adminOnly, upload.single('file'), importController.upl
 router.get('/f13/status', ...adminOnly, importController.status.bind(importController));
 router.get('/status', ...adminOnly, importController.status.bind(importController));
 router.get('/log', ...adminOnly, importController.log.bind(importController));
-router.get('/auto-backfill/coverage', requireAuth, autoBackfillCoverageController.getCoverage.bind(autoBackfillCoverageController));
-router.get('/auto-backfill/coverage/exceptions', requireAuth, autoBackfillCoverageExceptionController.list.bind(autoBackfillCoverageExceptionController));
+router.get('/auto-backfill/coverage', ...adminOnly, autoBackfillCoverageController.getCoverage.bind(autoBackfillCoverageController));
+router.get('/auto-backfill/coverage/exceptions', ...adminOnly, autoBackfillCoverageExceptionController.list.bind(autoBackfillCoverageExceptionController));
 router.post('/auto-backfill/coverage/exceptions', ...adminOnly, autoBackfillCoverageExceptionController.create.bind(autoBackfillCoverageExceptionController));
 router.post('/auto-backfill/coverage/exceptions/:exceptionId/revoke', ...adminOnly, autoBackfillCoverageExceptionController.revoke.bind(autoBackfillCoverageExceptionController));
-// AB-CALENDAR-01: LICH NGHI. Read is open to any authenticated coverage reader;
-// writes are admin-only, matching the coverage-exception routes.
-router.get('/auto-backfill/coverage/selectable', requireAuth, autoBackfillCoverageController.getSelectable.bind(autoBackfillCoverageController));
-router.get('/auto-backfill/holiday-calendar', requireAuth, autoBackfillHolidayCalendarController.list.bind(autoBackfillHolidayCalendarController));
+// AB-CALENDAR-01: LICH NGHI. RBAC-01: reads are admin-only like every other /import route.
+router.get('/auto-backfill/coverage/selectable', ...adminOnly, autoBackfillCoverageController.getSelectable.bind(autoBackfillCoverageController));
+router.get('/auto-backfill/holiday-calendar', ...adminOnly, autoBackfillHolidayCalendarController.list.bind(autoBackfillHolidayCalendarController));
 router.post('/auto-backfill/holiday-calendar', ...adminOnly, autoBackfillHolidayCalendarController.create.bind(autoBackfillHolidayCalendarController));
 router.post('/auto-backfill/holiday-calendar/:holidayId/revoke', ...adminOnly, autoBackfillHolidayCalendarController.revoke.bind(autoBackfillHolidayCalendarController));
 router.post('/auto-backfill/runs', ...adminOnly, autoBackfillQueueController.createRun.bind(autoBackfillQueueController));
 // AB-AUTH-06: list every open run (design Section 5, C1) -- must be registered before the
 // '/:runId' route below only as a matter of readability; Express does not confuse the two since
 // '/auto-backfill/runs' and '/auto-backfill/runs/:runId' are distinct path shapes.
-router.get('/auto-backfill/runs', requireAuth, autoBackfillQueueController.listRuns.bind(autoBackfillQueueController));
-router.get('/auto-backfill/runs/:runId', requireAuth, autoBackfillQueueController.getRun.bind(autoBackfillQueueController));
+router.get('/auto-backfill/runs', ...adminOnly, autoBackfillQueueController.listRuns.bind(autoBackfillQueueController));
+router.get('/auto-backfill/runs/:runId', ...adminOnly, autoBackfillQueueController.getRun.bind(autoBackfillQueueController));
 router.post('/auto-backfill/runs/:runId/pause', ...adminOnly, autoBackfillQueueController.pauseRun.bind(autoBackfillQueueController));
 router.post('/auto-backfill/runs/:runId/resume', ...adminOnly, autoBackfillQueueController.resumeRun.bind(autoBackfillQueueController));
 router.post('/auto-backfill/runs/:runId/circuit/reset', ...adminOnly, autoBackfillQueueController.resetCircuits.bind(autoBackfillQueueController));
-router.get('/auto-backfill/runs/:runId/events', requireAuth, autoBackfillQueueController.getEvents.bind(autoBackfillQueueController));
-router.get('/auto-backfill/runs/:runId/report', requireAuth, autoBackfillQueueController.getReport.bind(autoBackfillQueueController));
+router.get('/auto-backfill/runs/:runId/events', ...adminOnly, autoBackfillQueueController.getEvents.bind(autoBackfillQueueController));
+router.get('/auto-backfill/runs/:runId/report', ...adminOnly, autoBackfillQueueController.getReport.bind(autoBackfillQueueController));
 router.post('/dkcl/session/preflight', ...adminOnly, dkclSharedOperationsController.preflight.bind(dkclSharedOperationsController));
 router.post('/dkcl/session/interactive-auth', ...adminOnly, dkclSharedOperationsController.interactiveAuthenticate.bind(dkclSharedOperationsController));
 router.get('/daily-log', ...adminOnly, dkclSharedOperationsController.dailyLog.bind(dkclSharedOperationsController));
