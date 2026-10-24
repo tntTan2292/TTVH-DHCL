@@ -6,6 +6,7 @@ const { routePeriodService } = require('../services/routePeriodService');
 const { evidenceQueryService } = require('../services/evidenceQueryService');
 const timelineService = require('../services/timelineService');
 const { CANONICAL_BCVH_UNITS } = require('../config/canonicalBcvhUnits');
+const { resolveBcvh, sendIfOutOfScope } = require('../middleware/accessScope');
 
 const canonicalBcvhCodes = new Set(CANONICAL_BCVH_UNITS.map((unit) => unit.ma_bcvh));
 const bcvhOverviewService = new BcvhOverviewService({ repository: factBuuGuiRepo, dashboardService: f13DashboardService });
@@ -29,9 +30,10 @@ class DashboardController {
             if (normalizedBcvh === undefined) {
                 return res.status(400).json({ success: false, error: { code: 'INVALID_PARAM', message: 'Mã BCVH không hợp lệ.' }});
             }
-            const result = await f13DashboardService.getDashboardKpi(from_date, to_date, { bcvhId: normalizedBcvh });
+            const result = await f13DashboardService.getDashboardKpi(from_date, to_date, { bcvhId: resolveBcvh(req, normalizedBcvh) });
             res.status(200).json({ success: true, data: result });
         } catch (error) {
+            if (sendIfOutOfScope(res, error)) return;
             res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: error.message }});
         }
     }
@@ -42,12 +44,16 @@ class DashboardController {
             if (!toDate) {
                 return res.status(400).json({ success: false, error: { code: 'MISSING_PARAM', message: 'Yêu cầu toDate' }});
             }
-            const result = await timelineService.getQualityTimeline(toDate, ma_bcvh, {
+            // RBAC-01: a BCVH-scope user is always pinned to one BCVH, which also switches the
+            // province-rank blocks off (the timeline only computes them for the all-BCVH view).
+            const scopedBcvh = resolveBcvh(req, ma_bcvh);
+            const result = await timelineService.getQualityTimeline(toDate, scopedBcvh, {
                 mode,
                 includeNationalRank: include_national_rank === '1' || include_national_rank === 'true'
             });
             res.status(200).json({ success: true, data: result });
         } catch (error) {
+            if (sendIfOutOfScope(res, error)) return;
             res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: error.message }});
         }
     }
@@ -65,9 +71,10 @@ class DashboardController {
                 });
             }
 
-            const result = await f13DashboardService.getDailyTrend(fromDate, toDate, { bcvhId });
+            const result = await f13DashboardService.getDailyTrend(fromDate, toDate, { bcvhId: resolveBcvh(req, bcvhId) });
             res.status(200).json({ success: true, data: result });
         } catch (error) {
+            if (sendIfOutOfScope(res, error)) return;
             const status = error?.code === 'INVALID_DATE' || error?.code === 'INVALID_RANGE' ? 400 : 500;
             res.status(status).json({
                 success: false,
@@ -143,10 +150,11 @@ class DashboardController {
     async getBcvhWindowComparison(req, res) {
         try {
             const { to_date: toDate, ma_bcvh: maBcvh } = req.query;
-            const bcvhId = maBcvh && maBcvh !== 'all' ? String(maBcvh) : null;
+            const bcvhId = resolveBcvh(req, maBcvh && maBcvh !== 'all' ? String(maBcvh) : null);
             const result = await bcvhWeeklyComparisonService.compareRollingWindow(toDate, { bcvhId });
             res.status(200).json({ success: true, data: result });
         } catch (error) {
+            if (sendIfOutOfScope(res, error)) return;
             const status = ['INVALID_DATE', 'INVALID_BCVH'].includes(error?.code) ? 400 : 500;
             res.status(status).json({
                 success: false,
@@ -205,11 +213,12 @@ class DashboardController {
 
             if (!date || !bcvh) return res.status(400).json({ success: false, error: { code: 'MISSING_PARAM', message: 'Yêu cầu date và bcvh' }});
 
-            const result = await f13DashboardService.getRouteRanking(date, bcvh, page, pageSize, sort, order, {
+            const result = await f13DashboardService.getRouteRanking(date, resolveBcvh(req, bcvh), page, pageSize, sort, order, {
                 routeType: route_type,
             });
             res.status(200).json({ success: true, data: result.data, meta: result.meta });
         } catch (error) {
+            if (sendIfOutOfScope(res, error)) return;
             res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: error.message }});
         }
     }
@@ -222,9 +231,10 @@ class DashboardController {
             const { bcvh, anchor_date, route_type } = req.query;
             if (!bcvh) return res.status(400).json({ success: false, error: { code: 'MISSING_PARAM', message: 'Yêu cầu bcvh' }});
 
-            const result = await routePeriodService.getRoutePeriods(bcvh, anchor_date, { routeType: route_type });
+            const result = await routePeriodService.getRoutePeriods(resolveBcvh(req, bcvh), anchor_date, { routeType: route_type });
             res.status(200).json({ success: true, data: result });
         } catch (error) {
+            if (sendIfOutOfScope(res, error)) return;
             const status = error?.code === 'INVALID_DATE' ? 400 : 500;
             res.status(status).json({ success: false, error: { code: error?.code || 'SERVER_ERROR', message: error.message }});
         }
@@ -247,9 +257,12 @@ class DashboardController {
     // untouched — this is a distinct endpoint, not a replacement.
     async getEvidenceDrilldown(req, res) {
         try {
-            const result = await evidenceQueryService.getEvidence(req.query);
+            // RBAC-01: the BCVH of the query is forced to the user's scope (query values only narrow it).
+            const query = req.scope ? { ...req.query, bcvh: resolveBcvh(req, req.query.bcvh) } : req.query;
+            const result = await evidenceQueryService.getEvidence(query);
             res.status(200).json({ success: true, data: result.data, meta: result.meta });
         } catch (error) {
+            if (sendIfOutOfScope(res, error)) return;
             const status = (error?.code === 'MISSING_PARAM' || error?.code === 'INVALID_DATE') ? 400 : 500;
             res.status(status).json({ success: false, error: { code: error?.code || 'SERVER_ERROR', message: error.message } });
         }
@@ -266,9 +279,10 @@ class DashboardController {
             // `route` is optional: absent or 'all' means "every route for this BCVH/date",
             // per the Product Owner-authorized Evidence "Tất cả tuyến" requirement.
             const routeFilter = route && route !== 'all' ? route : undefined;
-            const result = await f13DashboardService.getEvidenceList(date, bcvh, routeFilter, page, pageSize, reason);
+            const result = await f13DashboardService.getEvidenceList(date, resolveBcvh(req, bcvh), routeFilter, page, pageSize, reason);
             res.status(200).json({ success: true, data: result.data, meta: result.meta });
         } catch (error) {
+            if (sendIfOutOfScope(res, error)) return;
             res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: error.message }});
         }
     }

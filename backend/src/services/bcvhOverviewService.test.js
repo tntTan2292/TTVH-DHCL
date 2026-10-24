@@ -175,7 +175,7 @@ test('repository contract aggregates instead of returning fact rows and total-ro
     assert.match(dashboardSource, /const totalCurrent = canonicalCurrentMetrics\.reduce/);
     assert.match(dashboardSource, /const totalRow = canonicalMappedData\.reduce/);
     assert.match(controllerSource, /async getBcvhOverview\(req, res\)/);
-    assert.match(routesSource, /router\.get\('\/ranking\/bcvh\/overview', \.\.\.allowViewerRead, dashboardController\.getBcvhOverview\)/);
+    assert.match(routesSource, /router\.get\('\/ranking\/bcvh\/overview', \.\.\.allowViewerRead, (scopeBcvhResponse\([^)]*\)\)?, )?dashboardController\.getBcvhOverview\)/); // RBAC-01 may add a scope sanitiser before the handler
 });
 
 test('invalid anchor_date is rejected before repository access', async () => {

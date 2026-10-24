@@ -61,6 +61,15 @@ function effectiveBcvh(req, requested) {
     return wanted;
 }
 
+/**
+ * Controller-side entry point: on a scoped route (req.scope set by requireModule) this is
+ * effectiveBcvh; a request without scope is returned unchanged. Every module route mounts
+ * requireModule, which a route-wiring test asserts, so the unscoped branch is for unit tests only.
+ */
+function resolveBcvh(req, requested) {
+    return req.scope ? effectiveBcvh(req, requested) : requested;
+}
+
 /** For list (Type B) endpoints: the BCVH codes the rows may contain, or null for no restriction. */
 function scopedBcvhList(req) {
     const scope = req.scope;
@@ -82,6 +91,7 @@ module.exports = {
     requireModule,
     requireAdminAccess,
     effectiveBcvh,
+    resolveBcvh,
     scopedBcvhList,
     sendIfOutOfScope,
     OutOfScopeError,
