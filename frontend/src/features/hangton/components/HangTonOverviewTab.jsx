@@ -18,14 +18,18 @@ import {
   YAxis,
   Tooltip,
   Cell,
+  LabelList,
   CartesianGrid,
   ReferenceLine,
 } from 'recharts';
 import BlockCaptureButton from '../../../components/common/BlockCaptureButton.jsx';
 import HangTonCustomerChart from './HangTonCustomerChart.jsx';
 import { chartMode } from '../hangtonCustomers.js';
+import LevelPicker from './LevelPicker.jsx';
+import { useStoredHiddenLevels } from '../hangtonLevelState.js';
 import {
-  TON_LEVELS,
+  presetHiddenLevels,
+  visibleLevels,
   getLevelConfig,
   formatNumber,
   formatCurrency,
@@ -44,6 +48,9 @@ export default function HangTonOverviewTab({
   selectedCustomers = [],
 }) {
   const groupMode = chartMode(selectedCustomers) === 'groups';
+  // The chart starts from 3 days and more (the low levels are the bulk and hide the heavy ones); the leader can show any level.
+  const [chartHidden, setChartHidden] = useStoredHiddenLevels('qis.hangton.chartLevels', presetHiddenLevels('ge3'));
+  const chartLevels = visibleLevels(chartHidden);
   const chartBlockRef = useRef(null);
   const statusBlockRef = useRef(null);
   const levelsBlockRef = useRef(null);
@@ -60,7 +67,7 @@ export default function HangTonOverviewTab({
   const deltaTotal = Number.isFinite(baseTotal) ? total - baseTotal : null;
 
   // Chart data: 9 levels in strict ascending order
-  const chartData = TON_LEVELS.map((lvl) => {
+  const chartData = chartLevels.map((lvl) => {
     const config = getLevelConfig(lvl);
     const item = byLevel.find((b) => b.ton_level === lvl);
     const count = item ? Number(item.n) || 0 : 0;
@@ -215,6 +222,10 @@ export default function HangTonOverviewTab({
                 <span className="inline-block w-3 h-3 rounded bg-slate-300" />
                 <span>{'<5 ngày'}</span>
               </span>
+              <span className="flex items-center gap-1.5 font-semibold text-red-700">
+                <span className="inline-block w-4 border-t-2 border-dashed border-red-600" />
+                <span>Mục tiêu ≥5 ngày: 0</span>
+              </span>
             </div>
             <BlockCaptureButton
               targetRef={chartBlockRef}
@@ -224,10 +235,24 @@ export default function HangTonOverviewTab({
           </div>
         </div>
 
+        <div className="mb-3 space-y-2">
+          <LevelPicker
+            hiddenLevels={chartHidden}
+            onChange={setChartHidden}
+            label="Mức tồn trên biểu đồ:"
+            note="Biểu đồ chỉ vẽ các mức đang bật; các thẻ và bảng bên dưới vẫn đủ 9 mức."
+          />
+          {chartLevels.length === 0 ? (
+            <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900" data-no-capture="true">
+              Chưa bật mức tồn nào: hãy chọn "Tất cả mức" hoặc bật ít nhất một mức.
+            </p>
+          ) : null}
+        </div>
+
         {/* Chart rendering: red stock-age scale for all groups or one group; one stacked series per group when 2+ are selected */}
         {groupMode ? (
           <div className="h-72 w-full">
-            <HangTonCustomerChart byLevelCustomer={overview?.by_level_customer || []} selected={selectedCustomers} />
+            <HangTonCustomerChart byLevelCustomer={overview?.by_level_customer || []} selected={selectedCustomers} levels={chartLevels} />
           </div>
         ) : (
         <div className="h-72 w-full">
@@ -270,14 +295,9 @@ export default function HangTonOverviewTab({
                   );
                 }}
               />
-              <ReferenceLine
-                y={0}
-                stroke="#DC2626"
-                strokeWidth={1.5}
-                strokeDasharray="4 4"
-                label={{ value: 'Mục tiêu ≥5 ngày: 0', position: 'top', fill: '#DC2626', fontSize: 13 }}
-              />
+              <ReferenceLine y={0} stroke="#DC2626" strokeWidth={1.5} strokeDasharray="4 4" />
               <Bar dataKey="count" radius={[6, 6, 0, 0]}>
+                <LabelList dataKey="count" position="top" formatter={(v) => (Number(v) > 0 ? formatNumber(v) : '')} fill="#334155" fontSize={13} fontWeight={700} />
                 {chartData.map((entry) => (
                   <Cell key={entry.level} fill={entry.color} />
                 ))}

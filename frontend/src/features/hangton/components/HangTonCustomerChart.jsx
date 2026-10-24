@@ -7,15 +7,20 @@ import {
   YAxis,
   Tooltip,
   Legend,
+  LabelList,
   CartesianGrid,
   ReferenceLine,
 } from 'recharts';
 import { buildCustomerChart } from '../hangtonCustomers.js';
+import { TON_LEVELS } from '../hangtonLevels.js';
 import { formatNumber } from '../hangtonLevels.js';
 
 // Stock by Loại Tồn, one stacked series per selected customer group (shown when two or more groups are selected).
-export default function HangTonCustomerChart({ byLevelCustomer = [], selected = [] }) {
-  const { data, series } = buildCustomerChart(byLevelCustomer, selected);
+export default function HangTonCustomerChart({ byLevelCustomer = [], selected = [], levels = TON_LEVELS }) {
+  const { data, series } = buildCustomerChart(byLevelCustomer, selected, levels);
+  // a segment gets its number only when it is tall enough to hold it
+  const biggest = Math.max(1, ...data.map((d) => d.total));
+  const showLabel = (v) => (Number(v) >= biggest * 0.07 ? formatNumber(v) : '');
   return (
     <ResponsiveContainer width="100%" height="100%">
       <BarChart data={data} margin={{ top: 20, right: 30, left: 10, bottom: 25 }}>
@@ -41,15 +46,11 @@ export default function HangTonCustomerChart({ byLevelCustomer = [], selected = 
           }}
         />
         <Legend wrapperStyle={{ fontSize: 14 }} />
-        <ReferenceLine
-          y={0}
-          stroke="#DC2626"
-          strokeWidth={1.5}
-          strokeDasharray="4 4"
-          label={{ value: 'Mục tiêu ≥5 ngày: 0', position: 'top', fill: '#DC2626', fontSize: 13 }}
-        />
-        {series.map((s) => (
-          <Bar key={s.key} dataKey={s.key} stackId="customers" fill={s.color} />
+        <ReferenceLine y={0} stroke="#DC2626" strokeWidth={1.5} strokeDasharray="4 4" />
+        {series.map((s, i) => (
+          <Bar key={s.key} dataKey={s.key} stackId="customers" fill={s.color} radius={i === series.length - 1 ? [6, 6, 0, 0] : 0}>
+            <LabelList dataKey={s.key} formatter={showLabel} fill="#FFFFFF" fontSize={13} fontWeight={700} />
+          </Bar>
         ))}
       </BarChart>
     </ResponsiveContainer>

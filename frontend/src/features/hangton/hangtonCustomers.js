@@ -55,11 +55,11 @@ export function chartMode(selected = []) {
 }
 
 // Rows of the stacked chart: one object per Loại Tồn level with a count per group, plus the series list.
-export function buildCustomerChart(byLevelCustomer = [], selected = []) {
+export function buildCustomerChart(byLevelCustomer = [], selected = [], levels = TON_LEVELS) {
   const groups = sortCustomerGroups(selected.map((c) => ({ customer_class: c }))).map((g) => g.customer_class);
   const counts = new Map();
   for (const r of byLevelCustomer) counts.set(`${r.ton_level}:::${r.customer_class}`, Number(r.n) || 0);
-  const data = TON_LEVELS.map((level) => {
+  const data = TON_LEVELS.filter((level) => levels.includes(level)).map((level) => {
     const row = { level, total: 0 };
     for (const g of groups) {
       const n = counts.get(`${level}:::${g}`) || 0;

@@ -3,14 +3,10 @@ import { Building2, ExternalLink } from 'lucide-react';
 import SortableTh from '../../../components/common/SortableTh.jsx';
 import BlockCaptureButton from '../../../components/common/BlockCaptureButton.jsx';
 import { nextSortState } from '../../../components/common/tableSort.js';
+import LevelPicker from './LevelPicker.jsx';
+import { useStoredHiddenLevels } from '../hangtonLevelState.js';
 import {
-  COLUMN_PRESETS,
-  TON_LEVELS,
-  activePresetId,
   hasCompareBase,
-  presetHiddenLevels,
-  sanitizeHiddenLevels,
-  toggleHiddenLevel,
   visibleLevels,
   getLevelConfig,
   formatNumber,
@@ -29,24 +25,6 @@ import {
 } from '../hangtonOfficeTableData.js';
 import HangTonItemsModal from './HangTonItemsModal.jsx';
 
-const HIDDEN_STORAGE_KEY = 'qis.hangton.hiddenLevels';
-
-function loadHiddenLevels() {
-  try {
-    return sanitizeHiddenLevels(JSON.parse(window.localStorage.getItem(HIDDEN_STORAGE_KEY) || '[]'));
-  } catch {
-    return [];
-  }
-}
-
-function saveHiddenLevels(hidden) {
-  try {
-    window.localStorage.setItem(HIDDEN_STORAGE_KEY, JSON.stringify(hidden));
-  } catch {
-    // storage unavailable: the choice only lasts for this visit
-  }
-}
-
 export default function HangTonByOfficeTab({
   overview,
   compare,
@@ -60,13 +38,11 @@ export default function HangTonByOfficeTab({
   const [sort, setSort] = useState({ field: 'total', direction: 'desc' });
   const [searchTerm, setSearchTerm] = useState('');
   const [drill, setDrill] = useState(null); // { office, levels, title } -> parcel list modal
-  const [hiddenLevels, setHiddenLevels] = useState(loadHiddenLevels);
+  const [hiddenLevels, setStoredHidden] = useStoredHiddenLevels('qis.hangton.hiddenLevels', []);
   const shownLevels = visibleLevels(hiddenLevels);
-  const presetId = activePresetId(hiddenLevels);
 
   const applyHidden = (next) => {
-    setHiddenLevels(next);
-    saveHiddenLevels(next);
+    setStoredHidden(next);
     setSort((current) => sortAfterHide(current, next));
   };
 
@@ -135,42 +111,12 @@ export default function HangTonByOfficeTab({
       </div>
 
       {/* Column picker: hide the low-age levels (not part of the captured picture) */}
-      <div className="flex flex-wrap items-center gap-2" data-no-capture="true">
-        <span className="text-base font-bold text-slate-700">Cột mức tồn:</span>
-        {COLUMN_PRESETS.map((preset) => (
-          <button
-            key={preset.id}
-            type="button"
-            onClick={() => applyHidden(presetHiddenLevels(preset.id))}
-            className={`rounded-lg border px-3 py-1.5 text-base font-semibold cursor-pointer transition-colors ${
-              presetId === preset.id ? 'border-rose-600 bg-rose-600 text-white' : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50'
-            }`}
-          >
-            {preset.label}
-          </button>
-        ))}
-        <span className="mx-1 h-5 w-px bg-slate-300" />
-        {TON_LEVELS.map((lvl) => {
-          const shown = !hiddenLevels.includes(lvl);
-          return (
-            <button
-              key={lvl}
-              type="button"
-              onClick={() => applyHidden(toggleHiddenLevel(hiddenLevels, lvl))}
-              aria-pressed={shown}
-              title={shown ? 'Bấm để ẩn cột này' : 'Bấm để hiện lại cột này'}
-              className={`rounded-md border px-2.5 py-1 text-base cursor-pointer transition-colors ${
-                shown ? 'border-red-300 bg-red-50 text-red-800 font-semibold' : 'border-slate-200 bg-slate-100 text-slate-400 line-through'
-              }`}
-            >
-              {lvl}
-            </button>
-          );
-        })}
-        {hiddenLevels.length > 0 ? (
-          <span className="text-sm text-slate-500">Tổng tồn, Tồn ≥5 ngày, Tiền COD và dòng TỔNG CỘNG chỉ tính các mức đang hiển thị; bưu cục không còn tồn ở các mức này được ẩn. Cột biến động không chia theo mức nên giữ nguyên.</span>
-        ) : null}
-      </div>
+      <LevelPicker
+        hiddenLevels={hiddenLevels}
+        onChange={applyHidden}
+        label="Cột mức tồn:"
+        note="Tổng tồn, Tồn ≥5 ngày, Tiền COD và dòng TỔNG CỘNG chỉ tính các mức đang hiển thị; bưu cục không còn tồn ở các mức này được ẩn. Cột biến động không chia theo mức nên giữ nguyên."
+      />
 
       {/* Main Table */}
       <div className="overflow-x-auto border border-slate-200 rounded-xl shadow-2xs">

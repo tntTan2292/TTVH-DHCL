@@ -176,3 +176,12 @@ TCT runs the stock group by group, so the whole module can be limited to one or 
 - Tests: frontend hangton suites pass; the full frontend sweep has one failure outside this module (`dashboardLoadPerformance.test.js`, operating patterns lazy-load) caused by another session's uncommitted edit of `IntegratedTrendRiskWorkspace.jsx`, left untouched; backend `test_hangtonInventory.js` 8/8; lint clean, build OK. Backend restart needed.
 
 2026-10-24 (PO status): after the backend restart the PO checked the customer-group filter (Section 14) and confirmed it works - PO UI PASS for Section 14. Note: another session (RBAC-01) has since added module/office scope to the /api/hangton routes (requireHangton, hangtonOffices); that work is recorded in the RBAC-01 manifest, not here.
+
+## 15. Overview chart: from 3 days and a level filter (PO 2026-10-24, Claude Code/Sonnet 5.5) — READY FOR PO UI CHECK
+
+PO: the stacked chart by customer group drowned in the "<1 ngày" bulk and showed nothing useful.
+- The Tổng quan chart now starts from **≥3 ngày** (levels below 3 days hidden by default) in both modes (red stock-age chart for 0–1 group, stacked by group for 2+).
+- Its own **level picker** above the chart (same control as the Theo bưu cục columns: "Tất cả mức / Từ ≥3 ngày / Từ ≥5 ngày" and one switch per level, any combination), remembered per viewer under `qis.hangton.chartLevels`; the cards and the 9-level table below always show every level. The office table keeps its own choice (`qis.hangton.hiddenLevels`).
+- Readability: each bar / segment carries its number (a stacked segment only when tall enough), the chart rescales to the shown levels, the target line stays but its label moved to the legend ("Mục tiêu ≥5 ngày: 0") so it no longer sits on the bars.
+- Code: shared `LevelPicker.jsx` and `useStoredHiddenLevels` (`hangtonLevelState.js`); `buildCustomerChart(…, levels)`.
+- Tests: hangton/navigation 41/41, lint clean, build OK; the one failure of the full frontend sweep is the known `dashboardLoadPerformance` test caused by another session's uncommitted `IntegratedTrendRiskWorkspace.jsx` edit.

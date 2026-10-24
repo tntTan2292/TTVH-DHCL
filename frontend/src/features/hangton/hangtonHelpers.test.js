@@ -307,3 +307,22 @@ test('items parameters carry the selected customer groups', async () => {
   assert.equal(buildItemsParams({ snapshotId: 1, customers: ['KH Mới', 'KH Shopee'] }).customers, 'KH Mới|KH Shopee');
   assert.equal(buildItemsParams({ snapshotId: 1, customers: [] }).customers, undefined);
 });
+
+test('chart levels: the stacked chart is limited to the shown levels (default from 3 days), totals follow', async () => {
+  const c = await import('./hangtonCustomers.js');
+  const { presetHiddenLevels, visibleLevels } = await import('./hangtonLevels.js');
+  const byLevelCustomer = [
+    { ton_level: '<1 ngày', customer_class: 'KH Mới', n: 400 },
+    { ton_level: '≥2 ngày', customer_class: 'KH Mới', n: 90 },
+    { ton_level: '≥3 ngày', customer_class: 'KH Mới', n: 20 },
+    { ton_level: '≥3 ngày', customer_class: 'KH Shopee', n: 5 },
+    { ton_level: '≥14 ngày', customer_class: 'KH Shopee', n: 1 },
+  ];
+  const ge3 = visibleLevels(presetHiddenLevels('ge3'));
+  const chart = c.buildCustomerChart(byLevelCustomer, ['KH Mới', 'KH Shopee'], ge3);
+  assert.deepEqual(chart.data.map((r) => r.level), ['≥3 ngày', '≥4 ngày', '≥5 ngày', '≥7 ngày', '≥14 ngày'], 'levels below 3 days are not drawn');
+  assert.deepEqual(chart.data.map((r) => r.total), [25, 0, 0, 0, 1]);
+  const custom = c.buildCustomerChart(byLevelCustomer, ['KH Mới', 'KH Shopee'], ['<1 ngày', '≥14 ngày']);
+  assert.deepEqual(custom.data.map((r) => r.level), ['<1 ngày', '≥14 ngày'], 'any chosen levels, in ascending order');
+  assert.equal(c.buildCustomerChart(byLevelCustomer, ['KH Mới'], []).data.length, 0, 'no level chosen: nothing to draw');
+});

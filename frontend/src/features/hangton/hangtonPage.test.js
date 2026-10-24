@@ -87,12 +87,16 @@ test('Page does not reload twice: the resolved base is derived, never copied bac
 
 test('Column hiding: Theo bưu cục table has presets and per-level toggles, remembered per viewer', () => {
   const office = read('./components/HangTonByOfficeTab.jsx');
-  assert.match(office, /COLUMN_PRESETS/);
-  assert.match(office, /toggleHiddenLevel/);
+  const picker = read('./components/LevelPicker.jsx');
+  const state = read('./hangtonLevelState.js');
+  assert.match(office, /<LevelPicker/);
+  assert.match(office, /useStoredHiddenLevels/);
   assert.match(office, /shownLevels\.map/);
   assert.doesNotMatch(office, /\{TON_LEVELS\.map\(\(lvl\) => \{\s*const cfg = getLevelConfig/, 'table columns come from the visible levels');
-  assert.match(office, /localStorage/);
-  assert.match(office, /data-no-capture="true"/, 'the picker is not part of the captured picture');
+  assert.match(picker, /COLUMN_PRESETS/);
+  assert.match(picker, /toggleHiddenLevel/);
+  assert.match(picker, /data-no-capture="true"/, 'the picker is not part of the captured picture');
+  assert.match(state, /localStorage/);
 });
 
 test('Readable text: no 9-11px text left in the Hàng tồn screens', () => {
@@ -166,4 +170,20 @@ test('Customer-group filter reaches every screen: page state, requests, chart, t
   assert.match(items, /Nhóm KH/);
   assert.match(modal, /Nhóm KH/);
   assert.match(compare, /Nhóm KH/);
+});
+
+test('Overview chart: starts from 3 days, has its own level picker for both chart modes, shared picker with the office table', () => {
+  const overview = read('./components/HangTonOverviewTab.jsx');
+  const office = read('./components/HangTonByOfficeTab.jsx');
+  const chart = read('./components/HangTonCustomerChart.jsx');
+  const state = read('./hangtonLevelState.js');
+  assert.match(overview, /useStoredHiddenLevels\('qis\.hangton\.chartLevels', presetHiddenLevels\('ge3'\)\)/);
+  assert.match(overview, /chartLevels\.map\(\(lvl\)/, 'red chart draws only the shown levels');
+  assert.match(overview, /levels=\{chartLevels\}/, 'stacked chart draws only the shown levels');
+  assert.match(overview, /<LevelPicker/);
+  assert.match(office, /<LevelPicker/);
+  assert.match(office, /useStoredHiddenLevels\('qis\.hangton\.hiddenLevels', \[\]\)/);
+  assert.match(state, /localStorage/);
+  assert.match(chart, /LabelList/, 'segments carry their numbers');
+  assert.doesNotMatch(chart + overview, /Mục tiêu ≥5 ngày: 0', position: 'top'/, 'the target label no longer sits on the bars');
 });
