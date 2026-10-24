@@ -6,7 +6,12 @@
  *   node scripts/seed-rbac-users.js "<path to User QIS.xlsx>"            dry run, writes nothing
  *   node scripts/seed-rbac-users.js "<path to User QIS.xlsx>" --apply    writes
  *
+ *   node scripts/seed-rbac-users.js --admin-only --apply                 recovery: only the ADMIN account
+ *
  * Initial password comes from env QIS_INITIAL_PASSWORD (required with --apply, never printed).
+ * --admin-only needs no Excel: it creates or resets the ADMIN account (username QIS_ADMIN_USERNAME, default
+ * "admin") with the password in env QIS_ADMIN_PASSWORD chosen by the operator, which must meet the password
+ * policy; no forced change is set because no default password is involved.
  * Idempotent: an existing username only has its name, tier and scopes updated; its password and
  * must_change_password flag are left alone. The Excel holds HRM codes and names: keep it out of git.
  */
@@ -14,6 +19,7 @@
 const path = require('path');
 const XLSX = require('xlsx');
 const { bcvhCodeFromName } = require('../src/services/auth/access/officeMap');
+const { validateNewPassword } = require('../src/services/auth/passwordPolicy');
 
 const LEADER_TITLES = ['lãnh đạo bđtp', 'lãnh đạo ttvh', 'it bđtp'];
 const INDICATOR_PATTERN = /^F\d\.\d$/i;
@@ -71,9 +77,37 @@ function readExcel(filePath) {
 
 const mask = (username) => (username.length > 4 ? `${'*'.repeat(username.length - 4)}${username.slice(-4)}` : username);
 
+async function seedAdminOnly(apply) {
+    const username = cell(process.env.QIS_ADMIN_USERNAME) || 'admin';
+    const password = process.env.QIS_ADMIN_PASSWORD;
+    console.log(`${apply ? 'APPLY' : 'DRY RUN'}: ADMIN account "${username}" only`);
+    if (!apply) return 0;
+    const problems = validateNewPassword(password, { username });
+    if (problems.length > 0) {
+        console.error(`QIS_ADMIN_PASSWORD is not acceptable: ${problems.join('; ')}`);
+        return 1;
+    }
+    const { applyRbac01Schema } = require('../migrate_rbac_01_schema');
+    const { dbPath, db } = require('../src/config/db');
+    await applyRbac01Schema(dbPath);
+    const userStore = require('../src/services/auth/userStore');
+    const result = await userStore.upsertUser({
+        username, displayName: 'Quản trị viên', tier: 'ADMIN', bcvh: [], indicators: [], initialPassword: password, mustChange: false,
+    });
+    if (!result.created) {
+        // The account already exists: upsert keeps its password, so set the new one explicitly.
+        await userStore.setPassword(result.id, password, { mustChange: false, actor: 'seed --admin-only' });
+        await userStore.unlock(result.id, 'seed --admin-only');
+    }
+    console.log(`Done: ADMIN "${username}" ${result.created ? 'created' : 'password reset'}. The password was not printed.`);
+    await new Promise((resolve) => db.close(resolve));
+    return 0;
+}
+
 async function main(argv) {
     const filePath = argv.find((arg) => !arg.startsWith('--'));
     const apply = argv.includes('--apply');
+    if (argv.includes('--admin-only')) return seedAdminOnly(apply);
     if (!filePath) {
         console.error('Usage: node scripts/seed-rbac-users.js "<User QIS.xlsx>" [--apply]');
         return 1;
