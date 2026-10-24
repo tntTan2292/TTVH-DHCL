@@ -1,6 +1,6 @@
 # RBAC-01 Manifest
 
-Status: `DEFINED / NOT ACTIVATED / READY FOR DISCOVERY (2026-10-24)`. Business rules locked by the PO in chat (DEC-022). No product code changed yet. Executor: Claude Code (Sonnet 5.5) for implementation; independent review by Opus (high risk, cross-cutting, data-leak surface). `PO UI Check Required = Yes`. Parallel workstream; `PROJECT_SNAPSHOT.md` Current Ticket is another ticket.
+Status: `PHASE 1 DISCOVERY DONE (2026-10-24, docs/06_REVIEWS/Shared/RBAC-01_DISCOVERY_001.md) / PHASE 2 NOT ACTIVATED`. Business rules locked by the PO in chat (DEC-022). No product code changed yet. Executor: Claude Code (Sonnet 5.5) for implementation; independent review by Opus (high risk, cross-cutting, data-leak surface). `PO UI Check Required = Yes`. Parallel workstream; `PROJECT_SNAPSHOT.md` Current Ticket is another ticket.
 
 Required Reading: `docs/05_DEVELOPMENT/Implementation/report_block_ui_standard.md` (any report block touched keeps its camera, ordering, target line, colour family, date filter).
 
