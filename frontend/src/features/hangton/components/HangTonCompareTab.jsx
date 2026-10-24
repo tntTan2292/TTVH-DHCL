@@ -67,6 +67,7 @@ export default function HangTonCompareTab({
     const headers = [
       { key: 'item_code', label: 'Số hiệu bưu gửi' },
       { key: 'office', label: 'Bưu cục phát' },
+      { key: 'customer_class', label: 'Nhóm KH' },
       { key: 'from_level', label: 'Loại tồn mốc trước' },
       { key: 'to_level', label: 'Loại tồn mốc sau' },
       { key: 'from_status', label: 'Trạng thái trước' },
@@ -273,6 +274,7 @@ export default function HangTonCompareTab({
                 <th className="py-2.5 px-3">STT</th>
                 <th className="py-2.5 px-3">Số hiệu bưu gửi</th>
                 <th className="py-2.5 px-3">Bưu cục phát</th>
+                <th className="py-2.5 px-3">Nhóm KH</th>
                 {selectedSubList === 'resolved' ? (
                   <>
                     <th className="py-2.5 px-3">Loại tồn mốc trước</th>
@@ -296,7 +298,7 @@ export default function HangTonCompareTab({
             <tbody className="divide-y divide-slate-100">
               {activeList.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-8 text-center text-slate-400">
+                  <td colSpan={8} className="py-8 text-center text-slate-400">
                     Không có bưu gửi nào trong danh sách này
                   </td>
                 </tr>
@@ -309,6 +311,7 @@ export default function HangTonCompareTab({
                       <td className="py-2 px-3 text-slate-400 font-mono text-[13px]">{idx + 1}</td>
                       <td className="py-2 px-3 font-mono font-bold text-slate-900">{item.item_code}</td>
                       <td className="py-2 px-3 font-semibold text-slate-800">{item.office || '—'}</td>
+                      <td className="py-2 px-3 text-slate-700">{item.customer_class || '—'}</td>
 
                       {/* Level changes */}
                       {selectedSubList === 'resolved' ? (

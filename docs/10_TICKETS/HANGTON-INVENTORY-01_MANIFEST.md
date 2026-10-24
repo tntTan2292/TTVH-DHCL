@@ -164,3 +164,13 @@ PO: hiding the low-age columns on Theo bưu cục must also recompute the totals
 Tests: frontend 723/723, backend 7/7, lint clean, build OK.
 
 2026-10-19 (PO status): after the backend restart the PO checked Section 13 (click a figure of Theo bưu cục → parcel list; Excel download in Chi tiết) and confirmed it works — PO UI PASS for Sections 9, 12 and 13. Still open: O5 (portal refresh cadence), Import Center integration, Control Center menu real run (PO).
+
+## 14. Customer-group filter (PO 2026-10-24, Claude Code/Sonnet 5.5) — READY FOR PO UI CHECK
+
+TCT runs the stock group by group, so the whole module can be limited to one or several "Phân Loại KH" groups (KH Trọng điểm, KHL2, KH Shopee, KH Tiktok, KH Mới, KH Thường).
+- **Filter bar** under the page title (all four screens): one chip per group of the snapshot with its stock and a red "≥5" count (the priority view), listed in handling order (key accounts first); click to switch a group on/off, "Tất cả nhóm" clears; nothing selected = every group; remembered in the browser. The cards always show every group (they are the selector), the figures below follow the selection.
+- **Tổng quan chart:** no group or one group → the red stock-age chart as before (title names the group); two or more groups → one stacked series per selected group per Loại Tồn level (distinct non-red colours, legend, tooltip per group, target line kept).
+- **Theo bưu cục, So sánh hai mốc, Chi tiết, the drill-down window and Excel/CSV export** all follow the selection; new column "Nhóm KH" in Chi tiết, the window, the comparison lists and the export (already in the file).
+- **Backend:** every `/api/hangton` read takes `customers=KH Mới|KH Shopee` (exact values, empty = all): `overview` (adds `by_customer` — all groups, unfiltered — and `by_level_customer`), `items`, `items/export`, `compare` (the comparison is made between the selected groups of both snapshots); `items` sorts by `customer`.
+- **Real database check** (2026-10-24 07:30): 4 030 parcels; groups KH Thường 3 008, KH Tiktok 396, KH Mới 319, KHL2 160, KH Shopee 112, KH Trọng điểm 35 (≥5 ngày: 359 / 11 / 50 / 30 / 2 / 6 = 458); KH Mới + KH Shopee = 431 = the sum of the two cards; comparison for the two groups 213 resolved / 194 aged up / 214 new against 1 698 / 1 692 / 2 125 for all groups.
+- Tests: frontend hangton suites pass; the full frontend sweep has one failure outside this module (`dashboardLoadPerformance.test.js`, operating patterns lazy-load) caused by another session's uncommitted edit of `IntegratedTrendRiskWorkspace.jsx`, left untouched; backend `test_hangtonInventory.js` 8/8; lint clean, build OK. Backend restart needed.

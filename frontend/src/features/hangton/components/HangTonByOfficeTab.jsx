@@ -51,6 +51,7 @@ export default function HangTonByOfficeTab({
   overview,
   compare,
   currentSnapshot,
+  selectedCustomers = [],
   onDrillDownToOffice,
 }) {
   const tableBlockRef = useRef(null);
@@ -408,7 +409,8 @@ export default function HangTonByOfficeTab({
         snapshot={currentSnapshot}
         office={drill?.office || undefined}
         levels={drill?.levels || []}
-        title={drill?.title || ''}
+        customers={selectedCustomers}
+        title={drill?.title ? `${drill.title}${selectedCustomers.length > 0 ? ` · ${selectedCustomers.join(', ')}` : ''}` : ''}
       />
     </div>
   );

@@ -164,3 +164,37 @@ test('items export: every row, Vietnamese headers, xlsx opens back, csv carries 
     assert.match(csv, /"có, dấu phẩy ""và"" nháy"/);
     assert.equal(csv.split('\r\n').length, 3);
 });
+
+test('customer-group filter: overview, items and compare follow the selected groups; the group cards stay complete', async () => {
+    const db = await makeDb();
+    const kh = (c, level, cls, extra = {}) => row(c, level, { 'Phân Loại KH': cls, ...extra });
+    const yesterday = [kh('R1', '≥5 ngày', 'KH Mới'), kh('U1', '≥3 ngày', 'KH Shopee'), kh('S1', '≥4 ngày', 'KH Thường'), kh('R2', '≥7 ngày', 'KH Thường')];
+    const today = [kh('U1', '≥4 ngày', 'KH Shopee'), kh('S1', '≥4 ngày', 'KH Thường'), kh('N1', '≥5 ngày', 'KH Mới'), kh('N2', '<1 ngày', 'KH Tiktok')];
+    await takeSnapshot({ db, fetchStock: async () => ({ rows: yesterday, portalTimestamp: 'Y', count: 4 }), slot: '0730', now: new Date(2026, 9, 16, 7, 30) });
+    await takeSnapshot({ db, fetchStock: async () => ({ rows: today, portalTimestamp: 'Z', count: 4 }), slot: '0730', now: new Date(2026, 9, 17, 7, 30) });
+    const to = await inventory.resolveSnapshot(db, {});
+    const from = await inventory.resolveDefaultBase(db, to, {});
+
+    const all = await inventory.overview(db, to.id);
+    assert.equal(all.total, 4);
+    const two = await inventory.overview(db, to.id, { customers: 'KH Mới|KH Shopee' });
+    assert.equal(two.total, 2, 'only the two selected groups');
+    assert.deepEqual([...new Set(two.by_level_customer.map((r) => r.customer_class))].sort(), ['KH Mới', 'KH Shopee']);
+    assert.equal(two.by_customer.length, 4, 'selector cards list every group of the snapshot, not only the selected ones');
+    assert.equal(two.by_customer.find((r) => r.customer_class === 'KH Mới').n_ge5, 1);
+    assert.equal((await inventory.overview(db, to.id, { customers: ['KH Tiktok'] })).ge5, 0);
+
+    assert.equal((await inventory.items(db, to.id, { customers: 'KH Thường' })).total, 1);
+    assert.equal((await inventory.items(db, to.id, { customers: 'KH Mới|KH Tiktok', levels: '≥5 ngày' })).total, 1);
+
+    const full = await inventory.compare(db, from.id, to.id, { detail: true });
+    assert.deepEqual(full.summary, { resolved: 2, aged_up: 1, aged_down: 0, new: 2, unchanged: 1 });
+    const moi = await inventory.compare(db, from.id, to.id, { detail: true, customers: 'KH Mới' });
+    assert.deepEqual(moi.summary, { resolved: 1, aged_up: 0, aged_down: 0, new: 1, unchanged: 0 });
+    assert.deepEqual(moi.resolved.map((r) => [r.item_code, r.customer_class]), [['R1', 'KH Mới']]);
+    assert.deepEqual(moi.new.map((r) => r.item_code), ['N1']);
+    const shopee = await inventory.compare(db, from.id, to.id, { customers: ['KH Shopee'] });
+    assert.deepEqual(shopee.summary, { resolved: 0, aged_up: 1, aged_down: 0, new: 0, unchanged: 0 });
+    const none = await inventory.compare(db, from.id, to.id, { customers: 'KH Không Có' });
+    assert.deepEqual(none.summary, { resolved: 0, aged_up: 0, aged_down: 0, new: 0, unchanged: 0 });
+});

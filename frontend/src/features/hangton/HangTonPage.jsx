@@ -11,6 +11,8 @@ import { PageContainer } from '../../components/shared/SharedComponents.jsx';
 import { LoadingLayout, ErrorLayout, EmptyLayout } from '../../components/common/StateLayouts.jsx';
 import { resolveHangtonTab, isHangtonTab } from './hangtonTabs.js';
 import SnapshotPicker from './components/SnapshotPicker.jsx';
+import CustomerFilterBar from './components/CustomerFilterBar.jsx';
+import { sanitizeSelectedCustomers, customersParam } from './hangtonCustomers.js';
 import HangTonOverviewTab from './components/HangTonOverviewTab.jsx';
 import HangTonByOfficeTab from './components/HangTonByOfficeTab.jsx';
 import HangTonCompareTab from './components/HangTonCompareTab.jsx';
@@ -43,6 +45,24 @@ export default function HangTonPage() {
   const [compare, setCompare] = useState(null);
 
   const requestToken = useRef(0);
+  // Customer groups the whole module is limited to ([] = every group); remembered per viewer.
+  const [selectedCustomers, setSelectedCustomers] = useState(() => {
+    try {
+      return sanitizeSelectedCustomers(JSON.parse(window.localStorage.getItem('qis.hangton.customers') || '[]'));
+    } catch {
+      return [];
+    }
+  });
+  const [customerGroups, setCustomerGroups] = useState([]); // every group of the snapshot (not limited by the selection)
+  const customersKey = selectedCustomers.join('|');
+  const handleCustomersChange = (next) => {
+    setSelectedCustomers(next);
+    try {
+      window.localStorage.setItem('qis.hangton.customers', JSON.stringify(next));
+    } catch {
+      // storage unavailable: the choice only lasts for this visit
+    }
+  };
   const [loading, setLoading] = useState(true);
   const [dataLoading, setDataLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -69,19 +89,20 @@ export default function HangTonPage() {
   }, [loadSnapshots]);
 
   // 2. Fetch overview & compare for the active snapshot
-  const loadSnapshotData = useCallback(async (id, baseId) => {
+  const loadSnapshotData = useCallback(async (id, baseId, customers = []) => {
     if (!id) return;
     const token = ++requestToken.current;
     setDataLoading(true);
     try {
       const [ovData, cmpData] = await Promise.all([
-        fetchOverview({ id }),
-        fetchCompare(baseId ? { id, from_id: baseId, detail: 1 } : { id, detail: 1 }).catch(() => null),
+        fetchOverview({ id, customers: customersParam(customers) }),
+        fetchCompare({ id, ...(baseId ? { from_id: baseId } : {}), detail: 1, customers: customersParam(customers) }).catch(() => null),
       ]);
 
       if (token !== requestToken.current) return; // a newer snapshot was selected meanwhile
       setOverview(ovData);
       setCompare(cmpData);
+      if (ovData?.by_customer) setCustomerGroups(ovData.by_customer);
     } catch (err) {
       if (token === requestToken.current) setError(err?.response?.data?.error?.message || err.message || 'Lỗi khi tải dữ liệu hàng tồn.');
     } finally {
@@ -91,9 +112,11 @@ export default function HangTonPage() {
 
   useEffect(() => {
     if (selectedSnapshotId) {
-      loadSnapshotData(selectedSnapshotId, baseSnapshotId);
+      loadSnapshotData(selectedSnapshotId, baseSnapshotId, selectedCustomers);
     }
-  }, [selectedSnapshotId, baseSnapshotId, loadSnapshotData]);
+    // selectedCustomers is represented by customersKey
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedSnapshotId, baseSnapshotId, customersKey, loadSnapshotData]);
 
   // Active snapshot objects
   const currentSnapshot = useMemo(() => {
@@ -192,7 +215,7 @@ export default function HangTonPage() {
           />
           <button
             type="button"
-            onClick={() => loadSnapshotData(selectedSnapshotId, baseSnapshotId)}
+            onClick={() => loadSnapshotData(selectedSnapshotId, baseSnapshotId, selectedCustomers)}
             disabled={dataLoading}
             className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors shadow-2xs cursor-pointer disabled:opacity-50"
             title="Tải lại dữ liệu snapshot hiện tại"
@@ -204,6 +227,14 @@ export default function HangTonPage() {
       }
     >
       <div className="space-y-6">
+        {/* Customer-group filter: applies to every screen */}
+        <CustomerFilterBar
+          groups={customerGroups}
+          selected={selectedCustomers}
+          onChange={handleCustomersChange}
+          disabled={dataLoading}
+        />
+
         {/* Navigation Tabs Bar */}
         <div className="flex flex-wrap items-center gap-2 border-b border-slate-200/90 pb-2">
           {TABS.map((tab) => {
@@ -243,6 +274,7 @@ export default function HangTonPage() {
                 compare={compare}
                 currentSnapshot={currentSnapshot}
                 baseSnapshot={baseSnapshot}
+                selectedCustomers={selectedCustomers}
               />
             )}
 
@@ -251,6 +283,7 @@ export default function HangTonPage() {
                 overview={overview}
                 compare={compare}
                 currentSnapshot={currentSnapshot}
+                selectedCustomers={selectedCustomers}
                 onDrillDownToOffice={handleDrilldownToOffice}
               />
             )}
@@ -271,6 +304,7 @@ export default function HangTonPage() {
                 currentSnapshot={currentSnapshot}
                 officeOptions={officeOptions}
                 initialOffice={selectedOfficeDrilldown}
+                selectedCustomers={selectedCustomers}
               />
             )}
           </div>

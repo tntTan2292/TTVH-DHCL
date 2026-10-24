@@ -30,7 +30,7 @@ const SCOPE_STATUSES = [
 ];
 
 // Column title -> backend sort key (GET /api/hangton/items ?sort=&dir=).
-const SORT_TEXT_FIELDS = ['item_code', 'office', 'status', 'postman'];
+const SORT_TEXT_FIELDS = ['item_code', 'office', 'status', 'postman', 'customer'];
 const DEFAULT_SORT = { field: 'rank', direction: 'desc' };
 
 // Page sizes; 0 = every row on one page (the API allows up to 20 000).
@@ -53,7 +53,9 @@ export default function HangTonItemsTab({
   currentSnapshot,
   officeOptions = [],
   initialOffice = '',
+  selectedCustomers = [],
 }) {
+  const customerKey = selectedCustomers.join('|');
   const tableBlockRef = useRef(null);
   const snapshotLabel = formatSnapshotLabel(currentSnapshot);
 
@@ -90,7 +92,7 @@ export default function HangTonItemsTab({
       try {
         const offset = (page - 1) * pageSize;
         const res = await fetchItems(buildItemsParams({
-          snapshotId: currentSnapshot.id, office, minRank, status, sort: sort.field, dir: sort.direction, limit: pageSize, offset,
+          snapshotId: currentSnapshot.id, office, customers: selectedCustomers, minRank, status, sort: sort.field, dir: sort.direction, limit: pageSize, offset,
         }));
         if (active && res) {
           setData(res);
@@ -106,7 +108,11 @@ export default function HangTonItemsTab({
     return () => {
       active = false;
     };
-  }, [currentSnapshot?.id, office, minRank, status, sort, pageSize, page]);
+    // selectedCustomers is represented by customerKey
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentSnapshot?.id, office, customerKey, minRank, status, sort, pageSize, page]);
+
+  useEffect(() => { setPage(1); }, [customerKey]);
 
   const totalPages = Math.max(1, Math.ceil((data.total || 0) / pageSize));
 
@@ -136,7 +142,7 @@ export default function HangTonItemsTab({
     setExporting(true);
     try {
       await downloadItemsFile(buildItemsParams({
-        snapshotId: currentSnapshot.id, office, minRank, status, sort: sort.field, dir: sort.direction,
+        snapshotId: currentSnapshot.id, office, customers: selectedCustomers, minRank, status, sort: sort.field, dir: sort.direction,
       }), format);
     } catch (err) {
       setError(err?.message || 'Không tải được tệp.');
@@ -307,6 +313,7 @@ export default function HangTonItemsTab({
               <th className="py-2.5 px-3">STT</th>
               <SortableTh field="item_code" sort={sort} onSort={handleSort} className="py-2.5 px-3" activeClassName="bg-rose-100 text-rose-950 font-bold">Số hiệu bưu gửi</SortableTh>
               <SortableTh field="office" sort={sort} onSort={handleSort} className="py-2.5 px-3" activeClassName="bg-rose-100 text-rose-950 font-bold">Bưu cục phát</SortableTh>
+              <SortableTh field="customer" sort={sort} onSort={handleSort} className="py-2.5 px-3" activeClassName="bg-rose-100 text-rose-950 font-bold">Nhóm KH</SortableTh>
               <SortableTh field="status" sort={sort} onSort={handleSort} className="py-2.5 px-3" activeClassName="bg-rose-100 text-rose-950 font-bold">Trạng thái TMS</SortableTh>
               <SortableTh field="rank" sort={sort} onSort={handleSort} className="py-2.5 px-3" activeClassName="bg-rose-100 text-rose-950 font-bold">Loại tồn</SortableTh>
               <SortableTh field="cod" sort={sort} onSort={handleSort} className="py-2.5 px-3 text-right" activeClassName="bg-rose-100 text-rose-950 font-bold">Tiền COD</SortableTh>
@@ -317,19 +324,19 @@ export default function HangTonItemsTab({
           <tbody className="divide-y divide-slate-100">
             {loading ? (
               <tr>
-                <td colSpan={8} className="py-12 text-center text-slate-400">
+                <td colSpan={9} className="py-12 text-center text-slate-400">
                   Đang tải danh sách bưu gửi...
                 </td>
               </tr>
             ) : error ? (
               <tr>
-                <td colSpan={8} className="py-8 text-center text-red-600 font-semibold">
+                <td colSpan={9} className="py-8 text-center text-red-600 font-semibold">
                   {error}
                 </td>
               </tr>
             ) : !data.rows || data.rows.length === 0 ? (
               <tr>
-                <td colSpan={8} className="py-12 text-center text-slate-400">
+                <td colSpan={9} className="py-12 text-center text-slate-400">
                   Không tìm thấy bưu gửi nào thỏa mãn điều kiện lọc
                 </td>
               </tr>
@@ -342,6 +349,7 @@ export default function HangTonItemsTab({
                     <td className="py-2.5 px-3 text-slate-400 font-mono text-[13px]">{rowNum}</td>
                     <td className="py-2.5 px-3 font-mono font-bold text-slate-900">{row.item_code}</td>
                     <td className="py-2.5 px-3 font-semibold text-slate-800">{row.office || '—'}</td>
+                    <td className="py-2.5 px-3 text-slate-700">{row.customer_class || '—'}</td>
                     <td className="py-2.5 px-3 text-slate-700">{row.status_name}</td>
                     <td className="py-2.5 px-3">
                       <span className={`inline-block px-2 py-0.5 rounded text-[13px] font-semibold border ${cfg.badgeClass}`}>

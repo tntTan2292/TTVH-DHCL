@@ -145,3 +145,25 @@ test('Theo bưu cục: every figure opens the parcel list; Chi tiết pages thro
   assert.doesNotMatch(items, /Xuất trang này/, 'the export is no longer limited to the current page');
   assert.doesNotMatch(items, /downloadCsv/);
 });
+
+test('Customer-group filter reaches every screen: page state, requests, chart, table, modal and detail', () => {
+  const page = read('./HangTonPage.jsx');
+  const overview = read('./components/HangTonOverviewTab.jsx');
+  const office = read('./components/HangTonByOfficeTab.jsx');
+  const modal = read('./components/HangTonItemsModal.jsx');
+  const items = read('./components/HangTonItemsTab.jsx');
+  const compare = read('./components/HangTonCompareTab.jsx');
+  assert.match(page, /CustomerFilterBar/);
+  assert.match(page, /fetchOverview\(\{ id, customers: customersParam\(customers\) \}\)/);
+  assert.match(page, /fetchCompare\(\{ id,.*customers: customersParam\(customers\)/);
+  assert.match(page, /selectedCustomers=\{selectedCustomers\}/);
+  assert.match(page, /customersKey/, 'a change of selection reloads the data');
+  assert.match(overview, /chartMode\(selectedCustomers\) === 'groups'/);
+  assert.match(overview, /HangTonCustomerChart/);
+  assert.match(office, /customers=\{selectedCustomers\}/, 'the drill-down window respects the selection');
+  assert.match(modal, /customers, sort: 'rank'/);
+  assert.match(items, /customers: selectedCustomers/);
+  assert.match(items, /Nhóm KH/);
+  assert.match(modal, /Nhóm KH/);
+  assert.match(compare, /Nhóm KH/);
+});

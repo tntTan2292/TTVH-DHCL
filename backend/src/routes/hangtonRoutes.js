@@ -21,26 +21,27 @@ function createHangtonRouter({ db = require('../config/db'), fetchStock = () => 
     }));
 
     // Overview of one snapshot: ?id= or ?date=YYYY-MM-DD&slot=0730 (defaults: newest day, 0730 else latest slot).
+    // Every read below also takes ?customers=KH Mới|KH Shopee (exact Phân Loại KH, "|"-joined; empty = all groups).
     router.get('/overview', ...read, wrap(async (req, res) => {
         const snapshot = await inventory.resolveSnapshot(db, req.query);
         if (!snapshot) return fail(res, 404, 'NO_SNAPSHOT', 'Chưa có snapshot hàng tồn.');
-        res.json({ success: true, data: { snapshot, ...(await inventory.overview(db, snapshot.id)) } });
+        res.json({ success: true, data: { snapshot, ...(await inventory.overview(db, snapshot.id, { customers: req.query.customers })) } });
     }));
 
-    // Parcel list of one snapshot (Chi tiết): ?id|date&slot, ?office=, ?min_rank= (e.g. 5), ?status=, ?levels=a|b (exact Loại Tồn), ?sort=rank|office|cod|item_code|status|postman, ?dir=asc|desc, ?limit&offset (limit up to 20000).
+    // Parcel list of one snapshot (Chi tiết): ?id|date&slot, ?office=, ?min_rank= (e.g. 5), ?status=, ?levels=a|b (exact Loại Tồn), ?sort=rank|office|cod|item_code|status|postman|customer, ?dir=asc|desc, ?limit&offset (limit up to 20000).
     router.get('/items', ...read, wrap(async (req, res) => {
         const snapshot = await inventory.resolveSnapshot(db, req.query);
         if (!snapshot) return fail(res, 404, 'NO_SNAPSHOT', 'Chưa có snapshot hàng tồn.');
-        const { office, min_rank: minRank, levels, status, sort, dir, limit, offset } = req.query;
-        res.json({ success: true, data: { snapshot, ...(await inventory.items(db, snapshot.id, { office, minRank, levels, status, sort, dir, limit, offset })) } });
+        const { office, min_rank: minRank, levels, customers, status, sort, dir, limit, offset } = req.query;
+        res.json({ success: true, data: { snapshot, ...(await inventory.items(db, snapshot.id, { office, minRank, levels, customers, status, sort, dir, limit, offset })) } });
     }));
 
     // Same filters as /items, but every matching row as a file: ?format=xlsx (default) | csv.
     router.get('/items/export', ...read, wrap(async (req, res) => {
         const snapshot = await inventory.resolveSnapshot(db, req.query);
         if (!snapshot) return fail(res, 404, 'NO_SNAPSHOT', 'Chưa có snapshot hàng tồn.');
-        const { office, min_rank: minRank, levels, status, sort, dir } = req.query;
-        const { rows } = await inventory.items(db, snapshot.id, { office, minRank, levels, status, sort, dir, limit: inventory.ITEMS_MAX_LIMIT, offset: 0 });
+        const { office, min_rank: minRank, levels, customers, status, sort, dir } = req.query;
+        const { rows } = await inventory.items(db, snapshot.id, { office, minRank, levels, customers, status, sort, dir, limit: inventory.ITEMS_MAX_LIMIT, offset: 0 });
         const csv = String(req.query.format).toLowerCase() === 'csv';
         const name = `Hang_ton_${snapshot.business_date}_${snapshot.slot}`;
         res.setHeader('Content-Disposition', `attachment; filename="${name}.${csv ? 'csv' : 'xlsx'}"`);
@@ -61,7 +62,7 @@ function createHangtonRouter({ db = require('../config/db'), fetchStock = () => 
             ? await inventory.getSnapshot(db, Number(req.query.from_id))
             : await inventory.resolveDefaultBase(db, to, { baseDate: req.query.base_date, baseSlot: req.query.base_slot });
         if (!from) return fail(res, 404, 'NO_BASE_SNAPSHOT', 'Chưa có snapshot mốc so sánh (cùng khung giờ ngày trước).');
-        const data = await inventory.compare(db, from.id, to.id, { detail: req.query.detail === '1' });
+        const data = await inventory.compare(db, from.id, to.id, { detail: req.query.detail === '1', customers: req.query.customers });
         res.json({ success: true, data: { from, to, ...data } });
     }));
 

@@ -268,3 +268,42 @@ test('items query parameters: empty values dropped, levels joined with a bar', a
   assert.equal(buildItemsParams({ snapshotId: 1, levels: [] }).levels, undefined);
   assert.equal(buildItemsParams({ snapshotId: 1, minRank: 5 }).min_rank, 5);
 });
+
+test('customer groups: handling order, toggling, stored selection, API parameter, chart mode and stacked chart rows', async () => {
+  const c = await import('./hangtonCustomers.js');
+  const { TON_LEVELS } = await import('./hangtonLevels.js');
+  const rows = [{ customer_class: 'KH Thường' }, { customer_class: 'Nhóm lạ' }, { customer_class: 'KH Shopee' }, { customer_class: 'KH Trọng điểm' }];
+  assert.deepEqual(c.sortCustomerGroups(rows).map((r) => r.customer_class), ['KH Trọng điểm', 'KH Shopee', 'KH Thường', 'Nhóm lạ'], 'key accounts first, unknown last');
+  assert.deepEqual(c.toggleCustomer([], 'KH Mới'), ['KH Mới']);
+  assert.deepEqual(c.toggleCustomer(['KH Mới', 'KH Shopee'], 'KH Mới'), ['KH Shopee']);
+  assert.deepEqual(c.sanitizeSelectedCustomers(['KH Mới', 'KH Mới', 5, '', 'X']), ['KH Mới', 'X']);
+  assert.deepEqual(c.sanitizeSelectedCustomers(['KH Mới', 'X'], ['KH Mới']), ['KH Mới']);
+  assert.deepEqual(c.sanitizeSelectedCustomers('rác'), []);
+  assert.equal(c.customersParam([]), undefined);
+  assert.equal(c.customersParam(['KH Mới', 'KH Shopee']), 'KH Mới|KH Shopee');
+  assert.equal(c.chartMode([]), 'levels');
+  assert.equal(c.chartMode(['KH Mới']), 'levels', 'one group keeps the red stock-age chart');
+  assert.equal(c.chartMode(['KH Mới', 'KH Shopee']), 'groups');
+  const chart = c.buildCustomerChart(
+    [
+      { ton_level: '≥5 ngày', customer_class: 'KH Mới', n: 3 },
+      { ton_level: '≥5 ngày', customer_class: 'KH Shopee', n: 2 },
+      { ton_level: '<1 ngày', customer_class: 'KH Mới', n: 7 },
+      { ton_level: '≥5 ngày', customer_class: 'KH Thường', n: 99 },
+    ],
+    ['KH Mới', 'KH Shopee'],
+  );
+  assert.equal(chart.data.length, TON_LEVELS.length, 'one row per level, empty levels included');
+  assert.deepEqual(chart.series.map((s) => s.key), ['KH Shopee', 'KH Mới'], 'series follow the handling order');
+  const ge5 = chart.data.find((r) => r.level === '≥5 ngày');
+  assert.deepEqual([ge5['KH Mới'], ge5['KH Shopee'], ge5.total], [3, 2, 5], 'groups that are not selected never enter the chart');
+  assert.equal(chart.data.find((r) => r.level === '≥14 ngày').total, 0);
+  assert.ok(chart.series.every((s) => /^#[0-9A-F]{6}$/i.test(s.color)));
+  assert.notEqual(c.customerColor('KH Mới'), c.customerColor('KH Shopee'));
+});
+
+test('items parameters carry the selected customer groups', async () => {
+  const { buildItemsParams } = await import('./hangtonExport.js');
+  assert.equal(buildItemsParams({ snapshotId: 1, customers: ['KH Mới', 'KH Shopee'] }).customers, 'KH Mới|KH Shopee');
+  assert.equal(buildItemsParams({ snapshotId: 1, customers: [] }).customers, undefined);
+});

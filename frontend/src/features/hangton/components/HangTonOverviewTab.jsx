@@ -22,6 +22,8 @@ import {
   ReferenceLine,
 } from 'recharts';
 import BlockCaptureButton from '../../../components/common/BlockCaptureButton.jsx';
+import HangTonCustomerChart from './HangTonCustomerChart.jsx';
+import { chartMode } from '../hangtonCustomers.js';
 import {
   TON_LEVELS,
   getLevelConfig,
@@ -39,7 +41,9 @@ export default function HangTonOverviewTab({
   compare,
   currentSnapshot,
   baseSnapshot,
+  selectedCustomers = [],
 }) {
+  const groupMode = chartMode(selectedCustomers) === 'groups';
   const chartBlockRef = useRef(null);
   const statusBlockRef = useRef(null);
   const levelsBlockRef = useRef(null);
@@ -195,7 +199,7 @@ export default function HangTonOverviewTab({
           <div>
             <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
               <Activity size={18} className="text-rose-600" />
-              Cơ cấu hàng tồn theo Loại Tồn ({snapshotLabel})
+              Cơ cấu hàng tồn theo Loại Tồn{selectedCustomers.length > 0 ? ` — ${selectedCustomers.join(', ')}` : ''} ({snapshotLabel})
             </h3>
             <p className="mt-1 text-sm text-slate-500">
               9 mức thời gian lưu tồn tăng dần. Màu đỏ đậm dần theo tuổi bưu gửi; từ mức ≥5 ngày là diện cảnh báo nặng.
@@ -220,7 +224,12 @@ export default function HangTonOverviewTab({
           </div>
         </div>
 
-        {/* Chart rendering */}
+        {/* Chart rendering: red stock-age scale for all groups or one group; one stacked series per group when 2+ are selected */}
+        {groupMode ? (
+          <div className="h-72 w-full">
+            <HangTonCustomerChart byLevelCustomer={overview?.by_level_customer || []} selected={selectedCustomers} />
+          </div>
+        ) : (
         <div className="h-72 w-full">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={chartData} margin={{ top: 20, right: 30, left: 10, bottom: 25 }}>
@@ -276,6 +285,7 @@ export default function HangTonOverviewTab({
             </BarChart>
           </ResponsiveContainer>
         </div>
+        )}
       </div>
 
       {/* Two columns: Level Distribution details & Status breakdown */}
