@@ -185,3 +185,5 @@ PO: the stacked chart by customer group drowned in the "<1 ngày" bulk and showe
 - Readability: each bar / segment carries its number (a stacked segment only when tall enough), the chart rescales to the shown levels, the target line stays but its label moved to the legend ("Mục tiêu ≥5 ngày: 0") so it no longer sits on the bars.
 - Code: shared `LevelPicker.jsx` and `useStoredHiddenLevels` (`hangtonLevelState.js`); `buildCustomerChart(…, levels)`.
 - Tests: hangton/navigation 41/41, lint clean, build OK; the one failure of the full frontend sweep is the known `dashboardLoadPerformance` test caused by another session's uncommitted `IntegratedTrendRiskWorkspace.jsx` edit.
+
+Compact filter bar (PO 2026-10-24, seen at 90% zoom): the customer-group bar was wrapping onto a second row. Chips are smaller (13 px text, tighter padding, short "Tất cả", badge "≥5:n"), the "Đang xem" line is gone (the dark chips already show the selection; the full count stays in the tooltip), so the six groups fit one row at 90% zoom. Presentation only.
