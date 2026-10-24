@@ -1148,6 +1148,8 @@ Validation: 15 new backend tests (13 service unit + 2 real in-memory SQLite repo
 | `docs/10_TICKETS/RBAC-01_MANIFEST.md` | Ticket Manifest | RBAC-01: personal accounts (HRM), ADMIN/LEADER/STAFF tiers, BCVH and indicator data scope, phases and risks (DEC-022); defined, not activated |
 | `docs/06_REVIEWS/Shared/RBAC-01_DISCOVERY_001.md` | Review | RBAC-01 Phase 1 read-only discovery: endpoint x scope matrix, cache-key leak, national tables, admin-only gaps |
 | `docs/04_TECHNICAL_PLANNING/Feature/RBAC-01_DESIGN_OF_RECORD.md` | Design of Record | RBAC-01 v1 draft: user/scope/session tables, access resolution, middleware contract, cache key, login and first-login password change, seed script, test plan |
+| `docs/10_TICKETS/RBAC-01-UI_MANIFEST.md` | Ticket Manifest | RBAC-01-UI (step 2c): frontend for RBAC-01 - backend contract, change-password and user-management pages, menu/route gating by access, scope-limited screens, Hang ton screens |
+| `docs/10_TICKETS/RBAC-01-UI_ANTIGRAVITY_PROMPT.md` | Executor Prompt | RBAC-01-UI: lean prompt for Antigravity (Gemini) |
 | `docs/10_TICKETS/UI-GLASS-THEME-01_OPUS_REVIEW_PROMPT.md` | Executor Prompt | UI-GLASS-THEME-01: independent review prompt for Claude Code (Opus) |
 | `docs/10_TICKETS/F11-DASHBOARD-UI-01_MANIFEST.md` | Ticket Manifest | F11-DASHBOARD-UI-01: F1.1 Operation Dashboard / BCVH Ranking screens for Antigravity, incl. the province/city table and the accepting-office x delivering-BCVH table; frontend only |
 | `docs/10_TICKETS/F11-DASHBOARD-RANKING-01_MANIFEST.md` | Ticket Manifest | F11-DASHBOARD-RANKING-01: F1.1 Operation Dashboard / BCVH Ranking read APIs (`/api/f11`) and the accepting-office x delivering-BCVH pair table; backend implemented and tested, screens pending |
