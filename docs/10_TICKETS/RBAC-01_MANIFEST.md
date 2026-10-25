@@ -1,6 +1,6 @@
 # RBAC-01 Manifest
 
-Status: `STEPS 1-3 AND 2c IMPLEMENTED, PUSHED; INDEPENDENT OPUS REVIEW DONE (DoR section 15), TECHNICAL FIXES APPLIED; AWAITING PO DECISIONS M2/M3/HANGTON, THEN SEED 15 USERS AND PO UI CHECK (2026-10-24)`.
+Status: `DEPLOYED 2026-10-25: backend and front end restarted on the new code, admin account created, 15 users seeded (4 LEADER, 11 STAFF, all must change the shared initial password at first login); lockout per (username, IP), HANGTON specialist role; AWAITING PO UI CHECK (RBAC-01-UI manifest section 4)`.
 
 Required Reading: `docs/05_DEVELOPMENT/Implementation/report_block_ui_standard.md` (any report block touched keeps its camera, ordering, target line, colour family, date filter).
 
