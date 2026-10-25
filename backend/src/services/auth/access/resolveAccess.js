@@ -61,11 +61,15 @@ function resolveAccess({ tier, bcvh = [], indicators = [] } = {}) {
     for (const code of bcvhList) (HANGTON_OFFICES_BY_BCVH[code] || []).forEach((office) => offices.add(office));
     for (const indicator of indicatorSet) (HANGTON_OFFICES_BY_INDICATOR[indicator] || []).forEach((office) => offices.add(office));
     const hasHangton = offices.size > 0;
+    // The HANGTON indicator specialist sees the whole Hang ton module (PO 2026-10-25): all four screens, every office.
+    const hangton = indicatorSet.has('HANGTON')
+        ? { screens: [...HANGTON_SCREENS], offices: 'all' }
+        : { screens: hasHangton ? [...STAFF_HANGTON_SCREENS] : [], offices: [...offices].sort() };
 
     return {
         tier: normalizedTier,
         modules,
-        hangton: { screens: hasHangton ? [...STAFF_HANGTON_SCREENS] : [], offices: [...offices].sort() },
+        hangton,
         network: false,
         admin: false,
         home: true,

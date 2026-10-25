@@ -68,3 +68,15 @@ test('STAFF with no BCVH and no indicator sees only home', () => {
     assert.deepEqual(access.hangton.screens, []);
     assert.equal(access.home, true);
 });
+
+test('HANGTON specialist (PO 2026-10-25) sees all four Hang ton screens for every office, nothing else extra', () => {
+    const access = resolveAccess({ tier: 'STAFF', indicators: ['HANGTON'] });
+    assert.deepEqual(access.hangton.screens, ['overview', 'office', 'compare', 'items']);
+    assert.equal(access.hangton.offices, 'all');
+    assert.deepEqual(modes(access), { f11: 'none', f12: 'none', f13: 'none', f41: 'none' });
+    assert.equal(access.network, false);
+
+    const withBcvh = resolveAccess({ tier: 'STAFF', bcvh: ['537015'], indicators: ['HANGTON'] });
+    assert.equal(withBcvh.hangton.offices, 'all');
+    assert.equal(withBcvh.modules.f13.mode, 'bcvh');
+});

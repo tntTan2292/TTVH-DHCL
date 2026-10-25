@@ -16,11 +16,12 @@ const authSessionStore = require('../services/auth/AuthSessionStore');
 const sessionPersistence = require('../services/auth/sessionPersistence');
 const userStore = require('../services/auth/userStore');
 const { requireAuth } = require('../middleware/authMiddleware');
+const throttle = require('../services/auth/loginThrottle');
 const { run, all, db } = require('../config/db');
 
 const INITIAL = 'Initial#Pass1';
 
-function createRequest({ body = {}, headers = {}, params = {}, auth = null } = {}) {
+function createRequest({ body = {}, headers = {}, params = {}, auth = null, ip = null } = {}) {
     const normalizedHeaders = Object.fromEntries(
         Object.entries(headers).map(([key, value]) => [key.toLowerCase(), value]),
     );
@@ -29,6 +30,7 @@ function createRequest({ body = {}, headers = {}, params = {}, auth = null } = {
         body,
         params,
         auth,
+        ip,
         header(name) {
             return normalizedHeaders[String(name).toLowerCase()];
         },
@@ -61,9 +63,9 @@ async function seed() {
     await userStore.upsertUser({ username: '00061914', displayName: 'Lãnh đạo', tier: 'LEADER', initialPassword: INITIAL });
 }
 
-async function login(username, password) {
+async function login(username, password, ip = null) {
     const res = createResponse();
-    await authController.login(createRequest({ body: { username, password } }), res);
+    await authController.login(createRequest({ body: { username, password }, ip }), res);
     return res;
 }
 
@@ -72,6 +74,7 @@ test.before(async () => {
 });
 
 test.beforeEach(async () => {
+    throttle.reset();
     authSessionStore.clear();
     authSessionStore.attachPersistence(null);
     await seed();
@@ -113,10 +116,29 @@ test('five wrong passwords lock the account; the right password is then refused 
     assert.equal((await login('00062571', INITIAL)).statusCode, 401);
 
     const row = await userStore.findByUsername('00062571');
-    assert.ok(row.locked_until > Date.now());
-
     await userStore.unlock(row.id, 'test');
     assert.equal((await login('00062571', INITIAL)).statusCode, 200);
+});
+
+test('lockout is per (username, IP): a person guessing from one computer cannot lock the account for everyone else', async () => {
+    for (let i = 0; i < 5; i += 1) await login('ADMIN1', 'guess', '10.0.0.66');
+    assert.equal((await login('ADMIN1', INITIAL, '10.0.0.66')).statusCode, 401, 'the guessing computer is locked out');
+    assert.equal((await login('ADMIN1', INITIAL, '10.0.0.5')).statusCode, 200, 'the real admin on another computer still gets in');
+    assert.equal((await login('00062571', INITIAL, '10.0.0.66')).statusCode, 200, 'the same computer can still sign in as someone else');
+
+    const admin = await userStore.findByUsername('ADMIN1');
+    assert.equal(admin.locked_until, null, 'no database lock for a single-source attack');
+    await userStore.unlock(admin.id, 'test');
+    assert.equal((await login('ADMIN1', INITIAL, '10.0.0.66')).statusCode, 200, 'admin unlock clears the pair lock');
+});
+
+test('guessing spread over many computers hits the account threshold (25 wrong secrets) and locks the account for all', async () => {
+    for (let i = 0; i < 25; i += 1) await login('ADMIN1', 'guess', `10.1.0.${i}`);
+    const row = await userStore.findByUsername('ADMIN1');
+    assert.ok(row.locked_until > Date.now(), 'account lock stored in the database');
+    assert.equal((await login('ADMIN1', INITIAL, '10.9.9.9')).statusCode, 401, 'even a new computer is refused while locked');
+    await userStore.unlock(row.id, 'test');
+    assert.equal((await login('ADMIN1', INITIAL, '10.9.9.9')).statusCode, 200);
 });
 
 test('inactive users cannot log in', async () => {

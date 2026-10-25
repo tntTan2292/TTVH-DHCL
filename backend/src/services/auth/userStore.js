@@ -3,9 +3,9 @@
 const { run, get, all } = require('../../config/db');
 const { hashPassword, verifyPasswordAsync } = require('./passwordHash');
 const { resolveAccess } = require('./access/resolveAccess');
+const throttle = require('./loginThrottle');
 
-const MAX_FAILED_ATTEMPTS = 5;
-const LOCK_MS = 15 * 60 * 1000;
+const LOCK_MS = throttle.LOCK_MS;
 
 const now = () => Date.now();
 
@@ -61,9 +61,15 @@ async function logEvent({ userId = null, username = null, event, detail = null, 
  * accounts so the response does not reveal which one it was; `code` is for the audit log only.
  */
 async function authenticate(username, password, { ip = null } = {}) {
+    if (throttle.isPairLocked(username, ip)) {
+        await verifyPasswordAsync(password, DUMMY_HASH);
+        await logEvent({ username: String(username || '').trim(), event: 'LOGIN_FAIL', detail: 'throttled', ip });
+        return { ok: false, code: 'THROTTLED' };
+    }
     const row = await findByUsername(username);
     if (!row) {
         await verifyPasswordAsync(password, DUMMY_HASH);
+        throttle.recordFailure(username, ip);
         await logEvent({ username: String(username || '').trim(), event: 'LOGIN_FAIL', detail: 'unknown_user', ip });
         return { ok: false, code: 'UNKNOWN_USER' };
     }
@@ -81,6 +87,7 @@ async function authenticate(username, password, { ip = null } = {}) {
         await recordFailure(row, 'bad_password', ip);
         return { ok: false, code: 'BAD_PASSWORD' };
     }
+    throttle.clearPair(row.username, ip);
     await run(
         'UPDATE qis_user SET failed_attempts = 0, locked_until = NULL, last_login_at = ?, updated_at = ? WHERE id = ?',
         [now(), now(), row.id],
@@ -89,19 +96,35 @@ async function authenticate(username, password, { ip = null } = {}) {
     return { ok: true, row };
 }
 
-/** Counts one wrong secret against the account (login or the current password of a change); the 5th locks it. */
+/**
+ * Counts one wrong secret (login or the current password of a change) against the (username, IP) pair and the
+ * account. The pair locks after 5; the whole account (any IP) only after 25 within 15 minutes.
+ */
 async function recordFailure(row, detail, ip = null) {
-    const attempts = (row.failed_attempts || 0) + 1;
-    const lock = attempts >= MAX_FAILED_ATTEMPTS;
+    const result = throttle.recordFailure(row.username, ip);
+    const lockAccount = result.accountLocked;
     await run(
         'UPDATE qis_user SET failed_attempts = ?, locked_until = ?, updated_at = ? WHERE id = ?',
-        [lock ? 0 : attempts, lock ? now() + LOCK_MS : null, now(), row.id],
+        [lockAccount ? 0 : (row.failed_attempts || 0) + 1, lockAccount ? now() + LOCK_MS : row.locked_until ?? null, now(), row.id],
     );
-    await logEvent({ userId: row.id, username: row.username, event: lock ? 'LOCKED' : 'LOGIN_FAIL', detail, ip });
-    return { locked: lock };
+    await logEvent({
+        userId: row.id,
+        username: row.username,
+        event: lockAccount || result.pairLocked ? 'LOCKED' : 'LOGIN_FAIL',
+        detail: lockAccount ? `${detail};account` : result.pairLocked ? `${detail};ip` : detail,
+        ip,
+    });
+    return { locked: lockAccount || result.pairLocked, accountLocked: lockAccount, pairLocked: result.pairLocked };
+}
+
+/** True when this (username, IP) is locked or the account itself is locked. */
+function isLoginBlocked(row, ip = null) {
+    return throttle.isPairLocked(row.username, ip) || Boolean(row.locked_until && row.locked_until > now());
 }
 
 async function setPassword(userId, newPassword, { mustChange = false, actor = null } = {}) {
+    const target = await findById(userId);
+    if (target) throttle.clearUser(target.username);
     await run(
         'UPDATE qis_user SET password_hash = ?, must_change_password = ?, failed_attempts = 0, locked_until = NULL, password_changed_at = ?, updated_at = ? WHERE id = ?',
         [hashPassword(newPassword), mustChange ? 1 : 0, now(), now(), userId],
@@ -140,6 +163,8 @@ async function setActive(userId, active) {
 }
 
 async function unlock(userId, actor = null) {
+    const target = await findById(userId);
+    if (target) throttle.clearUser(target.username);
     await run('UPDATE qis_user SET failed_attempts = 0, locked_until = NULL, updated_at = ? WHERE id = ?', [now(), userId]);
     await logEvent({ userId, event: 'UNLOCKED', detail: actor });
 }
@@ -167,13 +192,13 @@ async function countActiveAdmins() {
 }
 
 module.exports = {
-    MAX_FAILED_ATTEMPTS,
     LOCK_MS,
     findByUsername,
     findById,
     toSessionUser,
     authenticate,
     recordFailure,
+    isLoginBlocked,
     setPassword,
     setScopes,
     setActive,

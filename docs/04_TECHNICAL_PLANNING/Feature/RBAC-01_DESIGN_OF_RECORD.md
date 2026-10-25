@@ -142,3 +142,10 @@ Open, for the PO:
 - M3 (policy): five wrong passwords lock an account 15 minutes with no per-source limit, so anyone on the network can keep a known username (including the admin) locked. All requests reach the backend from the front-end proxy, so a per-IP rule would not tell people apart.
 - The `HANGTON` indicator is accepted by the admin UI and API but `resolveAccess` ignores it.
 - Not changed: the last-admin guard can be raced by two simultaneous demotions (recovery is `seed-rbac-users.js --admin-only`); the front-end `accessModel.js` falls back to full menus when `access` is missing (cosmetic, the backend still enforces); a multi-BCVH user lands on the lowest code of the scope.
+
+## 16. PO decisions after the review (2026-10-25)
+
+- M2 accepted by the PO: shared initial password stays; users are told to sign in and change it right after the seed.
+- Lockout (replaces the account-only rule of section 5): `services/auth/loginThrottle.js`. 5 wrong secrets from the same (username, IP) lock only that pair for 15 minutes; 25 wrong secrets within 15 minutes from any IPs lock the whole account for 15 minutes (stored in `qis_user.locked_until`). A single computer can no longer keep another person's account locked. Wrong `current_password` on change-password counts the same way. Admin unlock and password reset clear the pair and account counters. State of the pair counters is in memory (a restart forgets it).
+- Real client IP: `app.set('trust proxy', 'loopback')` in `server.js` and `xfwd: true` on the `/api` proxy in `frontend/vite.config.js` (the Vite dev server must be restarted to pick it up). Direct callers of port 5050 are not on loopback, so their forged X-Forwarded-For is ignored. Tests: `middleware/trustProxy.test.js`, the two throttle tests in `controllers/authController.test.js`.
+- Indicator `HANGTON` = specialist of the whole Hang ton module: all four screens (Tong quan, Theo buu cuc, So sanh hai mot, Chi tiet buu gui) for every office (`resolveAccess`, test in `resolveAccess.test.js`). It adds nothing for the F modules or the network.

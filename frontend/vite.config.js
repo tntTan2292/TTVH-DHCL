@@ -31,6 +31,7 @@ export default defineConfig({
       '/api': {
         target: process.env.VITE_API_PROXY_TARGET || 'http://127.0.0.1:5050',
         changeOrigin: true,
+        xfwd: true, // RBAC-01: pass the real client IP to the backend (login throttle per username + IP)
       },
     },
   },

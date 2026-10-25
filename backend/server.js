@@ -114,6 +114,9 @@ process.on('exit', (code) => {
     console.log('====================================');
 });
 
+// RBAC-01: the front end reaches this backend through its own proxy on this computer; trust that hop only
+// (loopback) so req.ip is the real client for the login throttle. Direct callers cannot spoof X-Forwarded-For.
+app.set('trust proxy', 'loopback');
 app.use(cors());
 // PERF-LOAD-01 Phase 1: gzip JSON responses (ranking/overview payloads are large and repetitive).
 app.use(compression());

@@ -103,7 +103,7 @@ exports.changePassword = async (req, res) => {
         if (!row || !row.is_active) {
             return res.status(400).json({ success: false, error: { code: 'WRONG_CURRENT_PASSWORD', message: 'Mật khẩu hiện tại không đúng' } });
         }
-        if (row.locked_until && row.locked_until > Date.now()) {
+        if (userStore.isLoginBlocked(row, clientIp(req))) {
             return res.status(429).json({ success: false, error: { code: 'ACCOUNT_LOCKED', message: 'Tài khoản đang tạm khóa do nhập sai nhiều lần, thử lại sau' } });
         }
         if (!(await verifyPasswordAsync(currentPassword, row.password_hash))) {
