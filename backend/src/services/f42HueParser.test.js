@@ -72,6 +72,19 @@ test('live rows of 10/10 and 25/10: several commas, a purely numeric customer co
     assert.equal(result.parsedData[1].thoi_gian_gbt, '2026-10-10 08:00:00');
 });
 
+test('live rows of 17-24/10: a customer code with a hyphen, a route name that is an office, a route code of seven digits', () => {
+    const specs = defaultHueSpecs();
+    specs[0].customer = 'CÔNG TY CỔ PHẦN KIỂM ĐỊNH, AN TOÀN VÀ TƯ VẤN XÂY DỰNG';
+    specs[0].customerCode = '010076313200-002';
+    specs[1].customer = 'Đội Sát Hạch, Cấp GPLX - Phòng CSGT';
+    specs[1].routeCode = '5362508';
+    const result = parseF42Hue(hueCsvBuffer(specs), FILE);
+    assert.equal(result.repairedRows, 2);
+    assert.equal(result.parsedData[0].ma_khl, '010076313200-002');
+    assert.equal(result.parsedData[0].ten_khl, 'CÔNG TY CỔ PHẦN KIỂM ĐỊNH, AN TOÀN VÀ TƯ VẤN XÂY DỰNG');
+    assert.equal(result.parsedData[1].ma_tuyen_phat, '5362508');
+});
+
 test('a row that cannot be repaired refuses the file', () => {
     const text = hueCsvBuffer().toString('utf8');
     // surplus field placed after the GBT time cannot be explained by a customer-name comma

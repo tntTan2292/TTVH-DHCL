@@ -178,7 +178,8 @@ function repairCsvRow(row, headers, indexes, lineNumber) {
     // The comma sits in one of the free-text columns; try each and keep the first merge after which the coded
     // columns around it look like codes (customer code: optional letter + digits, or empty; route code: digits, empty or
     // the portal's 'Khong Xac Dinh' for a postman without a route).
-    const customerCode = /^[A-Za-z]?\d*$/;
+    // customer code: one token without spaces (T001571565, 11010068222626, 010076313200-002), or empty
+    const customerCode = /^[A-Za-z0-9][A-Za-z0-9._\/-]*$|^$/;
     const routeCode = /^(\d*|Khong Xac Dinh)$/i;
     const text = (value) => String(value ?? '').trim();
     for (const at of indexes.freeText) {
