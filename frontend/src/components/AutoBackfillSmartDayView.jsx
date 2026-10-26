@@ -411,7 +411,7 @@ export default function AutoBackfillSmartDayView({
                   )}
 
                   {/* Col 2: Business Date + Anchor (Sticky) */}
-                  <th className="sticky left-10 z-20 bg-slate-50/95 backdrop-blur-xs w-36 min-w-[136px] max-w-[140px] px-2.5 py-3 border-r border-slate-200/80 shadow-[3px_0_6px_-2px_rgba(0,0,0,0.08)]">
+                  <th className="sticky left-10 z-20 bg-slate-50/95 backdrop-blur-xs w-40 min-w-[158px] max-w-[164px] px-2.5 py-3 border-r border-slate-200/80 shadow-[3px_0_6px_-2px_rgba(0,0,0,0.08)]">
                     Ngày Nghiệp vụ
                   </th>
 
@@ -540,7 +540,7 @@ export default function AutoBackfillSmartDayView({
                       )}
 
                       {/* Col 2: Date + Anchor Run button (Sticky) */}
-                      <td className={`sticky left-10 z-10 w-36 min-w-[136px] max-w-[140px] px-2.5 py-2 align-middle border-r border-slate-200/80 shadow-[3px_0_6px_-2px_rgba(0,0,0,0.08)] transition-colors ${
+                      <td className={`sticky left-10 z-10 w-40 min-w-[158px] max-w-[164px] px-2.5 py-2 align-middle border-r border-slate-200/80 shadow-[3px_0_6px_-2px_rgba(0,0,0,0.08)] transition-colors ${
                         isAnyLaneSelected
                           ? isReimportMode
                             ? 'bg-indigo-50/90'
@@ -1251,6 +1251,12 @@ function CompactIndicatorCell({
         const canConfirm = isAdmin && isSelectable(item);
         const canRevoke = isAdmin && item.status === 'EXCLUDED' && item.exception?.exception_type === 'PO_EXEMPTED';
         const hasSecondaryActions = canConfirm || canRevoke;
+        const hasPrimaryAction = isAdmin && (
+          item.status === 'COMPLETED'
+          || item.status === 'INCOMPLETE'
+          || item.status === 'DATA_ERROR'
+          || (item.status === 'EXCLUDED' && item.holiday)
+        );
         const menuKey = `${key}::compact-menu`;
         const isMenuOpen = activeMenuKey === menuKey;
 
@@ -1258,7 +1264,7 @@ function CompactIndicatorCell({
           <div
             key={lane}
             title={lastImportTooltip}
-            className={`flex items-center justify-between gap-1 px-1.5 py-0.5 rounded-lg border transition ${
+            className={`flex flex-col gap-0.5 min-w-0 overflow-hidden px-1.5 py-0.5 rounded-lg border transition ${
               isLaneSelected
                 ? isReimportMode
                   ? 'border-indigo-300 bg-indigo-50/70 shadow-2xs'
@@ -1266,8 +1272,8 @@ function CompactIndicatorCell({
                 : 'border-slate-200/70 bg-white hover:border-slate-300'
             }`}
           >
-            {/* Left: Checkbox + Lane Tag + Status */}
-            <div className="flex items-center gap-1 min-w-0">
+            {/* Line 1: Checkbox + Lane Tag + Status (the status shrinks and truncates, it never pushes the cell wider) */}
+            <div className="flex items-center gap-1 min-w-0 w-full">
               {isAdmin && (
                 <div className="w-3.5 shrink-0 flex items-center justify-center">
                   {canSelectLane ? (
@@ -1306,14 +1312,15 @@ function CompactIndicatorCell({
 
               <span
                 title={lastImportTooltip}
-                className={`text-[9px] font-semibold px-1 py-0.2 rounded-full border truncate max-w-[66px] cursor-help shrink-0 ${statusInfo.badgeClass}`}
+                className={`text-[9px] font-semibold px-1 py-0.2 rounded-full border truncate min-w-0 flex-1 text-center cursor-help ${statusInfo.badgeClass}`}
               >
                 {statusInfo.label}
               </span>
             </div>
 
-            {/* Right: Action Button or Popover */}
-            <div className="flex items-center gap-0.5 shrink-0">
+            {/* Line 2 (only when the lane has an action): action button and popover, right aligned */}
+            {(hasPrimaryAction || hasSecondaryActions) && (
+            <div className="flex items-center justify-end gap-0.5 min-w-0">
               {isAdmin && (
                 item.status === 'COMPLETED' ? (
                   <button
@@ -1396,6 +1403,7 @@ function CompactIndicatorCell({
                 </div>
               )}
             </div>
+            )}
           </div>
         );
       })}

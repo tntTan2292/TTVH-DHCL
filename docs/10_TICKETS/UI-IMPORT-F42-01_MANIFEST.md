@@ -47,3 +47,7 @@ With "Tất cả Chỉ tiêu" the day view shows F4.2 beside F4.1 for every day 
 - Backend / registry: untouched.
 - Status: `READY FOR PO CHECK`.
 
+## 8. PO finding and fix (2026-10-26, Claude Code)
+
+PO check: texts overlapped heavily in the day view. Cause (code reading, no screen): the compact column was squeezed to `min-w-[148px]` (about 124 px inside), but a lane row still put checkbox (14) + lane tag (24) + status badge (up to 66) + action button "Nhập lại / Nhập mới" (about 55) on one line, all `shrink-0` / `whitespace-nowrap`, so the row was wider than its column and the contents ran into the next one; the date column (116 px inside) was narrower than its button "Import cả ngày + bù 3 ngày" (about 140 px). Fix in `AutoBackfillSmartDayView.jsx`: a lane card is two lines (line 1 checkbox + lane tag + status that truncates, line 2 the action buttons right aligned and only when there is one), the card clips instead of overflowing; the date column is `w-40 min-w-[158px]`. Frontend 786/786, build passes. PO UI check again; if five columns still need more room than the screen, the table scrolls horizontally with the date column pinned.
+
