@@ -1,6 +1,6 @@
 # RBAC-01 Manifest
 
-Status: `DEPLOYED 2026-10-25: backend and front end restarted on the new code, admin account created, 15 users seeded (4 LEADER, 11 STAFF, all must change the shared initial password at first login); lockout per (username, IP), HANGTON specialist role; AWAITING PO UI CHECK (RBAC-01-UI manifest section 4)`.
+Status: `CLOSED / PO UI PASS (2026-10-26)`. Delivered, deployed and accepted by the Product Owner; see Section 8.
 
 Required Reading: `docs/05_DEVELOPMENT/Implementation/report_block_ui_standard.md` (any report block touched keeps its camera, ordering, target line, colour family, date filter).
 
@@ -62,3 +62,11 @@ Username = HRM code. Initial password set by the seed script from an argument or
 - Lockout threshold and session TTL.
 - Admin account name and its password handover.
 - Whether Dũng's KTC1 Hàng tồn includes both screens (assumed: same two screens as BCVH users, "Theo bưu cục" and "So sánh hai mốc").
+
+## 8. Closure (2026-10-26)
+
+PO UI PASS given in chat on 2026-10-26 after the PO checked the sign-in, the F modules, Phan tich BCVH (weekly and monthly comparison for the own BCVH) and Hang ton with the seeded accounts. Deployed 2026-10-25: backend and front end restarted on the new code (supervisor), admin account created with `seed-rbac-users.js --admin-only`, 15 users seeded from `User QIS.xlsx` (4 LEADER, 11 STAFF, shared initial password accepted by the PO as a risk, everyone must change it at the first login).
+
+Delivered: personal accounts (HRM code), tiers ADMIN / LEADER / STAFF, BCVH and indicator scope, persistent sessions, forced password change, lockout per (username, IP) with an account threshold, real client IP through the proxy, admin user management API and page, scope enforcement in the backend for F1.1 (incl. the accepting x delivering matrix), F1.2, F1.3, F4.1, Hang ton (office_code, screens) and Quan ly mang luoi (LEADER and ADMIN), per-scope response cache, indicator `HANGTON` = whole Hang ton module. Independent Opus review: no blocker, findings fixed (Design of Record sections 15-16). Tests at closure: backend 588 pass / 3 known pre-existing failures / 5 live-server tests skipped; frontend 771/771.
+
+Known residuals (not blocking, PO informed): the last-admin guard can be raced by two simultaneous demotions (recovery: `--admin-only`); for BCVH-scope users the recommendations and best/lowest blocks are empty and the four overview blocks of Phan tich BCVH stay hidden; a multi-BCVH user lands on the lowest BCVH code; seed or admin edits reach already logged-in users only after re-login or restart (admin UI edits revoke sessions at once); the `accessModel.js` fallback shows full menus when `access` is missing (the backend still enforces).

@@ -2413,3 +2413,8 @@ PO asked to see at once whether the 24 jobs of the new day (4 indicators x 2 sou
 ## 2026-10-22 - IMPORT-SESSION-01 AND IMPORT-DAILYLOG-01: PO UI PASS / CLOSED
 
 The Product Owner restarted the backend, checked the session strip (sign in, disconnect) and the "Log ngày mới" tab on the Import page, and confirmed PO UI PASS. Both tickets closed. Manifests: docs/10_TICKETS/IMPORT-SESSION-01_MANIFEST.md, docs/10_TICKETS/IMPORT-DAILYLOG-01_MANIFEST.md.
+
+## 2026-10-26 - RBAC-01: PERSONAL ACCOUNTS AND DATA SCOPE / PO UI PASS / CLOSED
+
+PO asked for accounts with permissions: leaders (BDTP, TTVH, IT) see every module except system administration; BCVH directors and specialists see only their own BCVH by delivery side; indicator specialists see their indicator city-wide; Trang chu stays open to everyone. Delivered over steps 1-3 and 2c: 16 accounts (admin + 15 from `User QIS.xlsx`, HRM code as username, forced password change), tiers and scopes, persistent sessions, lockout per (username, IP), a scope layer in the backend for F1.1 (with the accepting x delivering matrix), F1.2, F1.3, F4.1, Hang ton (by office code and screen) and Quan ly mang luoi, a per-scope response cache, the admin user page and the change-password page. Leak tests run the real routers on a three-BCVH fixture; an independent Opus review found no blocker and its findings were fixed. Deployed 2026-10-25 (admin recovered with `--admin-only` after the first restart found an empty user table). PO checked the screens and confirmed PO UI PASS. Decision: DEC-022. Manifests: docs/10_TICKETS/RBAC-01_MANIFEST.md, RBAC-01-UI_MANIFEST.md; design: docs/04_TECHNICAL_PLANNING/Feature/RBAC-01_DESIGN_OF_RECORD.md.
+

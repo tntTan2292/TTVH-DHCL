@@ -1,6 +1,6 @@
 # RBAC-01-UI Manifest (step 2c: frontend)
 
-Status: `DEFINED / READY FOR ANTIGRAVITY (2026-10-24)`. Parent ticket `RBAC-01` (`RBAC-01_MANIFEST.md`, Design of Record `docs/04_TECHNICAL_PLANNING/Feature/RBAC-01_DESIGN_OF_RECORD.md`, DEC-022). Executor: Antigravity (Gemini). The backend is done and enforces everything (commits `ff0a6e99`..`fbcddc74`); this ticket only makes the screens follow it. Parallel workstream: `PROJECT_SNAPSHOT.md` Current Ticket is another ticket.
+Status: `CLOSED / PO UI PASS (2026-10-26)`. Frontend of RBAC-01 delivered by Antigravity (commit c1ef5696), Claude Code fixes after the PO check: scoped BCVH unit list accepted by the filter validation (bb542b83) and week/month comparison and trends for a scoped user on Phan tich BCVH (f4bdc3ac). See `RBAC-01_MANIFEST.md` Section 8.
 
 Required Reading: `docs/05_DEVELOPMENT/Implementation/report_block_ui_standard.md` (blocks you touch keep camera, click-to-order titles, target line, colour family, date filter).
 
