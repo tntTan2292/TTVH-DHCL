@@ -57,6 +57,21 @@ test('an unquoted comma in the customer name is repaired by anchoring on the GBT
     assert.equal(result.parsedData[0].danh_gia, 'Đạt');
 });
 
+test('live rows of 10/10 and 25/10: several commas, a purely numeric customer code, route code "Khong Xac Dinh"', () => {
+    const specs = defaultHueSpecs();
+    specs[0].customer = 'CTY LIVESPO PHARMA 0385869937, 1800088808, Hiếu: 0899313949';
+    specs[0].customerCode = '11010068222626';
+    specs[1].customer = 'BỆNH VIỆN TRUNG ƯƠNG HUẾ, TỈNH THỪA THIÊN HUẾ';
+    specs[1].routeCode = 'Khong Xac Dinh';
+    const result = parseF42Hue(hueCsvBuffer(specs), FILE);
+    assert.equal(result.repairedRows, 2);
+    assert.equal(result.parsedData[0].ten_khl, 'CTY LIVESPO PHARMA 0385869937, 1800088808, Hiếu: 0899313949');
+    assert.equal(result.parsedData[0].ma_khl, '11010068222626');
+    assert.equal(result.parsedData[1].ten_khl, 'BỆNH VIỆN TRUNG ƯƠNG HUẾ, TỈNH THỪA THIÊN HUẾ');
+    assert.equal(result.parsedData[1].ma_tuyen_phat, 'Khong Xac Dinh');
+    assert.equal(result.parsedData[1].thoi_gian_gbt, '2026-10-10 08:00:00');
+});
+
 test('a row that cannot be repaired refuses the file', () => {
     const text = hueCsvBuffer().toString('utf8');
     // surplus field placed after the GBT time cannot be explained by a customer-name comma

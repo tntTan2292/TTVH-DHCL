@@ -20,7 +20,7 @@ function hueRow(spec) {
     return [
         '53', 'Bưu điện  Tỉnh Thừa Thiên Huế', '5372  ', spec.officeName || 'BCVH Hương Trà', '', spec.office || '535470', spec.officeName || 'BCVH Hương Trà',
         spec.postman || '53A001', 'NGUYỄN VĂN A', '', 'EMS', 'E', 'KCOD', 'Truyền thống -TMĐT', 'E', spec.parcel, '', '', '500.0', '<=2kg', '',
-        'T006461306', spec.customer || 'TikTok', '53547026', 'Phong Điền_02', 'Tuyến phát xã (01 lần/ ngày)',
+        spec.customerCode ?? 'T006461306', spec.customer || 'TikTok', spec.routeCode ?? '53547026', 'Phong Điền_02', 'Tuyến phát xã (01 lần/ ngày)',
         spec.gbt ?? '2026-10-10 08:00:00.000', spec.ptc ?? '', '', '', spec.elapsed ?? '', spec.rating ?? '',
     ];
 }

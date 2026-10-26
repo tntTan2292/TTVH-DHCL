@@ -170,20 +170,29 @@ function repairCsvRow(row, headers, indexes, lineNumber) {
     const fail = (why) => new Error(`Invalid F4.2 HUE CSV. Line ${lineNumber} has ${row.length} fields instead of ${headers.length} and ${why}.`);
     if (row.length < headers.length) throw fail('cannot be repaired (too few fields)');
     const extra = row.length - headers.length;
-    if (indexes.gbt < 0 || indexes.name < 0) throw fail('cannot be repaired (header \'Tên KHL\' or \'Thời gian GBT\' missing)');
+    if (indexes.gbt < 0) throw fail('cannot be repaired (header \'Thời gian GBT\' missing)');
     // the GBT timestamp sits `extra` fields to the right of its header position
     if (!TIMESTAMP_START.test(String(row[indexes.gbt + extra] ?? '').trim()) || TIMESTAMP_START.test(String(row[indexes.gbt] ?? '').trim())) {
         throw fail('cannot be repaired (GBT time not where expected)');
     }
-    const repaired = [
-        ...row.slice(0, indexes.name),
-        row.slice(indexes.name, indexes.name + extra + 1).join(','),
-        ...row.slice(indexes.name + extra + 1),
-    ];
-    if (indexes.routeCode >= 0 && !/^\d*$/.test(String(repaired[indexes.routeCode] ?? '').trim())) {
-        throw fail('cannot be repaired (route code is not a number after merging the customer name)');
+    // The comma sits in one of the free-text columns; try each and keep the first merge after which the coded
+    // columns around it look like codes (customer code: optional letter + digits, or empty; route code: digits, empty or
+    // the portal's 'Khong Xac Dinh' for a postman without a route).
+    const customerCode = /^[A-Za-z]?\d*$/;
+    const routeCode = /^(\d*|Khong Xac Dinh)$/i;
+    const text = (value) => String(value ?? '').trim();
+    for (const at of indexes.freeText) {
+        if (at < 0) continue;
+        const repaired = [
+            ...row.slice(0, at),
+            row.slice(at, at + extra + 1).join(','),
+            ...row.slice(at + extra + 1),
+        ];
+        const customerOk = indexes.customerCode < 0 || customerCode.test(text(repaired[indexes.customerCode]));
+        const routeOk = indexes.routeCode < 0 || routeCode.test(text(repaired[indexes.routeCode]));
+        if (customerOk && routeOk) return repaired;
     }
-    return repaired;
+    throw fail('cannot be repaired (no free-text column explains the surplus fields: customer code or route code does not look like a code after merging)');
 }
 
 function toIsoDay(value) {
@@ -261,7 +270,13 @@ function parseF42Hue(buffer, filename) {
     const colIndexMap = headers
         .map((header, idx) => ({ idx, spec: F42_ALL_COLUMNS[header] }))
         .filter((item) => item.spec);
-    const indexes = { gbt: headers.indexOf(GBT_HEADER), name: headers.indexOf(NAME_HEADER), routeCode: headers.indexOf(ROUTE_CODE_HEADER) };
+    const indexes = {
+        gbt: headers.indexOf(GBT_HEADER),
+        customerCode: headers.indexOf('Mã KHL'),
+        routeCode: headers.indexOf(ROUTE_CODE_HEADER),
+        // free-text columns that can hold a comma, most likely first (the customer name)
+        freeText: [headers.indexOf(NAME_HEADER), headers.indexOf('Tên hàng hoá'), headers.indexOf('Tên tuyến phát')],
+    };
 
     const parsedData = [];
     const seenKeys = new Set();
