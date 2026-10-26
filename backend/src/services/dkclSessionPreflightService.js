@@ -278,15 +278,26 @@ class DkclSessionPreflightService {
     async reuseInteractiveClient(sourceConfig, entry) {
         if (!entry.client) return null;
 
-        const restored = await entry.client.restoreWindow?.().catch(() => false);
+        const client = entry.client;
+        const restored = await client.restoreWindow?.().catch(() => false);
         if (restored) {
+            // An import owns the session: only show the window, never move the page it works in; the session stays ready.
+            if (entry.activeOperation && entry.authenticated) {
+                this.transitionEntry(sourceConfig.source, entry, DKCL_LIFECYCLE_STATES.F13_READY, { windowHidden: false, hideAttempted: false });
+                return { source: sourceConfig.source, status: PREFLIGHT_STATUSES.SESSION_VALID, interactive: true, source_page_ready: Boolean(entry.backgroundReady), ...lifecyclePayload(entry) };
+            }
+            const profileDir = entry.profileDir || resolveProfileDir(sourceConfig);
             this.transitionEntry(sourceConfig.source, entry, DKCL_LIFECYCLE_STATES.WAITING_FOR_LOGIN, {
-                client: entry.client,
+                client,
                 windowHidden: false,
                 hideAttempted: false,
                 // AB-AUTH-08: reusing an existing window is a fresh wait, not the parked case below.
                 pendingSourcePageWait: false
             });
+            // 2026-10-26: the reused window used to be parked at WAITING_FOR_LOGIN with nothing watching it, and since
+            // preflight() and the keep-alive never probe an in-progress source, the strip stayed at "Đang chờ đăng
+            // nhập" for good even though the window was (or became) signed in. It gets the same wait as a new window.
+            void this.awaitInteractiveLogin(sourceConfig, entry, client, profileDir);
             return this.buildInteractiveInProgressResponse(sourceConfig, entry);
         }
 
@@ -301,6 +312,123 @@ class DkclSessionPreflightService {
         });
         await staleClient?.close?.().catch(() => {});
         return null;
+    }
+
+    /**
+     * Background wait of an interactive window (a new one, or a reused one) until the person is signed in: then the
+     * F1.3 page is opened and the window put away (F13_READY); a manual-login timeout releases the window
+     * (LOGIN_TIMEOUT). Never throws.
+     */
+    async awaitInteractiveLogin(sourceConfig, entry, client, profileDir) {
+        try {
+            await client.waitInteractiveAuthentication();
+
+            this.transitionEntry(sourceConfig.source, entry, DKCL_LIFECYCLE_STATES.AUTHENTICATED, {
+                client,
+                authenticated: true,
+                backgroundReady: false,
+                profileDir
+            });
+
+            this.transitionEntry(sourceConfig.source, entry, DKCL_LIFECYCLE_STATES.F13_OPENING, {
+                authenticated: true,
+                backgroundReady: false,
+                profileDir
+            });
+
+            if (client.isF13ReportReady) {
+                const delayMs = client.manualAuthPollMs || 1000;
+                const maxAttempts = Math.max(1, Math.floor(15000 / delayMs));
+                for (let i = 0; i < maxAttempts; i++) {
+                    const ready = await client.isF13ReportReady().catch(() => false);
+                    if (ready) break;
+                    await new Promise((resolve) => setTimeout(resolve, delayMs));
+                }
+            }
+
+            entry.lastValidatedDate = new Date().toLocaleDateString('sv');
+            entry.lastValidatedAt = Date.now();
+
+            this.transitionEntry(sourceConfig.source, entry, DKCL_LIFECYCLE_STATES.F13_READY, {
+                authenticated: true,
+                backgroundReady: false,
+                profileDir
+            });
+
+            // Hide the window both after a typed login and when the saved session was already valid at
+            // open (interactiveAuthenticatedOnOpen): either way the work continues in the background.
+            await this.hideWindowIfVisible(sourceConfig, entry, client, profileDir);
+            this.transitionEntry(sourceConfig.source, entry, DKCL_LIFECYCLE_STATES.F13_READY, {
+                backgroundReady: true,
+                profileDir
+            });
+        } catch (err) {
+            // AUTO-IMPORT-013: waitInteractiveAuthentication() throws AUTHENTICATION_REQUIRED
+            // from exactly one place — waitForManualAuthentication() returning false after its
+            // full wait window elapsed. In the interactive flow, credentials are typed by the
+            // Product Owner directly in the visible browser (no automated login-attempt path
+            // exists here), so this is unambiguously a bounded manual-login timeout, not a
+            // "still on the login form, retry credentials" case. Treat it as terminal: release
+            // the browser/profile lock and report a specific, accurate diagnostic instead of
+            // leaving the session parked at WAITING_FOR_LOGIN indefinitely.
+            if (err?.code === 'AUTHENTICATION_REQUIRED') {
+                const waitedMs = client.manualAuthWaitMs || 0;
+                const waitedMinutes = Math.round(waitedMs / 60000);
+                this.transitionEntry(sourceConfig.source, entry, DKCL_LEGACY_STATES.LOGIN_TIMEOUT, {
+                    client: null,
+                    lastError: `Không xác nhận được đăng nhập DKCL ${sourceConfig.displayName} trong ${waitedMinutes} phút. Trình duyệt đã đóng và hồ sơ đã được giải phóng.`,
+                    authenticated: false,
+                    backgroundReady: false,
+                    windowHidden: false,
+                    hideAttempted: false,
+                    profileDir
+                });
+                if (this.coordinatorEnabled) {
+                    this.coordinator.markFailed(sourceConfig.source, profileDir, err);
+                }
+                await client.close?.().catch(() => {});
+                return;
+            }
+            // SOURCE_PAGE_REQUIRED: login succeeded but the F1.3 report page did not become
+            // ready. Keep the window visible/open — the session is authenticated, this is a
+            // different (portal-page-level) symptom, unchanged from prior behavior.
+            //
+            // AB-AUTH-08: this used to be a dead end — preflight() short-circuits on
+            // WAITING_FOR_LOGIN before it ever reaches the entry.client probe, so nothing
+            // ever re-checked this real, already-authenticated client again, and the PO's
+            // "Đang chờ bạn đăng nhập..." banner stood forever even after the F1.3 page
+            // finished rendering. pendingSourcePageWait marks this specific sub-case so
+            // preflight() can safely bypass the short-circuit for it alone (see there).
+            const keepWindowVisible = err?.code === 'SOURCE_PAGE_REQUIRED';
+            if (keepWindowVisible) {
+                this.transitionEntry(sourceConfig.source, entry, DKCL_LIFECYCLE_STATES.WAITING_FOR_LOGIN, {
+                    client,
+                    lastError: err.message,
+                    authenticated: false,
+                    backgroundReady: false,
+                    windowHidden: false,
+                    hideAttempted: false,
+                    pendingSourcePageWait: true,
+                    profileDir
+                });
+                await client.restoreWindow?.().catch(() => {});
+                return;
+            }
+            this.transitionEntry(sourceConfig.source, entry, DKCL_LEGACY_STATES.SESSION_EXPIRED, {
+                lastError: err.message,
+                errorCode: err.code || 'INTERACTIVE_AUTH_FAILED',
+                client: null,
+                authenticated: false,
+                backgroundReady: false,
+                windowHidden: false,
+                hideAttempted: false,
+                profileDir
+            });
+            if (this.coordinatorEnabled) {
+                this.coordinator.markFailed(sourceConfig.source, profileDir, err);
+            }
+            await client.close?.().catch(() => {});
+        }
     }
 
     // AUTO-IMPORT-014 item 5: reconcile a confirmed-orphaned QIS-owned browser instance before
@@ -895,117 +1023,7 @@ class DkclSessionPreflightService {
                 });
 
                 // Spawn background task to wait for login
-                (async () => {
-                    try {
-                        await client.waitInteractiveAuthentication();
-
-                        this.transitionEntry(sourceConfig.source, entry, DKCL_LIFECYCLE_STATES.AUTHENTICATED, {
-                            client,
-                            authenticated: true,
-                            backgroundReady: false,
-                            profileDir
-                        });
-
-                        this.transitionEntry(sourceConfig.source, entry, DKCL_LIFECYCLE_STATES.F13_OPENING, {
-                            authenticated: true,
-                            backgroundReady: false,
-                            profileDir
-                        });
-
-                        if (client.isF13ReportReady) {
-                            const delayMs = client.manualAuthPollMs || 1000;
-                            const maxAttempts = Math.max(1, Math.floor(15000 / delayMs));
-                            for (let i = 0; i < maxAttempts; i++) {
-                                const ready = await client.isF13ReportReady().catch(() => false);
-                                if (ready) break;
-                                await new Promise((resolve) => setTimeout(resolve, delayMs));
-                            }
-                        }
-
-                        entry.lastValidatedDate = new Date().toLocaleDateString('sv');
-                        entry.lastValidatedAt = Date.now();
-
-                        this.transitionEntry(sourceConfig.source, entry, DKCL_LIFECYCLE_STATES.F13_READY, {
-                            authenticated: true,
-                            backgroundReady: false,
-                            profileDir
-                        });
-
-                        // Hide the window both after a typed login and when the saved session was already valid at
-                        // open (interactiveAuthenticatedOnOpen): either way the work continues in the background.
-                        await this.hideWindowIfVisible(sourceConfig, entry, client, profileDir);
-                        this.transitionEntry(sourceConfig.source, entry, DKCL_LIFECYCLE_STATES.F13_READY, {
-                            backgroundReady: true,
-                            profileDir
-                        });
-                    } catch (err) {
-                        // AUTO-IMPORT-013: waitInteractiveAuthentication() throws AUTHENTICATION_REQUIRED
-                        // from exactly one place — waitForManualAuthentication() returning false after its
-                        // full wait window elapsed. In the interactive flow, credentials are typed by the
-                        // Product Owner directly in the visible browser (no automated login-attempt path
-                        // exists here), so this is unambiguously a bounded manual-login timeout, not a
-                        // "still on the login form, retry credentials" case. Treat it as terminal: release
-                        // the browser/profile lock and report a specific, accurate diagnostic instead of
-                        // leaving the session parked at WAITING_FOR_LOGIN indefinitely.
-                        if (err?.code === 'AUTHENTICATION_REQUIRED') {
-                            const waitedMs = client.manualAuthWaitMs || 0;
-                            const waitedMinutes = Math.round(waitedMs / 60000);
-                            this.transitionEntry(sourceConfig.source, entry, DKCL_LEGACY_STATES.LOGIN_TIMEOUT, {
-                                client: null,
-                                lastError: `Không xác nhận được đăng nhập DKCL ${sourceConfig.displayName} trong ${waitedMinutes} phút. Trình duyệt đã đóng và hồ sơ đã được giải phóng.`,
-                                authenticated: false,
-                                backgroundReady: false,
-                                windowHidden: false,
-                                hideAttempted: false,
-                                profileDir
-                            });
-                            if (this.coordinatorEnabled) {
-                                this.coordinator.markFailed(sourceConfig.source, profileDir, err);
-                            }
-                            await client.close().catch(() => {});
-                            return;
-                        }
-                        // SOURCE_PAGE_REQUIRED: login succeeded but the F1.3 report page did not become
-                        // ready. Keep the window visible/open — the session is authenticated, this is a
-                        // different (portal-page-level) symptom, unchanged from prior behavior.
-                        //
-                        // AB-AUTH-08: this used to be a dead end — preflight() short-circuits on
-                        // WAITING_FOR_LOGIN before it ever reaches the entry.client probe, so nothing
-                        // ever re-checked this real, already-authenticated client again, and the PO's
-                        // "Đang chờ bạn đăng nhập..." banner stood forever even after the F1.3 page
-                        // finished rendering. pendingSourcePageWait marks this specific sub-case so
-                        // preflight() can safely bypass the short-circuit for it alone (see there).
-                        const keepWindowVisible = err?.code === 'SOURCE_PAGE_REQUIRED';
-                        if (keepWindowVisible) {
-                            this.transitionEntry(sourceConfig.source, entry, DKCL_LIFECYCLE_STATES.WAITING_FOR_LOGIN, {
-                                client,
-                                lastError: err.message,
-                                authenticated: false,
-                                backgroundReady: false,
-                                windowHidden: false,
-                                hideAttempted: false,
-                                pendingSourcePageWait: true,
-                                profileDir
-                            });
-                            await client.restoreWindow?.().catch(() => {});
-                            return;
-                        }
-                        this.transitionEntry(sourceConfig.source, entry, DKCL_LEGACY_STATES.SESSION_EXPIRED, {
-                            lastError: err.message,
-                            errorCode: err.code || 'INTERACTIVE_AUTH_FAILED',
-                            client: null,
-                            authenticated: false,
-                            backgroundReady: false,
-                            windowHidden: false,
-                            hideAttempted: false,
-                            profileDir
-                        });
-                        if (this.coordinatorEnabled) {
-                            this.coordinator.markFailed(sourceConfig.source, profileDir, err);
-                        }
-                        await client.close().catch(() => {});
-                    }
-                })();
+                void this.awaitInteractiveLogin(sourceConfig, entry, client, profileDir);
 
                 return this.buildInteractiveInProgressResponse(sourceConfig, entry);
             } catch (error) {
