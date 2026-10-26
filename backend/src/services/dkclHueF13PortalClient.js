@@ -1768,6 +1768,9 @@ Object.assign(DkclHueF13PortalClient.prototype, require('./f11PortalClientMethod
 // F12-PHASE-3: same for F1.2 (thu gom lien tinh), kept in its own module and its own lastF12* state.
 Object.assign(DkclHueF13PortalClient.prototype, require('./f12PortalClientMethods').methods);
 
+// F42-PHASE-3: same for F4.2 (phat giao buu ta), kept in its own module and its own lastF42* state.
+Object.assign(DkclHueF13PortalClient.prototype, require('./f42PortalClientMethods').methods);
+
 module.exports = {
     DkclHueF13PortalClient,
     DEFAULT_CHROMIUM_LAUNCH_ARGS,

@@ -48,6 +48,8 @@ const DEFAULT_ERROR_MAP = Object.freeze({
     F11_PORTAL_REQUEST_TIMEOUT: 'TRANSIENT',
     // F12-PHASE-3: same condition for the F1.2 portal requests.
     F12_PORTAL_REQUEST_TIMEOUT: 'TRANSIENT',
+    // F42-PHASE-3: same condition for the F4.2 portal requests.
+    F42_PORTAL_REQUEST_TIMEOUT: 'TRANSIENT',
     // AB-AUTH-05: a manual login already in progress (or its wait window having just elapsed)
     // is not a real authentication failure -- see autoBackfillF13Executors.js's sessionPendingError().
     SESSION_PENDING_HUMAN_ACTION: 'TRANSIENT',

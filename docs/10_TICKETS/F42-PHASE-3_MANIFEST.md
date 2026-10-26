@@ -1,6 +1,6 @@
 # F42-PHASE-3 Manifest
 
-Status: `PORTAL DISCOVERY DONE (report and detail requests, export identities) / EXPORT OF THE HUE DETAIL NOT YET OBSERVED / ADAPTER NOT IMPLEMENTED` (2026-10-26). Portal discovery for the automatic download of F4.2, done the F1.2 way (`docs/10_TICKETS/F12-PHASE-3_MANIFEST.md`). Nothing exported, downloaded, imported or written to the database.
+Status: `IMPLEMENTED / EXPORTS VERIFIED BYTE-FOR-BYTE AND CELL-FOR-CELL / REGISTRY STILL PLANNED, SUPERVISED DRY RUN PENDING` (2026-10-26). Portal discovery and adapter for the automatic download of F4.2, done the F1.2 way (`docs/10_TICKETS/F12-PHASE-3_MANIFEST.md`). Two PO-authorised exports were pressed by Claude (Section 5); nothing was imported or written to the database.
 
 ## 1. Ticket Information
 
@@ -31,18 +31,41 @@ Built-in browser pane of the Claude app. The pane was already signed in to DKCL 
 | Export forms (not pressed) | detail: **`/export/sp_Phat_GBT_PTC_ChiTiet_V2/all`** (`Total=6466`, `FilterSelected` JSON); postman summary: **`/export/sp_Phat_GBT_PTC_BuuTa_V2/all`** (`Total=132` for Huế, **`Total=13666`** for the national run = 13 665 postman rows + total) |
 | Store identities | detail `sp_Phat_GBT_PTC_ChiTiet_V2`; postman summary `sp_Phat_GBT_PTC_BuuTa_V2` (same store for Huế and national, the province filter differs) |
 
-## 4. Generated files (Quản lý tệp `/files`, read 2026-10-26)
+## 4. Generated files (Quản lý tệp `/files`)
 
-- Postman summary (the PO's national file): `26-10-2026_10-28-05_F4.2_chat_luong_phat_giao_buu_ta(1).xlsx` listed at 10:28:18, link `/files/<id>` (`/files-xlsx/<id>` for the button), same mechanism as F1.2 (asynchronous export, then the list).
-- The Huế detail the PO downloaded is a **CSV named `25427_26-10-2026_10-22-38_F4.2_chat_luong_phat_giao_buu_ta_chi_tiet_01.csv`** and **does not appear in Quản lý tệp** (the list holds only `.xlsx` rows, 34 rows read). So the detail is delivered by another mechanism than the summary (direct download with a numeric prefix, and a `_01` suffix, which suggests one file per chunk). This is the open point of Section 5.
-- Name pattern of the summary: `DD-MM-YYYY_HH-mm-ss_F4.2_chat_luong_phat_giao_buu_ta(1).xlsx`; the detail slug `…_chi_tiet_01.csv` starts with the summary slug, so a match must be anchored to the end.
+- The Huế **detail** is listed by Quản lý tệp like the summaries (it appeared a few minutes after the export press; the first read of the list on 2026-10-26 simply came before the PO's own export was listed): `25418_26-10-2026_11-23-08_F4.2_chat_luong_phat_giao_buu_ta_chi_tiet_01.csv`, row with the name link `/files/<id>` (the CSV as exported, `Content-Type: application/csv`, `Content-Disposition` carries the name) and the xlsx button `/files-xlsx/<id>`. The leading number (`25418`, `25427` on the PO's earlier export) is a job id that changes per export; `_01` is a chunk number.
+- The postman **summary** is a normal xlsx row: `26-10-2026_15-09-42_F4.2_chat_luong_phat_giao_buu_ta(1).xlsx`; `/files/<id>` and `/files-xlsx/<id>` both return the workbook.
+- The list is one account-wide list (it also holds the F1.2 / F1.3 exports of other sessions), so a match must be anchored on the slug and the creation time. The detail slug starts with the summary slug: the TCT match keeps the `(1)` that follows the slug, the HUE match keeps `_chi_tiet_`.
+- Generation time: the detail (6 466 rows) was listed within minutes; the national summary (13 666 rows) about a minute after the press. The national report itself answers slowly (about one to two minutes).
 
-## 5. Open points (need the PO)
+## 5. Export verification (PO-authorised, 2026-10-26)
 
-1. **Observe the detail export once.** One export of the Huế detail (10/10, 6.466 rows) pressed by Claude, with the PO's authorisation, to see how the file is delivered (direct download or a different list), its exact name, whether it is split into chunks (`_01`, `_02`...) and the `25427` prefix (looks like an account or job id). Without it the HUE adapter cannot be written without guessing.
-2. Alternative that needs no detail export: take Huế from the **postman summary** (the national export filtered to Tỉnh 53) and keep the detail CSV as a manual lane. The summary reconciles exactly (Huế row = detail) but has no parcel rows, so the per-parcel table (`fact_f42`) would not be filled automatically. Recommended only if the detail delivery turns out not to be automatable.
-3. TCT: the national export (`Total=13666`) is a normal `/files` export; one more export pressed by Claude, with the PO's authorisation, would confirm that the request produces exactly the PO's file (the F1.2 test: cell by cell).
+| Export | Request | File | Check |
+| --- | --- | --- | --- |
+| Huế detail, 10/10, pressed once | `GET /export/sp_Phat_GBT_PTC_ChiTiet_V2/all?Total=6466&FilterSelected=<redacted>` | `25418_26-10-2026_11-23-08_F4.2_..._chi_tiet_01.csv`, `/files/553015`, 2 548 900 B | **SHA-256 identical** to the PO's earlier detail CSV (`c52dda2f…e8d2`, same size): the request produces exactly the PO's file |
+| National postman summary, 10/10, pressed once | `GET /export/sp_Phat_GBT_PTC_BuuTa_V2/all?Total=13666&FilterSelected=%7B"TuyChonGR":"BT","stMaTinhPhat":"ALL",...,"iFrom":"2026-10-10","iTo":"2026-10-10","Page":1,"PageSize":50%7D` | `26-10-2026_15-09-42_F4.2_chat_luong_phat_giao_buu_ta(1).xlsx`, `/files/553110`, 1 324 674 B | zip entries compared by CRC: `sheet1.xml`, `sharedStrings.xml` and every other part **equal** to the PO's file; only `docProps/core.xml` (creation time) differs, so **0 cell differences** |
 
-## 6. Implementation handoff (after Section 5)
+Both files were read inside the browser pane (hash and zip directory only); nothing was saved to disk or deleted on the portal.
 
-Mirror `docs/10_TICKETS/F12-PHASE-3_MANIFEST.md` Section 7 file by file (`f42PortalClientMethods.js`, `autoBackfillF42Contract.js`, `f42SingleDateServices.js`, `autoBackfillF42Executors.js`, `probe_f42_single_date.js`, `test_f42PortalAdapter.js`), changing what Section 3-4 says is different: route `/kpi/chat-luong-phat-giao-buu-ta`, `TuyChonGR=BT`, delivering province `stMaTinhPhat` (53 for HUE, `ALL` for TCT), 29-column screen with 100 rows per page (use the export total), detail store `sp_Phat_GBT_PTC_ChiTiet_V2` with `iDetailReport=1`, summary store `sp_Phat_GBT_PTC_BuuTa_V2`, reconcile HUE rows / Đạt / Không đạt with the summary total (columns 14 / 17 / 19) and TCT with the grand total (516.597 / 393.197 on 10/10). Registry stays `PLANNED` / `MANUAL_ONLY` until the PO's supervised DRY run passes; then `ACTIVE` / `AUTOMATED` with `refreshWindowDays: 3`, and the backfill from 2026-01-01.
+## 6. Implementation (2026-10-26, Claude Code/Sonnet 5.5)
+
+The six files of the F1.2 pattern were written as the F1.2 mirror; no F1.1 / F1.2 / F4.1 file was edited except two additive one-liners.
+
+| File | Note |
+| --- | --- |
+| `backend/src/services/f42PortalClientMethods.js` | Requests equal Sections 3 byte for byte (tests); 29 screen cells; detail province unquoted, `iDetailReport=1`, `iTotal` = GBT; export form read from the response (`template_paginator`), detail Total must equal the summary GBT; own generated-file poll (`pollF42GeneratedFile`: HUE reads the CSV name link, TCT the xlsx button; a detail delivered in several `_NN` chunks is refused) and own download (`downloadF42File` through the page request context, no navigation). State fields `lastF42*`. Request timeout 240 s (the national report is slow). |
+| `backend/src/services/autoBackfillF42Contract.js` | Identities `DKCL_F42_HUE_SINGLE_DATE_V1` / `DKCL_F42_TCT_SINGLE_DATE_V1`; HUE match `F4.2_chat_luong_phat_giao_buu_ta_chi_tiet_` (csv), TCT match `F4.2_chat_luong_phat_giao_buu_ta(1)` (xlsx). |
+| `backend/src/services/f42SingleDateServices.js` | Exact reconciliation, no tolerance: HUE rows / Đạt / Không đạt = summary GBT / PTC đúng QĐ / quá QĐ (blank ratings are the rest, reported); TCT: the parser already verified the published grand total against all postman rows, here its GBT and Đạt must equal the summary of the screen. HUE saved as `F4.2-YYYY.MM.DD.csv`, TCT as `.xlsx`. |
+| `backend/src/services/autoBackfillF42Executors.js` | Created, **not registered** in `autoBackfillExecutors.js`. |
+| `backend/probe_f42_single_date.js` | DRY; compares the download with `Data DKCL/F4.2-2026.10.10.csv` / `F4.2-TCT-2026.10.10.xlsx` through the frozen parsers, row by row. |
+| `backend/test_f42PortalAdapter.js` | 28 tests: requests, helpers, client over a fake page, services over a fake client with the two real files as the known answer, executors. |
+
+Two additive one-liners outside the table: `dkclHueF13PortalClient.js` mixes in the F4.2 methods (as F1.2 does), `importIndicatorRegistry.js` maps `F42_PORTAL_REQUEST_TIMEOUT` to `TRANSIENT`. Registry unchanged (`PLANNED` / `MANUAL_ONLY`).
+
+Validation: `test_f42PortalAdapter.js` 28/28; `test_f42ImportPipeline.js` 6/6; `test_f12PortalAdapter.js` 24/24; backend sweep 697/705, 5 skipped, the same 3 known failures.
+
+Not verified (needs the live portal and the PO's supervised run): that the real detail and report responses carry the export forms in `template_paginator` exactly as F1.2 (the live DOM showed both forms after the detail opened, and the service stops on any mismatch); that the national request finishes inside the 240 s timeout; the TCT screen layout assumptions (29 cells, total row first) were read from the live page (Section 3) but not through the Node parser.
+
+## 7. Next
+
+PO supervised DRY run: stop the backend, close the DKCL window of the lane, then `node probe_f42_single_date.js HUE 2026-10-10` and `node probe_f42_single_date.js TCT 2026-10-10`. After PASS: register the executors in `autoBackfillExecutors.js`, set `ACTIVE` / `AUTOMATED` with `portalAdapter` = `F42_EXECUTOR_IDENTITIES` and `refreshWindowDays: 3` in the registry, restart the backend, one supervised Auto Backfill over a few days, then the backfill from 2026-01-01. Open: how many rows a detail export holds before the portal splits it into `_02` chunks (the adapter refuses a chunked export and reports it); the busiest days may need a chunk-aware reader.
