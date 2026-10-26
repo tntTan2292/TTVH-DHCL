@@ -1,6 +1,6 @@
 import { processOverviewData } from './bcvhOverviewData.js';
 
-export function createOverviewFetcher(apiClient, setOverviewState, { dynamicUnits = false } = {}) {
+export function createOverviewFetcher(apiClient, setOverviewState, { dynamicUnits = false, onlyCodes = null } = {}) {
   let currentRequestSeq = 0;
 
   return async function fetchOverview(toDate) {
@@ -27,7 +27,7 @@ export function createOverviewFetcher(apiClient, setOverviewState, { dynamicUnit
       const rawData = response.data.data || {};
       // 3. Đọc đúng meta từ rawData.meta theo cấu trúc backend
       const rawMeta = rawData.meta || {};
-      const processed = processOverviewData(rawData, rawMeta, { dynamicUnits });
+      const processed = processOverviewData(rawData, rawMeta, { dynamicUnits, onlyCodes });
 
       setOverviewState({
         status: 'success',

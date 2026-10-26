@@ -47,8 +47,32 @@ export function buildBcvhUnitsValue(units) {
   };
 }
 
-export function BcvhUnitsProvider({ units, children }) {
-  const value = useMemo(() => (units ? buildBcvhUnitsValue(units) : null), [units]);
+// RBAC-01: a user limited to some BCVH sees only those units. The six-BCVH labels and colours stay (not the
+// dynamic F1.2 wording), but there is no city "total" series (the backend sends none), no "all units" grid and
+// the unit filters start on the user's first BCVH.
+export function buildScopedBcvhUnitsValue(units) {
+  const list = (Array.isArray(units) ? units : [])
+    .map((unit) => ({ ma_bcvh: String(unit?.ma_bcvh ?? ''), ten_bcvh: String(unit?.ten_bcvh ?? '') }))
+    .filter((unit) => unit.ma_bcvh !== '');
+  const names = {};
+  list.forEach((unit) => { names[unit.ma_bcvh] = unit.ten_bcvh || unit.ma_bcvh; });
+  return {
+    dynamic: false,
+    scoped: true,
+    codes: list.map((unit) => unit.ma_bcvh),
+    names,
+    colors: null,
+    totalLabel: 'Tổng cộng',
+    allLabel: '',
+    allowSmallMultiples: false,
+  };
+}
+
+export function BcvhUnitsProvider({ units, scoped = false, children }) {
+  const value = useMemo(() => {
+    if (!units) return null;
+    return scoped ? buildScopedBcvhUnitsValue(units) : buildBcvhUnitsValue(units);
+  }, [units, scoped]);
   return createElement(BcvhUnitsContext.Provider, { value }, children);
 }
 

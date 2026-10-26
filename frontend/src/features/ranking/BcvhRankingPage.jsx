@@ -18,7 +18,7 @@ import { indicatorLabel, indicatorTheme } from '../indicator/indicatorConfig.js'
 import { useIndicator } from '../indicator/IndicatorContext.js';
 import { useIndicatorApi } from '../indicator/useIndicatorApi.js';
 import { useAuth } from '../../auth/AuthContext';
-import { getModuleAccess } from '../../auth/accessModel.js';
+import { BCVH_BY_CODE, getModuleAccess } from '../../auth/accessModel.js';
 
 function toneFromKpi(rate, heatmapFloors) {
   if (rate === null || rate === undefined) return 'neutral';
@@ -101,6 +101,12 @@ export default function BcvhRankingPage() {
   const isBcvhMode = moduleAccess.mode === 'bcvh';
   const allowedBcvhCodes = isBcvhMode ? moduleAccess.bcvh : null;
   const defaultBcvh = isBcvhMode && allowedBcvhCodes?.[0] ? allowedBcvhCodes[0] : 'all';
+  // Units of a BCVH-scope user come straight from their access (known at the first render), not from the metadata
+  // request, so the week/month blocks never start on the six-BCVH defaults.
+  const scopedUnits = useMemo(
+    () => (isBcvhMode ? allowedBcvhCodes.map((code) => ({ ma_bcvh: code, ten_bcvh: BCVH_BY_CODE[code] || `BCVH ${code}` })) : null),
+    [isBcvhMode, allowedBcvhCodes],
+  );
   const { features } = indicator;
   const api = useIndicatorApi();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -187,15 +193,15 @@ export default function BcvhRankingPage() {
 
   const fetchOverviewRef = useRef(null);
   if (!fetchOverviewRef.current) {
-    fetchOverviewRef.current = createOverviewFetcher(api, setOverviewState, { dynamicUnits: Boolean(indicator.dynamicUnits) });
+    fetchOverviewRef.current = createOverviewFetcher(api, setOverviewState, { dynamicUnits: Boolean(indicator.dynamicUnits), onlyCodes: isBcvhMode ? allowedBcvhCodes : null });
   }
 
   // Overview API fetch effect (Phase F1 - Exactly 1 request per anchor_date)
   useEffect(() => {
-    if (!isBcvhMode && toDate) {
+    if (toDate) {
       fetchOverviewRef.current(toDate);
     }
-  }, [toDate, overviewRetrySeq, isBcvhMode]);
+  }, [toDate, overviewRetrySeq]);
 
   useEffect(() => {
     let active = true;
@@ -304,7 +310,7 @@ export default function BcvhRankingPage() {
   const nearestAvailableDate = metaState.maxDate && metaState.maxDate !== toDate ? metaState.maxDate : null;
 
   return (
-    <BcvhUnitsProvider units={metaState.units}>
+    <BcvhUnitsProvider units={isBcvhMode ? scopedUnits : metaState.units} scoped={isBcvhMode}>
     <PageContainer
       accentClassName={indicatorTheme(indicator).accentBar}
       badge={<span className={`rounded-full border px-3 py-0.5 text-sm font-black ${indicatorTheme(indicator).chip}`}>{indicator.moduleLabel}</span>}
@@ -319,10 +325,12 @@ export default function BcvhRankingPage() {
       <div className="space-y-5">
         {/* Bảng trọng tâm điều hành (PO 2026-10-05): so sánh tuần/tháng, đặt trên cùng. Luồng tải riêng,
             độc lập với bộ lọc chung bên dưới, /overview và khối 5. */}
-        {!isBcvhMode ? <BcvhWeeklyComparisonBlock /> : null}
+        {/* RBAC-01: a BCVH-scope user sees the same week/month comparison for their own BCVH only (the backend
+            sends only their rows, no city total row and no ranks). */}
+        <BcvhWeeklyComparisonBlock />
 
         {/* Khối 1: Xu hướng chất lượng theo tháng (đặt ngay dưới biểu đồ Diễn biến chất lượng theo tuần) */}
-        {!isBcvhMode && overviewState.processed ? (
+        {overviewState.processed ? (
           <BcvhMonthlyTrendBlock data={overviewState.processed} />
         ) : null}
 

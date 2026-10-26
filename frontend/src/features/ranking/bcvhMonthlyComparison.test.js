@@ -134,7 +134,8 @@ test('weekly trend block contract: under the weekly table, anchor-week driven, c
   assert.match(trend, /Tổng cộng 6 BCVH/);
 
   // default unit is TOTAL
-  assert.match(trend, /useState\(WEEKLY_TREND_TOTAL_KEY\)/);
+  // RBAC-01: a BCVH-scope user (units.scoped) starts on their own BCVH; everyone else still starts on the total.
+  assert.match(trend, /useState\((units\.scoped \? units\.codes\[0\] : )?WEEKLY_TREND_TOTAL_KEY\)/);
 
   // combo chart structure: volume bar + quality rate line + 90% target + ChartZoomFrame
   assert.match(comboChart, /ChartZoomFrame/);
@@ -158,7 +159,7 @@ test('monthly trend block contract: combo bar/line chart with unit filter, small
 
   // Unit filter with default total
   assert.match(blocks, /Xem theo đơn vị/);
-  assert.match(blocks, /useState\(MONTHLY_TREND_TOTAL_KEY\)/);
+  assert.match(blocks, /useState\((units\.scoped \? units\.codes\[0\] : )?MONTHLY_TREND_TOTAL_KEY\)/);
   assert.match(blocks, /Tổng cộng 6 BCVH/);
   assert.match(blocks, /Tất cả 6 BCVH/);
 

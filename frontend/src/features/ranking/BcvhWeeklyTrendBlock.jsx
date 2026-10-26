@@ -35,7 +35,8 @@ export default function BcvhWeeklyTrendBlock({ anchorWeekId, anchorWeek }) {
   };
   const TREND_COLORS = { ...BASE_TREND_COLORS, ...(units.colors || {}) };
   const [trendState, setTrendState] = useState({ status: 'idle', weeks: [], error: null });
-  const [unit, setUnit] = useState(WEEKLY_TREND_TOTAL_KEY);
+  // A user limited to some BCVH has no city total: start on their first BCVH.
+  const [unit, setUnit] = useState(units.scoped ? units.codes[0] : WEEKLY_TREND_TOTAL_KEY);
 
   const fetchTrend = useMemo(() => createWeeklyTrendFetcher(api, setTrendState), []);
   useEffect(() => {
@@ -79,7 +80,7 @@ export default function BcvhWeeklyTrendBlock({ anchorWeekId, anchorWeek }) {
             onChange={(e) => setUnit(e.target.value)}
             className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs sm:text-sm font-semibold text-slate-800 shadow-2xs hover:border-blue-400 focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600"
           >
-            <option value={WEEKLY_TREND_TOTAL_KEY}>{TREND_NAMES[WEEKLY_TREND_TOTAL_KEY]}</option>
+            {units.scoped ? null : <option value={WEEKLY_TREND_TOTAL_KEY}>{TREND_NAMES[WEEKLY_TREND_TOTAL_KEY]}</option>}
             {units.allowSmallMultiples ? <option value={ALL_UNITS}>{units.dynamic ? units.allLabel : 'Tất cả 6 BCVH'}</option> : null}
             {units.codes.map((code) => (
               <option key={code} value={code}>{TREND_NAMES[code] || code}</option>

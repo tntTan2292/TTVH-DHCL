@@ -34,14 +34,17 @@ export function formatOverviewNumber(value) {
   return num.toLocaleString('vi-VN');
 }
 
-export function processOverviewData(data = {}, meta = {}, { dynamicUnits = false } = {}) {
+export function processOverviewData(data = {}, meta = {}, { dynamicUnits = false, onlyCodes = null } = {}) {
   const monthly = Array.isArray(data.monthly) ? data.monthly : [];
   const daily = Array.isArray(data.daily) ? data.daily : [];
   const mtd = Array.isArray(data.mtd) ? data.mtd : [];
   const routes = Array.isArray(data.routes) ? data.routes : [];
 
   // Dynamic-unit indicators (F1.2) use the units the API returned, in name order; the others the six BCVH.
-  const unitCodes = dynamicUnits
+  // RBAC-01: a user limited to some BCVH gets rows for those BCVH only (not an empty row per other BCVH).
+  const unitCodes = Array.isArray(onlyCodes)
+    ? onlyCodes.map(String)
+    : dynamicUnits
     ? Array.from(new Set(
       [...mtd, ...monthly, ...routes].map((item) => String(item?.ma_bcvh || '')).filter(Boolean)
     )).sort((a, b) => {

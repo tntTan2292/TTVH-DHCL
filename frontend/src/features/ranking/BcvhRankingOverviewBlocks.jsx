@@ -45,7 +45,8 @@ export function BcvhMonthlyTrendBlock({ data }) {
   const indicator = useIndicator();
   const cardRef = useRef(null);
   const units = useBcvhUnits();
-  const [unit, setUnit] = useState(MONTHLY_TREND_TOTAL_KEY);
+  // A user limited to some BCVH has no city total: start on their first BCVH.
+  const [unit, setUnit] = useState(units.scoped ? units.codes[0] : MONTHLY_TREND_TOTAL_KEY);
   // Click-to-order (PO 2026-10-10) of the 6 BCVH rows of the heatmap by the unit name or by a month's rate.
   const [heatmapSort, setHeatmapSort] = useState(null);
   const handleHeatmapSort = (field) => setHeatmapSort((current) => nextSortState(current, field, { textFields: ['ten_bcvh'] }));
@@ -100,7 +101,7 @@ export function BcvhMonthlyTrendBlock({ data }) {
               className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-800 shadow-2xs hover:border-blue-400 focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600"
               aria-label="Xem theo đơn vị"
             >
-              <option value={MONTHLY_TREND_TOTAL_KEY}>{unitNames[MONTHLY_TREND_TOTAL_KEY]}</option>
+              {units.scoped ? null : <option value={MONTHLY_TREND_TOTAL_KEY}>{unitNames[MONTHLY_TREND_TOTAL_KEY]}</option>}
               {units.allowSmallMultiples ? <option value={ALL_UNITS}>{units.dynamic ? units.allLabel : 'Tất cả 6 BCVH'}</option> : null}
               {units.codes.map((code) => (
                 <option key={code} value={code}>{unitNames[code] || code}</option>
