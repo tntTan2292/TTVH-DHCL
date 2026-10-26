@@ -424,7 +424,7 @@ export default function AutoBackfillSmartDayView({
                       selectedReimportKeys
                     );
                     return (
-                      <th key={code} className="min-w-[148px] px-1.5 py-2.5">
+                      <th key={code} className="min-w-[164px] px-1.5 py-2.5">
                         <div className="flex items-center justify-between gap-1">
                           <div className="flex items-center gap-1 min-w-0">
                             <span className="rounded bg-slate-800 text-white px-1.5 py-0.5 text-[10px] font-extrabold shadow-2xs shrink-0">
@@ -587,7 +587,7 @@ export default function AutoBackfillSmartDayView({
 
                       {/* Col 3..7: 5 Indicators */}
                       {displayIndicators.map((code) => (
-                        <td key={code} className="min-w-[148px] px-1.5 py-1.5 align-middle">
+                        <td key={code} className="min-w-[164px] px-1.5 py-1.5 align-middle">
                           <CompactIndicatorCell
                             dayDate={day.date}
                             indicatorCode={code}
@@ -1264,7 +1264,7 @@ function CompactIndicatorCell({
           <div
             key={lane}
             title={lastImportTooltip}
-            className={`flex flex-col gap-0.5 min-w-0 overflow-hidden px-1.5 py-0.5 rounded-lg border transition ${
+            className={`flex items-center gap-1 min-w-0 overflow-hidden px-1.5 py-1 rounded-lg border transition ${
               isLaneSelected
                 ? isReimportMode
                   ? 'border-indigo-300 bg-indigo-50/70 shadow-2xs'
@@ -1272,8 +1272,8 @@ function CompactIndicatorCell({
                 : 'border-slate-200/70 bg-white hover:border-slate-300'
             }`}
           >
-            {/* Line 1: Checkbox + Lane Tag + Status (the status shrinks and truncates, it never pushes the cell wider) */}
-            <div className="flex items-center gap-1 min-w-0 w-full">
+            {/* Checkbox + lane tag + status on ONE line: the status shrinks and truncates, the action is an icon (full name in its tooltip) */}
+            <div className="flex items-center gap-1 min-w-0 flex-1">
               {isAdmin && (
                 <div className="w-3.5 shrink-0 flex items-center justify-center">
                   {canSelectLane ? (
@@ -1318,9 +1318,9 @@ function CompactIndicatorCell({
               </span>
             </div>
 
-            {/* Line 2 (only when the lane has an action): action button and popover, right aligned */}
+            {/* Action: icon button and popover, only when the lane has one */}
             {(hasPrimaryAction || hasSecondaryActions) && (
-            <div className="flex items-center justify-end gap-0.5 min-w-0">
+            <div className="flex items-center gap-0.5 shrink-0">
               {isAdmin && (
                 item.status === 'COMPLETED' ? (
                   <button
@@ -1329,11 +1329,11 @@ function CompactIndicatorCell({
                       e.stopPropagation();
                       onReimportClick(item);
                     }}
-                    className="inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[9px] font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 transition shadow-2xs cursor-pointer whitespace-nowrap"
+                    className="inline-flex items-center gap-0.5 rounded p-1 text-[9px] font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 transition shadow-2xs cursor-pointer whitespace-nowrap"
                     title={`Tái nạp ${indicatorCode} ${lane}`}
                   >
-                    <RotateCcw className="h-2.5 w-2.5" />
-                    <span>Nhập lại</span>
+                    <RotateCcw className="h-3 w-3" />
+                    <span className="sr-only">Nhập lại</span>
                   </button>
                 ) : item.status === 'INCOMPLETE' ||
                   item.status === 'DATA_ERROR' ||
@@ -1344,11 +1344,11 @@ function CompactIndicatorCell({
                       e.stopPropagation();
                       onReimportClick(item);
                     }}
-                    className="inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[9px] font-bold text-[var(--color-vnpost-blue)] bg-blue-50 hover:bg-blue-100 border border-blue-200 transition shadow-2xs cursor-pointer whitespace-nowrap"
+                    className="inline-flex items-center gap-0.5 rounded p-1 text-[9px] font-bold text-[var(--color-vnpost-blue)] bg-blue-50 hover:bg-blue-100 border border-blue-200 transition shadow-2xs cursor-pointer whitespace-nowrap"
                     title={`Nạp mới ${indicatorCode} ${lane}`}
                   >
-                    <RotateCw className="h-2.5 w-2.5" />
-                    <span>Nhập mới</span>
+                    <RotateCw className="h-3 w-3" />
+                    <span className="sr-only">Nhập mới</span>
                   </button>
                 ) : null
               )}
