@@ -145,8 +145,8 @@ export default function HangTonByOfficeTab({
                 Tổng hợp hiện tại
               </th>
               <th colSpan={3} className="py-1.5 px-2 text-center bg-blue-50/50 text-blue-900">
-                <span className="block">{compareHeader.title}</span>
-                <span className="block text-sm font-medium normal-case tracking-normal text-blue-800">{compareHeader.note}</span>
+                {compareHeader.title}{' '}
+                <span className="font-medium normal-case tracking-normal text-blue-800">{compareHeader.note}</span>
               </th>
             </tr>
 

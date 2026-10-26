@@ -45,7 +45,7 @@ export function drillDownFilter({ office = null, kind = 'total', level = null, s
  */
 export function compareColumnsHeader(compare) {
   const from = compare?.from;
-  const note = 'tính trên mọi mức tồn, không theo cột đang hiện';
+  const note = 'tính trên mọi mức tồn';
   if (!from || !from.business_date) return { title: 'Biến động: chưa có mốc so sánh', note };
   const [year, month, day] = String(from.business_date).split('-');
   const date = day && month ? `${day}/${month}${year ? `/${year}` : ''}` : from.business_date;
