@@ -98,10 +98,19 @@ export default function AutoBackfillSmartDayView({
     setAccordionPage(1);
   }, [indicatorFilter, monthFilter, laneFilter, onlyMissingDays, allViewMode]);
 
-  // 1. Calendar Day Groups (1 row per date, 4 indicators side-by-side)
+  // 1. Indicator list for Combined View (5 indicators side-by-side: F1.1, F1.2, F1.3, F4.1, F4.2)
+  const displayIndicators = useMemo(() => {
+    if (Array.isArray(indicatorsList) && indicatorsList.length > 0) {
+      const listCodes = indicatorsList.map((i) => (i.code || '').trim().toUpperCase()).filter(Boolean);
+      return [...new Set([...DEFAULT_DAY_VIEW_INDICATORS, ...listCodes])];
+    }
+    return DEFAULT_DAY_VIEW_INDICATORS;
+  }, [indicatorsList]);
+
+  // Calendar Day Groups (1 row per date, 5 indicators side-by-side)
   const allCalendarDays = useMemo(() => {
-    return groupItemsByCalendarDay(filteredCoverageItems, DEFAULT_DAY_VIEW_INDICATORS);
-  }, [filteredCoverageItems]);
+    return groupItemsByCalendarDay(filteredCoverageItems, displayIndicators);
+  }, [filteredCoverageItems, displayIndicators]);
 
   const displayedCalendarDays = useMemo(() => {
     if (onlyMissingDays) {
@@ -375,15 +384,15 @@ export default function AutoBackfillSmartDayView({
           </div>
         ) : isCombinedView ? (
           /* ========================================================================= */
-          /* OPTION A ROUND 3: COMBINED 1-ROW-PER-DAY WITH 4 INDICATORS SIDE-BY-SIDE   */
+          /* OPTION A ROUND 3: COMBINED 1-ROW-PER-DAY WITH 5 INDICATORS SIDE-BY-SIDE   */
           /* ========================================================================= */
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse text-sm">
               <thead className="sticky top-0 z-10 bg-slate-50/95 backdrop-blur-xs border-b border-slate-200 text-xs font-bold uppercase text-slate-600">
                 <tr>
-                  {/* Col 1: Select All on Page */}
+                  {/* Col 1: Select All on Page (Sticky) */}
                   {isAdmin && (
-                    <th className="w-12 px-3 py-3.5 text-center">
+                    <th className="sticky left-0 z-20 bg-slate-50/95 backdrop-blur-xs w-10 min-w-[40px] px-1.5 py-3 text-center border-r border-slate-200/80 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.06)]">
                       <button
                         type="button"
                         onClick={() => {
@@ -401,11 +410,13 @@ export default function AutoBackfillSmartDayView({
                     </th>
                   )}
 
-                  {/* Col 2: Business Date + Anchor */}
-                  <th className="w-36 min-w-[132px] px-3 py-3.5">Ngày Nghiệp vụ</th>
+                  {/* Col 2: Business Date + Anchor (Sticky) */}
+                  <th className="sticky left-10 z-20 bg-slate-50/95 backdrop-blur-xs w-36 min-w-[136px] max-w-[140px] px-2.5 py-3 border-r border-slate-200/80 shadow-[3px_0_6px_-2px_rgba(0,0,0,0.08)]">
+                    Ngày Nghiệp vụ
+                  </th>
 
-                  {/* Col 3..6: 4 Indicators */}
-                  {DEFAULT_DAY_VIEW_INDICATORS.map((code) => {
+                  {/* Col 3..7: 5 Indicators (F1.1, F1.2, F1.3, F4.1, F4.2) */}
+                  {displayIndicators.map((code) => {
                     const colSelection = resolveIndicatorColumnSelectionState(
                       activePaginated.pageItems,
                       code,
@@ -413,13 +424,13 @@ export default function AutoBackfillSmartDayView({
                       selectedReimportKeys
                     );
                     return (
-                      <th key={code} className="min-w-[176px] px-2.5 py-3">
-                        <div className="flex items-center justify-between gap-1.5">
-                          <div className="flex items-center gap-1.5">
-                            <span className="rounded bg-slate-800 text-white px-1.5 py-0.5 text-[11px] font-extrabold shadow-2xs">
+                      <th key={code} className="min-w-[148px] px-1.5 py-2.5">
+                        <div className="flex items-center justify-between gap-1">
+                          <div className="flex items-center gap-1 min-w-0">
+                            <span className="rounded bg-slate-800 text-white px-1.5 py-0.5 text-[10px] font-extrabold shadow-2xs shrink-0">
                               {code}
                             </span>
-                            <span className="text-[11px] font-bold text-slate-700 tracking-tight">
+                            <span className="text-[11px] font-bold text-slate-700 tracking-tight truncate" title={INDICATOR_LABELS[code] || code}>
                               {INDICATOR_LABELS[code] || code}
                             </span>
                           </div>
@@ -430,7 +441,7 @@ export default function AutoBackfillSmartDayView({
                                 if (onToggleSelectCells) onToggleSelectCells(colSelection.selectableItems);
                                 else onToggleSelectAllItems(colSelection.selectableItems);
                               }}
-                              className="p-1 rounded text-slate-400 hover:text-blue-600 hover:bg-slate-200/60 transition cursor-pointer"
+                              className="p-0.5 rounded text-slate-400 hover:text-blue-600 hover:bg-slate-200/60 transition cursor-pointer shrink-0"
                               title={
                                 colSelection.isSelected
                                   ? `Bỏ chọn toàn bộ chỉ tiêu ${code} trên trang`
@@ -451,8 +462,8 @@ export default function AutoBackfillSmartDayView({
                     );
                   })}
 
-                  {/* Col 7: Thao tác ngày */}
-                  <th className="w-24 min-w-[88px] px-3 py-3.5 text-right">Lịch nghỉ / TT</th>
+                  {/* Col 8: Thao tác ngày */}
+                  <th className="w-20 min-w-[76px] px-2 py-3 text-center">Lịch nghỉ / TT</th>
                 </tr>
               </thead>
 
@@ -482,7 +493,7 @@ export default function AutoBackfillSmartDayView({
                   return (
                     <tr
                       key={day.date}
-                      className={`transition hover:bg-slate-50/70 ${
+                      className={`group transition hover:bg-slate-50/70 ${
                         isAnyLaneSelected
                           ? isReimportMode
                             ? 'bg-indigo-50/40'
@@ -490,9 +501,15 @@ export default function AutoBackfillSmartDayView({
                           : ''
                       }`}
                     >
-                      {/* Col 1: Day Checkbox */}
+                      {/* Col 1: Day Checkbox (Sticky) */}
                       {isAdmin && (
-                        <td className="w-12 px-3 py-2.5 text-center align-middle">
+                        <td className={`sticky left-0 z-10 w-10 min-w-[40px] px-1.5 py-2 text-center align-middle border-r border-slate-200/80 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.06)] transition-colors ${
+                          isAnyLaneSelected
+                            ? isReimportMode
+                              ? 'bg-indigo-50/90'
+                              : 'bg-blue-50/90'
+                            : 'bg-white group-hover:bg-slate-50'
+                        }`}>
                           {daySelection.canSelect ? (
                             <button
                               type="button"
@@ -522,14 +539,20 @@ export default function AutoBackfillSmartDayView({
                         </td>
                       )}
 
-                      {/* Col 2: Date + Anchor Run button */}
-                      <td className="w-36 min-w-[132px] px-3 py-2.5 align-middle">
+                      {/* Col 2: Date + Anchor Run button (Sticky) */}
+                      <td className={`sticky left-10 z-10 w-36 min-w-[136px] max-w-[140px] px-2.5 py-2 align-middle border-r border-slate-200/80 shadow-[3px_0_6px_-2px_rgba(0,0,0,0.08)] transition-colors ${
+                        isAnyLaneSelected
+                          ? isReimportMode
+                            ? 'bg-indigo-50/90'
+                            : 'bg-blue-50/90'
+                          : 'bg-white group-hover:bg-slate-50'
+                      }`}>
                         <div className="flex items-center gap-1.5">
-                          <span className="font-bold text-slate-900 whitespace-nowrap">{day.date}</span>
+                          <span className="font-bold text-slate-900 text-xs whitespace-nowrap">{day.date}</span>
                           {day.hasMissing ? (
-                            <span className="h-2 w-2 rounded-full bg-amber-400 shrink-0" title="Ngày có dữ liệu còn thiếu" />
+                            <span className="h-1.5 w-1.5 rounded-full bg-amber-400 shrink-0" title="Ngày có dữ liệu còn thiếu" />
                           ) : (
-                            <span className="h-2 w-2 rounded-full bg-emerald-500 shrink-0" title="Ngày đã đủ dữ liệu" />
+                            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0" title="Ngày đã đủ dữ liệu" />
                           )}
                         </div>
                         {isAdmin && onAnchorRunClick && (
@@ -539,10 +562,10 @@ export default function AutoBackfillSmartDayView({
                               e.stopPropagation();
                               onAnchorRunClick(day.date);
                             }}
-                            className="mt-1 inline-flex items-center gap-1 rounded-md border border-blue-200 bg-blue-50/90 px-1.5 py-0.5 text-[10px] font-bold text-[var(--color-vnpost-blue)] hover:bg-blue-100 hover:border-blue-300 transition shadow-2xs whitespace-nowrap cursor-pointer"
+                            className="mt-1 inline-flex items-center gap-1 rounded-md border border-blue-200 bg-blue-50/90 px-1.5 py-0.5 text-[9px] font-bold text-[var(--color-vnpost-blue)] hover:bg-blue-100 hover:border-blue-300 transition shadow-2xs whitespace-nowrap cursor-pointer"
                             title={`Import cả ngày + bù 3 ngày (${day.date}, D-1, D-2)`}
                           >
-                            <Zap className="h-2.5 w-2.5 text-amber-500 fill-amber-400" />
+                            <Zap className="h-2.5 w-2.5 text-amber-500 fill-amber-400 shrink-0" />
                             <span>Import cả ngày + bù 3 ngày</span>
                           </button>
                         )}
@@ -553,18 +576,18 @@ export default function AutoBackfillSmartDayView({
                               e.stopPropagation();
                               onSelectDayAllIndicators(day.date);
                             }}
-                            className="mt-1 inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-1.5 py-0.5 text-[10px] font-bold text-slate-600 hover:bg-slate-50 hover:border-slate-300 transition whitespace-nowrap cursor-pointer"
+                            className="mt-1 inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-1.5 py-0.5 text-[9px] font-bold text-slate-600 hover:bg-slate-50 hover:border-slate-300 transition whitespace-nowrap cursor-pointer"
                             title={`Chọn ${day.date} cho cả 5 chỉ tiêu (F1.1, F1.2, F1.3, F4.1, F4.2) và 2 nguồn để Nhập mới hoặc Nhập lại`}
                           >
-                            <CheckSquare className="h-2.5 w-2.5" />
+                            <CheckSquare className="h-2.5 w-2.5 shrink-0" />
                             <span>Chọn cả 5 chỉ tiêu</span>
                           </button>
                         )}
                       </td>
 
-                      {/* Col 3..6: 4 Indicators */}
-                      {DEFAULT_DAY_VIEW_INDICATORS.map((code) => (
-                        <td key={code} className="min-w-[176px] px-2 py-2 align-middle">
+                      {/* Col 3..7: 5 Indicators */}
+                      {displayIndicators.map((code) => (
+                        <td key={code} className="min-w-[148px] px-1.5 py-1.5 align-middle">
                           <CompactIndicatorCell
                             dayDate={day.date}
                             indicatorCode={code}
@@ -584,16 +607,16 @@ export default function AutoBackfillSmartDayView({
                         </td>
                       ))}
 
-                      {/* Col 7: Lịch nghỉ / Thao tác */}
-                      <td className="w-24 min-w-[88px] px-3 py-2.5 text-right whitespace-nowrap align-middle">
+                      {/* Col 8: Lịch nghỉ / Thao tác */}
+                      <td className="w-20 min-w-[76px] px-2 py-2 text-center whitespace-nowrap align-middle">
                         {holiday ? (
-                          <div className="flex flex-col items-end gap-1">
+                          <div className="flex flex-col items-center gap-1">
                             <span
-                              className="inline-flex items-center gap-1 rounded-md bg-purple-50 px-1.5 py-0.5 text-[11px] font-semibold text-purple-800 border border-purple-200"
+                              className="inline-flex items-center gap-1 rounded-md bg-purple-50 px-1 py-0.5 text-[10px] font-semibold text-purple-800 border border-purple-200"
                               title={holiday.reason}
                             >
                               <CalendarDays className="h-3 w-3 text-purple-600 shrink-0" />
-                              <span className="truncate max-w-[80px]">Nghỉ lễ</span>
+                              <span className="truncate max-w-[60px]">Nghỉ lễ</span>
                             </span>
                             {isAdmin && holidayItem && (
                               <button
@@ -602,16 +625,16 @@ export default function AutoBackfillSmartDayView({
                                   e.stopPropagation();
                                   onRevokeHolidayClick(holidayItem.holiday);
                                 }}
-                                className="inline-flex items-center gap-0.5 rounded-md border border-purple-200 bg-purple-50 px-1.5 py-0.5 text-[10px] font-semibold text-purple-900 hover:bg-purple-100 transition shadow-2xs cursor-pointer"
+                                className="inline-flex items-center gap-0.5 rounded-md border border-purple-200 bg-purple-50 px-1.5 py-0.5 text-[9px] font-semibold text-purple-900 hover:bg-purple-100 transition shadow-2xs cursor-pointer"
                                 title="Thu hồi LỊCH NGHỈ"
                               >
-                                <RotateCcw className="h-3 w-3" />
+                                <RotateCcw className="h-2.5 w-2.5" />
                                 <span>Thu hồi</span>
                               </button>
                             )}
                           </div>
                         ) : isAdmin ? (
-                          <div className="flex items-center justify-end gap-1">
+                          <div className="flex items-center justify-center">
                             {firstActionableItem && (
                               <button
                                 type="button"
@@ -619,10 +642,10 @@ export default function AutoBackfillSmartDayView({
                                   e.stopPropagation();
                                   onMarkHolidayClick(firstActionableItem);
                                 }}
-                                className="inline-flex items-center gap-0.5 rounded-md border border-indigo-200 bg-indigo-50 px-1.5 py-0.5 text-[10px] font-semibold text-indigo-900 hover:bg-indigo-100 transition shadow-2xs cursor-pointer"
+                                className="inline-flex items-center gap-0.5 rounded-md border border-indigo-200 bg-indigo-50 px-1.5 py-0.5 text-[9px] font-semibold text-indigo-900 hover:bg-indigo-100 transition shadow-2xs cursor-pointer"
                                 title="Đánh dấu LỊCH NGHỈ cho ngày này"
                               >
-                                <CalendarDays className="h-3 w-3" />
+                                <CalendarDays className="h-2.5 w-2.5" />
                                 <span>Nghỉ</span>
                               </button>
                             )}
@@ -645,15 +668,15 @@ export default function AutoBackfillSmartDayView({
             <table className="w-full text-left border-collapse text-sm">
               <thead className="sticky top-0 z-10 bg-slate-50/95 backdrop-blur-xs border-b border-slate-200 text-xs font-bold uppercase text-slate-600">
                 <tr>
-                  {/* Col 1: Day Checkbox (w-12 fixed) */}
+                  {/* Col 1: Day Checkbox (Sticky) */}
                   {isAdmin && (
-                    <th className="w-12 px-3 py-3.5 text-center">
+                    <th className="sticky left-0 z-20 bg-slate-50/95 backdrop-blur-xs w-10 min-w-[40px] px-1.5 py-3.5 text-center border-r border-slate-200/80 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.06)]">
                       <button
                         type="button"
                         onClick={() => {
                           onToggleSelectAllItems(paginatedDays.pageItems.flatMap((d) => d.items));
                         }}
-                        className="text-slate-500 hover:text-slate-800 focus:outline-none"
+                        className="text-slate-500 hover:text-slate-800 focus:outline-none cursor-pointer"
                         title={isAllPageItemsSelected ? 'Bỏ chọn trang này' : 'Chọn trang này'}
                       >
                         {isAllPageItemsSelected ? (
@@ -665,8 +688,10 @@ export default function AutoBackfillSmartDayView({
                     </th>
                   )}
 
-                  {/* Col 2: Business Date (w-44 fixed layout with anchor button) */}
-                  <th className="min-w-[150px] w-44 px-3 py-3.5">Ngày Nghiệp vụ</th>
+                  {/* Col 2: Business Date (Sticky) */}
+                  <th className="sticky left-10 z-20 bg-slate-50/95 backdrop-blur-xs min-w-[140px] w-40 px-2.5 py-3.5 border-r border-slate-200/80 shadow-[3px_0_6px_-2px_rgba(0,0,0,0.08)]">
+                    Ngày Nghiệp vụ
+                  </th>
 
                   {/* Col 3: Indicator Code (w-20 fixed, shown when viewing all) */}
                   {indicatorFilter === 'ALL' && (
@@ -738,7 +763,7 @@ export default function AutoBackfillSmartDayView({
                   return (
                     <tr
                       key={`${day.indicator || ''}-${day.date}`}
-                      className={`transition hover:bg-slate-50/80 ${
+                      className={`group transition hover:bg-slate-50/80 ${
                         isAnyLaneSelected
                           ? isReimportMode
                             ? 'bg-indigo-50/40'
@@ -746,14 +771,20 @@ export default function AutoBackfillSmartDayView({
                           : ''
                       }`}
                     >
-                      {/* Col 1: Day Checkbox */}
+                      {/* Col 1: Day Checkbox (Sticky) */}
                       {isAdmin && (
-                        <td className="w-12 px-3 py-3 text-center align-middle">
+                        <td className={`sticky left-0 z-10 w-10 min-w-[40px] px-1.5 py-3 text-center align-middle border-r border-slate-200/80 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.06)] transition-colors ${
+                          isAnyLaneSelected
+                            ? isReimportMode
+                              ? 'bg-indigo-50/90'
+                              : 'bg-blue-50/90'
+                            : 'bg-white group-hover:bg-slate-50'
+                        }`}>
                           {daySelection.canSelect ? (
                             <button
                               type="button"
                               onClick={handleToggleDay}
-                              className="text-slate-400 hover:text-blue-600 focus:outline-none"
+                              className="text-slate-400 hover:text-blue-600 focus:outline-none cursor-pointer"
                               title={daySelection.isSelected ? 'Bỏ chọn ngày này' : 'Chọn ngày này'}
                             >
                               {daySelection.isSelected ? (
@@ -774,9 +805,15 @@ export default function AutoBackfillSmartDayView({
                         </td>
                       )}
 
-                      {/* Col 2: Business Date + Anchor Run */}
-                      <td className="min-w-[150px] w-44 px-3 py-3 align-middle">
-                        <div className="font-bold text-slate-900 whitespace-nowrap">{day.date}</div>
+                      {/* Col 2: Business Date + Anchor Run (Sticky) */}
+                      <td className={`sticky left-10 z-10 min-w-[140px] w-40 px-2.5 py-3 align-middle border-r border-slate-200/80 shadow-[3px_0_6px_-2px_rgba(0,0,0,0.08)] transition-colors ${
+                        isAnyLaneSelected
+                          ? isReimportMode
+                            ? 'bg-indigo-50/90'
+                            : 'bg-blue-50/90'
+                          : 'bg-white group-hover:bg-slate-50'
+                      }`}>
+                        <div className="font-bold text-slate-900 whitespace-nowrap text-xs">{day.date}</div>
                         {isAdmin && onAnchorRunClick && (
                           <button
                             type="button"
@@ -784,10 +821,10 @@ export default function AutoBackfillSmartDayView({
                               e.stopPropagation();
                               onAnchorRunClick(day.date);
                             }}
-                            className="mt-1 inline-flex items-center gap-1 rounded-md border border-blue-200 bg-blue-50/90 px-1.5 py-0.5 text-[10px] font-bold text-[var(--color-vnpost-blue)] hover:bg-blue-100 hover:border-blue-300 transition shadow-2xs whitespace-nowrap cursor-pointer"
+                            className="mt-1 inline-flex items-center gap-1 rounded-md border border-blue-200 bg-blue-50/90 px-1.5 py-0.5 text-[9px] font-bold text-[var(--color-vnpost-blue)] hover:bg-blue-100 hover:border-blue-300 transition shadow-2xs whitespace-nowrap cursor-pointer"
                             title={`Import cả ngày + bù 3 ngày (${day.date}, D-1, D-2)`}
                           >
-                            <Zap className="h-2.5 w-2.5 text-amber-500 fill-amber-400" />
+                            <Zap className="h-2.5 w-2.5 text-amber-500 fill-amber-400 shrink-0" />
                             <span>Import cả ngày + bù 3 ngày</span>
                           </button>
                         )}
@@ -798,10 +835,10 @@ export default function AutoBackfillSmartDayView({
                               e.stopPropagation();
                               onSelectDayAllIndicators(day.date);
                             }}
-                            className="mt-1 inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-1.5 py-0.5 text-[10px] font-bold text-slate-600 hover:bg-slate-50 hover:border-slate-300 transition whitespace-nowrap cursor-pointer"
+                            className="mt-1 inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-1.5 py-0.5 text-[9px] font-bold text-slate-600 hover:bg-slate-50 hover:border-slate-300 transition whitespace-nowrap cursor-pointer"
                             title={`Chọn ${day.date} cho cả 5 chỉ tiêu (F1.1, F1.2, F1.3, F4.1, F4.2) và 2 nguồn để Nhập mới hoặc Nhập lại`}
                           >
-                            <CheckSquare className="h-2.5 w-2.5" />
+                            <CheckSquare className="h-2.5 w-2.5 shrink-0" />
                             <span>Chọn cả 5 chỉ tiêu</span>
                           </button>
                         )}
@@ -1189,12 +1226,12 @@ function CompactIndicatorCell({
   const lanes = indicatorData.laneOrder?.length > 0 ? indicatorData.laneOrder : ['HUE', 'TCT'];
 
   return (
-    <div className="flex flex-col gap-1 p-1.5 rounded-xl bg-slate-50/80 border border-slate-200/70 hover:border-slate-300 transition">
+    <div className="flex flex-col gap-1 p-1 rounded-xl bg-slate-50/80 border border-slate-200/70 hover:border-slate-300 transition">
       {lanes.map((lane) => {
         const item = indicatorData.lanes[lane];
         if (!item) {
           return (
-            <div key={lane} className="flex items-center justify-between px-2 py-1 rounded-lg bg-white/40 text-[10px] text-slate-400">
+            <div key={lane} className="flex items-center justify-between px-1.5 py-0.5 rounded-lg bg-white/40 text-[9px] text-slate-400 border border-dashed border-slate-200/60">
               <span className="font-bold text-slate-400">{lane}</span>
               <span>—</span>
             </div>
@@ -1221,7 +1258,7 @@ function CompactIndicatorCell({
           <div
             key={lane}
             title={lastImportTooltip}
-            className={`flex items-center justify-between gap-1.5 px-2 py-1 rounded-lg border transition ${
+            className={`flex items-center justify-between gap-1 px-1.5 py-0.5 rounded-lg border transition ${
               isLaneSelected
                 ? isReimportMode
                   ? 'border-indigo-300 bg-indigo-50/70 shadow-2xs'
@@ -1230,9 +1267,9 @@ function CompactIndicatorCell({
             }`}
           >
             {/* Left: Checkbox + Lane Tag + Status */}
-            <div className="flex items-center gap-1.5 min-w-0">
+            <div className="flex items-center gap-1 min-w-0">
               {isAdmin && (
-                <div className="w-4 shrink-0 flex items-center justify-center">
+                <div className="w-3.5 shrink-0 flex items-center justify-center">
                   {canSelectLane ? (
                     <button
                       type="button"
@@ -1245,20 +1282,20 @@ function CompactIndicatorCell({
                     >
                       {isLaneSelected ? (
                         <CheckSquare
-                          className={`h-3.5 w-3.5 ${isReimportMode ? 'text-indigo-600 fill-indigo-50' : 'text-blue-600 fill-blue-50'}`}
+                          className={`h-3 w-3 ${isReimportMode ? 'text-indigo-600 fill-indigo-50' : 'text-blue-600 fill-blue-50'}`}
                         />
                       ) : (
-                        <Square className="h-3.5 w-3.5" />
+                        <Square className="h-3 w-3" />
                       )}
                     </button>
                   ) : (
-                    <span className="w-3.5 h-3.5 text-slate-300 text-[10px] text-center inline-block">—</span>
+                    <span className="w-3.5 h-3.5 text-slate-300 text-[9px] text-center inline-block">—</span>
                   )}
                 </div>
               )}
 
               <span
-                className={`text-[10px] font-extrabold px-1 py-0.2 rounded shrink-0 ${
+                className={`text-[9px] font-extrabold px-1 py-0.2 rounded shrink-0 ${
                   lane === 'HUE'
                     ? 'bg-amber-100 text-amber-900 border border-amber-200/70'
                     : 'bg-sky-100 text-sky-900 border border-sky-200/70'
@@ -1269,14 +1306,14 @@ function CompactIndicatorCell({
 
               <span
                 title={lastImportTooltip}
-                className={`text-[10px] font-semibold px-1.5 py-0.2 rounded-full border truncate max-w-[92px] cursor-help shrink-0 ${statusInfo.badgeClass}`}
+                className={`text-[9px] font-semibold px-1 py-0.2 rounded-full border truncate max-w-[66px] cursor-help shrink-0 ${statusInfo.badgeClass}`}
               >
                 {statusInfo.label}
               </span>
             </div>
 
             {/* Right: Action Button or Popover */}
-            <div className="flex items-center gap-1 shrink-0">
+            <div className="flex items-center gap-0.5 shrink-0">
               {isAdmin && (
                 item.status === 'COMPLETED' ? (
                   <button
@@ -1285,7 +1322,7 @@ function CompactIndicatorCell({
                       e.stopPropagation();
                       onReimportClick(item);
                     }}
-                    className="inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[10px] font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 transition shadow-2xs cursor-pointer whitespace-nowrap"
+                    className="inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[9px] font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 transition shadow-2xs cursor-pointer whitespace-nowrap"
                     title={`Tái nạp ${indicatorCode} ${lane}`}
                   >
                     <RotateCcw className="h-2.5 w-2.5" />
@@ -1300,7 +1337,7 @@ function CompactIndicatorCell({
                       e.stopPropagation();
                       onReimportClick(item);
                     }}
-                    className="inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[10px] font-bold text-[var(--color-vnpost-blue)] bg-blue-50 hover:bg-blue-100 border border-blue-200 transition shadow-2xs cursor-pointer whitespace-nowrap"
+                    className="inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[9px] font-bold text-[var(--color-vnpost-blue)] bg-blue-50 hover:bg-blue-100 border border-blue-200 transition shadow-2xs cursor-pointer whitespace-nowrap"
                     title={`Nạp mới ${indicatorCode} ${lane}`}
                   >
                     <RotateCw className="h-2.5 w-2.5" />

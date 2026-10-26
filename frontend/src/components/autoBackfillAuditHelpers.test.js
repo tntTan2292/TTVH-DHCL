@@ -336,6 +336,7 @@ console.log('ALL IMPORT-LOG-AUDIT-01 helper tests PASSED SUCCESSFULLY! (7/7 Suit
   assert.ok(d18.indicators['F1.2'], 'F1.2 indicator slot exists');
   assert.ok(d18.indicators['F1.3'], 'F1.3 indicator slot exists');
   assert.ok(d18.indicators['F4.1'], 'F4.1 indicator slot exists');
+  assert.ok(d18.indicators['F4.2'], 'F4.2 indicator slot exists');
   assert.equal(d18.indicators['F1.1'].lanes.HUE.status, 'COMPLETED');
   assert.equal(d18.indicators['F1.1'].lanes.TCT.status, 'COMPLETED');
   assert.equal(d18.indicators['F1.2'].lanes.HUE.status, 'INCOMPLETE');
@@ -345,6 +346,17 @@ console.log('ALL IMPORT-LOG-AUDIT-01 helper tests PASSED SUCCESSFULLY! (7/7 Suit
   const d17 = calendarDays[1];
   assert.equal(d17.hasMissing, false);
   assert.equal(d17.isFullyComplete, true);
+
+  // F4.2 items populate slots properly
+  const rawWithF42 = [
+    { indicator: 'F1.1', source_lane: 'HUE', business_date: '2026-10-25', status: 'COMPLETED' },
+    { indicator: 'F4.2', source_lane: 'HUE', business_date: '2026-10-25', status: 'COMPLETED' },
+    { indicator: 'F4.2', source_lane: 'TCT', business_date: '2026-10-25', status: 'COMPLETED' },
+  ];
+  const calWithF42 = groupItemsByCalendarDay(rawWithF42);
+  assert.equal(calWithF42.length, 1);
+  assert.equal(calWithF42[0].indicators['F4.2'].lanes.HUE.status, 'COMPLETED');
+  assert.equal(calWithF42[0].indicators['F4.2'].lanes.TCT.status, 'COMPLETED');
 
   // Empty and null inputs
   assert.deepEqual(groupItemsByCalendarDay([]), []);
