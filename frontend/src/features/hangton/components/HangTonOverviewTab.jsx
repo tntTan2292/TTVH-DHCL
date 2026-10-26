@@ -337,8 +337,8 @@ export default function HangTonOverviewTab({
               <LevelPicker
                 hiddenLevels={chartHidden}
                 onChange={setChartHidden}
-                label="Mức tồn trên biểu đồ:"
-                note="Biểu đồ vẽ các mức đang chọn (mặc định từ ≥3 ngày); bảng 'Chi tiết 9 mức' bên dưới luôn đủ 9 mức."
+                label="Mức tồn:"
+                note="Chỉ ảnh hưởng biểu đồ; bảng 9 mức bên dưới luôn đủ."
               />
               {chartLevels.length === 0 ? (
                 <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5 text-sm text-amber-900">

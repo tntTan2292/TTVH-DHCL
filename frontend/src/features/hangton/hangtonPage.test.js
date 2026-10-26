@@ -225,3 +225,14 @@ test('Theo bưu cục: COD figures never wrap (non-breaking currency sign and no
   assert.match(office, /whitespace-nowrap py-2\.5 px-2\.5 text-right border-r border-slate-300">\s*\{formatCurrency\(totals\.cod\)/);
   assert.match(read('./hangtonLevels.js'), /\u00A0₫/);
 });
+
+test('LevelPicker is compact: short chips, no wrapping labels, short notes', () => {
+  const picker = read('./components/LevelPicker.jsx');
+  assert.match(picker, /shortLevelLabel\(lvl\)/);
+  assert.match(picker, /whitespace-nowrap text-sm font-bold/);
+  assert.doesNotMatch(picker, /text-base/, 'compact: no 16 px buttons');
+  const office = read('./components/HangTonByOfficeTab.jsx');
+  const overview = read('./components/HangTonOverviewTab.jsx');
+  assert.match(office, /note="Tổng tồn, Tồn ≥5, COD và TỔNG CỘNG chỉ tính các mức đang hiện\."/);
+  assert.match(overview, /note="Chỉ ảnh hưởng biểu đồ; bảng 9 mức bên dưới luôn đủ\."/);
+});

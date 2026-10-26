@@ -339,3 +339,9 @@ test('comparison columns header names the base snapshot and says it counts every
   assert.match(none.note, /mọi mức tồn/);
   assert.equal(compareColumnsHeader({ from: {} }).title, 'Biến động: chưa có mốc so sánh');
 });
+
+test('level picker chips are short so the picker fits one line', async () => {
+  const { shortLevelLabel, TON_LEVELS } = await import('./hangtonLevels.js');
+  assert.deepEqual(TON_LEVELS.map(shortLevelLabel), ['<1', '≥1', '≥1.5', '≥2', '≥3', '≥4', '≥5', '≥7', '≥14']);
+  assert.equal(shortLevelLabel(''), '');
+});

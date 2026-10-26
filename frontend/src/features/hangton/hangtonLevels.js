@@ -276,3 +276,8 @@ export function levelsFromRank(minRank) {
   if (!Number.isFinite(min)) return [];
   return TON_LEVELS.filter((lvl) => tonRank(lvl) >= min);
 }
+
+// Short chip label of a level ("≥5 ngày" -> "≥5"): the pickers keep to one line; the full name stays in the tooltip.
+export function shortLevelLabel(level) {
+  return String(level || '').replace(/\s*ngày$/, '');
+}
