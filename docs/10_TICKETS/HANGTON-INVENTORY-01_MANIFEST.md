@@ -247,3 +247,5 @@ Review of the Antigravity redesign (commit dca72475): backend untouched, 45/45 t
 7. **"Xem bưu gửi"** in the hot-spot block opens Chi tiết already limited to 5 days and more (or the parcel window when Chi tiết is not allowed for the user).
 Also noted, not changed: the two charts themselves are the earlier ones (red by level; stacked by group); Antigravity did not send the short proposal that the prompt asked for first.
 Tests: hangton/navigation 49/49, backend `test_hangtonInventory.js` 9/9, lint clean, build OK.
+
+2026-10-26 (PO status): after the backend restart the PO checked the Tổng quan screen with the Section 18 fixes and confirmed it is OK - PO UI PASS for Sections 17-18.
