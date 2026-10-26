@@ -253,7 +253,7 @@ export default function HangTonByOfficeTab({
                       className="text-left font-bold text-slate-900 hover:text-rose-600 transition-colors flex items-center gap-1.5 cursor-pointer"
                       title={`Bấm để xem danh sách chi tiết bưu gửi của bưu cục ${r.office}`}
                     >
-                      <span className="break-words">{r.office}</span>
+                      <span className="whitespace-nowrap">{r.office}</span>
                       <ExternalLink size={12} className="opacity-0 group-hover:opacity-100 text-rose-600 shrink-0 transition-opacity" />
                     </button>
                   </td>

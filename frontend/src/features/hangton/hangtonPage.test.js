@@ -211,3 +211,10 @@ test('Theo bưu cục: the comparison column group shows its base snapshot and w
   assert.match(office, /\{compareHeader\.note\}/);
   assert.doesNotMatch(office, /Biến động so với mốc trước/, 'the vague wording is gone');
 });
+
+test('Theo bưu cục: an office name stays on one line (never wrapped, never cut)', () => {
+  const office = read('./components/HangTonByOfficeTab.jsx');
+  assert.match(office, /<span className="whitespace-nowrap">\{r\.office\}<\/span>/);
+  assert.doesNotMatch(office, /break-words">\{r\.office\}/);
+  assert.doesNotMatch(office, /truncate max-w-\[150px\]/);
+});
