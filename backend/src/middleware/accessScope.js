@@ -5,7 +5,7 @@
 
 const { sendForbidden, sendUnauthorized } = require('./authMiddleware');
 
-const MODULE_KEYS = ['f11', 'f12', 'f13', 'f41'];
+const MODULE_KEYS = ['f11', 'f12', 'f13', 'f41', 'f42'];
 
 /** Stable string for the response cache key: '' (unscoped route), 'all', or 'b:<sorted codes>'. */
 function scopeKey(req) {

@@ -5,7 +5,7 @@ const userStore = require('../services/auth/userStore');
 const { BCVH_CODES } = require('../services/auth/access/officeMap');
 
 const TIERS = ['ADMIN', 'LEADER', 'STAFF'];
-const INDICATORS = ['F1.1', 'F1.2', 'F1.3', 'F4.1', 'HANGTON'];
+const INDICATORS = ['F1.1', 'F1.2', 'F1.3', 'F4.1', 'F4.2', 'HANGTON'];
 
 const fail = (res, status, code, message) => res.status(status).json({ success: false, error: { code, message } });
 const initialPassword = () => String(process.env.QIS_INITIAL_PASSWORD || '');

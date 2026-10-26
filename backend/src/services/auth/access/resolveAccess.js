@@ -3,7 +3,7 @@
 const { HANGTON_OFFICES_BY_BCVH, HANGTON_OFFICES_BY_INDICATOR } = require('./officeMap');
 
 const TIERS = Object.freeze({ ADMIN: 'ADMIN', LEADER: 'LEADER', STAFF: 'STAFF' });
-const MODULES = Object.freeze({ f11: 'F1.1', f12: 'F1.2', f13: 'F1.3', f41: 'F4.1' });
+const MODULES = Object.freeze({ f11: 'F1.1', f12: 'F1.2', f13: 'F1.3', f41: 'F4.1', f42: 'F4.2' });
 const HANGTON_SCREENS = Object.freeze(['overview', 'office', 'compare', 'items']);
 const STAFF_HANGTON_SCREENS = Object.freeze(['office', 'compare']);
 

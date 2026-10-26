@@ -8,7 +8,7 @@ const modes = (access) => Object.fromEntries(Object.entries(access.modules).map(
 
 test('ADMIN sees everything including the admin module', () => {
     const access = resolveAccess({ tier: 'ADMIN' });
-    assert.deepEqual(modes(access), { f11: 'all', f12: 'all', f13: 'all', f41: 'all' });
+    assert.deepEqual(modes(access), { f11: 'all', f12: 'all', f13: 'all', f41: 'all', f42: 'all' });
     assert.equal(access.admin, true);
     assert.equal(access.network, true);
     assert.equal(access.hangton.offices, 'all');
@@ -16,7 +16,7 @@ test('ADMIN sees everything including the admin module', () => {
 
 test('LEADER (lãnh đạo BĐTP/TTVH, IT BĐTP) sees every module city-wide but not the admin module', () => {
     const access = resolveAccess({ tier: 'LEADER' });
-    assert.deepEqual(modes(access), { f11: 'all', f12: 'all', f13: 'all', f41: 'all' });
+    assert.deepEqual(modes(access), { f11: 'all', f12: 'all', f13: 'all', f41: 'all', f42: 'all' });
     assert.equal(access.admin, false);
     assert.equal(access.network, true);
     assert.deepEqual(access.hangton.screens, ['overview', 'office', 'compare', 'items']);
@@ -26,7 +26,7 @@ test('LEADER (lãnh đạo BĐTP/TTVH, IT BĐTP) sees every module city-wide but
 
 test('BCVH director / specialist sees F1.1, F1.3, F4.1 for own BCVH only, never F1.2 or the network', () => {
     const access = resolveAccess({ tier: 'STAFF', bcvh: ['533140'] });
-    assert.deepEqual(modes(access), { f11: 'bcvh', f12: 'none', f13: 'bcvh', f41: 'bcvh' });
+    assert.deepEqual(modes(access), { f11: 'bcvh', f12: 'none', f13: 'bcvh', f41: 'bcvh', f42: 'bcvh' });
     assert.deepEqual(access.modules.f13.bcvh, ['533140']);
     assert.equal(access.network, false);
     assert.equal(access.admin, false);
@@ -43,13 +43,13 @@ test('multi-BCVH specialist (Phú Lộc + A Lưới) keeps both codes, A Lưới
 
 test('BCVH specialist who also specialises in F1.1: F1.1 city-wide, F1.3 and F4.1 own BCVH, no F1.2', () => {
     const access = resolveAccess({ tier: 'STAFF', bcvh: ['535470'], indicators: ['F1.1'] });
-    assert.deepEqual(modes(access), { f11: 'all', f12: 'none', f13: 'bcvh', f41: 'bcvh' });
+    assert.deepEqual(modes(access), { f11: 'all', f12: 'none', f13: 'bcvh', f41: 'bcvh', f42: 'bcvh' });
     assert.deepEqual(access.modules.f13.bcvh, ['535470']);
 });
 
 test('F1.2 specialist without BCVH sees only F1.2 (plus home and KTC1 hàng tồn)', () => {
     const access = resolveAccess({ tier: 'STAFF', indicators: ['F1.2'] });
-    assert.deepEqual(modes(access), { f11: 'none', f12: 'all', f13: 'none', f41: 'none' });
+    assert.deepEqual(modes(access), { f11: 'none', f12: 'all', f13: 'none', f41: 'none', f42: 'none' });
     assert.equal(access.network, false);
     assert.equal(access.home, true);
     assert.deepEqual(access.hangton.screens, ['office', 'compare']);
@@ -58,13 +58,13 @@ test('F1.2 specialist without BCVH sees only F1.2 (plus home and KTC1 hàng tồ
 
 test('unknown tier gets nothing', () => {
     const access = resolveAccess({ tier: 'GUEST' });
-    assert.deepEqual(modes(access), { f11: 'none', f12: 'none', f13: 'none', f41: 'none' });
+    assert.deepEqual(modes(access), { f11: 'none', f12: 'none', f13: 'none', f41: 'none', f42: 'none' });
     assert.equal(access.home, false);
 });
 
 test('STAFF with no BCVH and no indicator sees only home', () => {
     const access = resolveAccess({ tier: 'STAFF' });
-    assert.deepEqual(modes(access), { f11: 'none', f12: 'none', f13: 'none', f41: 'none' });
+    assert.deepEqual(modes(access), { f11: 'none', f12: 'none', f13: 'none', f41: 'none', f42: 'none' });
     assert.deepEqual(access.hangton.screens, []);
     assert.equal(access.home, true);
 });
@@ -73,7 +73,7 @@ test('HANGTON specialist (PO 2026-10-25) sees all four Hang ton screens for ever
     const access = resolveAccess({ tier: 'STAFF', indicators: ['HANGTON'] });
     assert.deepEqual(access.hangton.screens, ['overview', 'office', 'compare', 'items']);
     assert.equal(access.hangton.offices, 'all');
-    assert.deepEqual(modes(access), { f11: 'none', f12: 'none', f13: 'none', f41: 'none' });
+    assert.deepEqual(modes(access), { f11: 'none', f12: 'none', f13: 'none', f41: 'none', f42: 'none' });
     assert.equal(access.network, false);
 
     const withBcvh = resolveAccess({ tier: 'STAFF', bcvh: ['537015'], indicators: ['HANGTON'] });

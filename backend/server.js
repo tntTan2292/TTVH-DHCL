@@ -13,6 +13,7 @@ const networkMapRoutes = require('./src/routes/networkMapRoutes');
 const f41Routes = require('./src/routes/f41Routes');
 const f11Routes = require('./src/routes/f11Routes');
 const f12Routes = require('./src/routes/f12Routes');
+const f42Routes = require('./src/routes/f42Routes');
 const homeRoutes = require('./src/routes/homeRoutes');
 const createHangtonRouter = require('./src/routes/hangtonRoutes');
 const { startWatcher } = require('./src/services/importWatcher');
@@ -133,6 +134,7 @@ app.use('/api/network-map', networkMapRoutes);
 app.use('/api/f41', f41Routes);
 app.use('/api/f11', f11Routes);
 app.use('/api/f12', f12Routes);
+app.use('/api/f42', f42Routes);
 app.use('/api/home', homeRoutes);
 app.use('/api/hangton', createHangtonRouter());
 
