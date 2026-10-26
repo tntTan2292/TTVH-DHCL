@@ -53,6 +53,7 @@ export default function HangTonItemsTab({
   currentSnapshot,
   officeOptions = [],
   initialOffice = '',
+  initialMinRank = '',
   selectedCustomers = [],
 }) {
   const customerKey = selectedCustomers.join('|');
@@ -60,7 +61,7 @@ export default function HangTonItemsTab({
   const snapshotLabel = formatSnapshotLabel(currentSnapshot);
 
   const [office, setOffice] = useState(initialOffice || '');
-  const [minRank, setMinRank] = useState('');
+  const [minRank, setMinRank] = useState(initialMinRank || '');
   const [status, setStatus] = useState('');
   const [sort, setSort] = useState(DEFAULT_SORT); // { field, direction }
   const [limit, setLimit] = useState(100);
@@ -80,6 +81,12 @@ export default function HangTonItemsTab({
       setPage(1);
     }
   }, [initialOffice]);
+
+  // The hot-spot block opens the list already limited to 5 days and more
+  useEffect(() => {
+    setMinRank(initialMinRank || '');
+    setPage(1);
+  }, [initialMinRank]);
 
   // Load items when filter/page/sort changes
   useEffect(() => {

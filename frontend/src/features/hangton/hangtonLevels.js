@@ -268,3 +268,10 @@ export function activePresetId(hidden = []) {
 export function sanitizeHiddenLevels(value) {
   return Array.isArray(value) ? TON_LEVELS.filter((lvl) => value.includes(lvl)) : [];
 }
+
+// The levels whose rank is at least `minRank` (e.g. 5 -> ≥5, ≥7, ≥14 ngày): used when a screen opens the parcel list of heavy stock.
+export function levelsFromRank(minRank) {
+  const min = Number(minRank);
+  if (!Number.isFinite(min)) return [];
+  return TON_LEVELS.filter((lvl) => tonRank(lvl) >= min);
+}

@@ -76,7 +76,8 @@ async function overview(db, snapshotId, { customers, offices } = {}) {
            FROM hangton_snapshot_item WHERE snapshot_id = ?${c.sql} GROUP BY ton_level, ton_rank ORDER BY ton_rank`, p);
     const byOffice = await db.all(
         `SELECT office, COUNT(*) AS n, COALESCE(SUM(cod), 0) AS cod,
-                SUM(CASE WHEN ton_rank >= 5 THEN 1 ELSE 0 END) AS n_ge5
+                SUM(CASE WHEN ton_rank >= 5 THEN 1 ELSE 0 END) AS n_ge5,
+                COALESCE(SUM(CASE WHEN ton_rank >= 5 THEN cod END), 0) AS cod_ge5
            FROM hangton_snapshot_item WHERE snapshot_id = ?${c.sql} GROUP BY office ORDER BY n DESC`, p);
     const byOfficeLevel = await db.all(
         `SELECT office, ton_level, ton_rank, COUNT(*) AS n, COALESCE(SUM(cod), 0) AS cod
@@ -90,7 +91,8 @@ async function overview(db, snapshotId, { customers, offices } = {}) {
     // every group of the snapshot (NOT limited by the selection): the selector cards
     const byCustomer = await db.all(
         `SELECT customer_class, COUNT(*) AS n, COALESCE(SUM(cod), 0) AS cod,
-                SUM(CASE WHEN ton_rank >= 5 THEN 1 ELSE 0 END) AS n_ge5
+                SUM(CASE WHEN ton_rank >= 5 THEN 1 ELSE 0 END) AS n_ge5,
+                COALESCE(SUM(CASE WHEN ton_rank >= 5 THEN cod END), 0) AS cod_ge5
            FROM hangton_snapshot_item WHERE snapshot_id = ?${o.sql} GROUP BY customer_class ORDER BY n DESC`, [snapshotId, ...o.params]);
     const total = byLevel.reduce((sum, r) => sum + r.n, 0);
     const ge5 = byLevel.filter((r) => r.ton_rank >= 5).reduce((sum, r) => sum + r.n, 0);

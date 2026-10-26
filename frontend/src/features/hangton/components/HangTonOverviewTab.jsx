@@ -27,11 +27,14 @@ import {
   ReferenceLine,
 } from 'recharts';
 import BlockCaptureButton from '../../../components/common/BlockCaptureButton.jsx';
+import SortableTh from '../../../components/common/SortableTh.jsx';
+import { nextSortState, sortRowsBy } from '../../../components/common/tableSort.js';
 import HangTonCustomerChart from './HangTonCustomerChart.jsx';
 import { chartMode } from '../hangtonCustomers.js';
 import LevelPicker from './LevelPicker.jsx';
 import { useStoredHiddenLevels } from '../hangtonLevelState.js';
 import {
+  TON_LEVELS,
   presetHiddenLevels,
   visibleLevels,
   getLevelConfig,
@@ -47,6 +50,7 @@ import {
   computeExecutiveTriage,
   buildTopOfficesOverview,
   buildCustomerBreakdown,
+  buildLevelRows,
 } from '../hangtonOverviewHelpers.js';
 
 export default function HangTonOverviewTab({
@@ -63,6 +67,9 @@ export default function HangTonOverviewTab({
   const chartLevels = visibleLevels(chartHidden);
 
   const [detailSubTab, setDetailSubTab] = useState('levels'); // 'levels' | 'status'
+  // Click-to-order titles of the two tables (null = the natural order: handling order / age order)
+  const [customerSort, setCustomerSort] = useState(null);
+  const [levelSort, setLevelSort] = useState(null);
 
   // Block refs for camera capture
   const triageBlockRef = useRef(null);
@@ -92,10 +99,15 @@ export default function HangTonOverviewTab({
     return buildTopOfficesOverview(overview?.by_office || [], ge5, 5);
   }, [overview?.by_office, ge5]);
 
+  // All nine levels, whatever the chart shows
+  const levelRows = useMemo(() => buildLevelRows(overview?.by_level || [], TON_LEVELS), [overview?.by_level]);
+  const sortedLevelRows = levelSort ? sortRowsBy(levelRows, levelSort.field, levelSort.direction) : levelRows;
+
   // Customer groups breakdown
   const customerBreakdown = useMemo(() => {
     return buildCustomerBreakdown(overview?.by_customer || [], selectedCustomers);
   }, [overview?.by_customer, selectedCustomers]);
+  const sortedCustomers = customerSort ? sortRowsBy(customerBreakdown, customerSort.field, customerSort.direction) : customerBreakdown;
 
   // Chart data: filtered to shown levels in strict ascending order
   const chartData = chartLevels.map((lvl) => {
@@ -118,7 +130,7 @@ export default function HangTonOverviewTab({
     <div className="space-y-5">
       {/* 1. Base comparison info banner */}
       {baseSnapshot ? (
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-rose-100 bg-rose-50/70 px-4 py-2.5 text-sm text-rose-900 shadow-2xs">
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-rose-100 bg-rose-50/70 px-4 py-2.5 text-base text-rose-900 shadow-2xs">
           <div className="flex items-center gap-2">
             <Clock size={16} className="text-rose-600 shrink-0" />
             <span>
@@ -127,14 +139,14 @@ export default function HangTonOverviewTab({
               Mốc so sánh: <strong>{baseSnapshot?.business_date} {formatSlot(baseSnapshot?.slot)}</strong>
             </span>
           </div>
-          <div className="flex items-center gap-3 font-semibold text-sm">
+          <div className="flex items-center gap-3 font-semibold text-base">
             <span>Tổng tồn: {formatNumber(total)} ({deltaTotal !== null ? formatDelta(deltaTotal) : '—'})</span>
             <span className="text-rose-300">|</span>
             <span>Tồn ≥5 ngày: <strong className="text-rose-700">{formatNumber(ge5)}</strong> (mục tiêu: 0)</span>
           </div>
         </div>
       ) : (
-        <div className="rounded-xl border border-amber-200 bg-amber-50/80 px-4 py-2.5 text-sm text-amber-900 shadow-2xs" data-no-capture="true">
+        <div className="rounded-xl border border-amber-200 bg-amber-50/80 px-4 py-2.5 text-base text-amber-900 shadow-2xs" data-no-capture="true">
           {NO_BASE_NOTE}
         </div>
       )}
@@ -144,14 +156,14 @@ export default function HangTonOverviewTab({
         {/* Card 1: Tổng tồn */}
         <div className="rounded-xl border border-slate-200/90 bg-white p-4 shadow-2xs hover:shadow-xs transition-shadow">
           <div className="flex items-center justify-between text-slate-500">
-            <span className="text-xs font-bold uppercase tracking-wider">Tổng tồn</span>
+            <span className="text-sm font-bold uppercase tracking-wider">Tổng tồn</span>
             <Package size={17} className="text-blue-600" />
           </div>
           <div className="mt-1.5 flex items-baseline gap-1.5">
             <span className="text-2xl sm:text-3xl font-black text-slate-900">{formatNumber(total)}</span>
-            <span className="text-xs text-slate-500 font-medium">bưu gửi</span>
+            <span className="text-sm text-slate-500 font-medium">bưu gửi</span>
           </div>
-          <div className="mt-2 flex items-center justify-between text-xs text-slate-600 border-t border-slate-100 pt-2">
+          <div className="mt-2 flex items-center justify-between text-sm text-slate-600 border-t border-slate-100 pt-2">
             <span>So mốc cơ sở:</span>
             <span className="font-bold text-slate-800">
               {deltaTotal !== null ? formatDelta(deltaTotal) : '—'}
@@ -162,7 +174,7 @@ export default function HangTonOverviewTab({
         {/* Card 2: Tồn >=5 ngày (Target 0) */}
         <div className="rounded-xl border border-red-200 bg-red-50/50 p-4 shadow-2xs hover:shadow-xs transition-shadow">
           <div className="flex items-center justify-between text-red-700">
-            <span className="text-xs font-bold uppercase tracking-wider flex items-center gap-1">
+            <span className="text-sm font-bold uppercase tracking-wider flex items-center gap-1">
               <Flame size={14} className="text-red-600" />
               Tồn ≥5 ngày
             </span>
@@ -170,11 +182,11 @@ export default function HangTonOverviewTab({
           </div>
           <div className="mt-1.5 flex items-baseline gap-1.5">
             <span className="text-2xl sm:text-3xl font-black text-red-700">{formatNumber(ge5)}</span>
-            <span className="text-xs text-red-600 font-bold">
+            <span className="text-sm text-red-600 font-bold">
               ({total > 0 ? ((ge5 / total) * 100).toFixed(1) : 0}%)
             </span>
           </div>
-          <div className="mt-2 flex items-center justify-between text-xs text-red-800 border-t border-red-100 pt-2 font-semibold">
+          <div className="mt-2 flex items-center justify-between text-sm text-red-800 border-t border-red-100 pt-2 font-semibold">
             <span className="inline-flex items-center gap-1">
               <Target size={12} className="text-red-600" />
               Mục tiêu TCT:
@@ -188,14 +200,14 @@ export default function HangTonOverviewTab({
         {/* Card 3: Đã xử lý khỏi tồn */}
         <div className="rounded-xl border border-emerald-200 bg-emerald-50/40 p-4 shadow-2xs hover:shadow-xs transition-shadow">
           <div className="flex items-center justify-between text-emerald-700">
-            <span className="text-xs font-bold uppercase tracking-wider">Đã xử lý khỏi tồn</span>
+            <span className="text-sm font-bold uppercase tracking-wider">Đã xử lý khỏi tồn</span>
             <CheckCircle2 size={17} className="text-emerald-600" />
           </div>
           <div className="mt-1.5 flex items-baseline gap-1.5">
             <span className="text-2xl sm:text-3xl font-black text-emerald-700">{compareValue(compare, 'resolved')}</span>
-            <span className="text-xs text-emerald-600 font-medium">bưu gửi</span>
+            <span className="text-sm text-emerald-600 font-medium">bưu gửi</span>
           </div>
-          <p className="mt-2 text-xs text-emerald-800 border-t border-emerald-100 pt-2">
+          <p className="mt-2 text-sm text-emerald-800 border-t border-emerald-100 pt-2">
             Đã phát / vu hồi khỏi tồn
           </p>
         </div>
@@ -203,14 +215,14 @@ export default function HangTonOverviewTab({
         {/* Card 4: Tăng loại tồn */}
         <div className="rounded-xl border border-amber-200 bg-amber-50/40 p-4 shadow-2xs hover:shadow-xs transition-shadow">
           <div className="flex items-center justify-between text-amber-700">
-            <span className="text-xs font-bold uppercase tracking-wider">Tăng loại tồn</span>
+            <span className="text-sm font-bold uppercase tracking-wider">Tăng loại tồn</span>
             <TrendingUp size={17} className="text-amber-600" />
           </div>
           <div className="mt-1.5 flex items-baseline gap-1.5">
             <span className="text-2xl sm:text-3xl font-black text-amber-700">{compareValue(compare, 'aged_up')}</span>
-            <span className="text-xs text-amber-600 font-medium">bưu gửi</span>
+            <span className="text-sm text-amber-600 font-medium">bưu gửi</span>
           </div>
-          <p className="mt-2 text-xs text-amber-800 border-t border-amber-100 pt-2">
+          <p className="mt-2 text-sm text-amber-800 border-t border-amber-100 pt-2">
             Chuyển sang mức tồn cao hơn
           </p>
         </div>
@@ -218,14 +230,14 @@ export default function HangTonOverviewTab({
         {/* Card 5: Mới vào tồn */}
         <div className="rounded-xl border border-indigo-200 bg-indigo-50/40 p-4 shadow-2xs hover:shadow-xs transition-shadow">
           <div className="flex items-center justify-between text-indigo-700">
-            <span className="text-xs font-bold uppercase tracking-wider">Mới vào tồn</span>
+            <span className="text-sm font-bold uppercase tracking-wider">Mới vào tồn</span>
             <PlusCircle size={17} className="text-indigo-600" />
           </div>
           <div className="mt-1.5 flex items-baseline gap-1.5">
             <span className="text-2xl sm:text-3xl font-black text-indigo-700">{compareValue(compare, 'new')}</span>
-            <span className="text-xs text-indigo-600 font-medium">bưu gửi</span>
+            <span className="text-sm text-indigo-600 font-medium">bưu gửi</span>
           </div>
-          <p className="mt-2 text-xs text-indigo-800 border-t border-indigo-100 pt-2">
+          <p className="mt-2 text-sm text-indigo-800 border-t border-indigo-100 pt-2">
             Phát sinh mới so với mốc trước
           </p>
         </div>
@@ -239,12 +251,12 @@ export default function HangTonOverviewTab({
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-rose-100/80 pb-2.5 mb-3">
           <div className="flex items-center gap-2">
             <Sparkles size={16} className="text-rose-600" />
-            <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wide">
+            <h3 className="text-base font-bold text-slate-900 uppercase tracking-wide">
               Tiêu điểm điều hành & Khuyến nghị xử lý ưu tiên
             </h3>
           </div>
           <div className="flex items-center gap-3">
-            <span className="text-xs text-slate-600">
+            <span className="text-sm text-slate-600">
               COD rủi ro tồn ≥5 ngày: <strong className="text-rose-700">{formatCurrency(triage.codGe5)}</strong>
             </span>
             <BlockCaptureButton
@@ -264,7 +276,7 @@ export default function HangTonOverviewTab({
               >
                 <div className="flex items-center gap-1.5 mb-1.5">
                   <span
-                    className={`inline-block px-2 py-0.5 rounded text-xs font-bold ${
+                    className={`inline-block px-2 py-0.5 rounded text-sm font-bold ${
                       item.level === 'critical'
                         ? 'bg-red-600 text-white'
                         : item.level === 'warning'
@@ -275,13 +287,13 @@ export default function HangTonOverviewTab({
                     {item.badge}
                   </span>
                 </div>
-                <p className="text-xs text-slate-700 leading-relaxed font-medium">
+                <p className="text-sm text-slate-700 leading-relaxed font-medium">
                   {item.text}
                 </p>
               </div>
             ))
           ) : (
-            <div className="col-span-3 py-2 text-center text-xs text-emerald-700 font-semibold bg-emerald-50 rounded-lg">
+            <div className="col-span-3 py-2 text-center text-sm text-emerald-700 font-semibold bg-emerald-50 rounded-lg">
               ✓ Không có cảnh báo tồn lâu bất thường. Toàn tỉnh đang kiểm soát tốt chỉ số rà soát hàng tồn.
             </div>
           )}
@@ -298,16 +310,16 @@ export default function HangTonOverviewTab({
           <div>
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-slate-100 pb-3 mb-3">
               <div>
-                <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
                   <Activity size={17} className="text-rose-600" />
                   Cơ cấu hàng tồn theo Loại Tồn{selectedCustomers.length > 0 ? ` — ${selectedCustomers.join(', ')}` : ''}
                 </h3>
-                <p className="text-xs text-slate-500 mt-0.5">
+                <p className="text-sm text-slate-500 mt-0.5">
                   Màu đỏ đậm dần theo tuổi bưu gửi; từ mức ≥5 ngày là diện cảnh báo nặng.
                 </p>
               </div>
               <div className="flex items-center gap-2" data-no-capture="true">
-                <div className="hidden sm:flex items-center gap-2 text-xs text-slate-600 mr-1">
+                <div className="hidden sm:flex items-center gap-2 text-sm text-slate-600 mr-1">
                   <span className="flex items-center gap-1 font-semibold text-red-700">
                     <span className="inline-block w-3.5 border-t-2 border-dashed border-red-600" />
                     <span>Mục tiêu ≥5 ngày: 0</span>
@@ -326,10 +338,10 @@ export default function HangTonOverviewTab({
                 hiddenLevels={chartHidden}
                 onChange={setChartHidden}
                 label="Mức tồn trên biểu đồ:"
-                note="Biểu đồ vẽ các mức đang chọn (mặc định từ ≥3 ngày); các thẻ và bảng bên dưới hiển thị đủ 9 mức."
+                note="Biểu đồ vẽ các mức đang chọn (mặc định từ ≥3 ngày); bảng 'Chi tiết 9 mức' bên dưới luôn đủ 9 mức."
               />
               {chartLevels.length === 0 ? (
-                <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs text-amber-900">
+                <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5 text-sm text-amber-900">
                   Chưa bật mức tồn nào: hãy chọn "Tất cả mức" hoặc bật ít nhất một mức.
                 </p>
               ) : null}
@@ -351,12 +363,12 @@ export default function HangTonOverviewTab({
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F1F5F9" />
                     <XAxis
                       dataKey="level"
-                      tick={{ fontSize: 12, fill: '#475569' }}
+                      tick={{ fontSize: 13, fill: '#475569' }}
                       tickLine={false}
                       interval={0}
                     />
                     <YAxis
-                      tick={{ fontSize: 12, fill: '#64748B' }}
+                      tick={{ fontSize: 13, fill: '#64748B' }}
                       tickLine={false}
                       axisLine={false}
                       tickFormatter={(v) => formatNumber(v)}
@@ -366,7 +378,7 @@ export default function HangTonOverviewTab({
                         if (!active || !payload?.length) return null;
                         const d = payload[0].payload;
                         return (
-                          <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-lg text-xs">
+                          <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-lg text-sm">
                             <p className="font-bold text-slate-900 border-b border-slate-100 pb-1 mb-1">
                               Loại tồn: {d.level}
                             </p>
@@ -392,7 +404,7 @@ export default function HangTonOverviewTab({
                         position="top"
                         formatter={(v) => (Number(v) > 0 ? formatNumber(v) : '')}
                         fill="#334155"
-                        fontSize={12}
+                        fontSize={13}
                         fontWeight={700}
                       />
                       {chartData.map((entry) => (
@@ -414,12 +426,12 @@ export default function HangTonOverviewTab({
           <div>
             <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-3">
               <div>
-                <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
                   <Building2 size={17} className="text-rose-600" />
                   Điểm nóng Bưu cục (Tồn ≥5 ngày)
                 </h3>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  Top bưu cục chịu tải tồn lâu nhiều nhất toàn tỉnh.
+                <p className="text-sm text-slate-500 mt-0.5">
+                  Top bưu cục có nhiều bưu gửi tồn ≥5 ngày nhất.
                 </p>
               </div>
               <BlockCaptureButton
@@ -437,40 +449,43 @@ export default function HangTonOverviewTab({
                       key={office.office}
                       className="group p-2.5 rounded-lg border border-slate-100 bg-slate-50/70 hover:bg-rose-50/40 hover:border-rose-200 transition-all"
                     >
-                      <div className="flex items-center justify-between gap-2 text-xs">
+                      <div className="flex items-center justify-between gap-2 text-sm">
                         <div className="flex items-center gap-2">
-                          <span className={`inline-flex items-center justify-center w-5 h-5 rounded-full text-xs font-bold ${
+                          <span className={`inline-flex items-center justify-center w-5 h-5 rounded-full text-sm font-bold ${
                             idx === 0 ? 'bg-red-600 text-white' : idx === 1 ? 'bg-rose-500 text-white' : 'bg-slate-200 text-slate-700'
                           }`}>
                             {idx + 1}
                           </span>
-                          <span className="font-bold text-slate-800 text-sm">
+                          <span className="font-bold text-slate-800 text-base">
                             {office.office}
                           </span>
                         </div>
                         <div className="text-right">
-                          <span className="font-black text-red-700 text-sm">
+                          <span className="font-black text-red-700 text-base">
                             {formatNumber(office.n_ge5)}
                           </span>
-                          <span className="text-xs text-slate-500 ml-1">/ {formatNumber(office.n)} ({office.pctGe5}%)</span>
+                          <span className="text-sm text-slate-500 ml-1">tồn ≥5 ngày / {formatNumber(office.n)} tồn của bưu cục ({office.pctOfOffice}%)</span>
                         </div>
                       </div>
 
-                      {/* Progress bar of ge5 proportion */}
+                      {/* Bar = share of the office's own stock that is 5 days and more */}
                       <div className="mt-1.5 h-1.5 w-full rounded-full bg-slate-200 overflow-hidden">
                         <div
                           className="h-full rounded-full bg-red-600 transition-all duration-300"
-                          style={{ width: `${Math.min(100, Number(office.pctGe5))}%` }}
+                          style={{ width: `${Math.min(100, Number(office.pctOfOffice))}%` }}
                         />
                       </div>
 
-                      <div className="mt-1.5 flex items-center justify-between text-xs text-slate-500">
-                        <span>Tiền COD: <strong className="text-slate-700">{formatCurrency(office.cod)}</strong></span>
+                      <div className="mt-1.5 flex items-center justify-between text-sm text-slate-500">
+                        <span>
+                          Chiếm <strong className="text-slate-700">{office.pctOfTotal}%</strong> tồn ≥5 ngày
+                          {office.codGe5 !== null ? <> · COD ≥5 ngày: <strong className="text-slate-700">{formatCurrency(office.codGe5)}</strong></> : null}
+                        </span>
                         {onDrilldownToOffice ? (
                           <button
                             type="button"
-                            onClick={() => onDrilldownToOffice(office.office)}
-                            className="inline-flex items-center gap-0.5 text-xs font-semibold text-rose-600 hover:text-rose-800 cursor-pointer"
+                            onClick={() => onDrilldownToOffice(office.office, 5)}
+                            className="inline-flex items-center gap-0.5 text-sm font-semibold text-rose-600 hover:text-rose-800 cursor-pointer"
                             data-no-capture="true"
                           >
                             <span>Xem bưu gửi</span>
@@ -482,7 +497,7 @@ export default function HangTonOverviewTab({
                   );
                 })
               ) : (
-                <p className="text-xs text-slate-500 py-4 text-center">
+                <p className="text-sm text-slate-500 py-4 text-center">
                   Không có bưu cục nào có tồn bưu gửi.
                 </p>
               )}
@@ -501,11 +516,11 @@ export default function HangTonOverviewTab({
           <div>
             <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-3">
               <div>
-                <h4 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                <h4 className="text-lg font-bold text-slate-900 flex items-center gap-2">
                   <Users size={17} className="text-rose-600" />
                   Phân bổ theo Nhóm Khách Hàng
                 </h4>
-                <p className="text-xs text-slate-500 mt-0.5">
+                <p className="text-sm text-slate-500 mt-0.5">
                   Thứ tự ưu tiên xử lý: KH Trọng điểm, KHL2, Shopee, Tiktok, Mới, Thường.
                 </p>
               </div>
@@ -517,17 +532,18 @@ export default function HangTonOverviewTab({
             </div>
 
             <div className="overflow-x-auto">
-              <table className="w-full text-xs">
+              <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-slate-200 text-slate-500 font-semibold text-left">
-                    <th className="py-2 pr-2">Nhóm khách hàng</th>
-                    <th className="py-2 px-2 text-right">Tổng tồn</th>
-                    <th className="py-2 px-2 text-right">Tồn ≥5 ngày</th>
-                    <th className="py-2 pl-2 text-right">Tổng COD</th>
+                    <SortableTh field="customer_class" sort={customerSort} onSort={(f) => setCustomerSort((cur) => nextSortState(cur, f, { textFields: ['customer_class'] }))} className="py-2 pr-2 text-left" activeClassName="bg-rose-100 text-rose-950 font-bold">Nhóm khách hàng</SortableTh>
+                    <SortableTh field="n" sort={customerSort} onSort={(f) => setCustomerSort((cur) => nextSortState(cur, f))} className="py-2 px-2 text-right" activeClassName="bg-rose-100 text-rose-950 font-bold">Tổng tồn</SortableTh>
+                    <SortableTh field="n_ge5" sort={customerSort} onSort={(f) => setCustomerSort((cur) => nextSortState(cur, f))} className="py-2 px-2 text-right" activeClassName="bg-rose-100 text-rose-950 font-bold">Tồn ≥5 ngày</SortableTh>
+                    <SortableTh field="cod" sort={customerSort} onSort={(f) => setCustomerSort((cur) => nextSortState(cur, f))} className="py-2 px-2 text-right" activeClassName="bg-rose-100 text-rose-950 font-bold">Tổng COD</SortableTh>
+                    <SortableTh field="codGe5" sort={customerSort} onSort={(f) => setCustomerSort((cur) => nextSortState(cur, f))} className="py-2 pl-2 text-right" activeClassName="bg-rose-100 text-rose-950 font-bold">COD tồn ≥5 ngày</SortableTh>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {customerBreakdown.map((row) => {
+                  {sortedCustomers.map((row) => {
                     return (
                       <tr
                         key={row.customer_class}
@@ -535,9 +551,9 @@ export default function HangTonOverviewTab({
                       >
                         <td className="py-2 pr-2 font-medium text-slate-900">
                           <span className="flex items-center gap-1.5">
-                            <span className="font-bold text-xs">{row.customer_class}</span>
+                            <span className="font-bold text-sm">{row.customer_class}</span>
                             {row.isSelected ? (
-                              <span className="text-xs px-1.5 py-0.2 rounded bg-rose-100 text-rose-700 font-semibold" data-no-capture="true">
+                              <span className="text-sm px-1.5 py-0.2 rounded bg-rose-100 text-rose-700 font-semibold" data-no-capture="true">
                                 Đang lọc
                               </span>
                             ) : null}
@@ -555,8 +571,11 @@ export default function HangTonOverviewTab({
                             <span className="text-slate-400">0</span>
                           )}
                         </td>
-                        <td className="py-2 pl-2 text-right text-slate-700 font-medium">
+                        <td className="py-2 px-2 text-right text-slate-700 font-medium">
                           {formatCurrency(row.cod)}
+                        </td>
+                        <td className="py-2 pl-2 text-right text-slate-800 font-semibold">
+                          {row.codGe5 === null ? '—' : formatCurrency(row.codGe5)}
                         </td>
                       </tr>
                     );
@@ -578,7 +597,7 @@ export default function HangTonOverviewTab({
                 <button
                   type="button"
                   onClick={() => setDetailSubTab('levels')}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  className={`px-3 py-1.5 rounded-lg text-sm font-bold transition-all cursor-pointer ${
                     detailSubTab === 'levels'
                       ? 'bg-rose-600 text-white shadow-2xs'
                       : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
@@ -589,7 +608,7 @@ export default function HangTonOverviewTab({
                 <button
                   type="button"
                   onClick={() => setDetailSubTab('status')}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  className={`px-3 py-1.5 rounded-lg text-sm font-bold transition-all cursor-pointer ${
                     detailSubTab === 'status'
                       ? 'bg-rose-600 text-white shadow-2xs'
                       : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
@@ -607,22 +626,22 @@ export default function HangTonOverviewTab({
 
             {detailSubTab === 'levels' ? (
               <div className="overflow-x-auto">
-                <table className="w-full text-xs">
+                <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-slate-200 text-slate-500 font-semibold text-left">
-                      <th className="py-2 pr-2">Mức tồn</th>
-                      <th className="py-2 px-2 text-right">Số lượng</th>
-                      <th className="py-2 px-2 text-right">Tỷ lệ</th>
-                      <th className="py-2 pl-2 text-right">Tổng COD</th>
+                      <SortableTh field="rank" sort={levelSort} onSort={(f) => setLevelSort((cur) => nextSortState(cur, f, { textFields: ['rank'] }))} className="py-2 pr-2 text-left" activeClassName="bg-rose-100 text-rose-950 font-bold">Mức tồn</SortableTh>
+                      <SortableTh field="count" sort={levelSort} onSort={(f) => setLevelSort((cur) => nextSortState(cur, f))} className="py-2 px-2 text-right" activeClassName="bg-rose-100 text-rose-950 font-bold">Số lượng</SortableTh>
+                      <SortableTh field="pct" sort={levelSort} onSort={(f) => setLevelSort((cur) => nextSortState(cur, f))} className="py-2 px-2 text-right" activeClassName="bg-rose-100 text-rose-950 font-bold">Tỷ lệ</SortableTh>
+                      <SortableTh field="cod" sort={levelSort} onSort={(f) => setLevelSort((cur) => nextSortState(cur, f))} className="py-2 pl-2 text-right" activeClassName="bg-rose-100 text-rose-950 font-bold">Tổng COD</SortableTh>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
-                    {chartData.map((row) => {
+                    {sortedLevelRows.map((row) => {
                       const cfg = getLevelConfig(row.level);
                       return (
                         <tr key={row.level} className="hover:bg-slate-50 transition-colors">
                           <td className="py-1.5 pr-2">
-                            <span className={`inline-block px-2 py-0.5 rounded text-xs font-semibold border ${cfg.badgeClass}`}>
+                            <span className={`inline-block px-2 py-0.5 rounded text-sm font-semibold border ${cfg.badgeClass}`}>
                               {row.level}
                             </span>
                           </td>
@@ -643,7 +662,7 @@ export default function HangTonOverviewTab({
               </div>
             ) : (
               <div className="space-y-2.5">
-                <p className="text-xs text-slate-500 mb-2">
+                <p className="text-sm text-slate-500 mb-2">
                   5 trạng thái hợp lệ theo Quyết định PO D2 (Đã xác nhận đến, Đã phân tuyến, Giao bưu tá, Phát không thành công, Vu hồi).
                 </p>
                 {byStatus.map((st) => {
@@ -651,7 +670,7 @@ export default function HangTonOverviewTab({
                   const pct = total > 0 ? ((count / total) * 100).toFixed(1) : '0.0';
                   return (
                     <div key={st.status_name} className="p-2.5 rounded-lg border border-slate-100 bg-slate-50/60">
-                      <div className="flex items-center justify-between text-xs font-semibold">
+                      <div className="flex items-center justify-between text-sm font-semibold">
                         <span className="text-slate-800">{st.status_name}</span>
                         <span className="text-slate-900 font-bold">
                           {formatNumber(count)} <span className="text-slate-500 font-normal">({pct}%)</span>

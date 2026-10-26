@@ -98,6 +98,7 @@ test('compare classifies resolved / aged_up / new / unchanged and defaults to sa
     assert.equal((await inventory.items(db, to.id, { limit: 5000 })).rows.length, 4, 'a large page is allowed (full view / export)');
 
     const ov = await inventory.overview(db, to.id);
+    assert.ok(ov.by_office.every((r) => typeof r.cod_ge5 === 'number' && r.cod_ge5 <= r.cod), 'COD of the 5-day-and-more stock is part of the office COD');
     assert.ok(ov.by_office_level.every((r) => typeof r.cod === 'number'), 'each office/level group carries its COD sum');
     assert.equal(ov.total, 4);
     assert.equal(ov.ge5, 0);
@@ -197,4 +198,22 @@ test('customer-group filter: overview, items and compare follow the selected gro
     assert.deepEqual(shopee.summary, { resolved: 0, aged_up: 1, aged_down: 0, new: 0, unchanged: 0 });
     const none = await inventory.compare(db, from.id, to.id, { customers: 'KH Không Có' });
     assert.deepEqual(none.summary, { resolved: 0, aged_up: 0, aged_down: 0, new: 0, unchanged: 0 });
+});
+
+test('COD of the stock aged 5 days and more is reported apart from the total COD (office and customer group)', async () => {
+    const db = await makeDb();
+    const kh = (c, level, cls, cod, office = 'BCVH Thuận Hóa') => row(c, level, { 'Phân Loại KH': cls, COD: cod, 'Bưu cục Phát': office });
+    const rows = [kh('A', '<1 ngày', 'KH Mới', 100), kh('B', '≥5 ngày', 'KH Mới', 1000), kh('C', '≥14 ngày', 'KH Thường', 20), kh('D', '≥7 ngày', 'KH Thường', 5, 'BCVH Phú Lộc')];
+    await takeSnapshot({ db, fetchStock: async () => ({ rows, portalTimestamp: 'T', count: 4 }), slot: '0730', now: new Date(2026, 9, 17, 7, 30) });
+    const snap = await inventory.resolveSnapshot(db, {});
+    const ov = await inventory.overview(db, snap.id);
+    const office = (name) => ov.by_office.find((o) => o.office === name);
+    assert.deepEqual([office('BCVH Thuận Hóa').cod, office('BCVH Thuận Hóa').cod_ge5], [1120, 1020]);
+    assert.deepEqual([office('BCVH Phú Lộc').cod, office('BCVH Phú Lộc').cod_ge5], [5, 5]);
+    const group = (name) => ov.by_customer.find((g) => g.customer_class === name);
+    assert.deepEqual([group('KH Mới').cod, group('KH Mới').cod_ge5, group('KH Mới').n_ge5], [1100, 1000, 1]);
+    assert.deepEqual([group('KH Thường').cod, group('KH Thường').cod_ge5], [25, 25]);
+    const mixed = await inventory.overview(db, snap.id, { customers: 'KH Mới' });
+    assert.equal(mixed.by_office.find((o) => o.office === 'BCVH Thuận Hóa').cod_ge5, 1000, 'office figures follow the selected groups');
+    assert.equal(mixed.by_customer.length, 2, 'group cards stay complete');
 });

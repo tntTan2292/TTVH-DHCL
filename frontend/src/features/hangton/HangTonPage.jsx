@@ -12,6 +12,7 @@ import { getAllowedHangtonScreens } from '../../auth/accessModel.js';
 import { PageContainer } from '../../components/shared/SharedComponents.jsx';
 import { LoadingLayout, ErrorLayout, EmptyLayout } from '../../components/common/StateLayouts.jsx';
 import { resolveHangtonTab, isHangtonTab } from './hangtonTabs.js';
+import { levelsFromRank } from './hangtonLevels.js';
 import SnapshotPicker from './components/SnapshotPicker.jsx';
 import CustomerFilterBar from './components/CustomerFilterBar.jsx';
 import { sanitizeSelectedCustomers, customersParam } from './hangtonCustomers.js';
@@ -64,7 +65,9 @@ export default function HangTonPage() {
 
   const setActiveTab = (id) => navigate(`/hangton/${id}`);
   const [selectedOfficeDrilldown, setSelectedOfficeDrilldown] = useState('');
+  const [selectedMinRank, setSelectedMinRank] = useState(''); // from the hot-spot block: 5 = stock of 5 days and more
   const [modalOffice, setModalOffice] = useState(null);
+  const [modalLevels, setModalLevels] = useState([]);
 
   const [overview, setOverview] = useState(null);
   const [compare, setCompare] = useState(null);
@@ -165,12 +168,14 @@ export default function HangTonPage() {
   }, [overview]);
 
   // Switch to Chi tiết tab or open modal if items screen is not allowed
-  const handleDrilldownToOffice = (officeName) => {
+  const handleDrilldownToOffice = (officeName, minRank = '') => {
     if (allowedScreens.includes('items')) {
       setSelectedOfficeDrilldown(officeName);
+      setSelectedMinRank(minRank === '' ? '' : String(minRank));
       setActiveTab('items');
     } else {
       setModalOffice(officeName);
+      setModalLevels(minRank === '' ? [] : levelsFromRank(minRank));
     }
   };
 
@@ -334,6 +339,7 @@ export default function HangTonPage() {
                 currentSnapshot={currentSnapshot}
                 officeOptions={officeOptions}
                 initialOffice={selectedOfficeDrilldown}
+                initialMinRank={selectedMinRank}
                 selectedCustomers={selectedCustomers}
               />
             )}
@@ -344,11 +350,12 @@ export default function HangTonPage() {
         {modalOffice ? (
           <HangTonItemsModal
             isOpen={Boolean(modalOffice)}
-            onClose={() => setModalOffice(null)}
+            onClose={() => { setModalOffice(null); setModalLevels([]); }}
             snapshot={currentSnapshot}
             office={modalOffice}
+            levels={modalLevels}
             customers={selectedCustomers}
-            title={`Danh sách bưu gửi tồn — ${modalOffice}`}
+            title={`Danh sách bưu gửi tồn${modalLevels.length > 0 ? ' ≥5 ngày' : ''} — ${modalOffice}`}
           />
         ) : null}
       </div>

@@ -106,3 +106,51 @@ test('computeExecutiveTriage handles empty/null inputs gracefully', () => {
   assert.equal(triage.worstCustomer, null);
   assert.equal(triage.actionPoints.length, 0);
 });
+
+test('hot-spot figures: COD is the COD of the 5-days-and-more parcels, shares are named and correct', async () => {
+  const { buildTopOfficesOverview: top } = await import('./hangtonOverviewHelpers.js');
+  const [row] = top([{ office: 'BCVH Phú Lộc', n: 725, cod: 263415624, n_ge5: 168, cod_ge5: 90000000 }], 478, 1);
+  assert.equal(row.codGe5, 90000000, 'COD of the heavy stock, not the whole-office COD');
+  assert.equal(row.cod, 263415624);
+  assert.equal(row.pctOfOffice, '23.2', '168 / 725');
+  assert.equal(row.pctOfTotal, '35.1', '168 / 478');
+  assert.equal(top([{ office: 'X', n: 10, cod: 5, n_ge5: 1 }], 1, 1)[0].codGe5, null, 'no cod_ge5 from the API: no COD claim');
+});
+
+test('triage states figures only: COD >=5 days, no advice, no assumed cause or commitment, neutral group badge', () => {
+  const overview = {
+    total: 100, ge5: 40,
+    by_level: [{ ton_level: '≥5 ngày', n: 30, cod: 300 }, { ton_level: '≥14 ngày', n: 10, cod: 100 }],
+    by_office: [{ office: 'BCVH Phú Lộc', n: 70, cod: 7000, n_ge5: 40, cod_ge5: 400 }],
+    by_customer: [
+      { customer_class: 'KH Thường', n: 80, cod: 8000, n_ge5: 35, cod_ge5: 350 },
+      { customer_class: 'KH Mới', n: 20, cod: 2000, n_ge5: 5, cod_ge5: 50 },
+    ],
+  };
+  const all = computeExecutiveTriage({ overview, compare: null, selectedCustomers: [] });
+  const office = all.actionPoints.find((p) => p.level === 'action');
+  assert.match(office.text, /COD 400/, 'the office line carries the COD of its 5-days-and-more parcels (400), not its whole COD (7.000)');
+  assert.doesNotMatch(office.text, /7\.000/);
+  const group = all.actionPoints.find((p) => p.level === 'customer');
+  assert.match(group.text, /^KH Thường: 35 bưu gửi tồn ≥5 ngày/);
+  assert.doesNotMatch(group.badge, /trọng điểm/i, 'KH Thường is not labelled a key account');
+  for (const p of all.actionPoints) {
+    assert.doesNotMatch(p.text, /SLA|cam kết|chăm sóc|nguyên nhân|khẩn cấp|phát dứt điểm|vu hồi|điều phối/i, `no advice or assumption: ${p.text}`);
+  }
+  const mine = computeExecutiveTriage({ overview, compare: null, selectedCustomers: ['KH Mới'] });
+  assert.match(mine.actionPoints.find((p) => p.level === 'customer').text, /^KH Mới: 5 bưu gửi/, 'the group line follows the selection');
+  const none = computeExecutiveTriage({ overview: { ...overview, by_customer: [{ customer_class: 'KH Mới', n: 20, cod: 2000, n_ge5: 0 }] }, compare: null, selectedCustomers: [] });
+  assert.equal(none.actionPoints.find((p) => p.level === 'customer'), undefined, 'a group without heavy stock is not named');
+});
+
+test('nine-level rows always list all nine levels, shares add up to the whole stock', async () => {
+  const { buildLevelRows } = await import('./hangtonOverviewHelpers.js');
+  const { TON_LEVELS, levelsFromRank } = await import('./hangtonLevels.js');
+  const rows = buildLevelRows([{ ton_level: '<1 ngày', n: 60, cod: 6 }, { ton_level: '≥5 ngày', n: 40, cod: 4 }], TON_LEVELS);
+  assert.equal(rows.length, 9);
+  assert.deepEqual(rows.map((r) => r.rank), [0, 1, 1.5, 2, 3, 4, 5, 7, 14]);
+  assert.equal(rows.reduce((s, r) => s + Number(r.pct), 0), 100);
+  assert.equal(rows.find((r) => r.level === '≥14 ngày').count, 0);
+  assert.deepEqual(levelsFromRank(5), ['≥5 ngày', '≥7 ngày', '≥14 ngày']);
+  assert.deepEqual(levelsFromRank('x'), []);
+});

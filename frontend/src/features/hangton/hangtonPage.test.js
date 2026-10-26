@@ -187,3 +187,19 @@ test('Overview chart: starts from 3 days, has its own level picker for both char
   assert.match(chart, /LabelList/, 'segments carry their numbers');
   assert.doesNotMatch(chart + overview, /Mục tiêu ≥5 ngày: 0', position: 'top'/, 'the target label no longer sits on the bars');
 });
+
+test('Tổng quan review fixes: nine-level table independent of the chart, sortable titles, readable text, drill-down to 5 days and more', () => {
+  const overview = read('./components/HangTonOverviewTab.jsx');
+  const page = read('./HangTonPage.jsx');
+  const items = read('./components/HangTonItemsTab.jsx');
+  assert.match(overview, /buildLevelRows\(overview\?\.by_level \|\| \[\], TON_LEVELS\)/, 'the table always has the nine levels');
+  assert.doesNotMatch(overview, /chartData\.map\(\(row\) => \{\s*const cfg/, 'the nine-level table is not built from the chart levels');
+  assert.ok((overview.match(/<SortableTh/g) || []).length >= 8, 'customer and level tables order by clicking the titles');
+  assert.doesNotMatch(overview, /text-xs/, 'no 12 px text left for the body of the screen (one step up)');
+  assert.match(overview, /onDrilldownToOffice\(office\.office, 5\)/);
+  assert.match(page, /handleDrilldownToOffice = \(officeName, minRank = ''\)/);
+  assert.match(page, /initialMinRank=\{selectedMinRank\}/);
+  assert.match(items, /initialMinRank/);
+  assert.match(overview, /tồn ≥5 ngày \/ \{formatNumber\(office\.n\)\} tồn của bưu cục/, 'the hot-spot caption names what each number is');
+  assert.match(overview, /COD ≥5 ngày/);
+});

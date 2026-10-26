@@ -234,3 +234,16 @@ Redesigned the **Tổng quan** tab and its charts according to PO feedback (Sect
    - `oxlint -D no-undef src/features/hangton`: clean (only standard browser globals).
    - No browser, Playwright, dev server, screenshot, or login executed. Stopped at `READY FOR PO UI CHECK`.
 
+
+## 18. Review of Section 17 and fixes (2026-10-26, Claude Code/Sonnet 5.5) — READY FOR PO UI CHECK
+
+Review of the Antigravity redesign (commit dca72475): backend untouched, 45/45 tests, lint and build clean, but not acceptable as delivered. Seven findings, all fixed:
+1. **COD of the heavy stock.** The triage line and the hot-spot card showed the whole-office / whole-group COD next to "tồn ≥5 ngày" figures (real data 26/10: BCVH Phú Lộc 263.4 M for its 725 parcels vs 52.0 M for the 168 parcels of 5 days and more; KH Thường 2 097 M vs 272.8 M). `/api/hangton/overview` now returns `cod_ge5` in `by_office` and `by_customer`; the screen shows "COD ≥5 ngày" (a dash / no claim when the API does not send it). Backend restart needed.
+2. **Caption "168 / 725 (35,1%)"** mixed two shares. Now "168 tồn ≥5 ngày / 725 tồn của bưu cục (23,2%)", the bar is the office's own share, and "Chiếm 35,1% tồn ≥5 ngày" is stated apart.
+3. **Customer line**: neutral badge "Nhóm KH nhiều tồn nặng nhất" (a badge "Khách hàng trọng điểm" was put on KH Thường); it follows the selected groups; all advice and assumptions removed (SLA, "liên hệ chăm sóc KH", cause of failed delivery, "phát dứt điểm"): the triage states figures only (business rules are the PO's).
+4. **"Chi tiết 9 mức Loại Tồn"** always lists all nine levels again (it had followed the chart's level choice, hiding the levels under 3 days); shares add up to 100 %.
+5. **Text size**: the body of the screen is one step bigger (nothing at 12 px any more), chart ticks 13 px.
+6. **Click-to-order titles** on the customer table and the nine-level table.
+7. **"Xem bưu gửi"** in the hot-spot block opens Chi tiết already limited to 5 days and more (or the parcel window when Chi tiết is not allowed for the user).
+Also noted, not changed: the two charts themselves are the earlier ones (red by level; stacked by group); Antigravity did not send the short proposal that the prompt asked for first.
+Tests: hangton/navigation 49/49, backend `test_hangtonInventory.js` 9/9, lint clean, build OK.
