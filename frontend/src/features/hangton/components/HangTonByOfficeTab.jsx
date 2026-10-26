@@ -117,7 +117,7 @@ export default function HangTonByOfficeTab({
         hiddenLevels={hiddenLevels}
         onChange={applyHidden}
         label="Cột mức tồn:"
-        note="Tổng tồn, Tồn ≥5, COD và TỔNG CỘNG chỉ tính các mức đang hiện."
+        note="Tổng tồn, Tồn ≥5 ngày, Tiền COD và dòng TỔNG CỘNG chỉ tính các mức đang hiển thị; bưu cục không còn tồn ở các mức này được ẩn. Cột biến động không chia theo mức nên giữ nguyên."
       />
 
       {/* Main Table */}

@@ -226,13 +226,14 @@ test('Theo bưu cục: COD figures never wrap (non-breaking currency sign and no
   assert.match(read('./hangtonLevels.js'), /\u00A0₫/);
 });
 
-test('LevelPicker is compact: short chips, no wrapping labels, short notes', () => {
+test('LevelPicker is compact: short chips and no wrapping labels; notes keep their wording', () => {
   const picker = read('./components/LevelPicker.jsx');
   assert.match(picker, /shortLevelLabel\(lvl\)/);
   assert.match(picker, /whitespace-nowrap text-sm font-bold/);
   assert.doesNotMatch(picker, /text-base/, 'compact: no 16 px buttons');
+  // the explanatory notes keep their full wording (PO: only the row of level buttons was to be made compact)
   const office = read('./components/HangTonByOfficeTab.jsx');
   const overview = read('./components/HangTonOverviewTab.jsx');
-  assert.match(office, /note="Tổng tồn, Tồn ≥5, COD và TỔNG CỘNG chỉ tính các mức đang hiện\."/);
-  assert.match(overview, /note="Chỉ ảnh hưởng biểu đồ; bảng 9 mức bên dưới luôn đủ\."/);
+  assert.match(office, /bưu cục không còn tồn ở các mức này được ẩn\. Cột biến động không chia theo mức nên giữ nguyên\./);
+  assert.match(overview, /bảng 'Chi tiết 9 mức' bên dưới luôn đủ 9 mức\./);
 });
