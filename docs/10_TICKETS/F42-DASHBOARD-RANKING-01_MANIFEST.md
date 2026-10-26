@@ -49,7 +49,17 @@ Same endpoints and shapes as `/api/f41` / `/api/f11`: `GET /dashboard/summary?fr
 - Home page cards (`HomeExecutiveService`) do not include F4.2 yet.
 - Evidence (violation stages) is out of scope.
 
-## 7. Next
+## 7. Independent review scope (Opus, requested by the PO 2026-10-26)
+
+Read-only review of the F4.2 backend written by Claude Code/Sonnet 5.5 (DEC-021: a different model reviews). Do not edit code, do not restart the backend, do not write to `backend/src/db/database.sqlite` (reads only, or temp databases). Report findings as blocker / should-fix / note with file:line and a concrete failing case.
+
+1. **RBAC / leaks** (highest risk): `f42Routes.js`, `F42RankingController.js` (`resolveBcvh`), `accessScope.js`, `resolveAccess.js`, `scopeResponse.js` use, the response cache key. Can a BCVH-mode STAFF user obtain another BCVH, a rank, a city total or the national table through any `/api/f42` endpoint, query parameter, cached copy or the postman table? Does `postman-table` ever sum or rank across BCVH for a scoped user? Compare with `f11Routes.js` / `f11f41Routes.scope.test.js`.
+2. **Metric and postman table**: `FactF42Repository.js` (generated from the F1.1 repository: check no F1.1 leftover such as an evaluated-only denominator), `F42RankingService.js` (`getPostmanTable`): PD-F42-2 (volume = every GBT row, blank rating in the denominator, rate = Đạt / volume), block totals = BCVH figure, grand total = six-BCVH total, week (Thursday-Wednesday) and month bounds, empty periods, rank rules.
+3. **Import path**: `f42HueParser.js` (comma repair of the unquoted CSV, key parcel + postman + GBT time, day check), `f42TctParser.js` (grand total check, 34 provinces), `f42PortalClientMethods.js` and `f42SingleDateServices.js` (exact reconciliation, chunk refusal, generated-file match, cleanup of the portal file), `importProcessor.js` / `importPipeline.js` F4.2 branches. Two live defects were already found and fixed (the `Mã HRM` header read as an HRM login; route code `Khong Xac Dinh`): look for more of that kind.
+
+Evidence to reproduce: `docs/10_TICKETS/F42-PHASE-3_MANIFEST.md` Sections 5-8, real files under `Data DKCL/F4.2-2026.10.10.csv` and `F4.2-TCT-2026.10.10.xlsx` (tests skip when absent), `node --test --experimental-sqlite` per file.
+
+## 8. Next
 
 1. Restart the backend when idle; check `/api/f42/dashboard/meta` with a signed-in session.
 2. `F42-DASHBOARD-UI-01` (Antigravity) after the PO confirms; Opus review; PO UI check.
