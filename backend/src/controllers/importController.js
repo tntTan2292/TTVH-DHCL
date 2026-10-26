@@ -317,7 +317,13 @@ class ImportController {
             );
 
             const rowsWithProcessedEvidence = rows.map((row) => {
-                const indicatorConfig = getIndicatorConfig(row.indicator || 'F1.3');
+                let indicatorConfig;
+                try {
+                    indicatorConfig = getIndicatorConfig(row.indicator || 'F1.3');
+                } catch (_) {
+                    // BF-PHAT (and any other log-only source) has no portal indicator config and no processed folder
+                    return { ...row, hue_processed_path: null, tct_processed_path: null };
+                }
                 const hueProcessedPath = path.join(indicatorConfig.processedDir, 'HUE', row.file_name);
                 const tctProcessedPath = path.join(indicatorConfig.processedDir, 'TCT', row.file_name);
                 return {
