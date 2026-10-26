@@ -80,8 +80,8 @@ test('formatting helpers format slots, snapshots, numbers and currencies accurat
   assert.equal(formatNumber(4430), '4.430');
   assert.equal(formatNumber(0), '0');
 
-  assert.equal(formatCurrency(12500000), '12.500.000 ₫');
-  assert.equal(formatCurrency(0), '0 ₫');
+  assert.equal(formatCurrency(12500000), '12.500.000 ₫', 'non-breaking space before the sign: it cannot wrap alone');
+  assert.equal(formatCurrency(0), '0 ₫');
 
   assert.equal(formatDelta(15), '+15');
   assert.equal(formatDelta(-4), '-4');

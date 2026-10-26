@@ -25,16 +25,18 @@ export function computeFitZoom({ width, design = HANGTON_DESIGN_WIDTH, min = HAN
 }
 
 /**
- * Keeps `zoom` in step with the width of the element behind `ref` (the wrapper OUTSIDE the zoomed content).
- * Returns the current zoom factor.
+ * Keeps `zoom` in step with the width of the element that gets `fitRef` (a callback ref: the wrapper OUTSIDE the zoomed
+ * content). A callback ref is needed because the page shows a loading / error / empty state first and mounts the
+ * wrapper later: an effect keyed on a ref object would have run too early and never again.
+ * Returns { fitRef, zoom }.
  */
-export function useFitZoom(ref, options = {}) {
+export function useFitZoom(options = {}) {
+  const [element, fitRef] = useState(null);
   const [zoom, setZoom] = useState(1);
   const optionsRef = useRef(options);
   optionsRef.current = options;
 
   useEffect(() => {
-    const element = ref.current;
     if (!element) return undefined;
     const update = () => {
       const next = computeFitZoom({ width: element.clientWidth, ...optionsRef.current });
@@ -48,7 +50,7 @@ export function useFitZoom(ref, options = {}) {
     const observer = new ResizeObserver(update);
     observer.observe(element);
     return () => observer.disconnect();
-  }, [ref]);
+  }, [element]);
 
-  return zoom;
+  return { fitRef, zoom };
 }

@@ -218,3 +218,10 @@ test('Theo bưu cục: an office name stays on one line (never wrapped, never cu
   assert.doesNotMatch(office, /break-words">\{r\.office\}/);
   assert.doesNotMatch(office, /truncate max-w-\[150px\]/);
 });
+
+test('Theo bưu cục: COD figures never wrap (non-breaking currency sign and no-wrap cells)', () => {
+  const office = read('./components/HangTonByOfficeTab.jsx');
+  assert.match(office, /whitespace-nowrap py-2 px-2\.5 text-right font-medium text-slate-700 border-r border-slate-200">\s*\{r\.cod > 0/);
+  assert.match(office, /whitespace-nowrap py-2\.5 px-2\.5 text-right border-r border-slate-300">\s*\{formatCurrency\(totals\.cod\)/);
+  assert.match(read('./hangtonLevels.js'), /\u00A0₫/);
+});

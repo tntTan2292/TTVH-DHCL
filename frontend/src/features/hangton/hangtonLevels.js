@@ -210,8 +210,9 @@ export function formatNumber(val) {
  */
 export function formatCurrency(val) {
   const n = Number(val);
-  if (!Number.isFinite(n) || n === 0) return '0 ₫';
-  return `${new Intl.NumberFormat('vi-VN').format(Math.round(n))} ₫`;
+  if (!Number.isFinite(n) || n === 0) return '0 ₫';
+  // non-breaking space: the currency sign never wraps onto a line of its own
+  return `${new Intl.NumberFormat('vi-VN').format(Math.round(n))} ₫`;
 }
 
 /**

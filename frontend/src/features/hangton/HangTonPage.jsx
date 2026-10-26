@@ -75,8 +75,7 @@ export default function HangTonPage() {
 
   const requestToken = useRef(0);
   // The screens follow the width they are given (menu open or closed, window size): see hangtonFit.js
-  const fitRef = useRef(null);
-  const fitZoom = useFitZoom(fitRef);
+  const { fitRef, zoom: fitZoom } = useFitZoom();
   // Customer groups the whole module is limited to ([] = every group); remembered per viewer.
   const [selectedCustomers, setSelectedCustomers] = useState(() => {
     try {

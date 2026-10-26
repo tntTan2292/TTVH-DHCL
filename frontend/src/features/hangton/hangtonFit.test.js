@@ -41,6 +41,13 @@ test('fit zoom is stable and safe on unknown widths', () => {
 
 test('HangTonPage wraps its content in the fit-zoom wrapper (zoom on an inner element, measured on the outer one)', () => {
   const page = fs.readFileSync(new URL('./HangTonPage.jsx', import.meta.url), 'utf8');
-  assert.match(page, /useFitZoom\(fitRef\)/);
+  assert.match(page, /const \{ fitRef, zoom: fitZoom \} = useFitZoom\(\);/, 'callback ref: the wrapper mounts after the loading state');
   assert.match(page, /<div ref=\{fitRef\}>\s*<div style=\{\{ zoom: fitZoom \}\}/, 'the measured wrapper is outside the zoomed one');
+});
+
+test('the fit hook uses a callback ref (an effect on a ref object ran before the wrapper existed and never measured)', () => {
+  const hook = fs.readFileSync(new URL('./hangtonFit.js', import.meta.url), 'utf8');
+  assert.match(hook, /const \[element, fitRef\] = useState\(null\);/);
+  assert.match(hook, /\}, \[element\]\);/);
+  assert.doesNotMatch(hook, /ref\.current/);
 });

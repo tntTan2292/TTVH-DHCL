@@ -291,7 +291,7 @@ export default function HangTonByOfficeTab({
                   </td>
 
                   {/* Tiền COD */}
-                  <td className="py-2 px-2.5 text-right font-medium text-slate-700 border-r border-slate-200">
+                  <td className="whitespace-nowrap py-2 px-2.5 text-right font-medium text-slate-700 border-r border-slate-200">
                     {r.cod > 0 ? formatCurrency(r.cod) : '—'}
                   </td>
 
@@ -336,7 +336,7 @@ export default function HangTonByOfficeTab({
               <td className="py-2.5 px-2.5 text-right bg-red-200/80 text-red-900 font-black">
                 {totals.ge5 > 0 ? <button type="button" onClick={() => openDrill(null, 'ge5')} className="w-full cursor-pointer text-right underline-offset-2 hover:underline" title="Bấm để xem danh sách bưu gửi">{formatNumber(totals.ge5)}</button> : '0'}
               </td>
-              <td className="py-2.5 px-2.5 text-right border-r border-slate-300">
+              <td className="whitespace-nowrap py-2.5 px-2.5 text-right border-r border-slate-300">
                 {formatCurrency(totals.cod)}
               </td>
               <td className="py-2.5 px-2 text-right text-emerald-800">
