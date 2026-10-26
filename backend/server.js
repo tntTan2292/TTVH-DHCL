@@ -26,6 +26,7 @@ const { applyF41Phase2Schema } = require('./migrate_f41_phase2_schema');
 const { applyF11Phase1Schema } = require('./migrate_f11_phase1_schema');
 const { applyF11Phase4Schema } = require('./migrate_f11_phase4_schema');
 const { applyF12Schema } = require('./migrate_f12_schema');
+const { applyF42Schema } = require('./migrate_f42_schema');
 const { applyRbac01Schema } = require('./migrate_rbac_01_schema');
 const { applyAutoBackfillQueueSchema } = require('./migrate_auto_backfill_queue_schema');
 const { applyAutoBackfillSafetySchema } = require('./migrate_auto_backfill_safety_schema');
@@ -148,6 +149,7 @@ async function ensureStartupSchemaMigrations(dbPath = activeDbPath) {
     await applyF11Phase1Schema(dbPath);
     await applyF11Phase4Schema(dbPath);
     await applyF12Schema(dbPath);
+    await applyF42Schema(dbPath);
     await applyAutoBackfillQueueSchema(dbPath);
     await applyAutoBackfillSafetySchema(dbPath);
     await applyAutoBackfillCoverageExceptionSchema(dbPath);

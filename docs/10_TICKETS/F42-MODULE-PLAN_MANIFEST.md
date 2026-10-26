@@ -17,7 +17,7 @@ Evidence-backed audit of the two real F4.2 exports and a phased plan to deliver 
 
 ## 3. Current Status
 
-- State: `AUDIT COMPLETE / PO DECISIONS RECORDED` (PD-F42-1..7 in the checkpoint Section 1). Phase 0 onward not yet activated.
+- State: `AUDIT COMPLETE / PO DECISIONS RECORDED` (PD-F42-1..7 in the checkpoint Section 1). F42-PHASE-0, 1, 2 and 4 activated and implemented: `docs/10_TICKETS/F42-PHASE-0-4_MANIFEST.md`.
 - PO UI Check Required: `No` (planning only).
 
 ## 4. Required Reading

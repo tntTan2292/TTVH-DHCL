@@ -9,6 +9,8 @@ const { extractF11DateFromFilename, parseF11HueExcel } = require('./f11HueExcelP
 const { parseF11TctExcel } = require('./f11TctExcelParser');
 const { extractF12DateFromFilename, parseF12HueExcel } = require('./f12HueExcelParser');
 const { parseF12TctExcel } = require('./f12TctExcelParser');
+const { extractF42DateFromFilename, parseF42Hue } = require('./f42HueParser');
+const { parseF42Tct } = require('./f42TctParser');
 const { createSqliteImportCompletionPolicy, assertSqlIdentifier } = require('./autoBackfillCompletionPolicies');
 const { F13_EXECUTOR_IDENTITIES } = require('./autoBackfillF13Contract');
 const { F41_EXECUTOR_IDENTITIES } = require('./autoBackfillF41Contract');
@@ -143,6 +145,12 @@ const F12_FILENAME_DATE_RULE = createFilenameDateRule({
     id: 'F12_DOTTED_ISO_DATE',
     prefix: 'F1.2',
     parse: extractF12DateFromFilename,
+});
+
+const F42_FILENAME_DATE_RULE = createFilenameDateRule({
+    id: 'F42_DOTTED_ISO_DATE',
+    prefix: 'F4.2',
+    parse: extractF42DateFromFilename,
 });
 
 const INDICATORS = {
@@ -352,6 +360,54 @@ INDICATORS['F1.2'] = {
                 ...F12_EXECUTOR_IDENTITIES.TCT,
                 verified: true,
             },
+        }),
+    },
+};
+
+// F42-PHASE-2/4: F4.2 (chat luong phat giao buu ta), delivering side, rate = PTC dung quy dinh (11,5 h) / every GBT
+// row of the day (PD-F42-2). HUE lane (fact_f42, detail by postman; the portal exports CSV, Excel is accepted) and
+// TCT lane (fact_f42_national, the 34 ranked provinces aggregated from the national postman file), both manual
+// until a Portal adapter is verified (F42-PHASE-3). Status PLANNED keeps F4.2 out of the auto-backfill coverage
+// and queue.
+INDICATORS['F4.2'] = {
+    code: 'F4.2',
+    key: 'F4.2',
+    name: 'F4.2 - Chat luong phat giao buu ta',
+    status: 'PLANNED',
+    priority: 50,
+    badgeTheme: 'rose',
+    trackingStartDate: TRACKING_START_DATE,
+    businessTimezone: BUSINESS_TIMEZONE,
+    folder: 'F4.2',
+    filenamePattern: /^F4\.2-\d{4}\.\d{2}\.\d{2}\.(xlsx|csv)$/i,
+    filenameDateRule: F42_FILENAME_DATE_RULE,
+    extractDate: F42_FILENAME_DATE_RULE.parse,
+    formatFilename: F42_FILENAME_DATE_RULE.format,
+    testDataRoot: {
+        env: 'QIS_TEST_DATA_ROOT_F42',
+        fallbackEnv: 'QIS_TEST_DATA_ROOT',
+        fallbackSibling: 'F4.2',
+    },
+    lanes: {
+        HUE: createLane({
+            code: 'HUE',
+            priority: 10,
+            parser: (buffer, filename) => parseF42Hue(buffer, filename),
+            targetTable: 'fact_f42',
+            distinctColumn: ['ma_bg', 'ma_buu_ta', 'thoi_gian_gbt'],
+            automationMode: 'MANUAL_ONLY',
+            manualOnlyReason: 'No verified DKCL Portal adapter for F4.2 yet (F42-PHASE-3).',
+        }),
+        TCT: createLane({
+            code: 'TCT',
+            priority: 20,
+            parser: (buffer, filename) => parseF42Tct(buffer, filename),
+            targetTable: 'fact_f42_national',
+            // One row per ranked delivering province; complete only when all 34 frozen codes are present.
+            distinctColumn: 'ma_tinh_phat',
+            requiredValues: { column: 'ma_tinh_phat', values: NATIONAL_RANKED_PROVINCE_CODES },
+            automationMode: 'MANUAL_ONLY',
+            manualOnlyReason: 'No verified DKCL Portal adapter for F4.2 yet (F42-PHASE-3).',
         }),
     },
 };

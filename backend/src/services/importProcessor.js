@@ -31,6 +31,8 @@ const { F11_DB_COLUMNS } = require('./f11HueExcelParser');
 const { F11_TCT_DB_COLUMNS } = require('./f11TctExcelParser');
 const { F12_DB_COLUMNS } = require('./f12HueExcelParser');
 const { F12_TCT_DB_COLUMNS } = require('./f12TctExcelParser');
+const { F42_DB_COLUMNS } = require('./f42HueParser');
+const { F42_TCT_DB_COLUMNS } = require('./f42TctParser');
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Constants
@@ -667,7 +669,7 @@ async function importF11NationalParsedData({ parsedData, ngay_do_kiem, filename,
 
 // F12-PHASE-2/4: F1.2 row import into one dedicated fact table, same transaction contract as the F1.1 imports
 // (delete-by-date only when forced and verified empty, scoped post-write count, FAILED log on error).
-async function importF12RowsIntoTable({ table, columns, sourceLane, parsedData, ngay_do_kiem, filename, forceReimport, triggerSource }) {
+async function importF12RowsIntoTable({ table, columns, sourceLane, parsedData, ngay_do_kiem, filename, forceReimport, triggerSource, indicator = 'F1.2' }) {
     const totalParsed = parsedData.length;
     const spec = buildInsertSpec(columns);
     await run('BEGIN TRANSACTION');
@@ -683,7 +685,7 @@ async function importF12RowsIntoTable({ table, columns, sourceLane, parsedData, 
             ngay_do_kiem,
             status: 'SUCCESS',
             totalRecords: totalParsed,
-            indicator: 'F1.2',
+            indicator,
             sourceLane,
             triggerSource,
         });
@@ -719,7 +721,7 @@ async function importF12RowsIntoTable({ table, columns, sourceLane, parsedData, 
     } catch (error) {
         try { await run('ROLLBACK'); } catch { /* rollback failure must not mask the import error */ }
         try {
-            await insertImportLog({ filename, ngay_do_kiem, status: 'FAILED', totalRecords: totalParsed, errorRecords: totalParsed, indicator: 'F1.2', sourceLane, triggerSource });
+            await insertImportLog({ filename, ngay_do_kiem, status: 'FAILED', totalRecords: totalParsed, errorRecords: totalParsed, indicator, sourceLane, triggerSource });
         } catch { /* the FAILED log is best effort */ }
         throw error;
     }
@@ -733,6 +735,16 @@ function importF12ParsedData({ parsedData, ngay_do_kiem, filename, forceReimport
 // F12-PHASE-4: F1.2 / TCT national aggregate (one row per accepting province).
 function importF12NationalParsedData({ parsedData, ngay_do_kiem, filename, forceReimport = false, triggerSource = 'AUTO' }) {
     return importF12RowsIntoTable({ table: 'fact_f12_national', columns: F12_TCT_DB_COLUMNS, sourceLane: 'TCT', parsedData, ngay_do_kiem, filename, forceReimport, triggerSource });
+}
+
+// F42-PHASE-2: F4.2 / HUE detail rows (one row per delivery handed to a postman); same transaction contract.
+function importF42ParsedData({ parsedData, ngay_do_kiem, filename, forceReimport = false, triggerSource = 'AUTO' }) {
+    return importF12RowsIntoTable({ table: 'fact_f42', columns: F42_DB_COLUMNS, sourceLane: 'HUE', indicator: 'F4.2', parsedData, ngay_do_kiem, filename, forceReimport, triggerSource });
+}
+
+// F42-PHASE-4: F4.2 / TCT national aggregate (one row per ranked province).
+function importF42NationalParsedData({ parsedData, ngay_do_kiem, filename, forceReimport = false, triggerSource = 'AUTO' }) {
+    return importF12RowsIntoTable({ table: 'fact_f42_national', columns: F42_TCT_DB_COLUMNS, sourceLane: 'TCT', indicator: 'F4.2', parsedData, ngay_do_kiem, filename, forceReimport, triggerSource });
 }
 
 async function importF41NationalParsedData({ parsedData, ngay_do_kiem, filename, forceReimport = false, triggerSource = 'AUTO' }) {
@@ -805,4 +817,6 @@ module.exports = {
     importF11NationalParsedData,
     importF12ParsedData,
     importF12NationalParsedData,
+    importF42ParsedData,
+    importF42NationalParsedData,
 };

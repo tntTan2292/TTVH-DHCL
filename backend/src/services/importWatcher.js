@@ -51,7 +51,9 @@ function startWatcher() {
 
     watcher.on('add', (filePath) => {
         // Chỉ bắt file xlsx (các file rác, temp xlsx như ~$file.xlsx sẽ bị filter ở processor)
-        if (filePath.endsWith('.xlsx') && !path.basename(filePath).startsWith('~$')) {
+        // F4.2 HUE reports are CSV (F4.2-YYYY.MM.DD.csv); every other indicator is Excel only.
+        const isF42Csv = /^F4\.2-.*\.csv$/i.test(path.basename(filePath));
+        if ((filePath.endsWith('.xlsx') || isF42Csv) && !path.basename(filePath).startsWith('~$')) {
             console.log(`[ImportWatcher] Phát hiện file mới: ${filePath}`);
             importQueue.add(filePath);
         }

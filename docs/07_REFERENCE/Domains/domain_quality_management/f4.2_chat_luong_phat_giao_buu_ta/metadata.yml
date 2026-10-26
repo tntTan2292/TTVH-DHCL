@@ -1,0 +1,25 @@
+id: "F4.2"
+name: "Chất lượng phát giao bưu tá"
+alias: "Phát giao bưu tá (Giao bưu tá GBT → Phát thành công PTC trong 11,5 giờ)"
+domain: "Quality Management"
+owner_business: "Product Owner"
+owner_technical: "Architect"
+version: "1.0.0"
+status: "Planned"
+effective_date: "2026-10-26"
+expiration_date: ""
+review_cycle: "TODO - Waiting Product Owner"
+target_rate: 90
+data_sources:
+  - "F4.2_chat_luong_phat_giao_buu_ta_chi_tiet — file chi tiết cấp bưu gửi theo bưu tá (HUE, CSV), do DKCL cung cấp"
+  - "F4.2_chat_luong_phat_giao_buu_ta — file toàn quốc theo bưu tá (TCT, XLSX), do DKCL cung cấp"
+dependencies:
+  - "docs/06_REVIEWS/Shared/F42-MODULE-PLAN_CHECKPOINT_001.md"
+  - "docs/07_REFERENCE/Shared_Business/portal_adapter_standard.md"
+tags:
+  - "phat"
+  - "buu ta"
+  - "GBT"
+  - "PTC"
+  - "11,5 gio"
+priority: "High"

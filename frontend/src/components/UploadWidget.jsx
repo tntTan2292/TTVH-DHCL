@@ -2,6 +2,9 @@ import { useRef, useState } from 'react';
 import { AlertTriangle, CheckCircle2, FileText, UploadCloud, XCircle } from 'lucide-react';
 import api from '../api/client';
 
+// F4.2 HUE reports are exported by DKCL as CSV; every other file is Excel.
+const acceptsCsv = (indicator, source) => indicator === 'F4.2' && source === 'HUE';
+
 export default function UploadWidget({ onUploadSuccess }) {
     const [file, setFile] = useState(null);
     const [uploading, setUploading] = useState(false);
@@ -20,7 +23,8 @@ export default function UploadWidget({ onUploadSuccess }) {
     );
 
     const selectFile = (selectedFile) => {
-        if (selectedFile && selectedFile.name.toLowerCase().endsWith('.xlsx')) {
+        const name = selectedFile ? selectedFile.name.toLowerCase() : '';
+        if (selectedFile && (name.endsWith('.xlsx') || (acceptsCsv(indicator, source) && name.endsWith('.csv')))) {
             setFile(selectedFile);
             setResult(null);
             setConfirm(null);
@@ -28,7 +32,7 @@ export default function UploadWidget({ onUploadSuccess }) {
         }
 
         if (selectedFile) {
-            setResult({ type: 'error', message: 'Chỉ chấp nhận file .xlsx hợp lệ.' });
+            setResult({ type: 'error', message: acceptsCsv(indicator, source) ? 'Chỉ chấp nhận file .xlsx hoặc .csv hợp lệ.' : 'Chỉ chấp nhận file .xlsx hợp lệ.' });
         }
     };
 
@@ -91,6 +95,7 @@ export default function UploadWidget({ onUploadSuccess }) {
                         <option value="F4.1">F4.1</option>
                         <option value="F1.1">F1.1</option>
                         <option value="F1.2">F1.2</option>
+                        <option value="F4.2">F4.2</option>
                     </select>
                 </label>
                 <label className="text-xs font-semibold text-slate-600">
@@ -133,7 +138,7 @@ export default function UploadWidget({ onUploadSuccess }) {
                 <input
                     ref={inputRef}
                     type="file"
-                    accept=".xlsx"
+                    accept={acceptsCsv(indicator, source) ? '.xlsx,.csv' : '.xlsx'}
                     onChange={(event) => selectFile(event.target.files[0])}
                     className="hidden"
                 />
@@ -145,7 +150,7 @@ export default function UploadWidget({ onUploadSuccess }) {
                 ) : (
                     <div className="text-slate-400">
                         <UploadCloud size={32} className="mx-auto mb-2 text-slate-300" />
-                        <p className="text-sm font-medium">Kéo thả hoặc click để chọn file .xlsx</p>
+                        <p className="text-sm font-medium">Kéo thả hoặc click để chọn file {acceptsCsv(indicator, source) ? '.csv / .xlsx' : '.xlsx'}</p>
                     </div>
                 )}
             </div>
