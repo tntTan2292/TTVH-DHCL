@@ -289,6 +289,25 @@ test('F4.2 methods are mixed in next to the F1.2 ones and use their own state fi
     assert.equal(client.lastF42Lane, 'HUE');
 });
 
+test('opening the report with a valid session is not mistaken for an HRM login by the `Mã HRM` column header (live bug 2026-10-26)', async () => {
+    const page = createFakePage({ reportResponse: () => respond(200, HUE_REPORT_BODY), detailResponse: () => null });
+    const bodyOf = (text) => ({ innerText: async () => text });
+    const realLocator = page.locator;
+    const withBody = (text) => { page.locator = (selector) => (selector === 'body' ? bodyOf(text) : realLocator(selector)); };
+    const client = new DkclHueF13PortalClient({ logger: { log() {}, warn() {} } });
+    client.page = page;
+    client.baseUrl = 'https://dkcl.vnpost.vn';
+    client.captureLoginDiagnostics = async () => {};
+
+    withBody('CHẤT LƯỢNG PHÁT GIAO BƯU TÁ Mã bưu tá Tên bưu tá Mã HRM Chức danh');
+    await client.openF42Report(); // must not throw
+
+    withBody('Nhập mã xác thực captcha để tiếp tục');
+    await assert.rejects(client.openF42Report(), (error) => error.code === 'AUTHENTICATION_REQUIRED');
+    withBody('Đăng nhập SSO');
+    await assert.rejects(client.openF42Report(), (error) => error.code === 'AUTHENTICATION_REQUIRED');
+});
+
 test('generated-file poll: the HUE CSV by its name link, the TCT xlsx by the button, a chunked export refused, a stale file ignored', async () => {
     const row = (filename, id, time) => ({
         filename,

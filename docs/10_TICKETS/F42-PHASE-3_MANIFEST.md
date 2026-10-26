@@ -84,4 +84,6 @@ Validation: backend sweep 697/705, 5 skipped, the same 3 known failures; `test_f
 
 PO UI Check Required: **Yes** for the Import Center (a fifth indicator column in the day view and the new F4.2 option; layout not seen on screen). The screen change is data-driven only; Antigravity should look at the day-view width if the fifth column is cramped.
 
+First live run (PO, 2026-10-26, F4.2 HUE and TCT for 25/10): both runs stopped as `WAITING_AUTH` / `AUTHENTICATION_REQUIRED` although the session strip said "Đã đăng nhập". Root cause: `stopForSecurityChallenge({ allowHrm: false })` in `openF42Report()` treats the word "HRM" on the page as an HRM login prompt, and the F4.2 report table has a **"Mã HRM" column header**; the real session was valid (the same page opened signed in, no captcha / OTP / SSO word on it). Fix: `openF42Report()` passes `allowHrm: true` (captcha / OTP / SSO words and the login-input check still refuse a real challenge); regression test added (29/29). Backend restarted again; the two waiting runs are resumed by the PO with "Tiếp tục Run".
+
 Next: PO runs the first F4.2 import from the Import Center and reports; then backfill from 2026-01-01 (to be run in portions, see the chunk risk in Section 7); then `F42-DASHBOARD-RANKING-01` (`/api/f42`) and `F42-DASHBOARD-UI-01` (Antigravity).

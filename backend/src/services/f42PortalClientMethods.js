@@ -202,7 +202,11 @@ function chunkGroupKey(filename) {
 const methods = {
     async openF42Report() {
         await this.page.goto(`${this.baseUrl}${F42_REPORT_PATH}`, { waitUntil: 'domcontentloaded', timeout: 60000 });
-        await this.stopForSecurityChallenge({ allowHrm: false });
+        // The F4.2 report is a table by postman with a `Ma HRM` column: its header would trip the HRM detector
+        // (it treats the word HRM on a page as an HRM login prompt) and every run would stop as AUTHENTICATION_REQUIRED
+        // with a valid session (seen on the first live run, 2026-10-26). Captcha / OTP / SSO words are still refused,
+        // and a real login form is still caught by the login-input check below.
+        await this.stopForSecurityChallenge({ allowHrm: true });
         await Promise.race([
             this.page.waitForSelector('select[name="TuyChonGR"]', { state: 'attached', timeout: 20000 }).catch(() => null),
             this.page.waitForSelector('input[name="login"], input[id="login"], input[type="password"]', { state: 'attached', timeout: 20000 }).catch(() => null),
