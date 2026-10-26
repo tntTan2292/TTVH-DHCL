@@ -13,7 +13,9 @@ const CANONICAL_CODE_SET = new Set(CANONICAL_BCVH_CODES);
 
 // `anyUnits` (indicator.dynamicUnits, F1.2): the ranked units come from the indicator's own metadata, so any
 // non-empty list of unique coded, named units is valid; otherwise exactly the six canonical BCVH.
-export function validateBcvhUnits(units = [], { anyUnits = false } = {}) {
+// `allowedCodes` (RBAC-01): a user limited to some BCVH receives only those units from the backend, so the list
+// must be a non-empty set of unique, named canonical units that includes every allowed code (not all six).
+export function validateBcvhUnits(units = [], { anyUnits = false, allowedCodes = null } = {}) {
   if (!Array.isArray(units)) {
     return { ok: false, error: 'Metadata BCVH không hợp lệ.' };
   }
@@ -24,6 +26,18 @@ export function validateBcvhUnits(units = [], { anyUnits = false } = {}) {
     if (anyCodes.some((code) => code === '')) return { ok: false, error: 'Metadata đơn vị thiếu mã.' };
     if (new Set(anyCodes).size !== anyCodes.length) return { ok: false, error: 'Metadata đơn vị có mã bị trùng.' };
     if (units.some((unit) => !unit?.ten_bcvh)) return { ok: false, error: 'Metadata đơn vị thiếu tên hiển thị.' };
+    return { ok: true, error: null };
+  }
+
+  if (Array.isArray(allowedCodes)) {
+    const scopedCodes = units.map((unit) => String(unit?.ma_bcvh || ''));
+    if (scopedCodes.length === 0) return { ok: false, error: 'Chưa có BCVH nào trong phạm vi của bạn.' };
+    if (new Set(scopedCodes).size !== scopedCodes.length) return { ok: false, error: 'Metadata BCVH có mã đơn vị bị trùng.' };
+    const foreign = scopedCodes.find((code) => !CANONICAL_CODE_SET.has(code));
+    if (foreign) return { ok: false, error: `Metadata BCVH có mã không hợp lệ: ${foreign}.` };
+    if (units.some((unit) => !unit?.ten_bcvh)) return { ok: false, error: 'Metadata BCVH thiếu tên hiển thị.' };
+    const missing = allowedCodes.map(String).find((code) => !scopedCodes.includes(code));
+    if (missing) return { ok: false, error: `Metadata BCVH thiếu đơn vị ${missing} trong phạm vi của bạn.` };
     return { ok: true, error: null };
   }
 
@@ -52,7 +66,7 @@ export function validateBcvhUnits(units = [], { anyUnits = false } = {}) {
 
 export function buildBcvhOptions(units = [], options = {}) {
   const { allowedCodes = null, ...validateOptions } = options;
-  const validation = validateBcvhUnits(units, validateOptions);
+  const validation = validateBcvhUnits(units, { ...validateOptions, allowedCodes });
   if (!validation.ok) {
     return [];
   }

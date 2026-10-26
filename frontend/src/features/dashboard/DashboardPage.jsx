@@ -69,7 +69,7 @@ export default function DashboardPage() {
           setEarliestDate(data.min_date || data.max_date);
         }
 
-        const validation = validateBcvhUnits(data.bcvh_units, { anyUnits: Boolean(indicator.dynamicUnits) });
+        const validation = validateBcvhUnits(data.bcvh_units, { anyUnits: Boolean(indicator.dynamicUnits), allowedCodes: allowedBcvhCodes });
         if (!res.data?.success || !validation.ok) {
           setMetadataState({
             status: 'error',

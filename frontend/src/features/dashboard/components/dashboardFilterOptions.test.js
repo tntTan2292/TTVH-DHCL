@@ -128,3 +128,18 @@ test('buildBcvhOptions with allowedCodes filters units and omits allOption', () 
   assert.ok(!options.some((opt) => opt.value === 'all'));
 });
 
+
+test('a user limited to some BCVH gets a short unit list from the backend and it is valid (RBAC-01)', () => {
+  const own = [{ ma_bcvh: '535470', ten_bcvh: 'BCVH Hương Trà' }];
+  assert.equal(validateBcvhUnits(own).ok, false, 'without a scope the strict six-unit rule still applies');
+  assert.equal(validateBcvhUnits(own, { allowedCodes: ['535470'] }).ok, true);
+  assert.deepEqual(buildBcvhOptions(own, { allowedCodes: ['535470'] }), [{ value: '535470', label: 'BCVH Hương Trà' }]);
+
+  const two = [{ ma_bcvh: '537220', ten_bcvh: 'BCVH Phú Lộc' }, { ma_bcvh: '535790', ten_bcvh: 'BCVH A Lưới' }];
+  assert.equal(validateBcvhUnits(two, { allowedCodes: ['537220', '535790'] }).ok, true);
+  assert.equal(buildBcvhOptions(two, { allowedCodes: ['537220', '535790'] }).length, 2);
+
+  assert.equal(validateBcvhUnits([], { allowedCodes: ['535470'] }).ok, false);
+  assert.equal(validateBcvhUnits(own, { allowedCodes: ['535470', '537015'] }).ok, false, 'an allowed unit that is missing is an error');
+  assert.equal(validateBcvhUnits([{ ma_bcvh: '999999', ten_bcvh: 'X' }], { allowedCodes: ['999999'] }).ok, false, 'only canonical codes');
+});

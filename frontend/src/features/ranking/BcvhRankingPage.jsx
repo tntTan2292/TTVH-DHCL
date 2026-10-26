@@ -159,7 +159,7 @@ export default function BcvhRankingPage() {
       .then((res) => {
         if (!active) return;
         const units = res.data?.data?.bcvh_units || [];
-        const validation = validateBcvhUnits(units, { anyUnits: Boolean(indicator.dynamicUnits) });
+        const validation = validateBcvhUnits(units, { anyUnits: Boolean(indicator.dynamicUnits), allowedCodes: allowedBcvhCodes });
         if (!validation.ok) {
           setMetaState({ status: 'error', options: [], error: validation.error, maxDate: null });
           return;
