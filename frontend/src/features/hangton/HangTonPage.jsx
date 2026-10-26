@@ -13,6 +13,7 @@ import { PageContainer } from '../../components/shared/SharedComponents.jsx';
 import { LoadingLayout, ErrorLayout, EmptyLayout } from '../../components/common/StateLayouts.jsx';
 import { resolveHangtonTab, isHangtonTab } from './hangtonTabs.js';
 import { levelsFromRank } from './hangtonLevels.js';
+import { useFitZoom } from './hangtonFit.js';
 import SnapshotPicker from './components/SnapshotPicker.jsx';
 import CustomerFilterBar from './components/CustomerFilterBar.jsx';
 import { sanitizeSelectedCustomers, customersParam } from './hangtonCustomers.js';
@@ -73,6 +74,9 @@ export default function HangTonPage() {
   const [compare, setCompare] = useState(null);
 
   const requestToken = useRef(0);
+  // The screens follow the width they are given (menu open or closed, window size): see hangtonFit.js
+  const fitRef = useRef(null);
+  const fitZoom = useFitZoom(fitRef);
   // Customer groups the whole module is limited to ([] = every group); remembered per viewer.
   const [selectedCustomers, setSelectedCustomers] = useState(() => {
     try {
@@ -260,7 +264,8 @@ export default function HangTonPage() {
         </div>
       }
     >
-      <div className="space-y-6">
+      <div ref={fitRef}>
+      <div style={{ zoom: fitZoom }} className="space-y-6">
         {/* Customer-group filter: applies to every screen */}
         <CustomerFilterBar
           groups={customerGroups}
@@ -358,6 +363,7 @@ export default function HangTonPage() {
             title={`Danh sách bưu gửi tồn${modalLevels.length > 0 ? ' ≥5 ngày' : ''} — ${modalOffice}`}
           />
         ) : null}
+      </div>
       </div>
     </PageContainer>
   );
