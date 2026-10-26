@@ -37,20 +37,49 @@ const promisify = (conn) => ({
     close: () => new Promise((resolve, reject) => conn.close((error) => (error ? reject(error) : resolve()))),
 });
 
-/** Latest file per business date in `dir` (a `_001` re-export wins over the plain name when newer). */
-function pickDailyFiles(dir) {
+/** True when file `a` should replace file `b` for the same day: larger wins, a tie goes to the newer file. */
+function isBetterFile(a, b) {
+    if (a.size !== b.size) return a.size > b.size;
+    if (a.mtimeMs !== b.mtimeMs) return a.mtimeMs > b.mtimeMs;
+    return a.name > b.name;
+}
+
+/**
+ * Files per business date in `dir`: the winner (largest, since TCT re-exports a corrected day as a bigger file and the
+ * server leaves a 3 KB stub as the plain name) plus the losers that are superseded.
+ */
+function groupDailyFiles(dir) {
     const byDate = new Map();
     for (const name of fs.readdirSync(dir)) {
         const date = extractBfDateFromFilename(name);
         if (!date) continue;
         const full = path.join(dir, name);
         const stat = fs.statSync(full);
-        const current = byDate.get(date);
-        if (!current || stat.mtimeMs > current.mtimeMs || (stat.mtimeMs === current.mtimeMs && name > current.name)) {
-            byDate.set(date, { date, name, path: full, mtimeMs: stat.mtimeMs, size: stat.size });
+        const file = { date, name, path: full, mtimeMs: stat.mtimeMs, size: stat.size };
+        const group = byDate.get(date) || { date, winner: null, losers: [] };
+        if (!group.winner) group.winner = file;
+        else if (isBetterFile(file, group.winner)) { group.losers.push(group.winner); group.winner = file; } else group.losers.push(file);
+        byDate.set(date, group);
+    }
+    return byDate;
+}
+
+/** Winner file per business date, oldest day first. */
+function pickDailyFiles(dir) {
+    return [...groupDailyFiles(dir).values()].map((group) => group.winner).sort((a, b) => a.date.localeCompare(b.date));
+}
+
+/** Deletes the superseded local copies (only the downloaded raw files; nothing on the server). Returns the deleted names. */
+function pruneSupersededFiles(dir, onlyDates = null) {
+    const removed = [];
+    for (const group of groupDailyFiles(dir).values()) {
+        if (onlyDates && !onlyDates.includes(group.date)) continue;
+        for (const file of group.losers) {
+            fs.rmSync(file.path, { force: true });
+            removed.push(file.name);
         }
     }
-    return [...byDate.values()].sort((a, b) => a.date.localeCompare(b.date));
+    return removed;
 }
 
 class BfPhatImportService {
@@ -68,11 +97,11 @@ class BfPhatImportService {
         }
     }
 
-    /** Days already loaded: Map<ngay_bf, row count>. */
+    /** Days already loaded: Map<ngay_bf, { rows, sourceFile }>. */
     async loadedDays() {
         return this.withDb(async (db) => {
-            const rows = await db.all('SELECT ngay_bf, COUNT(*) AS n FROM fact_bf_phat GROUP BY ngay_bf');
-            return new Map(rows.map((row) => [row.ngay_bf, row.n]));
+            const rows = await db.all('SELECT ngay_bf, COUNT(*) AS n, MAX(source_file) AS source_file FROM fact_bf_phat GROUP BY ngay_bf');
+            return new Map(rows.map((row) => [row.ngay_bf, { rows: row.n, sourceFile: row.source_file }]));
         });
     }
 
@@ -144,8 +173,9 @@ class BfPhatImportService {
         const files = pickDailyFiles(dir).filter((file) => (onlyDates ? onlyDates.includes(file.date) : true));
         const results = [];
         for (const file of files) {
-            if (!force && loaded.has(file.date)) {
-                results.push({ date: file.date, file: file.name, status: 'SKIPPED', rows: loaded.get(file.date) });
+            const had = loaded.get(file.date);
+            if (!force && had && had.sourceFile === file.name) { // same file already loaded; a different (bigger re-export) file is loaded again
+                results.push({ date: file.date, file: file.name, status: 'SKIPPED', rows: had.rows });
                 continue;
             }
             const result = await this.importFile(file.path, { actor, trigger });
@@ -156,4 +186,4 @@ class BfPhatImportService {
     }
 }
 
-module.exports = { BfPhatImportService, pickDailyFiles, INDICATOR, LANE };
+module.exports = { BfPhatImportService, pickDailyFiles, pruneSupersededFiles, groupDailyFiles, INDICATOR, LANE };

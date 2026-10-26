@@ -10,9 +10,9 @@ const sqlite3 = require('sqlite3').verbose();
 const { BfPhatScheduler, windowFor, parseStart } = require('./bfPhatScheduler');
 const { applyBfPhat01Schema } = require('../../../migrate_bf_phat_01_schema');
 
-test('window is D-1 plus two refresh days; start time parsing falls back to 05:00', () => {
-    assert.deepEqual(windowFor('2026-10-26'), { newDay: '2026-10-25', refreshDays: ['2026-10-24', '2026-10-23'] });
-    assert.deepEqual(windowFor('2026-03-01'), { newDay: '2026-02-28', refreshDays: ['2026-02-27', '2026-02-26'] });
+test('window is D-1 only (no fixed refresh days); start time parsing falls back to 05:00', () => {
+    assert.deepEqual(windowFor('2026-10-26'), { newDay: '2026-10-25' });
+    assert.deepEqual(windowFor('2026-03-01'), { newDay: '2026-02-28' });
     assert.equal(parseStart('07:30'), 450);
     assert.equal(parseStart('bad'), 300);
 });
@@ -39,7 +39,7 @@ test('before the start time nothing runs; with no file a FAILED log is written a
         let downloads = 0;
         const make = (iso) => new BfPhatScheduler({
             dbPath, logger: {}, env: { BF_PHAT_LOCAL_ROOT: dir }, clock: () => new Date(iso),
-            download: async () => { downloads += 1; return { code: 0, log: '' }; },
+            list: async () => { downloads += 1; return { code: 0, files: [], log: '' }; },
             importer: { importFile: async () => ({ status: 'SUCCESS' }) },
         });
         process.env.BF_PHAT_LOCAL_ROOT = dir;

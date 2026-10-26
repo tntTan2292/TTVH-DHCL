@@ -1,52 +1,68 @@
 /**
- * BF-PHAT-IMPORT-01 CLI -- load daily delivery BatchFiles into fact_bf_phat.
+ * BF-PHAT-IMPORT-01 CLI -- delivery BatchFile into fact_bf_phat.
  *
- *   node import_bf_phat.js [--dir <folder>] [--year 2026] [--force] [--dry-run]
- *   node import_bf_phat.js --download 2026-10-24 2026-10-25     (WinSCP, then import those days)
+ *   node import_bf_phat.js [--year 2026] [--dir <folder>] [--prune] [--force] [--dry-run]
+ *       load the local folder: a day already loaded from the same file is skipped, a day whose kept file differs is loaded again
+ *       --prune  first delete the superseded local copy of each day (the bigger file wins)
+ *   node import_bf_phat.js --sync [--to 2026-10-25]
+ *       list the server, download new / re-exported-bigger days, delete the superseded local copy, import those days
  *
- * Default folder: <repo>/Data BF Phat/<year>. Days already loaded are skipped unless --force.
+ * Default folder: <repo>/Data BF Phat/<year>.
  */
 'use strict';
 
 const fs = require('fs');
 const path = require('path');
 
-const { BfPhatImportService, pickDailyFiles } = require('./src/services/bfPhat/bfPhatImportService');
-const { downloadDays, DEFAULT_LOCAL_ROOT } = require('./src/services/bfPhat/bfPhatWinscpService');
+const { BfPhatImportService, pickDailyFiles, pruneSupersededFiles } = require('./src/services/bfPhat/bfPhatImportService');
+const { syncChangedDays } = require('./src/services/bfPhat/bfPhatSync');
+const { DEFAULT_LOCAL_ROOT } = require('./src/services/bfPhat/bfPhatWinscpService');
 
 function arg(name) {
     const index = process.argv.indexOf(name);
     return index === -1 ? null : (process.argv[index + 1] || '');
 }
 
+function yesterdayVietnam() {
+    const vn = new Date(Date.now() + 7 * 3600 * 1000 - 24 * 3600 * 1000);
+    return vn.toISOString().slice(0, 10);
+}
+
 async function main() {
     const year = arg('--year') || '2026';
     const force = process.argv.includes('--force');
     const dryRun = process.argv.includes('--dry-run');
-    let onlyDates = null;
+    const service = new BfPhatImportService();
 
-    const downloadIndex = process.argv.indexOf('--download');
-    if (downloadIndex !== -1) {
-        onlyDates = process.argv.slice(downloadIndex + 1).filter((value) => /^\d{4}-\d{2}-\d{2}$/.test(value));
-        const result = await downloadDays(onlyDates);
-        console.log(`[WinSCP] exit ${result.code}`);
-        if (result.code !== 0) console.error(result.log);
+    if (process.argv.includes('--sync')) {
+        const toDate = arg('--to') || yesterdayVietnam();
+        const result = await syncChangedDays({ toDate, importer: service, actor: 'cli', trigger: 'MANUAL' });
+        console.log(`Server files: ${result.listed}; days to fetch: ${result.plan.length}`);
+        for (const item of result.plan) console.log(`  ${item.date} ${item.reason} ${item.name} (${item.size} bytes)`);
+        for (const r of result.results) console.log(`  ${r.date} ${r.status} rows=${r.rows}${r.replaced ? ` replaced=${r.replaced}` : ''}${r.error ? ` ERROR ${r.error}` : ''}`);
+        for (const e of result.errors) console.error(`  PROBLEM ${e}`);
+        if (result.errors.length || result.results.some((r) => r.status === 'FAILED')) process.exitCode = 1;
+        return;
     }
 
     const dir = arg('--dir') || path.join(DEFAULT_LOCAL_ROOT, year);
     if (!fs.existsSync(dir)) throw new Error(`Folder not found: ${dir}`);
-    const service = new BfPhatImportService();
+
+    if (process.argv.includes('--prune') && !dryRun) {
+        const removed = pruneSupersededFiles(dir);
+        console.log(`Pruned ${removed.length} superseded file(s): ${removed.join(', ')}`);
+    }
 
     if (dryRun) {
         const loaded = await service.loadedDays();
         const files = pickDailyFiles(dir);
-        const todo = files.filter((file) => force || !loaded.has(file.date));
-        console.log(`[dry-run] ${files.length} day files in ${dir}; ${loaded.size} days already loaded; ${todo.length} would be imported.`);
+        const todo = files.filter((file) => force || loaded.get(file.date)?.sourceFile !== file.name);
+        console.log(`[dry-run] ${files.length} day files in ${dir}; ${loaded.size} days loaded; ${todo.length} would be imported.`);
         return;
     }
 
     const results = await service.importFolder(dir, {
-        force, onlyDates, actor: 'cli', trigger: 'MANUAL',
+        force, actor: 'cli', trigger: 'MANUAL',
         onProgress: (r) => console.log(`${r.date} ${r.status} rows=${r.rows}${r.replaced ? ` replaced=${r.replaced}` : ''}${r.error ? ` ERROR ${r.error}` : ''}`),
     });
     const count = (status) => results.filter((r) => r.status === status).length;
