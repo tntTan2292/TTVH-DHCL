@@ -119,7 +119,8 @@ class ImportDailyLogService {
 
         const counts = { OK: 0, FAILED: 0, RUNNING: 0, QUEUED: 0, WAITING_AUTH: 0, MISSING: 0 };
         for (const cell of cells) counts[cell.state] += 1;
-        const attention = this.buildAttention({ day, today, cells, scheduler, sessions, manualImports, oldFailures, counts });
+        const bfPhat = await this.loadBfPhat(windowEnd);
+        const attention = this.buildAttention({ day, today, cells, scheduler, sessions, manualImports, oldFailures, counts, bfPhat, now });
         const verdict = this.buildVerdict({ counts, attention, scheduler, expected: cells.length });
 
         return {
@@ -130,6 +131,7 @@ class ImportDailyLogService {
             summary: { expected: cells.length, ...counts, verdict: verdict.code, verdict_text: verdict.text },
             attention,
             grid,
+            bf_phat: bfPhat,
             scheduler,
             sessions,
             runs,
@@ -287,6 +289,20 @@ class ImportDailyLogService {
     }
 
     /** Imports of the Vietnam day made by a person (manual upload, or a run started by a user), plus every failed import. */
+    /** BF-PHAT-IMPORT-01: is the new day's delivery BatchFile loaded? null when the table is not there yet. */
+    async loadBfPhat(newDay) {
+        try {
+            const row = await this.db.get('SELECT COUNT(*) AS n FROM fact_bf_phat WHERE ngay_bf = ?', [newDay]);
+            const last = await this.db.get(
+                `SELECT status, file_name, created_at FROM import_log WHERE indicator = 'BF-PHAT' AND ngay_do_kiem = ? ORDER BY id DESC LIMIT 1`,
+                [newDay]
+            );
+            return { date: newDay, rows: Number(row?.n || 0), loaded: Number(row?.n || 0) > 0, last_status: last?.status || null, last_file: last?.file_name || null, last_at: toIso(last?.created_at) };
+        } catch (_) {
+            return null;
+        }
+    }
+
     async loadManualAndFailedImports(day) {
         const { start, end } = vietnamDayUtcBounds(day);
         const columns = new Set((await this.db.all('PRAGMA table_info(import_log)')).map((column) => column.name));
@@ -382,7 +398,7 @@ class ImportDailyLogService {
         return result;
     }
 
-    buildAttention({ day, today, cells, scheduler, sessions, manualImports, oldFailures, counts }) {
+    buildAttention({ day, today, cells, scheduler, sessions, manualImports, oldFailures, counts, bfPhat = null, now = null }) {
         const items = [];
         const add = (severity, code, message, extra = {}) => items.push({ severity, code, message, ...extra });
         const isToday = day === today;
@@ -413,6 +429,10 @@ class ImportDailyLogService {
             } else if (cell.state === CELL_STATES.MISSING && isToday) {
                 add('medium', 'CELL_MISSING', `${cell.indicator} ${cell.lane} ngày ${cell.date} chưa có lượt nhập nào.`, where);
             }
+        }
+        // BF Phát runs from 05:00 (BF_PHAT_SCHEDULE_START); by 08:00 the new day should be in.
+        if (bfPhat && isToday && !bfPhat.loaded && now && Number(new Intl.DateTimeFormat('en-GB', { timeZone: BUSINESS_TIMEZONE, hour: '2-digit', hourCycle: 'h23' }).format(now)) >= 8) {
+            add('high', 'BF_PHAT_MISSING', `BF Phát ngày ${bfPhat.date} chưa vào hệ thống${bfPhat.last_status === 'FAILED' ? ' (lần gần nhất lỗi)' : ''}.`, { indicator: 'BF-PHAT', date: bfPhat.date });
         }
         for (const row of manualImports) {
             if (row.status === 'FAILED' && !row.resolved) {

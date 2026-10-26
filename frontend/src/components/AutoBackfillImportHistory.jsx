@@ -24,7 +24,7 @@ import {
 } from './autoBackfillUiHelpers';
 
 const PAGE_SIZE_OPTIONS = [20, 50, 100];
-const INDICATORS = ['ALL', 'F1.1', 'F1.2', 'F1.3', 'F4.1'];
+const INDICATORS = ['ALL', 'F1.1', 'F1.2', 'F1.3', 'F4.1', 'BF-PHAT'];
 const LANES = ['ALL', 'HUE', 'TCT'];
 const MODES = [
   { value: 'ALL', label: 'Tất cả chế độ' },

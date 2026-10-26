@@ -120,3 +120,6 @@ exports/
 
 # HANGTON-INVENTORY-01 local portal credentials
 backend/.hangton.env
+
+# BF Phat daily files downloaded from WinSCP (BF-PHAT-IMPORT-01), business data
+Data BF Phat/

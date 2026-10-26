@@ -34,6 +34,7 @@ const { applyAutoBackfillHolidayCalendarSchema } = require('./migrate_auto_backf
 const { applyF13RoutePostmanIdentity01Phase1Schema } = require('./migrate_f13_route_postman_identity_phase1_schema');
 const { applyImportBulkReimportAll01Schema } = require('./migrate_import_bulk_reimport_all_01_schema');
 const { applyImportLogAudit01Schema } = require('./migrate_import_log_audit_01_schema');
+const { applyBfPhat01Schema } = require('./migrate_bf_phat_01_schema');
 const { applyPerfLoad01AggSchema } = require('./migrate_perf_load_01_agg_schema');
 const { applyHangtonInventory01Schema } = require('./migrate_hangton_inventory_01_schema');
 
@@ -71,6 +72,7 @@ async function shutdown(signal, exitCode = 0) {
         try {
             const { stopAutoBackfillQueueRuntime } = require('./src/services/autoBackfillQueueRuntime');
             hangtonScheduler?.stop();
+            bfPhatScheduler?.stop();
             autoImportSchedule?.stop();
             sessionKeepAlive?.stop();
             await stopAutoBackfillQueueRuntime();
@@ -156,6 +158,7 @@ async function ensureStartupSchemaMigrations(dbPath = activeDbPath) {
     await applyPerfLoad01AggSchema(dbPath);
     await applyHangtonInventory01Schema(dbPath);
     await applyRbac01Schema(dbPath);
+    await applyBfPhat01Schema(dbPath);
 }
 
 // HANGTON-INVENTORY-01: three daily stock snapshots (07:30, 11:30, 21:00). Off in tests, with
@@ -172,6 +175,15 @@ function startHangtonScheduler() {
     const { createScheduler } = require('./src/services/hangtonInventory/scheduler');
     hangtonScheduler = createScheduler({ db: require('./src/config/db'), fetchStock: () => fetchStockData({ credentials }) });
     hangtonScheduler.start();
+}
+
+// BF-PHAT-IMPORT-01: daily N-1 load of the delivery BatchFile through WinSCP. Off in tests or with BF_PHAT_SCHEDULE_ENABLED=false.
+let bfPhatScheduler = null;
+function startBfPhatScheduler() {
+    if (process.env.NODE_ENV === 'test') return;
+    const { BfPhatScheduler } = require('./src/services/bfPhat/bfPhatScheduler');
+    bfPhatScheduler = new BfPhatScheduler({ dbPath: activeDbPath });
+    bfPhatScheduler.start();
 }
 
 // AUTO-IMPORT-SCHEDULE-01: scheduled automatic import (off unless AUTO_IMPORT_SCHEDULE_ENABLED=true) and DKCL session
@@ -205,6 +217,7 @@ function startServer() {
             await startAutoBackfillQueueRuntime();
             startAutoImportSchedule();
             startHangtonScheduler();
+            startBfPhatScheduler();
         })
         .then(() => {
             const server = app.listen(PORT, HOST, () => {
