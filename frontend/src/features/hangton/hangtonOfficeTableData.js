@@ -4,7 +4,7 @@
 // D10: Alert per level, heavier from >=5 ngày up.
 // D12: Single snapshot data, compare columns from compare endpoint.
 
-import { TON_LEVELS, tonRank } from './hangtonLevels.js';
+import { TON_LEVELS, tonRank, formatSlot } from './hangtonLevels.js';
 import { compareSortValues } from '../../components/common/tableSort.js';
 
 // Columns of the office table: office + visible levels + (Tổng, ≥5, COD) + 3 comparison columns.
@@ -37,6 +37,20 @@ export function drillDownFilter({ office = null, kind = 'total', level = null, s
     what = shownLevels.length === TON_LEVELS.length ? 'Tổng tồn' : 'Tổng tồn (các mức đang hiển thị)';
   }
   return { office: office || null, levels, title: `${office || 'Toàn BĐT TP Huế'} — ${what}` };
+}
+
+/**
+ * Header of the three comparison columns: names the snapshot they are measured against and says what they count.
+ * compare = { from: { business_date: 'YYYY-MM-DD', slot: '0730' }, summary, ... } or null (no base snapshot yet).
+ */
+export function compareColumnsHeader(compare) {
+  const from = compare?.from;
+  const note = 'tính trên mọi mức tồn, không theo cột đang hiện';
+  if (!from || !from.business_date) return { title: 'Biến động: chưa có mốc so sánh', note };
+  const [year, month, day] = String(from.business_date).split('-');
+  const date = day && month ? `${day}/${month}${year ? `/${year}` : ''}` : from.business_date;
+  const slot = from.slot ? ` ${formatSlot(from.slot)}` : '';
+  return { title: `Biến động so với ${date}${slot}`, note };
 }
 
 export const OFFICE_TABLE_TEXT_FIELDS = Object.freeze(['office']);

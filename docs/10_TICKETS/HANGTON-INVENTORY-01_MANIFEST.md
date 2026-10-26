@@ -249,3 +249,5 @@ Also noted, not changed: the two charts themselves are the earlier ones (red by 
 Tests: hangton/navigation 49/49, backend `test_hangtonInventory.js` 9/9, lint clean, build OK.
 
 2026-10-26 (PO status): after the backend restart the PO checked the Tổng quan screen with the Section 18 fixes and confirmed it is OK - PO UI PASS for Sections 17-18.
+
+2026-10-26 (PO request): on Theo bưu cục the header of the three comparison columns now names the snapshot they are measured against ("Biến động so với 25/10/2026 07:30", or "chưa có mốc so sánh") and states that they count every level, not only the columns shown (`compareColumnsHeader`). Presentation only; tests hangton/navigation 51/51, lint clean, build OK.

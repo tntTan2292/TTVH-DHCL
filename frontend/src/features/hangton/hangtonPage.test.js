@@ -203,3 +203,11 @@ test('Tổng quan review fixes: nine-level table independent of the chart, sorta
   assert.match(overview, /tồn ≥5 ngày \/ \{formatNumber\(office\.n\)\} tồn của bưu cục/, 'the hot-spot caption names what each number is');
   assert.match(overview, /COD ≥5 ngày/);
 });
+
+test('Theo bưu cục: the comparison column group shows its base snapshot and what it counts', () => {
+  const office = read('./components/HangTonByOfficeTab.jsx');
+  assert.match(office, /compareColumnsHeader\(compare\)/);
+  assert.match(office, /\{compareHeader\.title\}/);
+  assert.match(office, /\{compareHeader\.note\}/);
+  assert.doesNotMatch(office, /Biến động so với mốc trước/, 'the vague wording is gone');
+});

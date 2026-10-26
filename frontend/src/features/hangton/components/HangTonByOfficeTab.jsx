@@ -18,6 +18,7 @@ import {
   buildOfficeTableRows,
   calculateOfficeTotals,
   applyVisibleLevels,
+  compareColumnsHeader,
   officeTableColumnCount,
   sortAfterHide,
   drillDownFilter,
@@ -68,6 +69,7 @@ export default function HangTonByOfficeTab({
   }, [filteredRows, sort]);
 
   const hasBase = hasCompareBase(compare);
+  const compareHeader = compareColumnsHeader(compare);
   const totals = useMemo(() => {
     return calculateOfficeTotals(visibleRows);
   }, [visibleRows]);
@@ -143,7 +145,8 @@ export default function HangTonByOfficeTab({
                 Tổng hợp hiện tại
               </th>
               <th colSpan={3} className="py-1.5 px-2 text-center bg-blue-50/50 text-blue-900">
-                Biến động so với mốc trước
+                <span className="block">{compareHeader.title}</span>
+                <span className="block text-sm font-medium normal-case tracking-normal text-blue-800">{compareHeader.note}</span>
               </th>
             </tr>
 

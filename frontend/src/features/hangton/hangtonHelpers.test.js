@@ -326,3 +326,16 @@ test('chart levels: the stacked chart is limited to the shown levels (default fr
   assert.deepEqual(custom.data.map((r) => r.level), ['<1 ngày', '≥14 ngày'], 'any chosen levels, in ascending order');
   assert.equal(c.buildCustomerChart(byLevelCustomer, ['KH Mới'], []).data.length, 0, 'no level chosen: nothing to draw');
 });
+
+test('comparison columns header names the base snapshot and says it counts every level', async () => {
+  const { compareColumnsHeader } = await import('./hangtonOfficeTableData.js');
+  const withBase = compareColumnsHeader({ from: { business_date: '2026-10-25', slot: '0730' }, summary: {} });
+  assert.equal(withBase.title, 'Biến động so với 25/10/2026 07:30');
+  assert.match(withBase.note, /mọi mức tồn/);
+  assert.equal(compareColumnsHeader({ from: { business_date: '2026-10-25', slot: '2100' } }).title, 'Biến động so với 25/10/2026 21:00');
+  assert.equal(compareColumnsHeader({ from: { business_date: '2026-10-25' } }).title, 'Biến động so với 25/10/2026', 'no slot: date only');
+  const none = compareColumnsHeader(null);
+  assert.equal(none.title, 'Biến động: chưa có mốc so sánh', 'no base snapshot: it says so instead of naming one');
+  assert.match(none.note, /mọi mức tồn/);
+  assert.equal(compareColumnsHeader({ from: {} }).title, 'Biến động: chưa có mốc so sánh');
+});
