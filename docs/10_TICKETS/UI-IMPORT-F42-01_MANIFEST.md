@@ -1,6 +1,6 @@
 # UI-IMPORT-F42-01 Manifest
 
-Status: `READY FOR PO CHECK` (2026-10-26). Presentation only: F4.2 in the Data Import Center day view.
+Status: `IMPLEMENTED / PO UI PASS / CLOSED` (2026-10-26; PO confirmed the one-line-per-lane layout, round 2 of Section 8). Presentation only: F4.2 in the Data Import Center day view.
 
 ## 1. Ticket Information
 
@@ -51,3 +51,6 @@ With "Tất cả Chỉ tiêu" the day view shows F4.2 beside F4.1 for every day 
 
 PO check: texts overlapped heavily in the day view. Cause (code reading, no screen): the compact column was squeezed to `min-w-[148px]` (about 124 px inside), but a lane row still put checkbox (14) + lane tag (24) + status badge (up to 66) + action button "Nhập lại / Nhập mới" (about 55) on one line, all `shrink-0` / `whitespace-nowrap`, so the row was wider than its column and the contents ran into the next one; the date column (116 px inside) was narrower than its button "Import cả ngày + bù 3 ngày" (about 140 px). Fix in `AutoBackfillSmartDayView.jsx`: a lane card is two lines (line 1 checkbox + lane tag + status that truncates, line 2 the action buttons right aligned and only when there is one), the card clips instead of overflowing; the date column is `w-40 min-w-[158px]`. Frontend 786/786, build passes. **Round 2 (PO screenshot, same day):** no more overlap, but the two-line lane cards made ragged blocks ("xuống dòng tùm lum"). Now one line per lane again: checkbox, lane tag, status (shrinks, truncates), and the action as an **icon button** ("Nhập lại" / "Nhập mới" in its tooltip and for screen readers) plus the "⋯" menu only when it exists; the indicator columns are `min-w-[164px]`. PO UI check again; if five columns still need more room than the screen, the table scrolls horizontally with the date column pinned.
 
+## 9. Closure
+
+2026-10-26: Product Owner checked the Import Center day view after round 2 (one line per lane, icon actions, five indicator columns) and confirmed PO UI PASS: "Bố cục mới đã gọn, OK." Ticket closed. Commits 12544dee (Antigravity), b88a9d1b and 789bb631 (layout fixes).
