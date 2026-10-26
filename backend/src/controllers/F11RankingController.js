@@ -109,8 +109,12 @@ function createController(service = f11RankingService) {
                 const from_date = req.query.from_date || req.query.fromDate;
                 const to_date = req.query.to_date || req.query.toDate;
                 if (!from_date || !to_date) return missingRange(res);
-                const page = parseInt(req.query.page, 10) || 1;
-                const pageSize = parseInt(req.query.page_size, 10) || 20;
+                // A BCVH-mode user: the response sanitiser runs AFTER paging, so page by page a user could read their own
+                // rank from the position of their row. Scoped users always get page 1 of everything (the sanitiser then keeps
+                // only their row), whatever page / page_size they send (review of F4.2, 2026-10-26).
+                const scoped = req.scope?.mode === 'bcvh';
+                const page = scoped ? 1 : (parseInt(req.query.page, 10) || 1);
+                const pageSize = scoped ? 100 : (parseInt(req.query.page_size, 10) || 20);
                 const result = await service.getBcvhRanking(from_date, to_date, page, pageSize);
                 ok(res, { data: result.data, meta: result.meta });
             } catch (error) { fail(res, error); }

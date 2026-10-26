@@ -127,20 +127,37 @@ function extractF42DateFromFilename(filename) {
     return `${match[1]}-${match[2]}-${match[3]}`;
 }
 
-// Minimal RFC-4180 reader (quotes, doubled quotes, CR/LF, newlines inside quotes) -> array of string arrays.
+// Index of the closing quote of the quoted field that opens at `start`, or -1. The portal does not quote its fields
+// (a `"` inside a name is just a character), so a quote only opens a quoted field when a closing quote followed by a
+// comma or the end of the line exists on the SAME line; otherwise it is literal text and no row can be swallowed.
+function findQuoteEnd(text, start) {
+    for (let j = start + 1; j < text.length; j++) {
+        const ch = text[j];
+        if (ch === '\n' || ch === '\r') return -1;
+        if (ch === '"') {
+            if (text[j + 1] === '"') { j++; continue; }
+            const next = text[j + 1];
+            return next === undefined || next === ',' || next === '\n' || next === '\r' ? j : -1;
+        }
+    }
+    return -1;
+}
+
+// Minimal CSV reader (CR/LF, doubled quotes inside a same-line quoted field) -> array of string arrays.
 function readCsvRows(text) {
     const rows = [];
     let row = [];
     let field = '';
-    let quoted = false;
     for (let i = 0; i < text.length; i++) {
         const ch = text[i];
-        if (quoted) {
-            if (ch === '"') {
-                if (text[i + 1] === '"') { field += '"'; i++; } else quoted = false;
-            } else field += ch;
-        } else if (ch === '"' && field === '') {
-            quoted = true;
+        if (ch === '"' && field === '') {
+            const end = findQuoteEnd(text, i);
+            if (end >= 0) {
+                field = text.slice(i + 1, end).replace(/""/g, '"');
+                i = end;
+                continue;
+            }
+            field += ch;
         } else if (ch === ',') {
             row.push(field); field = '';
         } else if (ch === '\n' || ch === '\r') {
@@ -175,13 +192,19 @@ function repairCsvRow(row, headers, indexes, lineNumber) {
     if (!TIMESTAMP_START.test(String(row[indexes.gbt + extra] ?? '').trim()) || TIMESTAMP_START.test(String(row[indexes.gbt] ?? '').trim())) {
         throw fail('cannot be repaired (GBT time not where expected)');
     }
-    // The comma sits in one of the free-text columns; try each and keep the first merge after which the coded
-    // columns around it look like codes (customer code: optional letter + digits, or empty; route code: digits, empty or
-    // the portal's 'Khong Xac Dinh' for a postman without a route).
-    // customer code: one token without spaces (T001571565, 11010068222626, 010076313200-002), or empty
-    const customerCode = /^[A-Za-z0-9][A-Za-z0-9._\/-]*$|^$/;
-    const routeCode = /^(\d*|Khong Xac Dinh)$/i;
+    // The comma sits in one of the free-text columns (customer name, goods name, route name): try each and keep the
+    // first merge after which every coded column of the row looks like a code (province, office, parcel number,
+    // postman, product code, customer code, route code); no candidate fits -> the file is refused, never guessed.
     const text = (value) => String(value ?? '').trim();
+    const checks = [
+        [indexes.province, /^\d{1,3}$/],
+        [indexes.office, /^\d{4,8}$/],
+        [indexes.parcel, /^[A-Za-z0-9]{2,24}$/],
+        [indexes.postman, /^[A-Za-z0-9]{3,12}$/],
+        [indexes.product, /^\S{1,8}$/],
+        [indexes.customerCode, /^\S*$/],
+        [indexes.routeCode, /^(\d*|Khong Xac Dinh)$/i],
+    ];
     for (const at of indexes.freeText) {
         if (at < 0) continue;
         const repaired = [
@@ -189,11 +212,9 @@ function repairCsvRow(row, headers, indexes, lineNumber) {
             row.slice(at, at + extra + 1).join(','),
             ...row.slice(at + extra + 1),
         ];
-        const customerOk = indexes.customerCode < 0 || customerCode.test(text(repaired[indexes.customerCode]));
-        const routeOk = indexes.routeCode < 0 || routeCode.test(text(repaired[indexes.routeCode]));
-        if (customerOk && routeOk) return repaired;
+        if (checks.every(([index, pattern]) => index < 0 || pattern.test(text(repaired[index])))) return repaired;
     }
-    throw fail('cannot be repaired (no free-text column explains the surplus fields: customer code or route code does not look like a code after merging)');
+    throw fail('cannot be repaired (no free-text column explains the surplus fields: a coded column does not look like a code after merging)');
 }
 
 function toIsoDay(value) {
@@ -273,6 +294,11 @@ function parseF42Hue(buffer, filename) {
         .filter((item) => item.spec);
     const indexes = {
         gbt: headers.indexOf(GBT_HEADER),
+        province: headers.indexOf('Mã tỉnh phát'),
+        office: headers.indexOf('Mã BC phát'),
+        parcel: headers.indexOf(REQUIRED_COLUMN),
+        postman: headers.indexOf('Mã bưu tá'),
+        product: headers.indexOf('Mã SPDV'),
         customerCode: headers.indexOf('Mã KHL'),
         routeCode: headers.indexOf(ROUTE_CODE_HEADER),
         // free-text columns that can hold a comma, most likely first (the customer name)
@@ -287,7 +313,9 @@ function parseF42Hue(buffer, filename) {
         const lineNumber = headerRowIdx + 2 + offset;
         let row = sourceRow;
         if (isCsv && row.length !== headers.length) { row = repairCsvRow(row, headers, indexes, lineNumber); repairedRows++; }
-        if (row[maBgIdx] === null || row[maBgIdx] === undefined || String(row[maBgIdx]).trim() === '') return;
+        if (row[maBgIdx] === null || row[maBgIdx] === undefined || String(row[maBgIdx]).trim() === '') {
+            throw new Error(`Invalid F4.2 HUE data. Line ${lineNumber} has no parcel number.`);
+        }
         const item = { ngay_do_kiem: ngayDoKiem };
         for (const column of F42_DB_COLUMNS) item[column] = null;
         for (const { idx, spec } of colIndexMap) item[spec[0]] = coerce(row[idx], spec[1]);
@@ -306,15 +334,16 @@ function parseF42Hue(buffer, filename) {
         parsedData.push(item);
     });
 
+    if (parsedData.length === 0) throw new Error('Invalid F4.2 HUE data. The file has a header but no data row.');
     validateParsedValues(parsedData);
 
     // The rows must belong to the day of the file name (GBT date), otherwise the file was renamed to the wrong
-    // day or exported for a wider range. A few rows of a neighbouring day are reported, not refused.
+    // day or exported for a wider range. The real exports hold no row of another day, so at most 1 % may differ.
     let rowsOnDate = 0;
     for (const item of parsedData) {
         if (toIsoDay(item.thoi_gian_gbt) === ngayDoKiem) rowsOnDate++;
     }
-    if (parsedData.length > 0 && rowsOnDate * 2 < parsedData.length) {
+    if (rowsOnDate * 100 < parsedData.length * 99) {
         throw new Error(`Invalid F4.2 HUE data. Only ${rowsOnDate} of ${parsedData.length} rows have their GBT on ${ngayDoKiem}; the file name date does not match the data.`);
     }
 

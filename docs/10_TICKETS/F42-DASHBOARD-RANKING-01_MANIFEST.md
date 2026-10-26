@@ -59,7 +59,21 @@ Read-only review of the F4.2 backend written by Claude Code/Sonnet 5.5 (DEC-021:
 
 Evidence to reproduce: `docs/10_TICKETS/F42-PHASE-3_MANIFEST.md` Sections 5-8, real files under `Data DKCL/F4.2-2026.10.10.csv` and `F4.2-TCT-2026.10.10.xlsx` (tests skip when absent), `node --test --experimental-sqlite` per file.
 
-## 8. Next
+## 8. Opus review result (2026-10-26): PASS WITH FIXES, fixed the same day
 
-1. Restart the backend when idle; check `/api/f42/dashboard/meta` with a signed-in session.
+RBAC and metric: no leak of another BCVH, a city total or the national table through any endpoint, parameter variant or cache; every figure of the postman table and the BCVH ranking matched the real data. Findings and fixes:
+
+| Finding | Fix |
+| --- | --- |
+| should-fix (inherited from F1.1 / F4.1): a BCVH user reads their own rank from the position of their row by paging (`page=N&page_size=1`) | `getBcvhRanking` of the F1.1, F4.1 and F4.2 controllers: a scoped user always gets page 1 of 100 rows (the sanitiser then keeps their row); test over six pages |
+| should-fix: customer-code check rejected real codes (`-1`, `010604160900-000`, `00001K...`) and accepted merges in the wrong column | the repair validates every coded column of the merged row (province, office, parcel, postman, product, customer, route) and refuses the file when no free-text column explains the surplus; all ten real files (18-25/10 and 10/10) parse |
+| should-fix: a `"` at the start of an unquoted name could swallow thousands of rows | a quote opens a quoted field only when it closes on the same line |
+| notes: day check accepted 49 % of foreign-day rows; header-only file and a row without parcel number passed silently | day check 1 %; both refuse the file |
+| notes: leak test let any `rank` key through; no wiring-order test; `fact_f42*` missing from the cache fingerprint | rank allowed only inside `postmen[]`; wiring test added; tables added to `GROWING_TABLES` |
+
+Validation after the fixes: F4.2 suites (service 7, route scope 6, parser 18, import pipeline 6, adapter 29), F1.1 / F4.1 route scope 14 and ranking services unchanged, backend sweep 714/722, the same 3 known failures.
+
+## 9. Next
+
+1. Restart the backend when idle (done 2026-10-26 for the parser and controller fixes); check `/api/f42/dashboard/meta` with a signed-in session.
 2. `F42-DASHBOARD-UI-01` (Antigravity) after the PO confirms; Opus review; PO UI check.

@@ -91,12 +91,13 @@ function foreignHits(text, allowedCodes) {
     return hits;
 }
 
-function rankKeys(value, found = []) {
-    if (Array.isArray(value)) value.forEach((item) => rankKeys(item, found));
+function rankKeys(value, found = [], inPostmen = false) {
+    if (Array.isArray(value)) value.forEach((item) => rankKeys(item, found, inPostmen));
     else if (value && typeof value === 'object') {
         for (const [key, child] of Object.entries(value)) {
-            if (/rank/i.test(key) && !/period/i.test(key) && child !== null) found.push(key);
-            rankKeys(child, found);
+            // the rank of a postman inside the user's own BCVH is the one rank allowed
+            if (/rank/i.test(key) && !/period/i.test(key) && child !== null && !(inPostmen && key === 'rank')) found.push(key);
+            rankKeys(child, found, inPostmen || key === 'postmen');
         }
     }
     return found;
@@ -139,7 +140,7 @@ test('F4.2 BCVH user: no endpoint returns another BCVH, a rank or a city total, 
         assert.equal(first.status, 200, `${endpoint} -> ${first.status} ${first.text.slice(0, 200)}`);
         const hits = foreignHits(first.text, [OWN]);
         assert.deepEqual(hits, [], `LEAK in ${endpoint}: ...${hits.length ? first.text.slice(Math.max(0, first.text.indexOf(hits[0]) - 80), first.text.indexOf(hits[0]) + 80) : ''}...`);
-        assert.deepEqual(rankKeys(first.body).filter((key) => key !== 'rank'), [], `rank key in ${endpoint}`);
+        assert.deepEqual(rankKeys(first.body), [], `rank key in ${endpoint}`);
         const second = await get(sessionId, endpoint); // served from the scoped cache
         assert.deepEqual(second.body, first.body, `cached copy differs for ${endpoint}`);
         if (first.text.includes(OWN) || first.text.includes(NAMES[OWN])) nonEmpty += 1;
@@ -193,4 +194,28 @@ test('F4.2 users without the module are refused; two-BCVH and F4.2-specialist sc
     const two = session('STAFF', { bcvh: [OWN, SECOND] });
     const own = await get(two, `/f42/dashboard/meta`);
     assert.deepEqual(own.body.data.bcvh_units.map((u) => u.ma_bcvh).sort(), [SECOND, OWN].sort());
+});
+
+test('review (Opus): a BCVH user cannot read their own rank from the position of their row by paging', async () => {
+    const sessionId = session('STAFF', { bcvh: [OWN] });
+    const city = session('ADMIN');
+    let ownRowPages = 0;
+    for (let page = 1; page <= 6; page += 1) {
+        const scoped = await get(sessionId, `/f42/ranking/bcvh?from_date=${ANCHOR}&to_date=${ANCHOR}&page=${page}&page_size=1`);
+        assert.equal(scoped.status, 200);
+        if (scoped.body.data.length > 0) ownRowPages += 1;
+        assert.deepEqual(scoped.body.data.map((row) => row.ma_bcvh), [OWN], `page ${page}`);
+        assert.deepEqual(rankKeys(scoped.body), []);
+    }
+    assert.equal(ownRowPages, 6, 'every page gives the same own row: the page number carries no rank information');
+    const wide = await get(city, `/f42/ranking/bcvh?from_date=${ANCHOR}&to_date=${ANCHOR}&page=2&page_size=1`);
+    assert.equal(wide.body.data.length, 1, 'a city-wide user still pages normally');
+});
+
+test('wiring: requireModule(f42) is mounted before cachedRead() so the cache key carries the scope', () => {
+    const source = fs.readFileSync(path.join(__dirname, 'f42Routes.js'), 'utf8');
+    const module = source.indexOf("requireModule('f42')");
+    const cache = source.indexOf('cachedRead()');
+    assert.ok(module > 0 && cache > 0 && module < cache);
+    assert.ok(source.indexOf('router.use(scopeBcvhResponse())') > cache, 'the router-level sanitiser follows the cache');
 });

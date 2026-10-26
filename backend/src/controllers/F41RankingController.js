@@ -111,8 +111,12 @@ function createController(service = f41RankingService) {
                 if (!from_date || !to_date) {
                     return res.status(400).json({ success: false, error: { code: 'MISSING_PARAM', message: 'Yêu cầu from_date và to_date' } });
                 }
-                const page = parseInt(req.query.page, 10) || 1;
-                const pageSize = parseInt(req.query.page_size, 10) || 20;
+                // A BCVH-mode user: the response sanitiser runs AFTER paging, so page by page a user could read their own
+                // rank from the position of their row. Scoped users always get page 1 of everything (the sanitiser then keeps
+                // only their row), whatever page / page_size they send (review of F4.2, 2026-10-26).
+                const scoped = req.scope?.mode === 'bcvh';
+                const page = scoped ? 1 : (parseInt(req.query.page, 10) || 1);
+                const pageSize = scoped ? 100 : (parseInt(req.query.page_size, 10) || 20);
                 const result = await service.getBcvhRanking(from_date, to_date, page, pageSize);
                 ok(res, { data: result.data, meta: result.meta });
             } catch (error) { fail(res, error); }

@@ -23,8 +23,11 @@ test('file name: F4.2-YYYY.MM.DD with csv or xlsx, strict', () => {
     }
 });
 
-test('csv reader: BOM-free text, quotes, doubled quotes, CRLF and newline inside quotes', () => {
-    assert.deepEqual(readCsvRows('a,b\r\n"x,1","he said ""hi"""\r\n"l1\nl2",z\r\n'), [['a', 'b'], ['x,1', 'he said "hi"'], ['l1\nl2', 'z']]);
+test('csv reader: CRLF, a quoted field closed on its line, doubled quotes; a lone quote is literal and swallows nothing', () => {
+    assert.deepEqual(readCsvRows('a,b\r\n"x,1","he said ""hi"""\r\n'), [['a', 'b'], ['x,1', 'he said "hi"']]);
+    // the portal does not quote: a name that merely starts with a quote must not eat the following rows
+    assert.deepEqual(readCsvRows('a,b\n"Shop Ba,1\nc,d\n'), [['a', 'b'], ['"Shop Ba', '1'], ['c', 'd']]);
+    assert.deepEqual(readCsvRows('a,b\n"x"y,2\n'), [['a', 'b'], ['"x"y', '2']]);
 });
 
 test('parses a CSV with padded headers, keeps the portal rating and the blank one', () => {
@@ -113,11 +116,35 @@ test('refuses a file whose rows are not on the file-name day', () => {
     assert.throws(() => parseF42Hue(hueCsvBuffer(specs), FILE), /file name date does not match the data/);
 });
 
-test('a few rows of a neighbouring day are reported, not refused', () => {
+test('a few rows of a neighbouring day (up to 1 %) are reported, more than that refuses the file', () => {
+    const many = Array.from({ length: 200 }, (_, i) => ({ parcel: `P${i}`, ptc: '2026-10-10 09:00:00.000', elapsed: '1:0', rating: 'Đạt' }));
+    many[0].gbt = '2026-10-11 08:00:00.000'; // 0,5 %
+    const result = parseF42Hue(hueCsvBuffer(many), FILE);
+    assert.deepEqual(result.dateCheck, { rowsOnDate: 199, rowsOtherDate: 1 });
     const specs = defaultHueSpecs();
-    specs[3].gbt = '2026-10-11 08:00:00.000';
-    const result = parseF42Hue(hueCsvBuffer(specs), FILE);
-    assert.deepEqual(result.dateCheck, { rowsOnDate: 3, rowsOtherDate: 1 });
+    specs[3].gbt = '2026-10-11 08:00:00.000'; // 25 %
+    assert.throws(() => parseF42Hue(hueCsvBuffer(specs), FILE), /file name date does not match the data/);
+});
+
+test('review of the repair: customer codes such as -1 and alphanumeric are fine; a comma in a coded column is refused, never guessed', () => {
+    const specs = defaultHueSpecs();
+    specs[0].customer = 'Chi nhánh Huế, Công ty A';
+    specs[0].customerCode = '-1';
+    specs[1].customer = 'Công ty B, Chi nhánh';
+    specs[1].customerCode = '00001K64000011000';
+    const ok = parseF42Hue(hueCsvBuffer(specs), FILE);
+    assert.deepEqual([ok.parsedData[0].ma_khl, ok.parsedData[1].ma_khl, ok.repairedRows], ['-1', '00001K64000011000', 2]);
+    // a comma inside the service name (a coded neighbour) cannot be explained by a free-text column: refuse
+    const text = hueCsvBuffer().toString('utf8').replace(',E,KCOD,', ',E,x,KCOD,');
+    assert.notEqual(text, hueCsvBuffer().toString('utf8'));
+    assert.throws(() => parseF42Hue(Buffer.from(text), FILE), /Line \d+ has \d+ fields/);
+});
+
+test('a row without a parcel number and a header-only file refuse the file', () => {
+    const specs = defaultHueSpecs();
+    specs[0].parcel = '';
+    assert.throws(() => parseF42Hue(hueCsvBuffer(specs), FILE), /has no parcel number/);
+    assert.throws(() => parseF42Hue(hueCsvBuffer([]), FILE), /no data row/);
 });
 
 test('the same parcel for two different postmen is two rows; an exact repeat refuses the file', () => {
