@@ -437,7 +437,7 @@ export default function AutoBackfillOperatorPanel() {
     setSelectedReimportKeys((prev) => new Set(additive ? [...prev, ...keys] : keys));
   };
 
-  // One click picks the date for every indicator (F1.1, F1.2, F1.3, F4.1) and both sources, whatever the screen
+  // One click picks the date for every indicator (F1.1, F1.2, F1.3, F4.1, F4.2) and both sources, whatever the screen
   // filter shows. Coverage is read unfiltered (the server caches it) and kept in `selectionPool` so the
   // confirmation lists and the run requests can find cells of indicators that are not on screen.
   // A day with something already imported becomes a Nhập lại selection (it handles new cells too); a day with
@@ -1211,7 +1211,7 @@ export default function AutoBackfillOperatorPanel() {
     return coverageData?.items || [];
   }, [coverageData]);
 
-  // Cells that may be looked up by key: what the screen loaded plus the cells picked by "cả 4 chỉ tiêu".
+  // Cells that may be looked up by key: what the screen loaded plus the cells picked by "cả 5 chỉ tiêu".
   const selectionLookupItems = useMemo(() => {
     if (selectionPool.length === 0) return rawCoverageItems;
     const known = new Set(rawCoverageItems.map(getItemKey));
@@ -2492,7 +2492,7 @@ export default function AutoBackfillOperatorPanel() {
                 </strong>
               </div>
               <div className="flex items-center justify-between">
-                <span>Chỉ tiêu áp dụng (4 chỉ tiêu):</span>
+                <span>Chỉ tiêu áp dụng (5 chỉ tiêu):</span>
                 <strong className="text-slate-900">
                   {anchorOverwriteInfo.targetIndicators.join(', ')}
                 </strong>

@@ -41,12 +41,13 @@ const INDICATOR_LABELS = {
   'F1.2': 'Thu gom liên tỉnh',
   'F1.3': 'Phát liên tỉnh',
   'F4.1': 'Phát thành công bưu cục',
+  'F4.2': 'Phát giao bưu tá',
 };
 
 /**
  * AutoBackfillSmartDayView
  * Chế độ Lịch theo Ngày thông minh (Option A - Redesigned & Round 3 Day-per-row)
- * - Khi lọc 'Tất cả': 1 dòng cho mỗi ngày, 4 chỉ tiêu cạnh nhau (F1.1, F1.2, F1.3, F4.1).
+ * - Khi lọc 'Tất cả': 1 dòng cho mỗi ngày, 5 chỉ tiêu cạnh nhau (F1.1, F1.2, F1.3, F4.1, F4.2).
  * - Khi lọc một chỉ tiêu: giữ nguyên bố cục bảng phẳng chi tiết.
  * - Hỗ trợ chuyển đổi nhanh giữa Gộp 1 dòng/ngày và Bảng phẳng làm đường lui.
  */
@@ -333,7 +334,7 @@ export default function AutoBackfillSmartDayView({
                     ? 'bg-white text-slate-900 shadow-xs'
                     : 'text-slate-600 hover:text-slate-900'
                 }`}
-                title="Bố cục 1 dòng cho mỗi ngày, 4 chỉ tiêu cạnh nhau (PO Round 3)"
+                title="Bố cục 1 dòng cho mỗi ngày, 5 chỉ tiêu cạnh nhau (PO Round 3)"
               >
                 <LayoutGrid className="h-3 w-3" />
                 <span>Gộp 1 dòng/ngày</span>
@@ -499,8 +500,8 @@ export default function AutoBackfillSmartDayView({
                               className="text-slate-400 hover:text-blue-600 focus:outline-none cursor-pointer"
                               title={
                                 daySelection.isSelected
-                                  ? `Bỏ chọn cả 4 chỉ tiêu ngày ${day.date}`
-                                  : `Chọn cả 4 chỉ tiêu ngày ${day.date} (${daySelection.selectedCount}/${daySelection.totalSelectable})`
+                                  ? `Bỏ chọn cả 5 chỉ tiêu ngày ${day.date}`
+                                  : `Chọn cả 5 chỉ tiêu ngày ${day.date} (${daySelection.selectedCount}/${daySelection.totalSelectable})`
                               }
                             >
                               {daySelection.isSelected ? (
@@ -553,10 +554,10 @@ export default function AutoBackfillSmartDayView({
                               onSelectDayAllIndicators(day.date);
                             }}
                             className="mt-1 inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-1.5 py-0.5 text-[10px] font-bold text-slate-600 hover:bg-slate-50 hover:border-slate-300 transition whitespace-nowrap cursor-pointer"
-                            title={`Chọn ${day.date} cho cả 4 chỉ tiêu (F1.1, F1.2, F1.3, F4.1) và 2 nguồn để Nhập mới hoặc Nhập lại`}
+                            title={`Chọn ${day.date} cho cả 5 chỉ tiêu (F1.1, F1.2, F1.3, F4.1, F4.2) và 2 nguồn để Nhập mới hoặc Nhập lại`}
                           >
                             <CheckSquare className="h-2.5 w-2.5" />
-                            <span>Chọn cả 4 chỉ tiêu</span>
+                            <span>Chọn cả 5 chỉ tiêu</span>
                           </button>
                         )}
                       </td>
@@ -798,10 +799,10 @@ export default function AutoBackfillSmartDayView({
                               onSelectDayAllIndicators(day.date);
                             }}
                             className="mt-1 inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-1.5 py-0.5 text-[10px] font-bold text-slate-600 hover:bg-slate-50 hover:border-slate-300 transition whitespace-nowrap cursor-pointer"
-                            title={`Chọn ${day.date} cho cả 4 chỉ tiêu (F1.1, F1.2, F1.3, F4.1) và 2 nguồn để Nhập mới hoặc Nhập lại`}
+                            title={`Chọn ${day.date} cho cả 5 chỉ tiêu (F1.1, F1.2, F1.3, F4.1, F4.2) và 2 nguồn để Nhập mới hoặc Nhập lại`}
                           >
                             <CheckSquare className="h-2.5 w-2.5" />
-                            <span>Chọn cả 4 chỉ tiêu</span>
+                            <span>Chọn cả 5 chỉ tiêu</span>
                           </button>
                         )}
                       </td>

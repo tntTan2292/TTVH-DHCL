@@ -304,7 +304,7 @@ console.log('ALL IMPORT-LOG-AUDIT-01 helper tests PASSED SUCCESSFULLY! (7/7 Suit
 // 11. groupItemsByCalendarDay: exactly 1 row per calendar date, 4 indicators side-by-side
 // ==========================================
 {
-  assert.deepEqual(DEFAULT_DAY_VIEW_INDICATORS, ['F1.1', 'F1.2', 'F1.3', 'F4.1']);
+  assert.deepEqual(DEFAULT_DAY_VIEW_INDICATORS, ['F1.1', 'F1.2', 'F1.3', 'F4.1', 'F4.2']);
   const rawItems = [
     { indicator: 'F1.1', source_lane: 'HUE', business_date: '2026-10-18', status: 'COMPLETED' },
     { indicator: 'F1.1', source_lane: 'TCT', business_date: '2026-10-18', status: 'COMPLETED' },

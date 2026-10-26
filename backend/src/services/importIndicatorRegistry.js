@@ -16,6 +16,7 @@ const { F13_EXECUTOR_IDENTITIES } = require('./autoBackfillF13Contract');
 const { F41_EXECUTOR_IDENTITIES } = require('./autoBackfillF41Contract');
 const { F11_EXECUTOR_IDENTITIES } = require('./autoBackfillF11Contract');
 const { F12_EXECUTOR_IDENTITIES } = require('./autoBackfillF12Contract');
+const { F42_EXECUTOR_IDENTITIES } = require('./autoBackfillF42Contract');
 
 const REGISTRY_VERSION = 'AUTO-BACKFILL-SAFETY-1';
 const BUSINESS_TIMEZONE = 'Asia/Ho_Chi_Minh';
@@ -368,16 +369,18 @@ INDICATORS['F1.2'] = {
 
 // F42-PHASE-2/4: F4.2 (chat luong phat giao buu ta), delivering side, rate = PTC dung quy dinh (11,5 h) / every GBT
 // row of the day (PD-F42-2). HUE lane (fact_f42, detail by postman; the portal exports CSV, Excel is accepted) and
-// TCT lane (fact_f42_national, the 34 ranked provinces aggregated from the national postman file), both manual
-// until a Portal adapter is verified (F42-PHASE-3). Status PLANNED keeps F4.2 out of the auto-backfill coverage
-// and queue.
+// TCT lane (fact_f42_national, the 34 ranked provinces aggregated from the national postman file). ACTIVE with both
+// lanes AUTOMATED on PO instruction of 2026-10-26 (exports of 10/10 verified identical to the PO's files, adapter
+// reconciles exactly with the portal summary before anything is imported). The portal revises a day after N-1
+// (blank ratings turn into Dat / Khong dat), hence the 3-day refresh window as for F1.2 / F4.1.
 INDICATORS['F4.2'] = {
     code: 'F4.2',
     key: 'F4.2',
     name: 'F4.2 - Chat luong phat giao buu ta',
-    status: 'PLANNED',
+    status: 'ACTIVE',
     priority: 50,
     badgeTheme: 'rose',
+    refreshWindowDays: 3,
     trackingStartDate: TRACKING_START_DATE,
     businessTimezone: BUSINESS_TIMEZONE,
     folder: 'F4.2',
@@ -397,8 +400,11 @@ INDICATORS['F4.2'] = {
             parser: (buffer, filename) => parseF42Hue(buffer, filename),
             targetTable: 'fact_f42',
             distinctColumn: ['ma_bg', 'ma_buu_ta', 'thoi_gian_gbt'],
-            automationMode: 'MANUAL_ONLY',
-            manualOnlyReason: 'No verified DKCL Portal adapter for F4.2 yet (F42-PHASE-3).',
+            automationMode: 'AUTOMATED',
+            portalAdapter: {
+                ...F42_EXECUTOR_IDENTITIES.HUE,
+                verified: true,
+            },
         }),
         TCT: createLane({
             code: 'TCT',
@@ -408,8 +414,11 @@ INDICATORS['F4.2'] = {
             // One row per ranked delivering province; complete only when all 34 frozen codes are present.
             distinctColumn: 'ma_tinh_phat',
             requiredValues: { column: 'ma_tinh_phat', values: NATIONAL_RANKED_PROVINCE_CODES },
-            automationMode: 'MANUAL_ONLY',
-            manualOnlyReason: 'No verified DKCL Portal adapter for F4.2 yet (F42-PHASE-3).',
+            automationMode: 'AUTOMATED',
+            portalAdapter: {
+                ...F42_EXECUTOR_IDENTITIES.TCT,
+                verified: true,
+            },
         }),
     },
 };

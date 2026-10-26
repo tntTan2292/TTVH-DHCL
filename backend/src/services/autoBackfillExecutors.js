@@ -4,6 +4,7 @@ const { registerF13AutoBackfillExecutors } = require('./autoBackfillF13Executors
 const { registerF41AutoBackfillExecutors } = require('./autoBackfillF41Executors');
 const { registerF11AutoBackfillExecutors } = require('./autoBackfillF11Executors');
 const { registerF12AutoBackfillExecutors } = require('./autoBackfillF12Executors');
+const { registerF42AutoBackfillExecutors } = require('./autoBackfillF42Executors');
 
 function registerVerifiedAutoBackfillExecutors(executorRegistry, options = {}) {
     return {
@@ -11,6 +12,7 @@ function registerVerifiedAutoBackfillExecutors(executorRegistry, options = {}) {
         F41: registerF41AutoBackfillExecutors(executorRegistry, options),
         F11: registerF11AutoBackfillExecutors(executorRegistry, options),
         F12: registerF12AutoBackfillExecutors(executorRegistry, options),
+        F42: registerF42AutoBackfillExecutors(executorRegistry, options),
     };
 }
 

@@ -791,7 +791,7 @@ export function resolveCrossIndicatorSummary(indicatorsList = []) {
 // IMPORT-LOG-AUDIT-01: Anchor Run & Import Audit Log Helpers
 // ==========================================
 
-export const ANCHOR_TARGET_INDICATORS = Object.freeze(['F1.1', 'F1.2', 'F1.3', 'F4.1']);
+export const ANCHOR_TARGET_INDICATORS = Object.freeze(['F1.1', 'F1.2', 'F1.3', 'F4.1', 'F4.2']);
 export const ANCHOR_TARGET_LANES = Object.freeze(['HUE', 'TCT']);
 
 /**
@@ -824,7 +824,7 @@ export function computeAnchorDates(anchorDate, span = 3) {
  * Uses coverage items currently present on screen.
  * @param {Array} coverageItems - Array of items from coverage scan
  * @param {string} anchorDate - ISO date 'YYYY-MM-DD'
- * @param {string[]} targetIndicators - Indicators targeted (default F1.1, F1.2, F1.3, F4.1)
+ * @param {string[]} targetIndicators - Indicators targeted (default F1.1, F1.2, F1.3, F4.1, F4.2)
  * @param {string[]} targetLanes - Lanes targeted (default HUE, TCT)
  * @returns {Object} { anchorDate, windowDates, targetIndicators, targetLanes, overwriteCount, completedItems }
  */
@@ -993,7 +993,7 @@ export function expandWithPreviousDays(pickedItems = [], allItems = [], { allLan
 }
 
 /**
- * "Chọn cả 4 chỉ tiêu" of a day, added to what is already picked (ticking another day never drops an earlier one).
+ * "Chọn cả 5 chỉ tiêu" of a day, added to what is already picked (ticking another day never drops an earlier one).
  * Ticking a day whose cells are all already picked unticks that day. The result is one selection: a Nhập lại
  * selection (it handles new cells too) as soon as any picked cell is completed, otherwise a Nhập mới selection.
  * Pure.
@@ -1051,11 +1051,11 @@ export function buildImportLogQueryParams(filters = {}) {
 // IMPORT-LOG-AUDIT-01 Round 3: Day-per-row with 4 indicators
 // ==========================================
 
-export const DEFAULT_DAY_VIEW_INDICATORS = ['F1.1', 'F1.2', 'F1.3', 'F4.1'];
+export const DEFAULT_DAY_VIEW_INDICATORS = ['F1.1', 'F1.2', 'F1.3', 'F4.1', 'F4.2'];
 
 /**
  * Groups coverage items strictly by business_date into 1 row per calendar day,
- * organizing each date into 4 indicator slots (F1.1, F1.2, F1.3, F4.1).
+ * organizing each date into 4 indicator slots (F1.1, F1.2, F1.3, F4.1, F4.2).
  * Used when indicatorFilter === 'ALL' to avoid 4 rows per day and endless scrolling.
  * Pure.
  * @param {Object[]} items

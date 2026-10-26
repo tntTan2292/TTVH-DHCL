@@ -1,6 +1,6 @@
 # F42-PHASE-3 Manifest
 
-Status: `IMPLEMENTED / EXPORTS VERIFIED BYTE-FOR-BYTE AND CELL-FOR-CELL / REGISTRY STILL PLANNED, SUPERVISED DRY RUN PENDING` (2026-10-26). Portal discovery and adapter for the automatic download of F4.2, done the F1.2 way (`docs/10_TICKETS/F12-PHASE-3_MANIFEST.md`). Two PO-authorised exports were pressed by Claude (Section 5); nothing was imported or written to the database.
+Status: `IMPLEMENTED / EXPORTS VERIFIED / ENABLED IN THE IMPORT (ACTIVE, AUTOMATED) ON PO INSTRUCTION, FIRST SUPERVISED IMPORT PENDING` (2026-10-26). Portal discovery and adapter for the automatic download of F4.2, done the F1.2 way (`docs/10_TICKETS/F12-PHASE-3_MANIFEST.md`). Two PO-authorised exports were pressed by Claude (Section 5); the DRY probe was replaced by the safeguards of Section 8.
 
 ## 1. Ticket Information
 
@@ -69,3 +69,19 @@ Not verified (needs the live portal and the PO's supervised run): that the real 
 ## 7. Next
 
 PO supervised DRY run: stop the backend, close the DKCL window of the lane, then `node probe_f42_single_date.js HUE 2026-10-10` and `node probe_f42_single_date.js TCT 2026-10-10`. After PASS: register the executors in `autoBackfillExecutors.js`, set `ACTIVE` / `AUTOMATED` with `portalAdapter` = `F42_EXECUTOR_IDENTITIES` and `refreshWindowDays: 3` in the registry, restart the backend, one supervised Auto Backfill over a few days, then the backfill from 2026-01-01. Open: how many rows a detail export holds before the portal splits it into `_02` chunks (the adapter refuses a chunked export and reports it); the busiest days may need a chunk-aware reader.
+
+## 8. Enablement in the Import (PO instruction 2026-10-26: "dựng vào Import như các F kia luôn")
+
+The supervised DRY probe of Section 7 could **not** be run by Claude: the live backend holds the TCT browser profile (`BrowserProfiles/TCT.lock`) and the HUE window, and a second Chromium on the same profile is exactly what the lock forbids; stopping both sessions would force the PO to sign in again (captcha). On the PO's instruction the lanes were enabled instead, with these safeguards in place of the DRY run:
+
+- the two exports of 10/10 were already proven identical to the PO's files (Section 5);
+- the service imports **nothing** unless the file reconciles exactly with the portal summary (Sections 6), a chunked export is refused, and the F1.2 refresh/replace rules apply (an existing day asks for confirmation);
+- the first real run is done by the PO from the Data Import Center on a day that is not loaded yet (for example 25/10 as the new day D-1), and its result is read before any backfill.
+
+Done: registry F4.2 `ACTIVE`, HUE and TCT `AUTOMATED` with `portalAdapter` = `F42_EXECUTOR_IDENTITIES` (`verified: true`), `refreshWindowDays: 3`; `registerF42AutoBackfillExecutors` added to `autoBackfillExecutors.js`; the Import Center screens that list the indicators now include F4.2 (history filter, day view slots and label "Phát giao bưu tá", anchor-day targets, "5 chỉ tiêu" texts: `autoBackfillUiHelpers.js`, `AutoBackfillSmartDayView.jsx`, `AutoBackfillOperatorPanel.jsx`, `AutoBackfillImportHistory.jsx`). Coverage, queue, scheduler and the "Log ngày mới" grid are registry-driven and pick F4.2 up by themselves.
+
+Validation: backend sweep 697/705, 5 skipped, the same 3 known failures; `test_f42ImportPipeline.js` 6/6 (registry assertions now ACTIVE / AUTOMATED / 3 days), `test_f42PortalAdapter.js` 28/28, F1.2 adapter 24/24, F1.3 executors 19, F4.1 executors 32, queue 45, coverage 17, safety 11, refresh window 6, anchor run 5, parallel lanes 14, daily log 8; `test_autoBackfillQueueController.js` (2) and `test_autoBackfillCoverageController.js` (1) fail with and without this change (verified by stashing the two registry files): not related. Frontend 775/775, `vite build` passes, `oxlint` only pre-existing warnings. The backend was restarted (no run active, DKCL sessions reattached from the saved sessions) and the log shows `[ImportWatcher]` watching `Data DKCL/F4.2/Incoming`.
+
+PO UI Check Required: **Yes** for the Import Center (a fifth indicator column in the day view and the new F4.2 option; layout not seen on screen). The screen change is data-driven only; Antigravity should look at the day-view width if the fifth column is cramped.
+
+Next: PO runs the first F4.2 import from the Import Center and reports; then backfill from 2026-01-01 (to be run in portions, see the chunk risk in Section 7); then `F42-DASHBOARD-RANKING-01` (`/api/f42`) and `F42-DASHBOARD-UI-01` (Antigravity).
