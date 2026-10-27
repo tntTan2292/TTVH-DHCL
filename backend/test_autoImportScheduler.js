@@ -252,7 +252,7 @@ function reattachService({ savedSessionValid = true, calls = [] } = {}) {
         async prepareInteractiveAuthentication() { calls.push('window-open'); },
         async waitInteractiveAuthentication() {},
         async isF13ReportReady() { return true; },
-        async hideWindow() { return true; },
+        async hideWindow() { calls.push('window-hide'); return true; },
         async restoreWindow() { return true; },
         async close() {},
     };
@@ -273,6 +273,8 @@ test('reattachSession: a valid saved session gets its browser window back, with 
     assert.ok(service.getInteractiveClient('TCT'), 'the window is back');
     assert.equal(service.getRegistryState('TCT').state, DKCL_LIFECYCLE_STATES.F13_READY);
     assert.deepEqual(calls.filter((call) => call === 'window-open').length, 1);
+    assert.equal(calls.filter((call) => call === 'window-hide').length, 1, 'the reopened window is hidden again, not left on screen');
+    assert.equal(service.getRegistryState('TCT').windowHidden, true);
 
     const again = await service.reattachSession('TCT', { waitMs: 3000, pollMs: 20 });
     assert.deepEqual(again, { attached: true, reason: 'ALREADY_ATTACHED' }, 'a live window is left alone');
@@ -403,4 +405,16 @@ test('the default retry interval is 30 minutes (PO 2026-10-27), and it is the wa
         await t.scheduler.tick();
         assert.equal(t.state().cycle.attempts, 2, 'attempt 2 at 08:00');
     } finally { t.cleanup(); }
+});
+
+test('reattachSession hides the reopened window even while an import owns the session (the normal hide is refused then)', async () => {
+    const calls = [];
+    const service = reattachService({ calls });
+    const entry = service.getRegistryState('HUE');
+    entry.activeOperation = 'AUTO_BACKFILL_F42_HUE'; // a queue job is running: hideWindowIfVisible refuses
+    const result = await service.reattachSession('HUE', { waitMs: 5000, pollMs: 20 });
+    assert.equal(result.attached, true);
+    assert.equal(calls.filter((call) => call === 'window-hide').length, 1, 'hidden by the reattach itself');
+    assert.equal(service.getRegistryState('HUE').windowHidden, true);
+    entry.activeOperation = null;
 });

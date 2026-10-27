@@ -1069,6 +1069,27 @@ class DkclSessionPreflightService {
      * login a person is in the middle of alone.
      * Resolves { attached, reason } and never throws.
      */
+    // A window reopened from a saved session is not something a person is working in, so it must go back out of sight.
+    // The interactive flow hides it itself, but only while no import owns the session (`hideWindowIfVisible` refuses
+    // when an operation is active). With the queue working through a backlog that is nearly always the case, so the
+    // reopened window used to stay on screen. After a short grace for that normal hide, hide it here regardless:
+    // a hidden window is the steady state of a signed-in import session anyway.
+    async hideReattachedWindow(sourceConfig, entry) {
+        const graceUntil = Date.now() + 3000;
+        while (!entry.hideAttempted && Date.now() < graceUntil) await new Promise((resolve) => setTimeout(resolve, 100));
+        if (entry.windowHidden) return;
+        const client = entry.client;
+        const hide = client?.hideWindow || client?.hideBrowserWindow;
+        if (typeof hide !== 'function') return;
+        const hidden = Boolean(await hide.call(client).catch(() => false));
+        this.transitionEntry(sourceConfig.source, entry, DKCL_LIFECYCLE_STATES.F13_READY, {
+            hideAttempted: true,
+            windowHidden: hidden,
+            backgroundReady: true,
+            profileDir: entry.profileDir,
+        });
+    }
+
     async reattachSession(source, { waitMs = 90000, pollMs = 2000 } = {}) {
         let sourceConfig;
         try {
@@ -1089,6 +1110,7 @@ class DkclSessionPreflightService {
             const deadline = Date.now() + waitMs;
             while (Date.now() < deadline) {
                 if (entry.client && entry.authenticated && entry.state === DKCL_LIFECYCLE_STATES.F13_READY) {
+                    await this.hideReattachedWindow(sourceConfig, entry);
                     return { attached: true, reason: 'REATTACHED' };
                 }
                 await new Promise((resolve) => setTimeout(resolve, pollMs));
