@@ -13,12 +13,30 @@ export const POSTMAN_SORT_FIELD_LABELS = Object.freeze({
 
 /**
  * Format sort description in Vietnamese for table caption / banner.
+ * Defaults to 'sắp xếp theo Hạng' when sort is not active.
  */
 export function formatSortCaption(sort) {
-  if (!sort || !sort.field) return '';
+  if (!sort || !sort.field) return 'sắp xếp theo Hạng';
   const label = POSTMAN_SORT_FIELD_LABELS[sort.field] || sort.field;
   const dir = sort.direction === 'asc' ? 'tăng dần' : 'giảm dần';
   return `sắp xếp theo ${label}, ${dir}`;
+}
+
+/**
+ * Determine if the strip has the full canonical set of 6 BCVHs.
+ * Only full 6 BCVHs get the "6 BCVH hôm nay" title and # order badges.
+ * 1 to 5 BCVHs get "BCVH hôm nay" title and no # order badges.
+ */
+export function isFullSixBcvhStrip(units = []) {
+  return Array.isArray(units) && units.length === 6;
+}
+
+/**
+ * Get title for the BCVH strip based on unit count.
+ */
+export function getBcvhStripTitle(units = [], formattedDate = '') {
+  const prefix = isFullSixBcvhStrip(units) ? '6 BCVH hôm nay' : 'BCVH hôm nay';
+  return formattedDate ? `${prefix} – Ngày ${formattedDate}` : prefix;
 }
 
 /**
@@ -36,7 +54,7 @@ export function getNextPostmanSort(current, field) {
 
 /**
  * Slice units and postmen for capture so total postmen rows across the whole table <= captureLimit.
- * Units with 0 remaining quota have their postmen sliced to 0.
+ * Units that receive 0 postmen due to exhausted quota are completely omitted from the captured result.
  */
 export function sliceUnitsForCapture(units = [], captureLimit = 25) {
   if (!Array.isArray(units)) return [];
@@ -48,8 +66,12 @@ export function sliceUnitsForCapture(units = [], captureLimit = 25) {
   const result = [];
 
   for (const unit of units) {
-    const postmen = Array.isArray(unit.filteredPostmen) ? unit.filteredPostmen : [];
     if (remainingQuota <= 0) {
+      break; // Omit BCVH once quota is exhausted
+    }
+    const postmen = Array.isArray(unit.filteredPostmen) ? unit.filteredPostmen : [];
+    if (postmen.length === 0) {
+      // BCVH truly has no postmen: keep it to display the no-volume notice
       result.push({
         ...unit,
         filteredPostmen: [],

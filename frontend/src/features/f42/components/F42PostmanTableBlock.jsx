@@ -107,6 +107,10 @@ export default function F42PostmanTableBlock({
   const hasAnyPostmen = units.some((u) => Array.isArray(u.postmen) && u.postmen.length > 0);
   const blockTitle = `Bưu tá theo BCVH – ${periodLabel}`;
 
+  // Solid header backgrounds (no /90 opacity) so scrolled rows don't show through the sticky header
+  const solidHeaderBg = theme.headerBg.replace(/\/90/g, '');
+  const solidSortActive = theme.sortActive.replace(/\/90/g, '');
+
   return (
     <div
       ref={cardRef}
@@ -252,8 +256,7 @@ export default function F42PostmanTableBlock({
       {/* Capture info banner when in capture mode */}
       {capturing && (
         <div className="mt-2 text-xs font-semibold text-slate-500 text-center py-1 bg-slate-100/70 rounded border border-slate-200">
-          Ảnh chụp: {captureTop === 'all' ? 'Toàn bộ' : `Top ${capturedCount}`} / {totalVisiblePostmen} bưu tá hiển thị
-          {sort ? ` (${formatSortCaption(sort)})` : ''}
+          Ảnh chụp: {captureTop === 'all' ? 'Toàn bộ' : `Top ${capturedCount}`} / {totalVisiblePostmen} bưu tá hiển thị ({formatSortCaption(sort)})
         </div>
       )}
 
@@ -326,38 +329,38 @@ export default function F42PostmanTableBlock({
                   </div>
                 </div>
 
-                {/* Postmen List Table with Sticky Header */}
+                {/* Postmen List Table with Solid Sticky Header */}
                 {isExpanded && (
                   <div>
                     {displayedPostmen.length === 0 ? (
-                      <div className="py-6 text-center text-xs text-slate-500">
+                      <div className="py-6 text-center text-xs text-slate-500 rounded-b-xl">
                         {search || belowTargetOnly
                           ? 'Không có bưu tá nào khớp với tiêu chí tìm kiếm/lọc.'
                           : 'BCVH này không có phát sinh sản lượng phát giao trong kỳ.'}
                       </div>
                     ) : (
-                      <table className="w-full min-w-[620px] text-left text-xs border-collapse">
-                        <thead className={`sticky top-0 z-10 ${theme.headerBg} ${theme.headerText} shadow-xs`}>
-                          <tr className={`border-b border-slate-200/80 text-[11px] font-bold ${theme.headerBg} ${theme.headerText}`}>
-                            <SortableTh field="rank" sort={sort} onSort={handleSort} className="py-2 px-2 text-center w-12" activeClassName={theme.sortActive}>
+                      <table className="w-full min-w-[620px] text-left text-xs border-collapse rounded-b-xl">
+                        <thead className={`sticky top-0 z-10 ${solidHeaderBg} ${theme.headerText} shadow-xs`}>
+                          <tr className={`border-b border-slate-200 text-[11px] font-bold ${solidHeaderBg} ${theme.headerText}`}>
+                            <SortableTh field="rank" sort={sort} onSort={handleSort} className="py-2 px-2 text-center w-12" activeClassName={solidSortActive}>
                               Hạng
                             </SortableTh>
-                            <SortableTh field="ma_buu_ta" sort={sort} onSort={handleSort} className="py-2 px-2.5" activeClassName={theme.sortActive}>
+                            <SortableTh field="ma_buu_ta" sort={sort} onSort={handleSort} className="py-2 px-2.5" activeClassName={solidSortActive}>
                               Mã bưu tá
                             </SortableTh>
-                            <SortableTh field="ten_buu_ta" sort={sort} onSort={handleSort} className="py-2 px-2.5" activeClassName={theme.sortActive}>
+                            <SortableTh field="ten_buu_ta" sort={sort} onSort={handleSort} className="py-2 px-2.5" activeClassName={solidSortActive}>
                               Tên bưu tá
                             </SortableTh>
-                            <SortableTh field="volume" sort={sort} onSort={handleSort} className="py-2 px-2.5 text-right" activeClassName={theme.sortActive}>
+                            <SortableTh field="volume" sort={sort} onSort={handleSort} className="py-2 px-2.5 text-right" activeClassName={solidSortActive}>
                               Sản lượng
                             </SortableTh>
-                            <SortableTh field="passed" sort={sort} onSort={handleSort} className="py-2 px-2.5 text-right" activeClassName={theme.sortActive}>
+                            <SortableTh field="passed" sort={sort} onSort={handleSort} className="py-2 px-2.5 text-right" activeClassName={solidSortActive}>
                               Đạt
                             </SortableTh>
-                            <SortableTh field="failed" sort={sort} onSort={handleSort} className="py-2 px-2.5 text-right" activeClassName={theme.sortActive}>
+                            <SortableTh field="failed" sort={sort} onSort={handleSort} className="py-2 px-2.5 text-right" activeClassName={solidSortActive}>
                               Không đạt
                             </SortableTh>
-                            <SortableTh field="rate" sort={sort} onSort={handleSort} className="py-2 px-2.5 text-center" activeClassName={theme.sortActive}>
+                            <SortableTh field="rate" sort={sort} onSort={handleSort} className="py-2 px-2.5 text-center" activeClassName={solidSortActive}>
                               Tỷ lệ (%)
                             </SortableTh>
                           </tr>
@@ -368,7 +371,10 @@ export default function F42PostmanTableBlock({
                             const pToneClass = F13_HEATMAP_TONE_CLASS[pBand.tone] || F13_HEATMAP_TONE_CLASS.unavailable;
 
                             return (
-                              <tr key={postman.ma_buu_ta} className="hover:bg-slate-50/80 transition-colors">
+                              <tr
+                                key={postman.ma_buu_ta}
+                                className="hover:bg-slate-50/80 transition-colors last:[&>td:first-child]:rounded-bl-xl last:[&>td:last-child]:rounded-br-xl"
+                              >
                                 <td className="py-2 px-2 text-center tabular-nums font-bold text-slate-500">
                                   #{postman.rank}
                                 </td>

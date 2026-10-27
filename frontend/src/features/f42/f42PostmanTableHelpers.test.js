@@ -5,7 +5,9 @@ import {
   extractDailyBcvhUnits,
   formatPeriodHeader,
   formatSortCaption,
+  getBcvhStripTitle,
   getNextPostmanSort,
+  isFullSixBcvhStrip,
   matchesPostmanSearch,
   processPostmanList,
   removeDiacritics,
@@ -137,13 +139,13 @@ test('formatPeriodHeader formats day, week, month accurately', () => {
   assert.equal(formatPeriodHeader('month', { anchorDate: '2026-10-10' }), 'Tháng 10/2026');
 });
 
-test('formatSortCaption formats Vietnamese sort caption without printing raw field names', () => {
+test('formatSortCaption formats Vietnamese sort caption without printing raw field names and defaults to Hạng', () => {
   assert.equal(formatSortCaption({ field: 'volume', direction: 'desc' }), 'sắp xếp theo Sản lượng, giảm dần');
   assert.equal(formatSortCaption({ field: 'rate', direction: 'asc' }), 'sắp xếp theo Tỷ lệ, tăng dần');
   assert.equal(formatSortCaption({ field: 'rank', direction: 'asc' }), 'sắp xếp theo Hạng, tăng dần');
   assert.equal(formatSortCaption({ field: 'ma_buu_ta', direction: 'asc' }), 'sắp xếp theo Mã bưu tá, tăng dần');
-  assert.equal(formatSortCaption(null), '');
-  assert.equal(formatSortCaption({}), '');
+  assert.equal(formatSortCaption(null), 'sắp xếp theo Hạng');
+  assert.equal(formatSortCaption({}), 'sắp xếp theo Hạng');
 });
 
 test('getNextPostmanSort starts rank and text fields with asc, numbers with desc, and toggles active column', () => {
@@ -180,18 +182,86 @@ test('sliceUnitsForCapture limits total postmen rows across entire table to <= c
         { ma_buu_ta: 'BT06' },
       ],
     },
+    {
+      ma_bcvh: '536000',
+      filteredPostmen: [
+        { ma_buu_ta: 'BT07' },
+      ],
+    },
   ];
 
-  // Limit to 4 across whole table
+  // Limit to 4 across whole table: unit 1 gets 3, unit 2 gets 1, unit 3 is omitted
   const sliced = sliceUnitsForCapture(units, 4);
   const total = sliced.reduce((sum, u) => sum + u.filteredPostmen.length, 0);
   assert.equal(total, 4);
+  assert.equal(sliced.length, 2);
   assert.equal(sliced[0].filteredPostmen.length, 3);
   assert.equal(sliced[1].filteredPostmen.length, 1);
 
   // 'all' returns untouched units
   assert.deepEqual(sliceUnitsForCapture(units, 'all'), units);
   assert.deepEqual(sliceUnitsForCapture([]), []);
+});
+
+test('sliceUnitsForCapture omits BCVHs with exhausted quota but keeps truly empty BCVHs', () => {
+  const units = [
+    {
+      ma_bcvh: '533140',
+      filteredPostmen: [{ ma_buu_ta: 'BT01' }, { ma_buu_ta: 'BT02' }],
+    },
+    {
+      ma_bcvh: '536250',
+      filteredPostmen: [], // Truly empty unit (no postmen in period)
+    },
+    {
+      ma_bcvh: '536000',
+      filteredPostmen: [{ ma_buu_ta: 'BT03' }],
+    },
+    {
+      ma_bcvh: '537000',
+      filteredPostmen: [{ ma_buu_ta: 'BT04' }],
+    },
+  ];
+
+  // Limit 3:
+  // unit 533140 takes 2 (remaining: 1)
+  // unit 536250 has 0 postmen -> kept to display "BCVH này không có phát sinh...", remaining still 1
+  // unit 536000 takes 1 (remaining: 0)
+  // unit 537000 quota exhausted -> omitted from capture entirely so it doesn't falsely show empty notice
+  const sliced = sliceUnitsForCapture(units, 3);
+  assert.equal(sliced.length, 3);
+  assert.equal(sliced[0].ma_bcvh, '533140');
+  assert.equal(sliced[0].filteredPostmen.length, 2);
+  assert.equal(sliced[1].ma_bcvh, '536250');
+  assert.equal(sliced[1].filteredPostmen.length, 0);
+  assert.equal(sliced[2].ma_bcvh, '536000');
+  assert.equal(sliced[2].filteredPostmen.length, 1);
+  assert.equal(sliced.some((u) => u.ma_bcvh === '537000'), false);
+});
+
+test('isFullSixBcvhStrip and getBcvhStripTitle distinguish 6 BCVHs vs 1-5 BCVHs', () => {
+  const sixUnits = [
+    { ma_bcvh: '533140' },
+    { ma_bcvh: '536250' },
+    { ma_bcvh: '536000' },
+    { ma_bcvh: '537000' },
+    { ma_bcvh: '538000' },
+    { ma_bcvh: '539000' },
+  ];
+  const fourUnits = sixUnits.slice(0, 4);
+
+  // isFullSixBcvhStrip
+  assert.equal(isFullSixBcvhStrip(sixUnits), true);
+  assert.equal(isFullSixBcvhStrip(fourUnits), false);
+  assert.equal(isFullSixBcvhStrip([]), false);
+  assert.equal(isFullSixBcvhStrip(null), false);
+
+  // getBcvhStripTitle
+  assert.equal(getBcvhStripTitle(sixUnits, '27/10/2026'), '6 BCVH hôm nay – Ngày 27/10/2026');
+  assert.equal(getBcvhStripTitle(sixUnits), '6 BCVH hôm nay');
+  assert.equal(getBcvhStripTitle(fourUnits, '27/10/2026'), 'BCVH hôm nay – Ngày 27/10/2026');
+  assert.equal(getBcvhStripTitle(fourUnits), 'BCVH hôm nay');
+  assert.equal(getBcvhStripTitle([]), 'BCVH hôm nay');
 });
 
 test('extractDailyBcvhUnits extracts only rows returned by backend and does not synthesize missing canonical units', () => {

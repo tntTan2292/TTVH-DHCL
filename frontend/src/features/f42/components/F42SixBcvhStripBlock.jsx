@@ -13,7 +13,11 @@ import {
   formatRate,
   formatVolume,
 } from '../../dashboard/components/bcvhOperationTableData.js';
-import { extractDailyBcvhUnits } from './f42PostmanTableHelpers.js';
+import {
+  extractDailyBcvhUnits,
+  getBcvhStripTitle,
+  isFullSixBcvhStrip,
+} from './f42PostmanTableHelpers.js';
 
 export default function F42SixBcvhStripBlock({ anchorDate = null }) {
   const indicator = useIndicator();
@@ -110,9 +114,8 @@ export default function F42SixBcvhStripBlock({ anchorDate = null }) {
     );
   }
 
-  const blockTitle = units.length === 1
-    ? `BCVH hôm nay – Ngày ${formattedDate}`
-    : `6 BCVH hôm nay – Ngày ${formattedDate}`;
+  const isFullSix = isFullSixBcvhStrip(units);
+  const blockTitle = getBcvhStripTitle(units, formattedDate);
 
   return (
     <div
@@ -125,7 +128,7 @@ export default function F42SixBcvhStripBlock({ anchorDate = null }) {
           <div className="flex items-center gap-2">
             <span className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-bold ${theme.chip}`}>
               <Layers size={12} />
-              {units.length === 1 ? 'BCVH hôm nay' : '6 BCVH hôm nay'}
+              {isFullSix ? '6 BCVH hôm nay' : 'BCVH hôm nay'}
             </span>
             <span className="text-xs font-medium text-slate-500">
               Ngày <span className="font-semibold text-slate-700">{formattedDate}</span>
@@ -210,7 +213,7 @@ export default function F42SixBcvhStripBlock({ anchorDate = null }) {
                   <span className="text-[11px] font-bold text-slate-700 leading-tight">
                     {unit.ten_bcvh.replace('BCVH ', '')}
                   </span>
-                  {units.length > 1 && (
+                  {isFullSix && (
                     <span className="shrink-0 text-[10px] font-bold text-slate-500 bg-white border border-slate-200 px-1 rounded">
                       #{index + 1}
                     </span>
