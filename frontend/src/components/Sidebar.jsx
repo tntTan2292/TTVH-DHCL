@@ -29,7 +29,7 @@ function getModuleIndicatorDot(title = '') {
   if (title.includes('F4.2')) {
     return <span className="inline-block h-2 w-2 rounded-full bg-sky-400 shadow-[0_0_8px_rgba(56,189,248,0.8)] shrink-0 animate-pulse" title="Phân hệ F4.2 – Phát giao bưu tá (Xanh da trời)" />;
   }
-  if (title.includes('Hàng tồn')) {
+  if (title.includes('Hàng tồn') || title.includes('hàng tồn')) {
     return <span className="inline-block h-2 w-2 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.85)] shrink-0 animate-pulse" title="Chỉ số rà soát Hàng tồn (Đỏ)" />;
   }
   return null;

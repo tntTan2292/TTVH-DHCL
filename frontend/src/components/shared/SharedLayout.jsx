@@ -32,6 +32,9 @@ function getModuleIndicatorDot(title = '') {
   if (title.includes('F4.2')) {
     return <span className="inline-block h-2 w-2 rounded-full bg-sky-400 shadow-[0_0_8px_rgba(56,189,248,0.8)] shrink-0 animate-pulse" title="Phân hệ F4.2 – Phát giao bưu tá (Xanh da trời)" />;
   }
+  if (title.includes('Hàng tồn') || title.includes('hàng tồn')) {
+    return <span className="inline-block h-2 w-2 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.85)] shrink-0 animate-pulse" title="Chỉ số rà soát Hàng tồn (Đỏ)" />;
+  }
   return null;
 }
 
@@ -46,6 +49,7 @@ export function SidebarNavigation({ isOpen, onClose, isCollapsed, onToggleCollap
     'F1.3 – Chất lượng phát liên tỉnh': true,
     'F4.1 – Chất lượng phát thành công bưu cục': true,
     'F4.2 – Chất lượng phát giao bưu tá': true,
+    'Chỉ số rà soát Hàng tồn': true,
     'Quản lý mạng lưới': false,
     'QUẢN LÝ MẠNG LƯỚI': false,
     'Quản trị hệ thống': false,
@@ -508,6 +512,7 @@ const BREADCRUMB_LABELS = {
   f13: 'F1.3 – Chất lượng phát liên tỉnh',
   f41: 'F4.1 – Chất lượng phát thành công bưu cục',
   f42: 'F4.2 – Chất lượng phát giao bưu tá',
+  hangton: 'Chỉ số rà soát Hàng tồn',
   dashboard: 'Bảng điều hành',
   ranking: 'Phân tích',
   bcvh: 'BCVH',
