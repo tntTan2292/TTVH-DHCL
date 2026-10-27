@@ -89,8 +89,9 @@ test('F42PostmanTrendModal conforms to UI report block standard and postman tren
   // 2. ReferenceLine with 90% target in red dashed
   assert.match(modalSource, /<ReferenceLine[\s\S]*?stroke="#EF4444"[\s\S]*?strokeDasharray="4 4"/);
 
-  // 3. F4.2 Sky color family
-  assert.match(modalSource, /stroke="#0284C7"/);
+  // 3. Colours come from the indicator theme (no hard-coded F4.2 hex; Opus review of phase D)
+  assert.match(modalSource, /stroke={theme.primary}/);
+  assert.doesNotMatch(modalSource, /#0284C7/);
 
   // 4. BlockCaptureButton with indicatorOverride="F4.2"
   assert.match(modalSource, /<BlockCaptureButton[\s\S]*?indicatorOverride="F4\.2"/);

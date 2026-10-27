@@ -124,7 +124,10 @@ export default function F42PostmanTrendModal({
           ma_buu_ta: postman.ma_buu_ta,
           from_date: fromDate,
           to_date: toDate,
-          ...(maBcvhScope && maBcvhScope !== 'all' ? { ma_bcvh: maBcvhScope } : {}),
+          // the BCVH of the row that was clicked, so the chart is the same postman-in-BCVH as the table line
+          ...(maBcvhScope && maBcvhScope !== 'all'
+            ? { ma_bcvh: maBcvhScope }
+            : (postman.ma_bcvh ? { ma_bcvh: postman.ma_bcvh } : {})),
         };
 
         const response = await api.get('/f42/dashboard/postman-trend', { params });
@@ -152,9 +155,8 @@ export default function F42PostmanTrendModal({
         if (err.response?.status === 403) {
           setEmptyNotice('Bưu tá này không thuộc BCVH được phân quyền quản lý của tài khoản bạn.');
         } else {
-          setEmptyNotice(
-            `Không có dữ liệu phát sinh hoặc bưu tá ${postman.ten_buu_ta} chưa có lượt giao trong kỳ.`
-          );
+          // a real failure (server or network) is not "no data": say so
+          setEmptyNotice('Không tải được dữ liệu xu hướng của bưu tá này. Vui lòng thử lại sau.');
         }
       } finally {
         if (active) setLoading(false);
@@ -332,7 +334,7 @@ export default function F42PostmanTrendModal({
               </div>
               <div className="flex items-center gap-3 text-[11px] text-slate-500">
                 <span className="inline-flex items-center gap-1">
-                  <span className="h-2 w-2 rounded-full bg-[#0284C7]" />
+                  <span className={`h-2 w-2 rounded-full ${theme.legendBar}`} />
                   Tỷ lệ đạt
                 </span>
                 <span className="inline-flex items-center gap-1">
@@ -400,10 +402,10 @@ export default function F42PostmanTrendModal({
                       type="monotone"
                       dataKey="rate"
                       name="Tỷ lệ đạt"
-                      stroke="#0284C7"
+                      stroke={theme.primary}
                       strokeWidth={2.5}
-                      dot={{ r: 3, strokeWidth: 1.5, fill: '#FFFFFF', stroke: '#0284C7' }}
-                      activeDot={{ r: 5, fill: '#0284C7' }}
+                      dot={{ r: 3, strokeWidth: 1.5, fill: '#FFFFFF', stroke: theme.primary }}
+                      activeDot={{ r: 5, fill: theme.primary }}
                       connectNulls={false}
                       isAnimationActive={false}
                     />

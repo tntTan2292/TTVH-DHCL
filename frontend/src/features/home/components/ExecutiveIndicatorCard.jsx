@@ -122,12 +122,13 @@ export default function ExecutiveIndicatorCard({ data, isSelected, onSelect }) {
               <div className="flex items-center justify-between gap-1">
                 <span className="whitespace-nowrap text-xs font-bold uppercase tracking-wide text-slate-600" title="Tỷ lệ đạt">Tỷ lệ</span>
                 {isTargetMet ? (
-                  <span className="inline-flex items-center gap-0.5 whitespace-nowrap rounded border border-emerald-200 bg-emerald-100/80 px-1.5 py-0.5 text-[10px] font-bold text-emerald-800">
-                    <Sparkles size={10} /> Đạt
+                  <span title="Đạt mục tiêu" className="inline-flex items-center gap-0.5 whitespace-nowrap rounded border border-emerald-200 bg-emerald-100/80 px-1.5 py-0.5 text-[10px] font-bold text-emerald-800">
+                    <Sparkles size={10} /> <span className="hidden @[15rem]:inline">Đạt</span>
                   </span>
                 ) : (
-                  <span className="whitespace-nowrap rounded border border-rose-200 bg-rose-100/80 px-1.5 py-0.5 text-[10px] font-bold text-rose-800">
-                    Chưa đạt
+                  <span title="Chưa đạt mục tiêu" className="whitespace-nowrap rounded border border-rose-200 bg-rose-100/80 px-1.5 py-0.5 text-[10px] font-bold text-rose-800">
+                    <span className="hidden @[15rem]:inline">Chưa đạt</span>
+                    <span className="@[15rem]:hidden" aria-label="Chưa đạt">✕</span>
                   </span>
                 )}
               </div>

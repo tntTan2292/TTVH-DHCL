@@ -210,7 +210,7 @@ export default function DashboardHome() {
       {/* Indicator cards (F1.1, F1.2, F1.3, F4.1, F4.2): rate, national rank, gap to target, change, own 30-day line */}
       <section aria-label="Thẻ chỉ tiêu điều hành" aria-busy={loadingExecutive} className={loadingExecutive ? "opacity-60 transition-opacity" : "transition-opacity"}>
         {loadingExecutive && !indicators.length ? (
-          <div className={`grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-3 ${indicators.length >= 5 ? 'xl:grid-cols-5' : 'xl:grid-cols-4'}`}>
+          <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
             {[1, 2, 3, 4, 5].map((i) => (
               <div key={i} className="h-60 animate-pulse rounded-2xl border border-slate-200/80 bg-white p-4">
                 <div className="h-4 w-24 rounded bg-slate-200" />
@@ -222,7 +222,7 @@ export default function DashboardHome() {
             ))}
           </div>
         ) : (
-          <div className={`grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-3 ${indicators.length >= 5 ? 'xl:grid-cols-5' : 'xl:grid-cols-4'}`}>
+          <div className={`grid grid-cols-1 gap-2.5 sm:grid-cols-2 ${indicators.length >= 5 ? 'lg:grid-cols-3 xl:grid-cols-5' : 'xl:grid-cols-4'}`}>
             {indicators.map((ind) => (
               <ExecutiveIndicatorCard
                 key={ind.id}

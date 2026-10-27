@@ -67,3 +67,7 @@ Open for later (not decided): the same top-N / reading layout for other long tab
 ## 5. Changing the standard
 
 Only the Product Owner changes it (chat decision), recorded here with the date and in `PROJECT_PROGRESS.md`. A new mandatory function is added to Section 1 and, if it can be checked by code, to `reportBlockStandard.test.js`.
+
+### Recorded changes
+
+- **PO 2026-10-27 - Home page exception:** the executive Home page (`DashboardHome`) has **one** camera button, the page-level one in its date bar. The indicator cards and the blocks on that page (national ranking, monthly rank progression, units to act on, trend charts) carry no camera of their own. The rule of Section 1 (every report block has a camera) applies to the report screens (dashboards, rankings, postman blocks), not to the Home page. Home labels are short so that cells do not wrap ("Vị thứ", "Tỷ lệ"), the full wording is in the tooltip.

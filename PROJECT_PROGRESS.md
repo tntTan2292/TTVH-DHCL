@@ -2496,3 +2496,7 @@ The result is no longer chosen: Phát thành công / Mất / Vô thừa nhận /
 ## 2026-10-27 - AUTO-BACKFILL-QUEUE-UI-01: open-runs screen shows real job states
 
 Backend: the open-runs list now carries per job started_at, next_attempt_at, last_error_signature, last_error_class (test_autoBackfillQueueService 58/58). The screen showed every row as RUNNING because it lists runs, not jobs; UI rework handed to Antigravity (docs/10_TICKETS/AUTO-BACKFILL-QUEUE-UI-01_ANTIGRAVITY_PROMPT.md). Backend restart needed before the new fields appear.
+
+## 2026-10-27 - Home page: five cards, one camera, short labels; Opus review of phase D handled
+
+PO decisions on the Home page: five indicator cards must not overlap text; no camera on cards or blocks, only the page-level one; short labels instead of wrapped text (recorded in `report_block_ui_standard.md`, "Recorded changes"). Opus phase D review (PASS with conditions) handled by Claude Code: trend modal colours follow the theme, real failures are told apart from "no data", the clicked BCVH is sent, the target badge turns to an icon on narrow cards, the four-card grid is as before. Open for PO: whether the Home page should filter the F4.2 card by the user's scope (it does not filter any indicator today, per RBAC-01).
