@@ -514,6 +514,7 @@ class AutoBackfillQueueService {
                 const readablePairs = entry.indicatorLanePairs.filter((pair) => isPairReadable(pair.indicator, pair.sourceLane));
                 if (readablePairs.length === 0) return null;
                 const readableLaneSet = new Set(readablePairs.map((pair) => pair.sourceLane));
+                const readableJobs = (entry.jobs || []).filter((j) => isPairReadable(j.indicator, j.source_lane));
                 return {
                     run: entry.run,
                     jobTotal: entry.jobTotal,
@@ -521,6 +522,8 @@ class AutoBackfillQueueService {
                     blockedLanes: entry.blockedLanes.filter((lane) => readableLaneSet.has(lane)),
                     indicators: Array.from(new Set(readablePairs.map((pair) => pair.indicator))),
                     lanes: Array.from(readableLaneSet),
+                    businessDates: entry.businessDates || [],
+                    jobs: readableJobs,
                 };
             })
             .filter(Boolean);

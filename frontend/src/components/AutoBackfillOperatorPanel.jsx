@@ -65,7 +65,8 @@ import {
   translateBulkSkipReason,
   aggregateBulkReports,
   summarizeOpenRuns,
-  groupOpenRuns
+  groupOpenRuns,
+  formatRunDatesSummary
 } from './autoBackfillUiHelpers';
 import AutoBackfillIndicatorMatrix from './AutoBackfillIndicatorMatrix';
 import AutoBackfillSmartDayView from './AutoBackfillSmartDayView';
@@ -1803,6 +1804,12 @@ export default function AutoBackfillOperatorPanel() {
                           }`}>
                             {group.state}
                           </span>
+
+                          {group.businessDates?.length > 0 && (
+                            <span className="font-semibold text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200/60">
+                              {formatRunDatesSummary(group.businessDates)}
+                            </span>
+                          )}
                         </div>
 
                         <div className="flex items-center gap-2">
@@ -1822,12 +1829,23 @@ export default function AutoBackfillOperatorPanel() {
                               <div
                                 key={entry.run.id}
                                 onClick={() => handleSelectRunFromList(entry.run.id)}
-                                className={`flex items-center justify-between py-2 hover:bg-white px-2 rounded cursor-pointer transition ${isCurrentlyActive ? 'bg-blue-50/80 font-bold' : ''}`}
+                                className={`flex flex-wrap items-center justify-between py-2 hover:bg-white px-2 rounded cursor-pointer transition gap-2 ${isCurrentlyActive ? 'bg-blue-50/80 font-bold' : ''}`}
                               >
-                                <div className="flex items-center gap-3">
+                                <div className="flex flex-wrap items-center gap-2.5">
                                   <span className="font-mono text-slate-600">#{String(entry.run.id).slice(0, 8)}</span>
                                   <span className="font-semibold text-slate-700 bg-slate-200/80 px-1.5 py-0.5 rounded text-[10px]">{rowRunState}</span>
-                                  <span className="text-slate-500">{entry.jobTotal} job</span>
+                                  {entry.indicators?.length > 0 && (
+                                    <span className="font-bold text-slate-800">
+                                      {entry.indicators.join(', ')}
+                                      {entry.lanes?.length > 0 ? ` (${entry.lanes.join('/')})` : ''}
+                                    </span>
+                                  )}
+                                  {formatRunDatesSummary(entry.businessDates, entry.run) && (
+                                    <span className="font-semibold text-blue-700 bg-blue-50/90 px-2 py-0.5 rounded border border-blue-200 text-[11px]">
+                                      {formatRunDatesSummary(entry.businessDates, entry.run)}
+                                    </span>
+                                  )}
+                                  <span className="text-slate-500">· {entry.jobTotal} job</span>
                                   {isBlocking && (
                                     <span className="text-red-700 font-bold text-[11px] flex items-center gap-1">
                                       <ShieldAlert className="h-3 w-3" />
@@ -1905,6 +1923,12 @@ export default function AutoBackfillOperatorPanel() {
                           {rowRunState}
                         </span>
                         <span className="text-slate-500">{entry.jobTotal} job</span>
+
+                        {formatRunDatesSummary(entry.businessDates, entry.run) && (
+                          <span className="font-semibold text-blue-700 bg-blue-50/90 px-2 py-0.5 rounded border border-blue-200">
+                            {formatRunDatesSummary(entry.businessDates, entry.run)}
+                          </span>
+                        )}
 
                         {isBlocking && (
                           <span className="inline-flex items-center gap-1 rounded-full bg-red-100 px-2 py-0.5 font-bold text-red-800">
@@ -2134,6 +2158,97 @@ export default function AutoBackfillOperatorPanel() {
             {authLoginError && (
               <div className="rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-xs font-semibold text-red-800">
                 {authLoginError}
+              </div>
+            )}
+
+            {/* JOBS LISTING TABLE FOR ACTIVE RUN */}
+            {Array.isArray(runData.jobs) && runData.jobs.length > 0 && (
+              <div className="mt-2 overflow-hidden rounded-xl border border-slate-200 bg-white">
+                <div className="flex flex-wrap items-center justify-between border-b border-slate-200 bg-slate-50/80 px-4 py-2 text-xs gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-slate-800">
+                      Danh sách công việc trong tiến trình ({runData.jobs.length} jobs):
+                    </span>
+                    <span className="text-[11px] text-slate-500 hidden sm:inline">
+                      Chi tiết ngày, chỉ tiêu & nguồn đang xử lý
+                    </span>
+                  </div>
+                  {isAdmin && (
+                    <button
+                      type="button"
+                      onClick={() => setViewMode('JOB_LOG')}
+                      className="inline-flex items-center gap-1 font-semibold text-blue-600 hover:text-blue-800 hover:underline cursor-pointer"
+                    >
+                      <FileText className="h-3.5 w-3.5" />
+                      <span>Xem toàn bộ trong Nhật ký</span>
+                    </button>
+                  )}
+                </div>
+                <div className="max-h-64 overflow-y-auto divide-y divide-slate-100">
+                  <table className="w-full text-left text-xs text-slate-700">
+                    <thead className="sticky top-0 bg-slate-50 border-b border-slate-200 text-[11px] font-bold uppercase text-slate-500 shadow-2xs">
+                      <tr>
+                        <th className="px-3.5 py-2">Ngày DL</th>
+                        <th className="px-3.5 py-2">Chỉ tiêu</th>
+                        <th className="px-3.5 py-2">Nguồn / File</th>
+                        <th className="px-3.5 py-2">Chế độ</th>
+                        <th className="px-3.5 py-2">Trạng thái</th>
+                        <th className="px-3.5 py-2 text-right">Số dòng</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {runData.jobs.map((job) => {
+                        const isExecuting = job.state === 'RUNNING';
+                        const isSuccess = job.state === 'SUCCESS';
+                        const isFailed = job.state === 'FAILED_TERMINAL';
+                        return (
+                          <tr
+                            key={job.id}
+                            className={`hover:bg-slate-50/80 transition ${isExecuting ? 'bg-blue-50/50 font-semibold' : ''}`}
+                          >
+                            <td className="px-3.5 py-2 font-bold text-slate-900 whitespace-nowrap">
+                              {job.business_date}
+                            </td>
+                            <td className="px-3.5 py-2 font-bold text-slate-800 whitespace-nowrap">
+                              {job.indicator}
+                            </td>
+                            <td className="px-3.5 py-2 text-slate-600 whitespace-nowrap">
+                              <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[11px] font-semibold text-slate-700">
+                                {job.source_lane}
+                              </span>
+                            </td>
+                            <td className="px-3.5 py-2 font-mono text-[11px] text-slate-500 whitespace-nowrap">
+                              {job.import_mode || '—'}
+                            </td>
+                            <td className="px-3.5 py-2 whitespace-nowrap">
+                              {isExecuting ? (
+                                <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-100 px-2.5 py-0.5 text-[11px] font-bold text-blue-800 border border-blue-300 animate-pulse">
+                                  <span className="h-1.5 w-1.5 rounded-full bg-blue-600 animate-ping" />
+                                  Đang xử lý
+                                </span>
+                              ) : isSuccess ? (
+                                <span className="inline-flex items-center rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-bold text-emerald-700 border border-emerald-200">
+                                  Hoàn tất
+                                </span>
+                              ) : isFailed ? (
+                                <span className="inline-flex items-center rounded-full bg-rose-50 px-2 py-0.5 text-[11px] font-bold text-rose-700 border border-rose-200">
+                                  Thất bại
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-800 border border-amber-200">
+                                  Đang chờ
+                                </span>
+                              )}
+                            </td>
+                            <td className="px-3.5 py-2 text-right font-medium text-slate-700 whitespace-nowrap">
+                              {job.row_count != null ? Number(job.row_count).toLocaleString('vi-VN') : '—'}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             )}
           </div>

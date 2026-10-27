@@ -27,7 +27,9 @@ import {
   translateJobErrorSignature,
   formatVietnamDateTime,
   formatJobDuration,
-  buildJobLogQueryParams
+  buildJobLogQueryParams,
+  formatRunDatesSummary,
+  formatRunTargetSummary
 } from './autoBackfillUiHelpers.js';
 
 console.log('Running AUTO-BACKFILL-UI behavior and contract test suite...');
@@ -1421,6 +1423,22 @@ console.log('Running AUTO-BACKFILL-UI behavior and contract test suite...');
   assert.ok(params.created_to.endsWith('Z'), 'created_to converted to UTC ISO');
   assert.equal(params.page, 2);
   assert.equal(params.pageSize, 50);
+
+  // Test case 26.8: formatRunDatesSummary
+  assert.equal(formatRunDatesSummary(['2026-05-15']), 'Ngày 2026-05-15');
+  assert.equal(formatRunDatesSummary(['2026-05-01', '2026-05-02', '2026-05-19']), 'Ngày 2026-05-01 → 2026-05-19 (3 ngày)');
+  assert.equal(formatRunDatesSummary([], { as_of_business_date: '2026-05-10' }), 'Ngày 2026-05-10');
+  assert.equal(formatRunDatesSummary([], { target_month: '2026-05' }), 'Tháng 2026-05');
+  assert.equal(formatRunDatesSummary([]), '');
+
+  // Test case 26.9: formatRunTargetSummary
+  const target1 = formatRunTargetSummary({ indicators: ['F4.1', 'F4.2'], lanes: ['HUE'] });
+  assert.equal(target1.indText, 'F4.1, F4.2');
+  assert.equal(target1.laneText, 'HUE');
+
+  const target2 = formatRunTargetSummary({ run: { requested_indicator: 'F1.3', requested_lane: 'ALL' } });
+  assert.equal(target2.indText, 'F1.3');
+  assert.equal(target2.laneText, 'ALL');
 
   console.log('✔ 26. UI-IMPORT-PROCESS-LOG-01 Open Runs Summary, Grouping & Job Log Helpers tests PASSED!');
   console.log('\nALL AUTO-BACKFILL-UI behavior, contract & remediation tests PASSED SUCCESSFULLY! (26/26 Test Suites)');

@@ -441,7 +441,7 @@ class AutoBackfillQueueStore {
             const runIdPlaceholders = runIds.map(() => '?').join(',');
             const jobRows = await all(
                 db,
-                `SELECT run_id, indicator, source_lane, state, safety_state
+                `SELECT run_id, indicator, source_lane, business_date, state, safety_state
                  FROM auto_backfill_job WHERE run_id IN (${runIdPlaceholders})`,
                 runIds,
             );
@@ -470,6 +470,7 @@ class AutoBackfillQueueStore {
                     pairKeys.add(key);
                     indicatorLanePairs.push({ indicator: job.indicator, sourceLane: job.source_lane });
                 }
+                const businessDates = Array.from(new Set(jobs.map((job) => job.business_date).filter(Boolean))).sort();
                 return {
                     run,
                     jobTotal: jobs.length,
@@ -477,6 +478,14 @@ class AutoBackfillQueueStore {
                     blockedLanes: Array.from(blockedLaneSet),
                     indicators: Array.from(new Set(jobs.map((job) => job.indicator))),
                     lanes: Array.from(new Set(jobs.map((job) => job.source_lane).filter(Boolean))),
+                    businessDates,
+                    jobs: jobs.map((j) => ({
+                        indicator: j.indicator,
+                        source_lane: j.source_lane,
+                        business_date: j.business_date,
+                        state: j.state,
+                        safety_state: j.safety_state,
+                    })),
                     // AB-AUTH-06: exact (indicator, sourceLane) pairs, kept alongside the display
                     // arrays above so the service layer can apply the same per-lane permission
                     // check getRun() already uses, without a second query.

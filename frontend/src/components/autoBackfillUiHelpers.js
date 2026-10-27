@@ -1718,6 +1718,34 @@ export function summarizeOpenRuns(arg1 = {}, arg2 = null) {
   };
 }
 
+export function formatRunDatesSummary(businessDates = [], run = {}) {
+  const dates = Array.isArray(businessDates) ? businessDates.filter(Boolean) : [];
+  if (dates.length === 1) {
+    return `Ngày ${dates[0]}`;
+  }
+  if (dates.length > 1) {
+    const sorted = [...dates].sort();
+    return `Ngày ${sorted[0]} → ${sorted[sorted.length - 1]} (${sorted.length} ngày)`;
+  }
+  if (run?.as_of_business_date) {
+    return `Ngày ${run.as_of_business_date}`;
+  }
+  if (run?.target_month) {
+    return `Tháng ${run.target_month}`;
+  }
+  return '';
+}
+
+export function formatRunTargetSummary(entry = {}) {
+  const run = entry?.run || {};
+  const indList = entry?.indicators?.length > 0 ? entry.indicators : (run.requested_indicator ? [run.requested_indicator] : []);
+  const laneList = entry?.lanes?.length > 0 ? entry.lanes : (run.requested_lane ? [run.requested_lane] : []);
+
+  const indText = indList.length > 0 ? indList.join(', ') : (run.requested_indicator || 'Tất cả chỉ tiêu');
+  const laneText = laneList.length > 0 && !laneList.includes('ALL') ? laneList.join('/') : (run.requested_lane || 'Tất cả nguồn');
+  return { indText, laneText };
+}
+
 export function groupOpenRuns(runs = []) {
   if (!Array.isArray(runs) || runs.length === 0) return [];
   const groupsMap = new Map();
@@ -1742,6 +1770,7 @@ export function groupOpenRuns(runs = []) {
         actor,
         runCount: 0,
         jobTotal: 0,
+        businessDates: [],
         runs: [],
       });
     }
@@ -1749,6 +1778,11 @@ export function groupOpenRuns(runs = []) {
     const grp = groupsMap.get(groupKey);
     grp.runCount += 1;
     grp.jobTotal += Number(entry?.jobTotal || jobs.length || 1);
+    const itemDates = entry?.businessDates || jobs.map((j) => j.business_date).filter(Boolean);
+    if (Array.isArray(itemDates) && itemDates.length > 0) {
+      const set = new Set([...grp.businessDates, ...itemDates]);
+      grp.businessDates = Array.from(set).sort();
+    }
     grp.runs.push(entry);
   }
 
