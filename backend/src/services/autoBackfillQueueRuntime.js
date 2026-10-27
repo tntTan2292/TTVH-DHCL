@@ -106,7 +106,10 @@ function getAutoBackfillWorkerCoordinator() {
     return coordinator;
 }
 
-async function startAutoBackfillQueueRuntime() {
+// deferStart: recover and build everything but leave the lane coordinators stopped; server.js starts them once the DKCL windows
+// have been re-attached from the saved sessions (see startAutoBackfillCoordinator). Draining before that parks every lane in
+// WAITING_AUTH after each restart and needs a manual "Tiếp tục Run" (live, 2026-10-27).
+async function startAutoBackfillQueueRuntime({ deferStart = false } = {}) {
     ensureRuntime();
     await queueService.recoverInterruptedWork();
     if (coordinator instanceof LaneCoordinatorGroup) {
@@ -114,6 +117,16 @@ async function startAutoBackfillQueueRuntime() {
     } else {
         console.log('[AUTO-BACKFILL-QUEUE] one job at a time (set AUTO_BACKFILL_PARALLEL_LANES=true to run HUE and TCT in parallel).');
     }
+    if (deferStart) {
+        console.log('[AUTO-BACKFILL-QUEUE] lane coordinators wait for the DKCL sessions to be re-attached before they start.');
+        return coordinator;
+    }
+    coordinator.start();
+    return coordinator;
+}
+
+function startAutoBackfillCoordinator() {
+    ensureRuntime();
     coordinator.start();
     return coordinator;
 }
@@ -142,6 +155,7 @@ module.exports = {
     getAutoBackfillWorkerCoordinator,
     recoverAutoBackfillQueueOnStartup,
     startAutoBackfillQueueRuntime,
+    startAutoBackfillCoordinator,
     stopAutoBackfillQueueRuntime,
     registerAutoBackfillExecutor,
     wakeAutoBackfillQueue,

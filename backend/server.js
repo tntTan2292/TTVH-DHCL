@@ -208,9 +208,30 @@ function startAutoImportSchedule() {
     sessionKeepAlive = new DkclSessionKeepAlive({
         sessionService,
         // a source that becomes valid again (sign-in, re-attach, restart) wakes the queue lanes, which park themselves without a session
-        onSessionValid: () => require('./src/services/autoBackfillQueueRuntime').wakeAutoBackfillQueue(),
+        // and resumes the runs that were waiting for a sign-in of that source (AUTO_BACKFILL_AUTO_RESUME=false keeps the manual button only)
+        onSessionValid: async (source) => {
+            const runtime = require('./src/services/autoBackfillQueueRuntime');
+            const resumed = await runtime.getAutoBackfillQueueService().resumeAuthWaitForLane(source);
+            runtime.wakeAutoBackfillQueue();
+            return resumed;
+        },
     });
     sessionKeepAlive.start();
+    // The queue lanes start only after the first keep-alive look has re-attached the DKCL windows from the saved sessions
+    // (or after 4 minutes at the latest): draining earlier finds no session and parks the lanes in WAITING_AUTH.
+    const { startAutoBackfillCoordinator } = require('./src/services/autoBackfillQueueRuntime');
+    let coordinatorStarted = false;
+    const startCoordinatorOnce = () => {
+        if (coordinatorStarted) return;
+        coordinatorStarted = true;
+        startAutoBackfillCoordinator();
+    };
+    const fallbackStart = setTimeout(startCoordinatorOnce, 4 * 60 * 1000);
+    fallbackStart.unref?.();
+    void sessionKeepAlive.tick().catch(() => {}).finally(() => {
+        clearTimeout(fallbackStart);
+        startCoordinatorOnce();
+    });
 }
 
 function startServer() {
@@ -222,7 +243,7 @@ function startServer() {
             const restoredSessions = await authSessionStore.restore();
             console.log(`[auth] restored ${restoredSessions} session(s)`);
             const { startAutoBackfillQueueRuntime } = require('./src/services/autoBackfillQueueRuntime');
-            await startAutoBackfillQueueRuntime();
+            await startAutoBackfillQueueRuntime({ deferStart: true });
             startAutoImportSchedule();
             startHangtonScheduler();
             startBfPhatScheduler();

@@ -1369,3 +1369,44 @@ test('AB-AUTH-05 SESSION_PENDING_HUMAN_ACTION retries without exhausting attempt
         fixture.cleanup();
     }
 });
+
+test('a lane whose session is valid again resumes its WAITING_AUTH runs and only those (keep-alive hook, 2026-10-27)', async () => {
+    const fixture = await laneBlockedFixture();
+    try {
+        const tctRun = await fixture.service.createRun({ lane: 'TCT', actor: 'admin', roles: ['admin'] });
+        const hueRun = await fixture.service.createRun({ lane: 'HUE', actor: 'admin', roles: ['admin'] });
+        for (let pass = 0; pass < 40; pass += 1) {
+            try {
+                if (!(await fixture.service.processNext())) break;
+            } catch (error) {
+                assert.equal(error.code, 'AUTHENTICATION_REQUIRED');
+            }
+        }
+        assert.equal((await fixture.service.store.getRun(tctRun.run.id)).run.safety_state, 'WAITING_AUTH');
+        assert.equal((await fixture.service.store.getRun(hueRun.run.id)).run.safety_state, null);
+
+        // the HUE session becoming valid must not release the TCT run
+        assert.deepEqual(await fixture.service.resumeAuthWaitForLane('HUE'), []);
+        assert.equal((await fixture.service.store.getRun(tctRun.run.id)).run.safety_state, 'WAITING_AUTH');
+
+        // the switch is honoured
+        process.env.AUTO_BACKFILL_AUTO_RESUME = 'false';
+        try {
+            assert.deepEqual(await fixture.service.resumeAuthWaitForLane('TCT'), []);
+        } finally {
+            delete process.env.AUTO_BACKFILL_AUTO_RESUME;
+        }
+        assert.equal((await fixture.service.store.getRun(tctRun.run.id)).run.safety_state, 'WAITING_AUTH');
+
+        // the TCT session is valid again: the run is resumed, its jobs are eligible again, an event records who did it
+        assert.deepEqual(await fixture.service.resumeAuthWaitForLane('TCT', { actor: 'session-keepalive' }), [tctRun.run.id]);
+        const resumed = await fixture.service.store.getRun(tctRun.run.id);
+        assert.equal(resumed.run.safety_state, null);
+        assert.equal(resumed.jobs.filter((job) => job.safety_state === 'WAITING_AUTH').length, 0);
+        const event = resumed.events.find((item) => item.event_type === 'AUTH_WAIT_RESUMED');
+        assert.equal(event.payload.actor, 'session-keepalive');
+        assert.deepEqual(await fixture.service.resumeAuthWaitForLane('TCT'), [], 'nothing left to resume');
+    } finally {
+        fixture.cleanup();
+    }
+});

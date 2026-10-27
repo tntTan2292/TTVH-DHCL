@@ -336,6 +336,21 @@ class AutoBackfillQueueStore {
         });
     }
 
+    // Runs that hold a lane in WAITING_AUTH (a job of that lane waits for a sign-in). Used when the lane's session is valid again.
+    async listRunIdsWaitingAuth(lane) {
+        return this.withDb(async (db) => {
+            const rows = await all(
+                db,
+                `SELECT DISTINCT r.id FROM auto_backfill_run r
+                 JOIN auto_backfill_job j ON j.run_id = r.id
+                 WHERE r.status = 'RUNNING' AND r.safety_state = 'WAITING_AUTH'
+                   AND j.safety_state = 'WAITING_AUTH' AND j.source_lane = ?`,
+                [String(lane || '').trim().toUpperCase()],
+            );
+            return rows.map((row) => row.id);
+        });
+    }
+
     async listRuns({ statuses = ['RUNNING', 'PAUSING', 'PAUSED'], limit = 50, offset = 0 } = {}) {
         return this.withDb(async (db) => {
             const statusList = Array.isArray(statuses) && statuses.length > 0 ? statuses : ['RUNNING', 'PAUSING', 'PAUSED'];

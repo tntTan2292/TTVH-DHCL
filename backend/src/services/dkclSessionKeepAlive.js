@@ -149,11 +149,13 @@ class DkclSessionKeepAlive {
 
     /** A source became valid: wake the queue lanes; a failure here never disturbs the keep-alive. */
     wakeQueue(source) {
+        const failed = (error) => this.append(`${new Date(this.clock()).toISOString()} ${source} session valid: queue wake failed (${error?.code || error?.message})`);
         try {
-            this.onSessionValid?.(source);
-            this.append(`${new Date(this.clock()).toISOString()} ${source} session valid: queue lanes woken`);
+            Promise.resolve(this.onSessionValid?.(source))
+                .then((resumed) => this.append(`${new Date(this.clock()).toISOString()} ${source} session valid: queue lanes woken${Array.isArray(resumed) && resumed.length ? `, ${resumed.length} waiting run(s) resumed` : ''}`))
+                .catch(failed);
         } catch (error) {
-            this.append(`${new Date(this.clock()).toISOString()} ${source} session valid: queue wake failed (${error?.code || error?.message})`);
+            failed(error);
         }
     }
 

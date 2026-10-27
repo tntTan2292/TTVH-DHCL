@@ -448,6 +448,17 @@ class AutoBackfillQueueService {
         return result;
     }
 
+    // The sign-in that a WAITING_AUTH run was waiting for happened: the DKCL session of `lane` was just verified valid (keep-alive
+    // preflight), so the runs that hold this lane are resumed, as the admin's "Tiếp tục Run" would do. Only the lane that became
+    // valid is touched; AUTO_BACKFILL_AUTO_RESUME=false turns this off.
+    async resumeAuthWaitForLane(lane, { actor = 'session-keepalive' } = {}) {
+        if (String(process.env.AUTO_BACKFILL_AUTO_RESUME ?? 'true').toLowerCase() === 'false') return [];
+        const runIds = await this.store.listRunIdsWaitingAuth(lane);
+        for (const runId of runIds) await this.store.resumeRun(runId, actor);
+        if (runIds.length > 0) this.notifyWorkAvailable('auth-wait-resumed');
+        return runIds;
+    }
+
     async resetCircuits(runId, { actor, roles }) {
         assertAdmin(roles);
         const result = await this.store.resetCircuitsForRun(runId, actor);
