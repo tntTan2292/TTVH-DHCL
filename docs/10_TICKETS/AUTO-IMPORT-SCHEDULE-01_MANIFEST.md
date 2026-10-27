@@ -85,6 +85,8 @@ Symptom: the schedule retried every 30 minutes because TCT was still working, an
 
 Finding, not changed: F4.2 TCT for 08/07 times out (`EXPORT_TIMEOUT`, 15 minutes each) on every attempt, while neighbouring days export in about 1.5 minutes (07/06, 07/07, 07/09, 07/10). The portal never produces the export file for that one date, so it is not slowness and a longer wait would not help; the date needs checking on the portal.
 
-### 10. The queue waits 5 minutes, not 15, for an F4.2 export (2026-10-27)
+### 10. The queue waits 2 minutes, not 15, for an F4.2 export (2026-10-27)
 
 PO decision. A healthy portal produces the F4.2 export in 0.7-1.6 minutes, but on 27/10 more than the four dates the PO checked (04, 05, 08, 11/07, then also 02/07, 03/07, 29/06, 30/06) never produced it, and every one blocked its lane for 15 minutes (about half of the lane's time). The queue's own F4.2 services now wait `F42_BACKFILL_EXPORT_TIMEOUT_MS = 300000` (`autoBackfillF42Executors.js`), same pattern as the F1.3 queue executor; the plain `F42SingleDateService` default stays 900000. Test: `test_f42PortalAdapter.js` 31/31. Needs a backend restart (the backfill stays paused until the PO presses Tiếp tục Run).
+
+Same day, PO correction: set to 2 minutes (`F42_BACKFILL_EXPORT_TIMEOUT_MS = 120000`), since the export (all postmen nationwide) past 2 minutes means the portal failed. First run with 5 minutes already showed 27/06 timing out at 5.6 minutes instead of about 15.5. Longest healthy export seen is 1.6 minutes.
