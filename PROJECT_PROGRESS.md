@@ -2444,3 +2444,7 @@ PO asked for accounts with permissions: leaders (BDTP, TTVH, IT) see every modul
 ## 2026-10-27 - AUTO-IMPORT-SCHEDULE-01: RETRY EVERY 30 MINUTES
 
 PO decision: the scheduled import now retries every 30 minutes instead of every hour, so a TCT sync that is not finished at 07:30 is picked up at 08:00. Default AUTO_IMPORT_SCHEDULE_RETRY_MS = 1800000; a backend restart applies it. Manifest Section 7: docs/10_TICKETS/AUTO-IMPORT-SCHEDULE-01_MANIFEST.md.
+
+## 2026-10-27 - UI-IMPORT-PROCESS-LOG-01 (AUDIT + JOB-LOG API; SCREEN TO ANTIGRAVITY)
+
+Audit of the panel "Tat ca tien trinh dang mo (50)": it is capped at 50 while the database holds 548 open runs (almost all single-job runs), finished runs are invisible, and import_log is not the complete log (3 698 jobs: 2 271 SUCCESS, 399 FAILED_TERMINAL, 549 QUEUED, 477 CANCELLED; only imports that reached the file pipeline have an import_log row). Backend: GET /import/auto-backfill/jobs (complete job log, filters, paging, state counts) and `total` on GET /import/auto-backfill/runs; tests 4/4. Screen redesign assigned to Antigravity. Manifest: docs/10_TICKETS/UI-IMPORT-PROCESS-LOG-01_MANIFEST.md.

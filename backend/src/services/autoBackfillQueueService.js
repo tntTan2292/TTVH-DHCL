@@ -416,6 +416,12 @@ class AutoBackfillQueueService {
             .filter(Boolean);
     }
 
+    // AUTO-IMPORT-LOG-01: admin-only complete job log (see the store method).
+    async listJobs(filters = {}, { roles } = {}) {
+        assertAdmin(roles);
+        return this.store.listJobs(filters);
+    }
+
     async pauseRun(runId, { actor, roles }) {
         assertAdmin(roles);
         return this.store.pauseRun(runId, actor);

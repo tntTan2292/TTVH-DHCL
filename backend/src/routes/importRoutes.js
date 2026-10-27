@@ -9,9 +9,13 @@ const autoBackfillCoverageController = require('../controllers/autoBackfillCover
 const autoBackfillCoverageExceptionController = require('../controllers/autoBackfillCoverageExceptionController');
 const autoBackfillHolidayCalendarController = require('../controllers/autoBackfillHolidayCalendarController');
 const autoBackfillQueueController = require('../controllers/autoBackfillQueueController');
+const createHangtonImportRouter = require('./hangtonImportRoutes');
 
 const upload = multer({ storage: multer.memoryStorage() });
 const adminOnly = [requireAuth, requireRole(['admin'])];
+
+// HANGTON-INVENTORY-01: manual / make-up stock snapshots from the Import Center (admin only)
+router.use('/hangton', ...adminOnly, createHangtonImportRouter());
 
 router.post('/upload', ...adminOnly, upload.single('file'), importController.upload.bind(importController));
 router.get('/f13/status', ...adminOnly, importController.status.bind(importController));
@@ -31,6 +35,8 @@ router.post('/auto-backfill/runs', ...adminOnly, autoBackfillQueueController.cre
 // '/:runId' route below only as a matter of readability; Express does not confuse the two since
 // '/auto-backfill/runs' and '/auto-backfill/runs/:runId' are distinct path shapes.
 router.get('/auto-backfill/runs', ...adminOnly, autoBackfillQueueController.listRuns.bind(autoBackfillQueueController));
+// AUTO-IMPORT-LOG-01: complete job log (every run, success and failure)
+router.get('/auto-backfill/jobs', ...adminOnly, autoBackfillQueueController.listJobs.bind(autoBackfillQueueController));
 router.get('/auto-backfill/runs/:runId', ...adminOnly, autoBackfillQueueController.getRun.bind(autoBackfillQueueController));
 router.post('/auto-backfill/runs/:runId/pause', ...adminOnly, autoBackfillQueueController.pauseRun.bind(autoBackfillQueueController));
 router.post('/auto-backfill/runs/:runId/resume', ...adminOnly, autoBackfillQueueController.resumeRun.bind(autoBackfillQueueController));

@@ -351,6 +351,73 @@ class AutoBackfillQueueStore {
         });
     }
 
+    // AUTO-IMPORT-LOG-01: how many runs match, so a list capped by `limit` can say "50 of 312".
+    async countRuns({ statuses = ['RUNNING', 'PAUSING', 'PAUSED'] } = {}) {
+        return this.withDb(async (db) => {
+            const statusList = Array.isArray(statuses) && statuses.length > 0 ? statuses : ['RUNNING', 'PAUSING', 'PAUSED'];
+            const row = await get(db, `SELECT COUNT(*) AS n FROM auto_backfill_run WHERE status IN (${statusList.map(() => '?').join(',')})`, statusList);
+            return Number(row?.n || 0);
+        });
+    }
+
+    /**
+     * AUTO-IMPORT-LOG-01: the complete job log -- every job of every run, finished or not, success and failure alike
+     * (import_log only has rows for imports that reached the file pipeline; a job that failed before that, for example
+     * no session, portal error or circuit stop, exists only here). Newest first.
+     * Filters (all optional): businessDateFrom/To (YYYY-MM-DD), indicator, lane, states[], actor, importMode, runId,
+     * createdFrom/createdTo (ISO timestamps). `stateCounts` ignores the state filter so the screen can show chips.
+     */
+    async listJobs({ businessDateFrom = null, businessDateTo = null, indicator = null, lane = null, states = [], actor = null, importMode = null, runId = null, createdFrom = null, createdTo = null, limit = 50, offset = 0 } = {}) {
+        return this.withDb(async (db) => {
+            const where = [];
+            const params = [];
+            if (businessDateFrom) { where.push('j.business_date >= ?'); params.push(businessDateFrom); }
+            if (businessDateTo) { where.push('j.business_date <= ?'); params.push(businessDateTo); }
+            if (indicator) { where.push('j.indicator = ?'); params.push(indicator); }
+            if (lane) { where.push('j.source_lane = ?'); params.push(lane); }
+            if (actor) { where.push('r.requested_by = ?'); params.push(actor); }
+            if (importMode) { where.push('j.import_mode = ?'); params.push(importMode); }
+            if (runId) { where.push('j.run_id = ?'); params.push(runId); }
+            if (createdFrom) { where.push('j.created_at >= ?'); params.push(createdFrom); }
+            if (createdTo) { where.push('j.created_at < ?'); params.push(createdTo); }
+            const base = `FROM auto_backfill_job j JOIN auto_backfill_run r ON r.id = j.run_id`;
+            const baseWhere = where.length ? `WHERE ${where.join(' AND ')}` : '';
+
+            const stateList = (states || []).filter(Boolean);
+            const itemWhere = stateList.length
+                ? `${baseWhere ? `${baseWhere} AND` : 'WHERE'} j.state IN (${stateList.map(() => '?').join(',')})`
+                : baseWhere;
+            const itemParams = [...params, ...stateList];
+
+            const total = Number((await get(db, `SELECT COUNT(*) AS n ${base} ${itemWhere}`, itemParams))?.n || 0);
+            const stateRows = await all(db, `SELECT j.state AS state, COUNT(*) AS n ${base} ${baseWhere} GROUP BY j.state`, params);
+            const rows = await all(
+                db,
+                `SELECT j.id, j.run_id, j.indicator, j.source_lane, j.business_date, j.state, j.safety_state, j.import_mode,
+                        j.force_reimport, j.last_error_class, j.last_error_signature, j.action_required, j.terminal_reason,
+                        j.completion_evidence_json, j.created_at, j.started_at, j.ended_at,
+                        r.requested_by AS actor, r.status AS run_status,
+                        (SELECT COUNT(*) FROM auto_backfill_attempt a WHERE a.job_id = j.id) AS attempt_count
+                 ${base} ${itemWhere}
+                 ORDER BY COALESCE(j.ended_at, j.started_at, j.created_at) DESC, j.id DESC
+                 LIMIT ? OFFSET ?`,
+                [...itemParams, Math.min(Math.max(Number(limit) || 50, 1), 200), Math.max(Number(offset) || 0, 0)],
+            );
+            const items = rows.map((row) => {
+                const evidence = parseJson(row.completion_evidence_json) || {};
+                const { completion_evidence_json: _omit, ...rest } = row;
+                return {
+                    ...rest,
+                    force_reimport: Number(row.force_reimport) === 1,
+                    row_count: Number.isFinite(Number(evidence.row_count)) ? Number(evidence.row_count) : null,
+                    replaced_row_count: Number.isFinite(Number(evidence.replaced_row_count)) ? Number(evidence.replaced_row_count) : null,
+                    duration_ms: row.started_at && row.ended_at ? Math.max(0, Date.parse(row.ended_at) - Date.parse(row.started_at)) : null,
+                };
+            });
+            return { items, total, stateCounts: Object.fromEntries(stateRows.map((row) => [row.state, Number(row.n)])) };
+        });
+    }
+
     async listRuns({ statuses = ['RUNNING', 'PAUSING', 'PAUSED'], limit = 50, offset = 0 } = {}) {
         return this.withDb(async (db) => {
             const statusList = Array.isArray(statuses) && statuses.length > 0 ? statuses : ['RUNNING', 'PAUSING', 'PAUSED'];
