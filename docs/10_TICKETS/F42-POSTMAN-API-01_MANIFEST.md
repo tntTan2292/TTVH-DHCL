@@ -30,6 +30,6 @@ Status: `BACKEND DONE / TECH PASS` (2026-10-27). Phase C of `F42-DASHBOARD-UI-01
 - `F42RankingService.test.js` 8/8 (new: trend days and gaps, totals = postman table, scope, input checks); `f42Routes.scope.test.js` 7/7 (new: own postman, foreign postman empty, foreign BCVH 403, missing parameter 400); `F41RankingService.test.js` 11, `F42NationalRankService.test.js` 3, `test_f42ImportPipeline.js` 6, `test_f42PortalAdapter.js` 30 unchanged and green (`node --experimental-sqlite --test` per file).
 - Backend restart needed before the endpoint answers (restarting pauses a running backfill; restart only when the PO agrees).
 
-## 5. Not done (deliberately)
+## 5. Home card (done 2026-10-27, after the access work landed)
 
-The Home page card for F4.2: it changes the Home layout from four to five cards and touches the access files (`resolveAccess.js`, `roles.js`) that another session is editing now. Do it with the phase D screens, after that work lands.
+The F4.2 card is the fifth indicator of `GET /api/home/executive` and of `/api/home/national-ranking` (`HomeExecutiveService.js`: target 90, six-BCVH list, rank over the 34 provinces; `HomeExecutiveService.test.js` 27/27; read against live data: day 84.7 %, rank 5/34, week 76.9 %, rank 29/34). It appears only after a backend restart. The screen side (fifth card layout) is phase D for Antigravity (`F42-DASHBOARD-UI-01_PHASE_D_ANTIGRAVITY_PROMPT.md`).

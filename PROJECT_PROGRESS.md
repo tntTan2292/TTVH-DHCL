@@ -2484,3 +2484,7 @@ Independent Opus review found 2 HIGH (Excel re-import re-saving untouched lines;
 ## 2026-10-27 - F42-DASHBOARD-UI-01 phases A+B delivered, Opus-reviewed twice, in PO check
 
 Antigravity delivered phases A+B (`5e50f0ec`); Opus review 1 (PASS with conditions) led to one fix pass (`dd9da893`, `e30132f8`: sticky header, whole-table capture quota, strip title for fewer than 6 BCVH, label and colour fixes), Opus review 2 confirmed it with one capture finding, fixed. PO found the operation table too tall at 90 % zoom: Claude Code added the `compactOperationTable` flag (F4.2 only; 16-18px font lock kept) in `a81fc39e`; PO confirmed the table now shows whole. Remaining: PO sign-off of the rest of the screen, backend restart (pauses backfill) for `postman-trend`, phase D (postman trend block, Home card).
+
+## 2026-10-27 - F4.2 Home card backend done, phase D opened
+
+Claude Code added F4.2 as the fifth indicator of the Home read model (`HomeExecutiveService`, 27/27 tests; live read: day 84.7 %, rank 5/34). Opened phase D of `F42-DASHBOARD-UI-01` for Antigravity (Home fifth card layout, one-postman trend block) with a lean prompt. Backend restart still pending (pauses backfill; PO to agree).
