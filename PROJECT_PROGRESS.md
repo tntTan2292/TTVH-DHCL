@@ -2500,3 +2500,7 @@ Backend: the open-runs list now carries per job started_at, next_attempt_at, las
 ## 2026-10-27 - Home page: five cards, one camera, short labels; Opus review of phase D handled
 
 PO decisions on the Home page: five indicator cards must not overlap text; no camera on cards or blocks, only the page-level one; short labels instead of wrapped text (recorded in `report_block_ui_standard.md`, "Recorded changes"). Opus phase D review (PASS with conditions) handled by Claude Code: trend modal colours follow the theme, real failures are told apart from "no data", the clicked BCVH is sent, the target badge turns to an icon on narrow cards, the four-card grid is as before. Open for PO: whether the Home page should filter the F4.2 card by the user's scope (it does not filter any indicator today, per RBAC-01).
+
+## 2026-10-27 - Home page scope filtering: PO decision, no filtering
+
+PO confirmed the Home page does not filter any indicator card by the user's scope (as RBAC-01 decided); F4.2 follows the same rule. No code change.
