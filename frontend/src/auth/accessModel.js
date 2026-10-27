@@ -14,6 +14,40 @@ export const BCVH_CODES = Object.freeze(Object.keys(BCVH_BY_CODE));
 
 export const ALL_HANGTON_SCREENS = Object.freeze(['overview', 'office', 'compare', 'items']);
 
+// HANGTON-HANDLING-01: positions (chức vụ) and capabilities, mirror of backend/src/services/auth/access/roles.js.
+// The backend decides; this only labels and gates what the screens show.
+export const CAPABILITIES = Object.freeze({
+  HANGTON_HANDLING_VIEW: 'hangton.handling.view',
+  HANGTON_HANDLING_WRITE: 'hangton.handling.write',
+  HANGTON_HANDLING_APPROVE: 'hangton.handling.approve',
+  HANGTON_HANDLING_REASONS: 'hangton.handling.reasons',
+});
+
+export const POSITION_LABELS = Object.freeze({
+  ADMIN: 'Quản trị hệ thống',
+  LD_BDTP: 'Lãnh đạo BĐTP',
+  LD_TTVH: 'Lãnh đạo TTVH',
+  IT_BDTP: 'IT BĐTP',
+  CHUYEN_QUAN: 'Chuyên quản BCVH',
+  GD_BCVH: 'Giám đốc BCVH',
+  STAFF: 'Chuyên viên',
+});
+
+// Positions an account of a tier may hold (the first one is the default when none is stored).
+export const POSITIONS_BY_TIER = Object.freeze({
+  ADMIN: ['ADMIN'],
+  LEADER: ['LD_TTVH', 'IT_BDTP', 'LD_BDTP'],
+  STAFF: ['STAFF', 'GD_BCVH', 'CHUYEN_QUAN'],
+});
+
+export function positionLabel(position) {
+  return POSITION_LABELS[position] || '';
+}
+
+export function hasCapability(access, capability) {
+  return Array.isArray(access?.capabilities) && access.capabilities.includes(capability);
+}
+
 /**
  * Returns the module access config for a given module key ('f11', 'f12', 'f13', 'f41').
  * If access is missing (legacy role-only session), falls back based on role.
@@ -142,6 +176,12 @@ export function canAccessPath(access, pathname, legacyRole = null) {
     return mod.mode !== 'none';
   }
 
+  // F4.2 routes
+  if (cleanPath === '/f42' || cleanPath.startsWith('/f42/')) {
+    const mod = getModuleAccess(access, 'f42', legacyRole);
+    return mod.mode !== 'none';
+  }
+
   // Hang ton routes
   if (cleanPath === '/hangton' || cleanPath.startsWith('/hangton/')) {
     const allowedScreens = getAllowedHangtonScreens(access, legacyRole);
@@ -189,6 +229,9 @@ export function filterNavigationByAccess(items = [], access = null, legacyRole =
       }
       if (item.title?.includes('F4.1')) {
         return getModuleAccess(access, 'f41', legacyRole).mode !== 'none';
+      }
+      if (item.title?.includes('F4.2')) {
+        return getModuleAccess(access, 'f42', legacyRole).mode !== 'none';
       }
       if (item.title?.includes('Hàng tồn')) {
         return getAllowedHangtonScreens(access, legacyRole).length > 0;

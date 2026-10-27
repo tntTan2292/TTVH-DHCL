@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 import { PageContainer, StatusBadge } from '../components/shared/SharedComponents.jsx';
 import adminClient from '../api/adminClient.js';
-import { BCVH_BY_CODE, BCVH_CODES } from '../auth/accessModel.js';
+import { BCVH_BY_CODE, BCVH_CODES, POSITIONS_BY_TIER, positionLabel } from '../auth/accessModel.js';
 
 const TIERS = [
   { value: 'ADMIN', label: 'Quản trị viên (ADMIN)', tone: 'danger' },
@@ -28,6 +28,7 @@ const INDICATOR_LIST = [
   { code: 'F1.2', label: 'F1.2 – Thu gom liên tỉnh' },
   { code: 'F1.3', label: 'F1.3 – Phát liên tỉnh' },
   { code: 'F4.1', label: 'F4.1 – Bưu cục phát thành công' },
+  { code: 'F4.2', label: 'F4.2 – Phát giao bưu tá' },
   { code: 'HANGTON', label: 'HANGTON – Rà soát hàng tồn' },
 ];
 
@@ -61,6 +62,7 @@ export default function UserManagementPage() {
     username: '',
     display_name: '',
     tier: 'STAFF',
+    position: '',
     bcvh: [],
     indicators: [],
     is_active: true,
@@ -102,6 +104,7 @@ export default function UserManagementPage() {
       username: '',
       display_name: '',
       tier: 'STAFF',
+      position: '',
       bcvh: [],
       indicators: [],
       is_active: true,
@@ -115,6 +118,7 @@ export default function UserManagementPage() {
       username: user.username,
       display_name: user.display_name || '',
       tier: user.tier || 'STAFF',
+      position: user.position || '',
       bcvh: Array.isArray(user.bcvh) ? [...user.bcvh] : [],
       indicators: Array.isArray(user.indicators) ? [...user.indicators] : [],
       is_active: user.is_active !== undefined ? Boolean(user.is_active) : true,
@@ -138,6 +142,7 @@ export default function UserManagementPage() {
     const payload = {
       display_name: modalForm.display_name.trim(),
       tier: modalForm.tier,
+      position: modalForm.position || null,
       bcvh: modalForm.tier === 'STAFF' ? modalForm.bcvh : [],
       indicators: modalForm.tier === 'STAFF' ? modalForm.indicators : [],
       is_active: modalForm.is_active,
@@ -378,6 +383,7 @@ export default function UserManagementPage() {
                           >
                             {u.tier}
                           </span>
+                          {u.position ? <div className="mt-0.5 text-[11px] font-semibold text-slate-500">{positionLabel(u.position)}</div> : null}
                         </td>
                         <td className="py-3 px-4 max-w-xs">
                           {u.tier === 'ADMIN' || u.tier === 'LEADER' ? (
@@ -559,7 +565,7 @@ export default function UserManagementPage() {
                     <button
                       key={t.value}
                       type="button"
-                      onClick={() => setModalForm((prev) => ({ ...prev, tier: t.value }))}
+                      onClick={() => setModalForm((prev) => ({ ...prev, tier: t.value, position: prev.tier === t.value ? prev.position : '' }))}
                       className={`py-2 px-2 text-xs font-bold rounded-xl border transition-all cursor-pointer text-center ${
                         modalForm.tier === t.value
                           ? 'border-[var(--color-vnpost-blue)] bg-blue-50/80 text-[var(--color-vnpost-blue)] shadow-2xs'
@@ -571,6 +577,29 @@ export default function UserManagementPage() {
                   ))}
                 </div>
               </div>
+
+              {/* Position (chức vụ): leaders in two groups, directors and chuyên quản */}
+              {modalForm.tier !== 'ADMIN' ? (
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">Chức vụ</label>
+                  <select
+                    value={modalForm.position}
+                    onChange={(e) => setModalForm((prev) => ({ ...prev, position: e.target.value }))}
+                    className="w-full px-3 py-2 text-xs font-medium rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:border-[var(--color-vnpost-blue)] outline-none"
+                    aria-label="Chức vụ"
+                  >
+                    <option value="">{modalForm.tier === 'LEADER' ? 'Mặc định (Lãnh đạo TTVH)' : 'Chuyên viên (không nhập xử lý hàng tồn)'}</option>
+                    {POSITIONS_BY_TIER[modalForm.tier].filter((code) => code !== 'STAFF').map((code) => (
+                      <option key={code} value={code}>{positionLabel(code)}</option>
+                    ))}
+                  </select>
+                  <p className="mt-1 text-[11px] text-slate-500">
+                    {modalForm.tier === 'LEADER'
+                      ? 'Lãnh đạo BĐTP đứng trên nhóm Lãnh đạo TTVH / IT. Lãnh đạo chỉ xem xử lý hàng tồn, không nhập.'
+                      : 'Giám đốc BCVH và Chuyên quản BCVH được nhập xử lý hàng tồn của đơn vị mình; Chuyên quản còn phê duyệt sửa qua ngày.'}
+                  </p>
+                </div>
+              ) : null}
 
               {/* Note for ADMIN/LEADER */}
               {modalForm.tier !== 'STAFF' ? (

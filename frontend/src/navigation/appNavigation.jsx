@@ -1,4 +1,4 @@
-import { Activity, BarChart2, Database, FileSpreadsheet, Info, LayoutDashboard, MapPin, Package, Settings, Target, Users } from 'lucide-react';
+import { Activity, BarChart2, ClipboardCheck, Database, FileSpreadsheet, Info, LayoutDashboard, MapPin, Package, Settings, Target, Users } from 'lucide-react';
 import { ROLE_ADMIN, normalizeRole } from '../auth/roles';
 
 const F11_GROUP = {
@@ -43,6 +43,16 @@ const F41_GROUP = {
   ],
 };
 
+const F42_GROUP = {
+  title: 'F4.2 – Chất lượng phát giao bưu tá',
+  name: 'F4.2 – Chất lượng phát giao bưu tá',
+  icon: <Activity size={18} />,
+  subItems: [
+    { name: 'Bảng điều hành', path: '/f42/dashboard', icon: <Target size={18} /> },
+    { name: 'Phân tích BCVH', path: '/f42/ranking/bcvh', icon: <BarChart2 size={18} /> },
+  ],
+};
+
 const HANGTON_GROUP = {
   title: 'Chỉ số rà soát Hàng tồn',
   name: 'Chỉ số rà soát Hàng tồn',
@@ -52,6 +62,7 @@ const HANGTON_GROUP = {
     { name: 'Theo bưu cục', path: '/hangton/office', icon: <BarChart2 size={18} /> },
     { name: 'So sánh hai mốc', path: '/hangton/compare', icon: <Activity size={18} /> },
     { name: 'Chi tiết bưu gửi', path: '/hangton/items', icon: <Database size={18} /> },
+    { name: 'Xử lý tồn', path: '/hangton/handling', icon: <ClipboardCheck size={18} /> },
   ],
 };
 
@@ -63,6 +74,7 @@ const QUALITY_MANAGEMENT_GROUP = {
     F12_GROUP,
     F13_GROUP,
     F41_GROUP,
+    F42_GROUP,
     HANGTON_GROUP,
   ],
 };

@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { F11_INDICATOR, F12_INDICATOR, F13_INDICATOR, F41_INDICATOR, INDICATOR_THEMES, indicatorTheme } from './indicatorConfig.js';
+import { F11_INDICATOR, F12_INDICATOR, F13_INDICATOR, F41_INDICATOR, F42_INDICATOR, INDICATOR_THEMES, indicatorTheme } from './indicatorConfig.js';
 
 // docs/05_DEVELOPMENT/Implementation/report_block_ui_standard.md: the functions every report block must have.
 const read = (path) => fs.readFileSync(new URL(path, import.meta.url), 'utf8');
@@ -15,12 +15,16 @@ const REPORT_BLOCKS = [
   '../ranking/BcvhWeeklyComparisonBlock.jsx',
   '../f11/components/F11PairTableBlock.jsx',
   '../f12/components/F12Cumulative12Block.jsx',
+  '../f42/components/F42SixBcvhStripBlock.jsx',
+  '../f42/components/F42PostmanTableBlock.jsx',
+  '../f42/components/F42PostmanAttentionBlock.jsx',
 ];
 const TABLES = [
   '../../components/f13/BcvhOperationTable.jsx',
   '../dashboard/components/UnifiedBcvhAnalysisTable.jsx',
   '../ranking/BcvhRankingOverviewBlocks.jsx',
   '../f11/components/F11PairTableBlock.jsx',
+  '../f42/components/F42PostmanTableBlock.jsx',
 ];
 const THEMED = [...REPORT_BLOCKS, '../ranking/BcvhMonthlyComboTrendChart.jsx', '../ranking/BcvhWeeklyComboTrendChart.jsx', '../ranking/BcvhWeeklyTrendBlock.jsx', '../dashboard/DashboardPage.jsx', '../ranking/BcvhRankingPage.jsx'];
 
@@ -42,12 +46,13 @@ test('standard 5: report components read the indicator theme and carry no fixed 
   }
 });
 
-test('standard 5: three light families, none purple or dark; the page shows its family', () => {
+test('standard 5: light families, none purple or dark; the page shows its family', () => {
   assert.equal(F13_INDICATOR.theme, INDICATOR_THEMES.blue);
   assert.equal(F41_INDICATOR.theme, INDICATOR_THEMES.orange);
   assert.equal(F11_INDICATOR.theme, INDICATOR_THEMES.green);
   assert.equal(F12_INDICATOR.theme, INDICATOR_THEMES.teal);
-  assert.equal(new Set([F13_INDICATOR.theme.primary, F41_INDICATOR.theme.primary, F11_INDICATOR.theme.primary, F12_INDICATOR.theme.primary]).size, 4);
+  assert.equal(F42_INDICATOR.theme, INDICATOR_THEMES.sky);
+  assert.equal(new Set([F13_INDICATOR.theme.primary, F41_INDICATOR.theme.primary, F11_INDICATOR.theme.primary, F12_INDICATOR.theme.primary, F42_INDICATOR.theme.primary]).size, 5);
   for (const theme of Object.values(INDICATOR_THEMES)) {
     assert.doesNotMatch(JSON.stringify(theme), /purple|violet|indigo|fuchsia|slate-900|gray-900|zinc-900|black/i);
     for (const key of ['accentBar', 'chip', 'soft', 'headerBg', 'headerText', 'headerBorder', 'header2Bg', 'header2Text', 'sortActive', 'button', 'ring', 'text']) {

@@ -34,12 +34,12 @@ test('ROOT_ITEMS defines exactly 03 top-level modules in strict order', () => {
   assert.match(ROOT_ITEMS[2].title, /quản trị hệ thống/i, 'Module 3 must be SYSTEM ADMINISTRATION');
 });
 
-test('Module 1 (Quản lý chất lượng) contains F1.1, F1.2, F1.3, F4.1, Hàng tồn in strict required order', () => {
+test('Module 1 (Quản lý chất lượng) contains F1.1, F1.2, F1.3, F4.1, F4.2, Hàng tồn in strict required order', () => {
   const { ROOT_ITEMS } = loadNavigationModule();
   const qualityModule = ROOT_ITEMS[0];
-  assert.equal(qualityModule.subItems.length, 5, 'Quality module must contain 5 items');
+  assert.equal(qualityModule.subItems.length, 6, 'Quality module must contain 6 items');
 
-  const [f11, f12, f13, f41, hangton] = qualityModule.subItems;
+  const [f11, f12, f13, f41, f42, hangton] = qualityModule.subItems;
 
   assert.equal(f11.title, 'F1.1 – Chất lượng toàn trình nội tỉnh');
   assert.deepEqual(toPlain(f11.subItems.map((item) => [item.name, item.path])), [
@@ -63,8 +63,14 @@ test('Module 1 (Quản lý chất lượng) contains F1.1, F1.2, F1.3, F4.1, Hà
     ['Bảng điều hành', '/f41/dashboard'],
     ['Phân tích BCVH', '/f41/ranking/bcvh'],
   ]);
-  // F4.1 has no Tuyến Ranking / Evidence yet, and (PO-10) admin and viewer may both read it.
   assert.equal(f41.roles, undefined);
+
+  assert.equal(f42.title, 'F4.2 – Chất lượng phát giao bưu tá');
+  assert.deepEqual(toPlain(f42.subItems.map((item) => [item.name, item.path])), [
+    ['Bảng điều hành', '/f42/dashboard'],
+    ['Phân tích BCVH', '/f42/ranking/bcvh'],
+  ]);
+  assert.equal(f42.roles, undefined);
 
   assert.equal(hangton.title, 'Chỉ số rà soát Hàng tồn');
   assert.equal(hangton.path, undefined, 'Hàng tồn is a module group like the F modules, not a flat link');
@@ -74,6 +80,7 @@ test('Module 1 (Quản lý chất lượng) contains F1.1, F1.2, F1.3, F4.1, Hà
     ['Theo bưu cục', '/hangton/office'],
     ['So sánh hai mốc', '/hangton/compare'],
     ['Chi tiết bưu gửi', '/hangton/items'],
+    ['Xử lý tồn', '/hangton/handling'],
   ]);
 });
 
@@ -117,26 +124,28 @@ test('role-based visibility: ADMIN sees all 3 modules, Viewer sees only Module 1
   assert.match(adminNav[1].title, /quản lý mạng lưới/i);
   assert.match(adminNav[2].title, /quản trị hệ thống/i);
 
-  // In Module 1, ADMIN sees all 5 items
-  assert.equal(adminNav[0].subItems.length, 5);
+  // In Module 1, ADMIN sees all 6 items
+  assert.equal(adminNav[0].subItems.length, 6);
   assert.equal(adminNav[0].subItems[0].title, 'F1.1 – Chất lượng toàn trình nội tỉnh');
   assert.equal(adminNav[0].subItems[1].title, 'F1.2 – Thu gom liên tỉnh');
   assert.equal(adminNav[0].subItems[2].title, 'F1.3 – Chất lượng phát liên tỉnh');
   assert.equal(adminNav[0].subItems[3].title, 'F4.1 – Chất lượng phát thành công bưu cục');
-  assert.equal(adminNav[0].subItems[4].title, 'Chỉ số rà soát Hàng tồn');
+  assert.equal(adminNav[0].subItems[4].title, 'F4.2 – Chất lượng phát giao bưu tá');
+  assert.equal(adminNav[0].subItems[5].title, 'Chỉ số rà soát Hàng tồn');
 
   const viewerNav = getNavigationForRole('viewer');
   assert.equal(viewerNav.length, 2, 'User thường (viewer) must only see Module 1 + Module 2');
   assert.match(viewerNav[0].title, /quản lý chất lượng/i);
   assert.match(viewerNav[1].title, /quản lý mạng lưới/i);
 
-  // In Module 1, viewer sees the five read-only report modules: F1.1, F1.2, F1.3, F4.1 and Hàng tồn
-  assert.equal(viewerNav[0].subItems.length, 5);
+  // In Module 1, viewer sees the six read-only report modules: F1.1, F1.2, F1.3, F4.1, F4.2 and Hàng tồn
+  assert.equal(viewerNav[0].subItems.length, 6);
   assert.equal(viewerNav[0].subItems[0].title, 'F1.1 – Chất lượng toàn trình nội tỉnh');
   assert.equal(viewerNav[0].subItems[1].title, 'F1.2 – Thu gom liên tỉnh');
   assert.equal(viewerNav[0].subItems[2].title, 'F1.3 – Chất lượng phát liên tỉnh');
   assert.equal(viewerNav[0].subItems[3].title, 'F4.1 – Chất lượng phát thành công bưu cục');
-  assert.equal(viewerNav[0].subItems[4].title, 'Chỉ số rà soát Hàng tồn');
+  assert.equal(viewerNav[0].subItems[4].title, 'F4.2 – Chất lượng phát giao bưu tá');
+  assert.equal(viewerNav[0].subItems[5].title, 'Chỉ số rà soát Hàng tồn');
 
   // Module 3 is not present for viewer
   assert.equal(viewerNav.find((m) => /quản trị hệ thống/i.test(m.title)), undefined);
@@ -179,7 +188,7 @@ function loadSidebarMenuItems() {
   return context.menuItems;
 }
 
-test('Sidebar.jsx is synchronized with exact 3 modules and F1.1 -> F1.2 -> F1.3 -> F4.1 ordering', () => {
+test('Sidebar.jsx is synchronized with exact 3 modules and F1.1 -> F1.2 -> F1.3 -> F4.1 -> F4.2 ordering', () => {
   const menuItems = loadSidebarMenuItems();
 
   assert.equal(menuItems.length, 3, 'Sidebar.jsx must contain exactly 3 modules');
@@ -189,7 +198,7 @@ test('Sidebar.jsx is synchronized with exact 3 modules and F1.1 -> F1.2 -> F1.3 
 
   // Verify Quality Management ordering in Sidebar.jsx
   const qualityItems = menuItems[0].subItems;
-  assert.equal(qualityItems.length, 5, 'Quản lý chất lượng in Sidebar.jsx must have 5 items');
+  assert.equal(qualityItems.length, 6, 'Quản lý chất lượng in Sidebar.jsx must have 6 items');
 
   assert.equal(qualityItems[0].title, 'F1.1 – Chất lượng toàn trình nội tỉnh');
   assert.deepEqual(toPlain(qualityItems[0].subItems.map((item) => item.path)), ['/f11/dashboard', '/f11/ranking/bcvh']);
@@ -209,12 +218,17 @@ test('Sidebar.jsx is synchronized with exact 3 modules and F1.1 -> F1.2 -> F1.3 
   assert.equal(qualityItems[3].title, 'F4.1 – Chất lượng phát thành công bưu cục');
   assert.deepEqual(toPlain(qualityItems[3].subItems.map((item) => item.path)), ['/f41/dashboard', '/f41/ranking/bcvh']);
 
-  assert.equal(qualityItems[4].title, 'Chỉ số rà soát Hàng tồn');
-  assert.deepEqual(toPlain(qualityItems[4].subItems.map((item) => item.path)), [
-    '/hangton/overview', '/hangton/office', '/hangton/compare', '/hangton/items',
+  assert.equal(qualityItems[4].title, 'F4.2 – Chất lượng phát giao bưu tá');
+  assert.deepEqual(toPlain(qualityItems[4].subItems.map((item) => item.path)), ['/f42/dashboard', '/f42/ranking/bcvh']);
+
+  assert.equal(qualityItems[5].title, 'Chỉ số rà soát Hàng tồn');
+  assert.deepEqual(toPlain(qualityItems[5].subItems.map((item) => item.path)), [
+    '/hangton/overview', '/hangton/office', '/hangton/compare', '/hangton/items', '/hangton/handling',
   ]);
   const sidebarSource = fs.readFileSync(new URL('../components/Sidebar.jsx', import.meta.url), 'utf8');
   assert.match(sidebarSource, /'Chỉ số rà soát Hàng tồn': true/, 'module opens pinned like the F modules');
+  assert.match(sidebarSource, /'F4.2 – Chất lượng phát giao bưu tá': true/, 'F4.2 opens pinned');
+  assert.match(sidebarSource, /includes\('F4.2'\)/, 'F4.2 has its own coloured indicator dot');
   assert.match(sidebarSource, /includes\('Hàng tồn'\)/, 'module has its own coloured indicator dot');
 
   // Verify Pareto and Message Center remain excluded

@@ -21,6 +21,8 @@ import { buildTrendlineRequestParams } from './components/qualityTrendlineWindow
 import { recoverDashboardDateState, resolveDashboardDateRange } from './dashboardDateRange';
 import F11PairTableBlock from '../f11/components/F11PairTableBlock.jsx';
 import F12Cumulative12Block from '../f12/components/F12Cumulative12Block.jsx';
+import F42SixBcvhStripBlock from '../f42/components/F42SixBcvhStripBlock.jsx';
+import F42PostmanDashboardBlocks from '../f42/components/F42PostmanDashboardBlocks.jsx';
 import { useIndicator } from '../indicator/IndicatorContext.js';
 import { useIndicatorApi } from '../indicator/useIndicatorApi.js';
 import { BcvhUnitsProvider } from '../indicator/BcvhUnitsContext.js';
@@ -363,6 +365,10 @@ export default function DashboardPage() {
               bcvhLabel={selectedBcvhLabel}
             />
 
+        {indicator.features.sixBcvhStrip ? (
+          <F42SixBcvhStripBlock anchorDate={toDate} />
+        ) : null}
+
         {showOperationTable ? (
           <BcvhOperationTableAdapter fromDate={fromDate} toDate={toDate} interval={interval} maBcvh={maBcvh} />
         ) : null}
@@ -410,6 +416,13 @@ export default function DashboardPage() {
             {indicator.features.cumulative12 ? (
               <F12Cumulative12Block
                 anchorDate={toDate}
+              />
+            ) : null}
+
+            {indicator.features.postmanTable ? (
+              <F42PostmanDashboardBlocks
+                anchorDate={toDate}
+                maBcvh={maBcvh}
               />
             ) : null}
           </>

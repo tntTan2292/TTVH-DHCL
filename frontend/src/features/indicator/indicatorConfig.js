@@ -130,6 +130,27 @@ export const INDICATOR_THEMES = Object.freeze({
     text: 'text-teal-800',
     legendBar: 'bg-teal-500',
   }),
+  sky: Object.freeze({
+    id: 'sky',
+    label: 'Xanh da trời',
+    primary: '#0284C7', // sky-600
+    primaryLight: '#7DD3FC', // sky-300
+    line: '#0D9488', // teal-600
+    accentBar: 'bg-sky-400',
+    chip: 'bg-sky-100 text-sky-900 border-sky-300',
+    soft: 'bg-sky-50',
+    headerBg: 'bg-sky-100/90',
+    headerText: 'text-sky-950',
+    headerBorder: 'border-sky-300',
+    header2Bg: 'bg-cyan-100/90',
+    header2Text: 'text-cyan-950',
+    sortActive: 'bg-sky-100/90 text-sky-950',
+    button: 'bg-sky-600 text-white',
+    buttonHover: 'hover:bg-sky-50',
+    ring: 'ring-sky-400',
+    text: 'text-sky-800',
+    legendBar: 'bg-sky-500',
+  }),
 });
 
 export const F13_INDICATOR = Object.freeze({
@@ -237,11 +258,39 @@ export const F12_INDICATOR = Object.freeze({
   }),
 });
 
+export const F42_INDICATOR = Object.freeze({
+  id: 'f42',
+  theme: INDICATOR_THEMES.sky,
+  moduleLabel: 'F4.2',
+  unitLabel: 'BCVH',
+  apiBase: '/f42',
+  routes: Object.freeze({ dashboard: '/f42/dashboard', ranking: '/f42/ranking/bcvh' }),
+  endpoints: Object.freeze({
+    ...COMMON_ENDPOINTS,
+    kpi: '/dashboard/summary',
+    nationalRanking: '/dashboard/national-ranking',
+    postmanTable: '/dashboard/postman-table',
+  }),
+  targetRate: 90,
+  heatmapFloors: Object.freeze([90, 80, 70]),
+  heatmapBands: buildHeatmapBands([90, 80, 70]),
+  kpiStatusBands: buildKpiStatusBands([90, 80, 70]),
+  features: Object.freeze({
+    routes: false,
+    lateCash: false,
+    operatingPattern: false,
+    actionCenter: false,
+    sixBcvhStrip: true,
+    postmanTable: true,
+  }),
+});
+
 export const INDICATORS = Object.freeze({
   f11: F11_INDICATOR,
   f12: F12_INDICATOR,
   f13: F13_INDICATOR,
   f41: F41_INDICATOR,
+  f42: F42_INDICATOR,
 });
 
 // Colour theme of an indicator's report family (unknown indicator: the F1.3 blue).

@@ -1,6 +1,6 @@
 # F42-DASHBOARD-UI-01 Manifest
 
-Status: `OPENED / WAITING FOR ANTIGRAVITY` (2026-10-27). Screens for F4.2 (chất lượng phát giao bưu tá): Operation Dashboard, BCVH Ranking and the postman blocks. Frontend only; the small backend additions are the separate ticket `F42-POSTMAN-API-01`.
+Status: `READY FOR PO CHECK` (2026-10-27). Screens for F4.2 (chất lượng phát giao bưu tá): Operation Dashboard, BCVH Ranking and the postman blocks. Frontend only.
 
 ## 1. Ticket Information
 
@@ -46,6 +46,51 @@ No backend, schema or import change; no Evidence or violation view; no per-postm
 
 Technical: frontend lint, build and tests green; tests for `F42_INDICATOR` (bands 90/80/70, target 90, endpoints, features), the two wrappers, navigation, the user-page indicator list, the data mapping of the postman blocks (empty period, scoped user without `total_row`, rank inside BCVH, blank counted as not passed) and the static undefined-identifier check of the standard. Stop at `READY FOR PO CHECK` with a short PO checklist: menu and colour family, KPI and national rank, 6-BCVH strip, postman table day / week / month with a BCVH expanded, search and filter, camera on the long table, "cần chú ý" list, a scoped BCVH user sees only their block, narrow screen.
 
-## 7. Next
+## 7. Delivery Summary (Phases A + B)
+
+- **Phase A — Frame & Indicator Config:**
+  - Registered `INDICATOR_THEMES.sky` (Sky blue `#0284C7`, accentBar `bg-sky-400`, chip `bg-sky-100 text-sky-900 border-sky-300`, button `bg-sky-600 text-white`). Distinct from blue (F1.3), orange (F4.1), green (F1.1), teal (F1.2) and status bands; not dark, not purple.
+  - Configured `F42_INDICATOR` (`targetRate: 90`, `heatmapFloors: [90, 80, 70]`, `kpiStatusBands: [90, 80, 70]`, routes `/f42/dashboard` & `/f42/ranking/bcvh`, endpoints `/dashboard/summary`, `/dashboard/national-ranking`, `/dashboard/postman-table`).
+  - Added thin wrappers `features/f42/F42DashboardPage.jsx` and `features/f42/F42BcvhRankingPage.jsx` with `IndicatorProvider`.
+  - Added routes in `App.jsx` (`/f42` redirect to `/f42/dashboard`, `/f42/dashboard` and `/f42/ranking/bcvh` with `[ROLE_ADMIN, ROLE_VIEWER]`).
+  - Added sidebar group `F4.2 – Chất lượng phát giao bưu tá` with "Bảng điều hành" and "Phân tích BCVH", indicator dot (`bg-sky-400`), and pinned default in `Sidebar.jsx` and `appNavigation.jsx`.
+  - Added F4.2 access rules in `accessModel.js`.
+  - Added `{ code: 'F4.2', label: 'F4.2 – Phát giao bưu tá' }` to `INDICATOR_LIST` in `pages/UserManagementPage.jsx`.
+  - Added block **"6 BCVH hôm nay"** (`F42SixBcvhStripBlock.jsx`): 6 canonical BCVH cards ordered by rate or volume (user choice), status bands 90/80/70, 90 % target marker, camera button (`BlockCaptureButton`), date filter sync.
+
+- **Phase B — Postman Table & Attention Block:**
+  - Created pure helpers `features/f42/components/f42PostmanTableHelpers.js` (search by name/code with diacritic stripping, below target filter, sort, derive attention postmen, period header).
+  - Block **"Bưu tá theo BCVH"** (`F42PostmanTableBlock.jsx`): Ngày / Tuần / Tháng switcher, accordion per BCVH with summary pills, postmen table with sticky headers, `SortableTh` click-to-sort, search input, filter `< 90%`, `BlockCaptureButton` with top-N (15, 20, 25, 30, all; default 25), `total_row` footer (only if returned from backend, never cross-ranked or totaled on client).
+  - Block **"Bưu tá cần chú ý"** (`F42PostmanAttentionBlock.jsx`): top 10 postmen under target with most failed parcels, note on blank ratings counted as unpassed, camera button.
+  - Container **`F42PostmanDashboardBlocks.jsx`**: single fetch to `GET /f42/dashboard/postman-table`, feeds both blocks with no redundant network calls.
+  - Mounted blocks in `DashboardPage.jsx` gated by `features.sixBcvhStrip` and `features.postmanTable`.
+
+- **Technical Validation:**
+  - Build: `vite build` PASS (0 errors).
+  - Lint: `oxlint` PASS (0 errors).
+  - Test suite: 814/814 tests PASS across frontend. F1.1, F1.2, F1.3, F4.1 suites intact and green.
+  - Undefined-identifier check: 0 undefined variables in `src/features/f42`.
+
+## 8. PO UI Checklist (Ready for PO Check)
+
+1. **Menu & Colour Family:** Check sidebar group "F4.2 – Chất lượng phát giao bưu tá" with sky blue indicator dot; page accent bar and F4.2 chip in sky blue family (distinct from F1.3 blue, F4.1 orange, F1.1 green, F1.2 teal).
+2. **KPI & National Rank:** KPI cards with "Vị thứ toàn quốc x/34", day/week/month selection, daily trend, BCVH ranking table.
+3. **"6 BCVH hôm nay" Strip:** 6 cards with 90/80/70 colour bands, 90 % target marker, toggle sort by rate or volume, camera button.
+4. **Postman Table ("Bưu tá theo BCVH"):**
+   - Toggle Ngày / Tuần / Tháng.
+   - Click to expand/collapse each BCVH.
+   - Postmen table with volume, passed, failed (including unrated/blank), rate, and internal rank.
+   - Search by postman name or code.
+   - Filter "Dưới mục tiêu 90 %".
+   - Click column titles to sort (text A→Z, numbers desc/asc).
+   - Sticky table header and vertical scrolling.
+   - Camera button with Top-N selector (choice: 15 / 20 / 25 / 30 / Tất cả, default 25).
+5. **"Bưu tá cần chú ý" Block:** Top 10 postmen under 90% with the highest failed count, note on unrated parcels counting as "Không đạt", camera button.
+6. **Scoped BCVH User:** Scoped BCVH user sees only their own block without `total_row` and without cross-BCVH calculations.
+7. **User Management:** Check `F4.2 – Phát giao bưu tá` is available in indicator list on `/admin/users`.
+8. **Narrow Screen:** Responsive layout for cards, tables, and controls.
+
+## 9. Next
 
 Opus review of A+B, then PO UI check. In parallel `F42-POSTMAN-API-01` (Claude Code), then phase D.
+

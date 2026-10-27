@@ -7,6 +7,7 @@ import {
   F12_INDICATOR,
   F13_INDICATOR,
   F41_INDICATOR,
+  F42_INDICATOR,
   indicatorTargetRate,
 } from './indicatorConfig.js';
 import { normalizeComboTrendlineItems, QUALITY_TARGET_RATE } from '../dashboard/components/comboTrendlineData.js';
@@ -19,18 +20,20 @@ import {
 import { getMonthlyTrendSeriesData } from '../ranking/bcvhOverviewData.js';
 import { getWeeklyTrendSeriesData } from '../ranking/bcvhWeeklyComparisonData.js';
 
-// PO decision 2026-10-10: the chart target line is 95 % for F1.1 and F1.2; F1.3 and F4.1 keep 90 %.
-test('target rate per indicator: F1.3 and F4.1 90, F1.1 and F1.2 95; unknown indicators fall back to 90', () => {
+// PO decision 2026-10-10: the chart target line is 95 % for F1.1 and F1.2; F1.3, F4.1, F4.2 keep 90 %.
+test('target rate per indicator: F1.3, F4.1, F4.2 90, F1.1 and F1.2 95; unknown indicators fall back to 90', () => {
   assert.equal(DEFAULT_TARGET_RATE, 90);
   assert.equal(QUALITY_TARGET_RATE, 90);
   assert.equal(F13_INDICATOR.targetRate, 90);
   assert.equal(F41_INDICATOR.targetRate, 90);
+  assert.equal(F42_INDICATOR.targetRate, 90);
   assert.equal(F11_INDICATOR.targetRate, 95);
   assert.equal(F12_INDICATOR.targetRate, 95);
   assert.equal(indicatorTargetRate(F11_INDICATOR), 95);
   assert.equal(indicatorTargetRate(F12_INDICATOR), 95);
   assert.equal(indicatorTargetRate(F13_INDICATOR), 90);
   assert.equal(indicatorTargetRate(F41_INDICATOR), 90);
+  assert.equal(indicatorTargetRate(F42_INDICATOR), 90);
   assert.equal(indicatorTargetRate(), 90);
   assert.equal(indicatorTargetRate({ id: 'x' }), 90);
 });

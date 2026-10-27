@@ -9,6 +9,7 @@ import { IndicatorProvider, useIndicator } from './IndicatorContext.js';
 import {
   F13_INDICATOR,
   F41_INDICATOR,
+  F42_INDICATOR,
   buildMonthlyHeatmapLegend,
   indicatorEndpoint,
   indicatorLabel,
@@ -125,6 +126,39 @@ test('F4.1 hides every block that needs data F4.1 does not have; F1.3 keeps them
   assert.equal(F13_INDICATOR.routes.ranking, '/f13/ranking/bcvh');
 });
 
+test('F4.2 colour bands (PO 2026-10-27: 90/80/70) and target 90%', () => {
+  assert.deepEqual(F42_INDICATOR.heatmapFloors, [90, 80, 70]);
+  const bands = F42_INDICATOR.heatmapBands;
+  assert.equal(classifyF13HeatmapRate(90, bands).id, 'green');
+  assert.equal(classifyF13HeatmapRate(89.9, bands).id, 'pink');
+  assert.equal(classifyF13HeatmapRate(80, bands).id, 'pink');
+  assert.equal(classifyF13HeatmapRate(79.9, bands).id, 'yellow');
+  assert.equal(classifyF13HeatmapRate(70, bands).id, 'yellow');
+  assert.equal(classifyF13HeatmapRate(69.9, bands).id, 'red');
+  assert.equal(F42_INDICATOR.targetRate, 90);
+  assert.deepEqual(buildMonthlyHeatmapLegend(F42_INDICATOR).map((e) => e.description), [
+    'Tỷ lệ từ 90% trở lên',
+    'Từ 80% đến dưới 90%',
+    'Từ 70% đến dưới 80%',
+    'Dưới 70%',
+    'Chưa có dữ liệu',
+  ]);
+  assert.deepEqual({ ...F42_INDICATOR.features }, {
+    routes: false,
+    lateCash: false,
+    operatingPattern: false,
+    actionCenter: false,
+    sixBcvhStrip: true,
+    postmanTable: true,
+  });
+  assert.equal(F42_INDICATOR.endpoints.postmanTable, '/dashboard/postman-table');
+  assert.equal(F42_INDICATOR.endpoints.kpi, '/dashboard/summary');
+  assert.equal(F42_INDICATOR.endpoints.nationalRanking, '/dashboard/national-ranking');
+  assert.equal(indicatorEndpoint('postmanTable', F42_INDICATOR), '/f42/dashboard/postman-table');
+  assert.equal(F42_INDICATOR.routes.dashboard, '/f42/dashboard');
+  assert.equal(F42_INDICATOR.routes.ranking, '/f42/ranking/bcvh');
+});
+
 test('IndicatorProvider only carries a value: it holds no state, so a discarded render cannot leak (T8-F41-B1)', () => {
   function Probe() {
     const indicator = useIndicator();
@@ -142,5 +176,9 @@ test('IndicatorProvider only carries a value: it holds no state, so a discarded 
   assert.equal(
     renderToStaticMarkup(createElement(IndicatorProvider, { indicator: F13_INDICATOR }, createElement(Probe))),
     '<span>f13|green|shared</span>',
+  );
+  assert.equal(
+    renderToStaticMarkup(createElement(IndicatorProvider, { indicator: F42_INDICATOR }, createElement(Probe))),
+    '<span>f42|yellow|scoped</span>',
   );
 });

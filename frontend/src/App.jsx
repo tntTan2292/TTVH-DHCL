@@ -22,6 +22,8 @@ import F12DashboardPage from './features/f12/F12DashboardPage';
 import F12BcvhRankingPage from './features/f12/F12BcvhRankingPage';
 import F41DashboardPage from './features/f41/F41DashboardPage';
 import F41BcvhRankingPage from './features/f41/F41BcvhRankingPage';
+import F42DashboardPage from './features/f42/F42DashboardPage';
+import F42BcvhRankingPage from './features/f42/F42BcvhRankingPage';
 import HangTonPage from './features/hangton/HangTonPage';
 import BcvhRankingPage from './features/ranking/BcvhRankingPage';
 import RoutePerformancePage from './features/route/RoutePerformancePage';
@@ -120,6 +122,9 @@ function App() {
             <Route path="f41" element={<Navigate to="/f41/dashboard" replace />} />
             <Route path="f41/dashboard" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN, ROLE_VIEWER]}><F41DashboardPage /></ProtectedRoute>} />
             <Route path="f41/ranking/bcvh" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN, ROLE_VIEWER]}><F41BcvhRankingPage /></ProtectedRoute>} />
+            <Route path="f42" element={<Navigate to="/f42/dashboard" replace />} />
+            <Route path="f42/dashboard" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN, ROLE_VIEWER]}><F42DashboardPage /></ProtectedRoute>} />
+            <Route path="f42/ranking/bcvh" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN, ROLE_VIEWER]}><F42BcvhRankingPage /></ProtectedRoute>} />
             <Route path="hangton" element={<Navigate to="/hangton/overview" replace />} />
             <Route path="hangton/:tab" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN, ROLE_VIEWER]}><HangTonPage /></ProtectedRoute>} />
             <Route path="admin/users" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN]}><UserManagementPage /></ProtectedRoute>} />

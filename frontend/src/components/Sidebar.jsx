@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
 import CollapsedFlyout from './CollapsedFlyout';
-import { Target, Activity, Settings, Database, Info, FileSpreadsheet, ChevronLeft, ChevronRight, BarChart2, ChevronDown, MapPin, Users, Pin, Search, Package } from 'lucide-react';
+import { Target, Activity, Settings, Database, Info, FileSpreadsheet, ChevronLeft, ChevronRight, BarChart2, ClipboardCheck, ChevronDown, MapPin, Users, Pin, Search, Package } from 'lucide-react';
 import { useAuth } from '../auth/AuthContext';
 import { filterNavigationByAccess } from '../auth/accessModel.js';
 
@@ -26,6 +26,9 @@ function getModuleIndicatorDot(title = '') {
   if (title.includes('F4.1')) {
     return <span className="inline-block h-2 w-2 rounded-full bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.8)] shrink-0 animate-pulse" title="Phân hệ F4.1 – Bưu cục (Cam)" />;
   }
+  if (title.includes('F4.2')) {
+    return <span className="inline-block h-2 w-2 rounded-full bg-sky-400 shadow-[0_0_8px_rgba(56,189,248,0.8)] shrink-0 animate-pulse" title="Phân hệ F4.2 – Phát giao bưu tá (Xanh da trời)" />;
+  }
   if (title.includes('Hàng tồn')) {
     return <span className="inline-block h-2 w-2 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.85)] shrink-0 animate-pulse" title="Chỉ số rà soát Hàng tồn (Đỏ)" />;
   }
@@ -41,6 +44,7 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
     'F1.2 – Thu gom liên tỉnh': true,
     'F1.3 – Chất lượng phát liên tỉnh': true,
     'F4.1 – Chất lượng phát thành công bưu cục': true,
+    'F4.2 – Chất lượng phát giao bưu tá': true,
     'Chỉ số rà soát Hàng tồn': true,
     'Quản lý mạng lưới': false,
     'Quản trị hệ thống': false,
@@ -117,6 +121,15 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
           ],
         },
         {
+          title: 'F4.2 – Chất lượng phát giao bưu tá',
+          name: 'F4.2 – Chất lượng phát giao bưu tá',
+          icon: <Activity size={18} />,
+          subItems: [
+            { name: 'Bảng điều hành', path: '/f42/dashboard', icon: <Target size={18} /> },
+            { name: 'Phân tích BCVH', path: '/f42/ranking/bcvh', icon: <BarChart2 size={18} /> },
+          ],
+        },
+        {
           title: 'Chỉ số rà soát Hàng tồn',
           name: 'Chỉ số rà soát Hàng tồn',
           icon: <Package size={18} />,
@@ -125,6 +138,7 @@ export default function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse
             { name: 'Theo bưu cục', path: '/hangton/office', icon: <BarChart2 size={18} /> },
             { name: 'So sánh hai mốc', path: '/hangton/compare', icon: <Activity size={18} /> },
             { name: 'Chi tiết bưu gửi', path: '/hangton/items', icon: <Database size={18} /> },
+            { name: 'Xử lý tồn', path: '/hangton/handling', icon: <ClipboardCheck size={18} /> },
           ],
         },
       ],
