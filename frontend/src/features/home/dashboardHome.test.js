@@ -86,7 +86,8 @@ test('Review Also items: province above not truncated, monthly progression label
 test('HOME-BI-01: ActionUnitsBlock shows the per-indicator action list (all BCVH / pairs / offices) and links to the ranking page', () => {
   const lowestSrc = readSource('./components/ActionUnitsBlock.jsx');
   assert.match(lowestSrc, /SortableTh/);
-  assert.match(lowestSrc, /BlockCaptureButton/);
+  // PO 2026-10-27: no camera button on the Home blocks, only the page-level one in the date bar
+  assert.doesNotMatch(lowestSrc, /BlockCaptureButton/);
   assert.match(lowestSrc, /ranking/);
   assert.doesNotMatch(lowestSrc, /Chênh MT/);
   assert.match(lowestSrc, /focus_units/);
@@ -166,4 +167,11 @@ test('HOME-BI-02: the zoom is on its own wrapper, so the whole-page picture carr
   assert.doesNotMatch(pageSrc, /ref=\{pageRef\}[^>]*style=\{\{ zoom \}\}/);
   assert.doesNotMatch(pageSrc, /style=\{\{ zoom \}\}[^>]*ref=\{pageRef\}/);
   assert.match(pageSrc, /<div style=\{\{ zoom \}\}>/);
+});
+
+test('PO 2026-10-27: Home keeps one camera button (the page-level one in the date bar), no camera on cards or blocks', () => {
+  assert.match(readSource('./components/ExecutiveDateBar.jsx'), /BlockCaptureButton/);
+  for (const name of ['ExecutiveIndicatorCard', 'ActionUnitsBlock', 'IndicatorTrendsGrid', 'MonthlyRankProgressionBlock', 'NationalRankingBlock']) {
+    assert.doesNotMatch(readSource(`./components/${name}.jsx`), /BlockCaptureButton/, name);
+  }
 });

@@ -8,7 +8,6 @@ import {
   SlidersHorizontal,
   Info,
 } from 'lucide-react';
-import BlockCaptureButton from '../../../components/common/BlockCaptureButton.jsx';
 import SortableTh from '../../../components/common/SortableTh.jsx';
 import {
   classifyF13HeatmapRate,
@@ -59,10 +58,6 @@ export default function NationalRankingBlock({
   }, [sortedItems, viewMode]);
 
   const movementBasisLabel = rankingData?.movement_basis ? previousBasisLabel(rankingData.movement_basis).replace('hôm', 'ngày') : 'kỳ trước';
-  const periodLabel = period === 'day' ? 'Ngày' : period === 'week' ? 'Tuần' : 'Tháng';
-  const periodRangeLabel = rankingData?.period_start && rankingData?.period_end
-    ? `${rankingData.period_start} → ${rankingData.period_end}`
-    : '';
   // named by the page from the card of the same indicator (same range, with the week number)
   const periodChip = periodName && rankingData?.period_end ? periodName : '';
 
@@ -113,12 +108,6 @@ export default function NationalRankingBlock({
               })}
             </div>
 
-            {/* Camera */}
-            <BlockCaptureButton
-              targetRef={blockRef}
-              blockTitle={`Xếp hạng 34 tỉnh toàn quốc - ${indConfig.moduleLabel}`}
-              dateOrPeriod={`${periodLabel} (${periodRangeLabel})`}
-            />
           </div>
         </div>
 

@@ -10,7 +10,6 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import { Award } from 'lucide-react';
-import BlockCaptureButton from '../../../components/common/BlockCaptureButton.jsx';
 import { INDICATORS, indicatorTheme } from '../../indicator/indicatorConfig.js';
 import { IndicatorProvider } from '../../indicator/IndicatorContext.js';
 import { computeTrendYDomain } from '../homeTableSort.js';
@@ -108,11 +107,6 @@ function SingleIndicatorTrendChart({ indicatorData, rangeDays = 30 }) {
                 {latestRate != null ? `${Number(latestRate).toFixed(1)}%` : '—'}
               </span>
             </div>
-            <BlockCaptureButton
-              targetRef={chartRef}
-              blockTitle={`Xu hướng ${indicatorData?.label || indConfig.moduleLabel} (${rangeDays} ngày)`}
-              dateOrPeriod={`${rangeDays} ngày gần nhất`}
-            />
           </div>
         </div>
 
@@ -245,11 +239,6 @@ export default function IndicatorTrendsGrid({ indicators = [] }) {
             </button>
           </div>
 
-          <BlockCaptureButton
-            targetRef={gridRef}
-            blockTitle={`Diễn biến xu hướng ${indicators.length >= 5 ? '05' : '04'} chỉ tiêu độc lập`}
-            dateOrPeriod={`${rangeDays} ngày gần nhất`}
-          />
         </div>
       </div>
 

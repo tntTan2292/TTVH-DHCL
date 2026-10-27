@@ -1,10 +1,8 @@
 import React, { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ExternalLink } from 'lucide-react';
-import BlockCaptureButton from '../../../components/common/BlockCaptureButton.jsx';
 import SortableTh from '../../../components/common/SortableTh.jsx';
 import { shortBcvhName } from '../homeNames.js';
-import { periodTitle } from '../homePeriod.js';
 import { INDICATORS, indicatorTheme } from '../../indicator/indicatorConfig.js';
 import { IndicatorProvider } from '../../indicator/IndicatorContext.js';
 import {
@@ -123,11 +121,6 @@ export default function ActionUnitsBlock({
               <span>Xem đầy đủ</span>
               <ExternalLink size={12} />
             </button>
-            <BlockCaptureButton
-              targetRef={blockRef}
-              blockTitle={`${spec.title} - ${indConfig.moduleLabel}`}
-              dateOrPeriod={periodTitle(indicatorData)}
-            />
           </div>
         </div>
 

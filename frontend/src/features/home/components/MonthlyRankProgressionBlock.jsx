@@ -1,5 +1,4 @@
 import React, { useRef } from 'react';
-import BlockCaptureButton from '../../../components/common/BlockCaptureButton.jsx';
 import { INDICATORS, indicatorTheme } from '../../indicator/indicatorConfig.js';
 import { IndicatorProvider } from '../../indicator/IndicatorContext.js';
 import { formatDayMonth } from '../homePeriod.js';
@@ -29,13 +28,6 @@ export default function MonthlyRankProgressionBlock({
             <span className={`rounded-md border px-1.5 py-0.5 text-[10px] font-bold ${theme.chip}`}>
               {indConfig.moduleLabel}
             </span>
-          </div>
-          <div data-no-capture="true" className="shrink-0">
-            <BlockCaptureButton
-              targetRef={blockRef}
-              blockTitle={`Diễn biến hạng lũy kế tháng - ${indConfig.moduleLabel}`}
-              dateOrPeriod={`Từ T1 đến ${formatDayMonth(indicatorData?.period_to || indicatorData?.data_date)}`}
-            />
           </div>
         </div>
 
