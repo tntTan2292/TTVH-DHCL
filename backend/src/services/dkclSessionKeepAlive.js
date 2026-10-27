@@ -32,6 +32,11 @@ class DkclSessionKeepAlive {
         clearTimer = clearInterval,
         logDir = null,
         logger = console,
+        // Called when a source becomes SESSION_VALID (after a sign-in, a re-attach, or the first look after a restart): the
+        // queue lanes park themselves when a session is missing and only an explicit wake restarts them, so without this
+        // a sign-in at 07:32 left the 07:30 daily import idle until someone pressed "Tiếp tục Run" (2026-10-27).
+        // server.js wires it to wakeAutoBackfillQueue(); tests and tools leave it unset.
+        onSessionValid = null,
     } = {}) {
         this.sessionService = sessionService;
         this.env = env;
@@ -41,6 +46,7 @@ class DkclSessionKeepAlive {
         this.clearTimer = clearTimer;
         this.logDir = logDir || path.resolve(__dirname, '../../../Data DKCL/BrowserProfiles');
         this.logger = logger;
+        this.onSessionValid = onSessionValid;
         this.timer = null;
         this.busy = false;
         this.last = new Map(); // source -> { status, since }
@@ -130,6 +136,7 @@ class DkclSessionKeepAlive {
         if (previous && previous.status === status) return null;
         const wasValid = previous?.status === 'SESSION_VALID';
         this.last.set(source, { status, since: now });
+        if (status === 'SESSION_VALID') this.wakeQueue(source);
         if (!previous) {
             this.append(`${new Date(now).toISOString()} ${source} first seen as ${status}`);
             return `${source} ${status}`;
@@ -138,6 +145,16 @@ class DkclSessionKeepAlive {
         const line = `${new Date(now).toISOString()} ${source} ${previous.status} -> ${status}${detail}`;
         this.append(line);
         return line;
+    }
+
+    /** A source became valid: wake the queue lanes; a failure here never disturbs the keep-alive. */
+    wakeQueue(source) {
+        try {
+            this.onSessionValid?.(source);
+            this.append(`${new Date(this.clock()).toISOString()} ${source} session valid: queue lanes woken`);
+        } catch (error) {
+            this.append(`${new Date(this.clock()).toISOString()} ${source} session valid: queue wake failed (${error?.code || error?.message})`);
+        }
     }
 
     append(line) {

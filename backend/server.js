@@ -205,7 +205,11 @@ function startAutoImportSchedule() {
         sessionService,
     });
     autoImportSchedule.start();
-    sessionKeepAlive = new DkclSessionKeepAlive({ sessionService });
+    sessionKeepAlive = new DkclSessionKeepAlive({
+        sessionService,
+        // a source that becomes valid again (sign-in, re-attach, restart) wakes the queue lanes, which park themselves without a session
+        onSessionValid: () => require('./src/services/autoBackfillQueueRuntime').wakeAutoBackfillQueue(),
+    });
     sessionKeepAlive.start();
 }
 
