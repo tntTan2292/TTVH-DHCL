@@ -99,7 +99,7 @@ export default function ExecutiveIndicatorCard({ data, isSelected, onSelect }) {
       <div ref={cardRef} onClick={onSelect} className={frame}>
         {/* Header: indicator, its name, target and camera */}
         <div className="flex items-center justify-between gap-2 pb-1">
-          <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+          <div className="flex min-w-0 items-center gap-2">
             <span className={`h-4 w-1.5 shrink-0 rounded-full ${theme.accentBar}`} />
             <h3 className="text-lg font-black leading-none text-slate-900 tracking-tight">{data.label}</h3>
             <span className={`whitespace-nowrap rounded-md border px-1.5 py-0.5 text-[11px] font-bold ${theme.chip}`}>
@@ -119,14 +119,14 @@ export default function ExecutiveIndicatorCard({ data, isSelected, onSelect }) {
         <div className="mt-2 grid grid-cols-2 gap-2">
           <div className="rounded-xl border border-slate-200/80 bg-slate-50/70 p-2.5 flex flex-col justify-between">
             <div>
-              <div className="flex flex-wrap items-center justify-between gap-1">
-                <span className="text-xs font-bold uppercase tracking-wide text-slate-600">Tỷ lệ đạt</span>
+              <div className="flex items-center justify-between gap-1">
+                <span className="whitespace-nowrap text-xs font-bold uppercase tracking-wide text-slate-600" title="Tỷ lệ đạt">Tỷ lệ</span>
                 {isTargetMet ? (
-                  <span className="inline-flex items-center gap-0.5 rounded border border-emerald-200 bg-emerald-100/80 px-1.5 py-0.5 text-[10px] font-bold text-emerald-800">
+                  <span className="inline-flex items-center gap-0.5 whitespace-nowrap rounded border border-emerald-200 bg-emerald-100/80 px-1.5 py-0.5 text-[10px] font-bold text-emerald-800">
                     <Sparkles size={10} /> Đạt
                   </span>
                 ) : (
-                  <span className="rounded border border-rose-200 bg-rose-100/80 px-1.5 py-0.5 text-[10px] font-bold text-rose-800">
+                  <span className="whitespace-nowrap rounded border border-rose-200 bg-rose-100/80 px-1.5 py-0.5 text-[10px] font-bold text-rose-800">
                     Chưa đạt
                   </span>
                 )}
@@ -143,7 +143,7 @@ export default function ExecutiveIndicatorCard({ data, isSelected, onSelect }) {
           <div className="rounded-xl border border-rose-200/80 bg-rose-50/50 p-2.5 flex flex-col justify-between">
             <div>
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold uppercase leading-tight tracking-wide text-rose-800">Vị thứ toàn quốc</span>
+                <span className="whitespace-nowrap text-xs font-bold uppercase tracking-wide text-rose-800" title="Vị thứ toàn quốc">Vị thứ</span>
                 <Award size={15} className="hidden shrink-0 text-rose-500 @[17rem]:block" />
               </div>
               <div className="mt-1 flex items-baseline gap-1">

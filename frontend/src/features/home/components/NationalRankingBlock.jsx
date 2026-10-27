@@ -153,7 +153,7 @@ export default function NationalRankingBlock({
               <div>
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold uppercase tracking-wide text-slate-700">
-                    Tỷ lệ Huế (BC toàn quốc)
+                    Tỷ lệ Huế
                   </span>
                 </div>
                 <div className="mt-1 flex items-baseline gap-1">
@@ -301,8 +301,8 @@ export default function NationalRankingBlock({
                     title={`Thay đổi hạng so với ${movementBasisLabel}`}
                   >
                     Biến động
-                    <span className="block text-[10px] font-semibold normal-case tracking-normal text-slate-500">
-                      so với {movementBasisLabel}
+                    <span className="ml-1 text-[10px] font-semibold normal-case tracking-normal text-slate-500">
+                      ({movementBasisLabel.replace(' trước', '')})
                     </span>
                   </SortableTh>
                 </tr>

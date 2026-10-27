@@ -70,7 +70,8 @@ test('Review Fix 4 & 5: ExecutiveIndicatorCard handles nulls cleanly and provide
   assert.match(cardSrc, /rateChange === null/);
   // Stacked layout: rate block over rank block, 4xl numbers, labels not abbreviated
   assert.match(cardSrc, /text-3xl/);
-  assert.match(cardSrc, /Vị thứ toàn quốc/);
+  // PO 2026-10-27: short labels so a card cell never wraps; the full wording stays in the tooltip
+  assert.match(cardSrc, /title="Vị thứ toàn quốc"/);
   assert.match(cardSrc, /Chênh mục tiêu/);
   assert.doesNotMatch(cardSrc, /Vị thứ TQ|Chênh MT/);
 });
@@ -99,7 +100,7 @@ test('HOME-BI-01: province table has no "Chênh MT" column and names its movemen
   const rankingSrc = readSource('./components/NationalRankingBlock.jsx');
   assert.doesNotMatch(rankingSrc, /field="gap_to_target"/);
   assert.match(rankingSrc, /movement_basis/);
-  assert.match(rankingSrc, /so với \{movementBasisLabel\}/);
+  assert.match(rankingSrc, /so với \$\{movementBasisLabel\}/);
 });
 
 test('HOME-BI-02: one Ngày/Tuần/Tháng filter with back / forward buttons drives cards, ranking and action block', () => {
