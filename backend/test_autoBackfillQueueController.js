@@ -44,7 +44,7 @@ test('queue controller forwards identity filters and authenticated Admin actor',
     const res = response();
     await controller.createRun(request({ body: { indicator: 'F9.TEST', lane: 'HUE' } }), res);
     assert.equal(res.statusCode, 201);
-    assert.deepEqual(input, { indicator: 'F9.TEST', lane: 'HUE', fromDate: null, toDate: null, includeExcluded: false, confirmReplaceCompleted: false, actor: 'tester', roles: ['admin'] });
+    assert.deepEqual(input, { indicator: 'F9.TEST', lane: 'HUE', fromDate: null, toDate: null, includeExcluded: false, confirmReplaceCompleted: false, anchorDate: null, items: null, actor: 'tester', roles: ['admin'] });
 });
 
 test('queue controller forwards from_date/to_date when supplied, and null when omitted', async () => {
@@ -58,7 +58,7 @@ test('queue controller forwards from_date/to_date when supplied, and null when o
     const res = response();
     await controller.createRun(request({ body: { from_date: '2026-01-01', to_date: '2026-01-31' } }), res);
     assert.equal(res.statusCode, 201);
-    assert.deepEqual(input, { indicator: null, lane: null, fromDate: '2026-01-01', toDate: '2026-01-31', includeExcluded: false, confirmReplaceCompleted: false, actor: 'tester', roles: ['admin'] });
+    assert.deepEqual(input, { indicator: null, lane: null, fromDate: '2026-01-01', toDate: '2026-01-31', includeExcluded: false, confirmReplaceCompleted: false, anchorDate: null, items: null, actor: 'tester', roles: ['admin'] });
 });
 
 // AB-CALENDAR-01 D1 (design Section 4.2)
@@ -164,7 +164,7 @@ test('listRuns forwards status/limit/offset and roles, and wraps the result unde
     await controller.listRuns(request({ role: 'viewer', query: { status: 'RUNNING,PAUSED', limit: '10', offset: '5' } }), res);
     assert.equal(res.statusCode, 200);
     assert.deepEqual(input, { status: 'RUNNING,PAUSED', limit: '10', offset: '5', roles: ['viewer'] });
-    assert.deepEqual(res.body, { success: true, data: { runs: [{ run: { id: 'run-1' } }, { run: { id: 'run-2' } }] } });
+    assert.deepEqual(res.body, { success: true, data: { runs: [{ run: { id: 'run-1' } }, { run: { id: 'run-2' } }], total: 2 } });
 });
 
 test('listRuns defaults status/limit/offset to null/undefined when the query is empty', async () => {

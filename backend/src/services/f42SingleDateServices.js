@@ -60,6 +60,8 @@ function describe(file, portal, differences) {
     return `file ${JSON.stringify(file)} vs portal summary ${JSON.stringify(portal)}, differences ${JSON.stringify(differences)}`;
 }
 
+const HUE_PASSED_SHORTFALL_ACCEPTED = 1;
+
 function exactDifferences(file, portal) {
     const differences = {};
     for (const key of Object.keys(file)) {
@@ -203,7 +205,10 @@ class F42SingleDateService {
             const file = { total: parsed.totalParsed, passed, failed };
             const portal = { total: summary.totalVolume, passed: summary.passedVolume, failed: summary.failedVolume };
             const differences = exactDifferences(file, portal);
-            if (Object.keys(differences).length > 0) {
+            // PO decision 2026-10-27: a file that holds exactly one "Đạt" fewer than the portal summary (total and
+            // failed equal) is accepted and stored as the file reads; six backfill days showed this same -1.
+            const acceptedShortfall = Object.keys(differences).length === 1 && differences.passed === -HUE_PASSED_SHORTFALL_ACCEPTED;
+            if (Object.keys(differences).length > 0 && !acceptedShortfall) {
                 throw serviceError(
                     'F42_HUE_RECONCILIATION_FAILED',
                     `F4.2 HUE file does not reconcile with the verified outer summary: ${describe(file, portal, differences)}.`,
@@ -217,7 +222,7 @@ class F42SingleDateService {
                 blank: parsed.totalParsed - passed - failed,
                 notEnoughInfo: summary.notEnoughInfoVolume ?? null,
                 rate: parsed.totalParsed ? Number(((passed / parsed.totalParsed) * 100).toFixed(2)) : null,
-                reconciliation: { exact: true, differences: {} },
+                reconciliation: { exact: !acceptedShortfall, differences },
             };
         }
         // The parser verified the published grand total against every postman row and returns it with the

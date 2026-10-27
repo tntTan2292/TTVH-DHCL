@@ -416,8 +416,19 @@ test('HUE service on the real 2026-10-10 CSV: reconciles, copies to Incoming/HUE
     fs.rmSync(imports[0].filePath, { force: true });
 });
 
-test('HUE service refuses a file that does not reconcile, by one row (no Incoming copy, no import, no cleanup)', HAS_HUE, async () => {
-    for (const bad of [{ passedVolume: 4476 }, { failedVolume: 758 }, { totalVolume: 6467 }]) {
+test('HUE service accepts a file with exactly one "Đạt" fewer than the portal summary and records the difference (PO 2026-10-27)', HAS_HUE, async () => {
+    const client = createServiceClient({ source: REAL_HUE, summary: { ...HUE_SUMMARY, passedVolume: 4476 }, generatedName: HUE_NAME, format: 'csv' });
+    const { service, imports } = newService(F42HueSingleDateService);
+    const result = await service.runOneDate('2026-10-10', { portalClient: client });
+    assert.equal(result.status, 'SUCCESS');
+    assert.deepEqual([result.total, result.passed, result.failed], [6466, 4475, 757]);
+    assert.deepEqual(result.reconciliation, { exact: false, differences: { passed: -1 } });
+    assert.equal(imports.length, 1);
+    fs.rmSync(imports[0].filePath, { force: true });
+});
+
+test('HUE service refuses a file that does not reconcile beyond the accepted one-row shortfall (no Incoming copy, no import, no cleanup)', HAS_HUE, async () => {
+    for (const bad of [{ passedVolume: 4474 }, { passedVolume: 4477 }, { failedVolume: 758 }, { totalVolume: 6467 }]) {
         const client = createServiceClient({ source: REAL_HUE, summary: { ...HUE_SUMMARY, ...bad }, generatedName: HUE_NAME, format: 'csv' });
         const { service, imports } = newService(F42HueSingleDateService);
         await assert.rejects(
@@ -454,7 +465,7 @@ test('HUE service on a synthetic CSV reconciles with a matching summary and refu
     const { service } = newService(F42HueSingleDateService, { importEnabled: false });
     const result = await service.runOneDate('2026-10-10', { portalClient: ok });
     assert.deepEqual([result.total, result.passed, result.failed, result.blank], [4, 2, 1, 1]);
-    const bad = createServiceClient({ source, summary: { ...summary, passedVolume: 3, evaluatedVolume: 3 }, generatedName: HUE_NAME, format: 'csv' });
+    const bad = createServiceClient({ source, summary: { ...summary, passedVolume: 4, evaluatedVolume: 4 }, generatedName: HUE_NAME, format: 'csv' });
     await assert.rejects(newService(F42HueSingleDateService, { importEnabled: false }).service.runOneDate('2026-10-10', { portalClient: bad }), (error) => error.code === 'F42_HUE_RECONCILIATION_FAILED');
 });
 
