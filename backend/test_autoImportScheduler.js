@@ -316,7 +316,7 @@ test('keep-alive reopens a lost window, then waits out a cooldown after a source
             },
             async preflight() { return { status: 'SESSION_VALID' }; },
         };
-        const keepAlive = new DkclSessionKeepAlive({ sessionService, logDir, clock: () => now, logger: silent });
+        const keepAlive = new DkclSessionKeepAlive({ sessionService, logDir, clock: () => now, logger: silent, startupRetryLimit: 0 });
 
         await keepAlive.tick();
         assert.deepEqual(reattachCalls, ['HUE', 'TCT'], 'both lost windows are tried once');

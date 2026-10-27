@@ -61,3 +61,24 @@ test('a failing wake never disturbs the keep-alive, and a missing hook is fine',
     const plain = makeKeepAlive({ HUE: 'SESSION_VALID', TCT: 'SESSION_VALID' }, null);
     assert.equal((await plain.tick()).length, 2);
 });
+
+test('a source that could not be re-attached after a start is looked at again quickly (bounded), the reason is logged', async () => {
+    const logDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ka-retry-'));
+    let attempts = 0;
+    const service = {
+        getInteractiveClient: () => null,
+        isDisconnected: () => false,
+        reattachSession: async () => { attempts += 1; return { attached: false, reason: 'AUTHENTICATION_REQUIRED' }; },
+        preflight: async () => ({ status: 'SESSION_VALID' }),
+    };
+    const keepAlive = new DkclSessionKeepAlive({
+        sessionService: service, logDir, logger: { log() {} }, env: { DKCL_REATTACH_COOLDOWN_MS: '0' }, startupRetryMs: 5, startupRetryLimit: 3,
+    });
+    await keepAlive.tick();
+    await new Promise((resolve) => setTimeout(resolve, 150));
+    keepAlive.stop();
+    assert.equal(keepAlive.startupRetries, 3, 'bounded: three quick retries, then the regular interval takes over');
+    assert.ok(attempts >= 4 && attempts <= 8, `attempts=${attempts}`);
+    const log = fs.readFileSync(path.join(logDir, 'session-watch.log'), 'utf8');
+    assert.match(log, /saved session not re-attached \(AUTHENTICATION_REQUIRED\)/);
+});

@@ -37,6 +37,10 @@ class DkclSessionKeepAlive {
         // a sign-in at 07:32 left the 07:30 daily import idle until someone pressed "Tiếp tục Run" (2026-10-27).
         // server.js wires it to wakeAutoBackfillQueue(); tests and tools leave it unset.
         onSessionValid = null,
+        // After a restart a window that could not be re-attached (the old browser was still closing, the profile was busy) is
+        // tried again quickly a few times before the long cooldown applies, so a restart does not need a manual sign-in.
+        startupRetryMs = 2 * 60 * 1000,
+        startupRetryLimit = 5,
     } = {}) {
         this.sessionService = sessionService;
         this.env = env;
@@ -47,6 +51,10 @@ class DkclSessionKeepAlive {
         this.logDir = logDir || path.resolve(__dirname, '../../../Data DKCL/BrowserProfiles');
         this.logger = logger;
         this.onSessionValid = onSessionValid;
+        this.startupRetryMs = startupRetryMs;
+        this.startupRetryLimit = startupRetryLimit;
+        this.startupRetries = 0;
+        this.retryTimer = null;
         this.timer = null;
         this.busy = false;
         this.last = new Map(); // source -> { status, since }
@@ -55,7 +63,9 @@ class DkclSessionKeepAlive {
 
     reattachCooldownMs() {
         const value = Number(this.env.DKCL_REATTACH_COOLDOWN_MS);
-        return Number.isFinite(value) && value >= 0 ? value : 30 * 60 * 1000;
+        if (Number.isFinite(value) && value >= 0) return value;
+        // quick retries right after the start, the long cooldown afterwards
+        return this.startupRetries < this.startupRetryLimit ? Math.min(this.startupRetryMs, 30 * 60 * 1000) : 30 * 60 * 1000;
     }
 
     isEnabled() {
@@ -82,8 +92,10 @@ class DkclSessionKeepAlive {
     stop() {
         if (this.timer) this.clearTimer(this.timer);
         if (this.firstTimer) clearTimeout(this.firstTimer);
+        if (this.retryTimer) clearTimeout(this.retryTimer);
         this.timer = null;
         this.firstTimer = null;
+        this.retryTimer = null;
     }
 
     async tick() {
@@ -110,7 +122,23 @@ class DkclSessionKeepAlive {
         } finally {
             this.busy = false;
         }
+        this.scheduleStartupRetry();
         return changes;
+    }
+
+    /** A source still without a session shortly after the start: look again soon (bounded), the reason is in the log. */
+    scheduleStartupRetry() {
+        const missing = SOURCES.some((source) => {
+            const status = this.last.get(source)?.status;
+            return status === 'NO_SESSION' || (status && status.startsWith('CHECK_ERROR'));
+        });
+        if (!missing || this.retryTimer || this.startupRetries >= this.startupRetryLimit) return;
+        this.startupRetries += 1;
+        this.retryTimer = setTimeout(() => {
+            this.retryTimer = null;
+            void this.tick().catch(() => {});
+        }, this.startupRetryMs);
+        this.retryTimer.unref?.();
     }
 
     /** Reopens the window of a source whose saved session is still valid; a failure waits out a cooldown. */
@@ -122,6 +150,7 @@ class DkclSessionKeepAlive {
         if (!result.attached) {
             // a person is signing in, or there is no valid saved session: wait before looking again
             this.reattachFailedAt.set(source, this.clock());
+            this.append(`${new Date(this.clock()).toISOString()} ${source} saved session not re-attached (${result.reason || 'UNKNOWN'}), attempt ${this.startupRetries + 1}`);
             return null;
         }
         this.reattachFailedAt.delete(source);
