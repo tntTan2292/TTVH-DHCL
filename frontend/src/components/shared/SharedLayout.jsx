@@ -29,6 +29,9 @@ function getModuleIndicatorDot(title = '') {
   if (title.includes('F4.1')) {
     return <span className="inline-block h-2 w-2 rounded-full bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.8)] shrink-0 animate-pulse" title="Phân hệ F4.1 – Bưu cục (Cam)" />;
   }
+  if (title.includes('F4.2')) {
+    return <span className="inline-block h-2 w-2 rounded-full bg-sky-400 shadow-[0_0_8px_rgba(56,189,248,0.8)] shrink-0 animate-pulse" title="Phân hệ F4.2 – Phát giao bưu tá (Xanh da trời)" />;
+  }
   return null;
 }
 
@@ -42,6 +45,7 @@ export function SidebarNavigation({ isOpen, onClose, isCollapsed, onToggleCollap
     'F1.2 – Thu gom liên tỉnh': true,
     'F1.3 – Chất lượng phát liên tỉnh': true,
     'F4.1 – Chất lượng phát thành công bưu cục': true,
+    'F4.2 – Chất lượng phát giao bưu tá': true,
     'Quản lý mạng lưới': false,
     'QUẢN LÝ MẠNG LƯỚI': false,
     'Quản trị hệ thống': false,
@@ -503,6 +507,7 @@ const BREADCRUMB_LABELS = {
   f12: 'F1.2 – Thu gom liên tỉnh',
   f13: 'F1.3 – Chất lượng phát liên tỉnh',
   f41: 'F4.1 – Chất lượng phát thành công bưu cục',
+  f42: 'F4.2 – Chất lượng phát giao bưu tá',
   dashboard: 'Bảng điều hành',
   ranking: 'Phân tích',
   bcvh: 'BCVH',
