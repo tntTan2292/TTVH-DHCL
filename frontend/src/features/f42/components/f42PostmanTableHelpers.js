@@ -1,4 +1,97 @@
 import { sortRowsBy } from '../../../components/common/tableSort.js';
+import { CANONICAL_BCVH_UNITS } from '../../dashboard/components/bcvhOperationTableData.js';
+
+export const POSTMAN_SORT_FIELD_LABELS = Object.freeze({
+  rank: 'Hạng',
+  ma_buu_ta: 'Mã bưu tá',
+  ten_buu_ta: 'Tên bưu tá',
+  volume: 'Sản lượng',
+  passed: 'Đạt',
+  failed: 'Không đạt',
+  rate: 'Tỷ lệ',
+});
+
+/**
+ * Format sort description in Vietnamese for table caption / banner.
+ */
+export function formatSortCaption(sort) {
+  if (!sort || !sort.field) return '';
+  const label = POSTMAN_SORT_FIELD_LABELS[sort.field] || sort.field;
+  const dir = sort.direction === 'asc' ? 'tăng dần' : 'giảm dần';
+  return `sắp xếp theo ${label}, ${dir}`;
+}
+
+/**
+ * Compute next sort state on column click:
+ * First click on 'rank' or text fields starts 'asc'; numeric fields start 'desc'.
+ * Clicking the active column flips the direction.
+ */
+export function getNextPostmanSort(current, field) {
+  if (current && current.field === field) {
+    return { field, direction: current.direction === 'desc' ? 'asc' : 'desc' };
+  }
+  const startAsc = field === 'rank' || field === 'ma_buu_ta' || field === 'ten_buu_ta';
+  return { field, direction: startAsc ? 'asc' : 'desc' };
+}
+
+/**
+ * Slice units and postmen for capture so total postmen rows across the whole table <= captureLimit.
+ * Units with 0 remaining quota have their postmen sliced to 0.
+ */
+export function sliceUnitsForCapture(units = [], captureLimit = 25) {
+  if (!Array.isArray(units)) return [];
+  if (captureLimit === 'all' || typeof captureLimit !== 'number' || captureLimit <= 0) {
+    return units;
+  }
+
+  let remainingQuota = captureLimit;
+  const result = [];
+
+  for (const unit of units) {
+    const postmen = Array.isArray(unit.filteredPostmen) ? unit.filteredPostmen : [];
+    if (remainingQuota <= 0) {
+      result.push({
+        ...unit,
+        filteredPostmen: [],
+      });
+      continue;
+    }
+    const takeCount = Math.min(postmen.length, remainingQuota);
+    remainingQuota -= takeCount;
+    result.push({
+      ...unit,
+      filteredPostmen: postmen.slice(0, takeCount),
+    });
+  }
+
+  return result;
+}
+
+/**
+ * Extract daily BCVH records from backend response without synthesizing missing canonical units.
+ */
+export function extractDailyBcvhUnits(dailyRows = []) {
+  if (!Array.isArray(dailyRows)) return [];
+  return dailyRows.map((row) => {
+    const canonical = CANONICAL_BCVH_UNITS.find((c) => c.ma_bcvh === String(row.ma_bcvh));
+    const ten_bcvh = row.ten_bcvh || canonical?.ten_bcvh || `BCVH ${row.ma_bcvh}`;
+    const volume = Number(row.volume || 0);
+    const passed = Number(row.passed || 0);
+    const failed = Number(row.failed || 0);
+    const rate = row.rate !== null && row.rate !== undefined
+      ? Number(row.rate)
+      : (volume > 0 ? Number(((passed / volume) * 100).toFixed(2)) : null);
+
+    return {
+      ma_bcvh: String(row.ma_bcvh),
+      ten_bcvh,
+      volume,
+      passed,
+      failed,
+      rate,
+    };
+  });
+}
 
 /**
  * Remove Vietnamese accents/diacritics for flexible search.
@@ -115,7 +208,7 @@ export function formatPeriodHeader(period = 'day', { anchorDate, fromDate, toDat
   }
   if (period === 'week') {
     if (fromDate && toDate) {
-      const [fy, fm, fd] = fromDate.split('-');
+      const [, fm, fd] = fromDate.split('-');
       const [ty, tm, td] = toDate.split('-');
       return `Tuần (${fd}/${fm} – ${td}/${tm}/${ty})`;
     }

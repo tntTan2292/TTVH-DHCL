@@ -1,7 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { F42_INDICATOR } from '../indicator/indicatorConfig.js';
 
 test('F42DashboardPage wraps DashboardPage in IndicatorProvider with F42_INDICATOR', () => {
   const source = fs.readFileSync(new URL('./F42DashboardPage.jsx', import.meta.url), 'utf8');

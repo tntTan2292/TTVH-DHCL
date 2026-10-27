@@ -133,9 +133,9 @@ export const INDICATOR_THEMES = Object.freeze({
   sky: Object.freeze({
     id: 'sky',
     label: 'Xanh da trời',
-    primary: '#0284C7', // sky-600
+    primary: '#0EA5E9', // sky-500 (distinct from blue-600 #2563EB and teal-600 #0D9488)
     primaryLight: '#7DD3FC', // sky-300
-    line: '#0D9488', // teal-600
+    line: '#2563EB', // blue-600 (rate line, contrasts with sky bars; distinct from teal #0D9488)
     accentBar: 'bg-sky-400',
     chip: 'bg-sky-100 text-sky-900 border-sky-300',
     soft: 'bg-sky-50',

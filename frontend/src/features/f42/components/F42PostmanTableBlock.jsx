@@ -9,14 +9,18 @@ import { useIndicator } from '../../indicator/IndicatorContext.js';
 import { indicatorTargetRate, indicatorTheme } from '../../indicator/indicatorConfig.js';
 import BlockCaptureButton from '../../../components/common/BlockCaptureButton.jsx';
 import SortableTh from '../../../components/common/SortableTh.jsx';
-import { nextSortState } from '../../../components/common/tableSort.js';
 import { waitForNextPaint } from '../../../components/common/blockCaptureHelper.js';
 import {
   classifyF13HeatmapRate,
   F13_HEATMAP_TONE_CLASS,
 } from '../../../components/f13/f13HeatmapBandCatalog.js';
 import { formatRate, formatVolume } from '../../dashboard/components/bcvhOperationTableData.js';
-import { processPostmanList } from './f42PostmanTableHelpers.js';
+import {
+  formatSortCaption,
+  getNextPostmanSort,
+  processPostmanList,
+  sliceUnitsForCapture,
+} from './f42PostmanTableHelpers.js';
 
 const CAPTURE_TOP_OPTIONS = Object.freeze([15, 20, 25, 30]);
 
@@ -27,6 +31,7 @@ export default function F42PostmanTableBlock({
   onPeriodChange = null,
   periodLabel = '',
   loading = false,
+  hasData = true,
 }) {
   const indicator = useIndicator();
   const theme = indicatorTheme(indicator);
@@ -39,10 +44,8 @@ export default function F42PostmanTableBlock({
   const [captureTop, setCaptureTop] = useState(25);
   const [capturing, setCapturing] = useState(false);
 
-  // Expanded units map (default: all units expanded)
-  const [expandedCodes, setExpandedCodes] = useState(() => {
-    return new Set(units.map((u) => u.ma_bcvh));
-  });
+  // Expanded units map (default: all units collapsed)
+  const [expandedCodes, setExpandedCodes] = useState(() => new Set());
 
   const toggleExpand = (code) => {
     setExpandedCodes((prev) => {
@@ -62,9 +65,7 @@ export default function F42PostmanTableBlock({
   };
 
   const handleSort = (field) => {
-    setSort((current) => nextSortState(current || { field: 'rank', direction: 'asc' }, field, {
-      textFields: ['ma_buu_ta', 'ten_buu_ta'],
-    }));
+    setSort((current) => getNextPostmanSort(current, field));
   };
 
   // Process postmen per unit
@@ -91,6 +92,19 @@ export default function F42PostmanTableBlock({
     return processedUnits.reduce((sum, u) => sum + u.filteredPostmen.length, 0);
   }, [processedUnits]);
 
+  // When capturing, slice top N postmen across the entire table
+  const unitsToRender = useMemo(() => {
+    if (capturing && captureTop !== 'all') {
+      return sliceUnitsForCapture(processedUnits, captureTop);
+    }
+    return processedUnits;
+  }, [capturing, captureTop, processedUnits]);
+
+  const capturedCount = useMemo(() => {
+    return unitsToRender.reduce((sum, u) => sum + u.filteredPostmen.length, 0);
+  }, [unitsToRender]);
+
+  const hasAnyPostmen = units.some((u) => Array.isArray(u.postmen) && u.postmen.length > 0);
   const blockTitle = `Bưu tá theo BCVH – ${periodLabel}`;
 
   return (
@@ -112,7 +126,7 @@ export default function F42PostmanTableBlock({
             </span>
           </div>
           <p className="mt-1 text-xs text-slate-500">
-            Chất lượng phát giao từng bưu tá thuộc 6 BCVH, xếp hạng nội bộ theo tỷ lệ đạt và sản lượng.
+            Chất lượng phát giao từng bưu tá thuộc các BCVH, xếp hạng nội bộ theo tỷ lệ đạt và sản lượng.
           </p>
         </div>
 
@@ -238,42 +252,42 @@ export default function F42PostmanTableBlock({
       {/* Capture info banner when in capture mode */}
       {capturing && (
         <div className="mt-2 text-xs font-semibold text-slate-500 text-center py-1 bg-slate-100/70 rounded border border-slate-200">
-          Ảnh chụp: {captureTop === 'all' ? 'Toàn bộ' : `Top ${captureTop}`} / {totalVisiblePostmen} bưu tá hiển thị
-          {sort ? ` (sắp xếp theo ${sort.field} ${sort.direction === 'asc' ? 'tăng dần' : 'giảm dần'})` : ''}
+          Ảnh chụp: {captureTop === 'all' ? 'Toàn bộ' : `Top ${capturedCount}`} / {totalVisiblePostmen} bưu tá hiển thị
+          {sort ? ` (${formatSortCaption(sort)})` : ''}
         </div>
       )}
 
-      {/* Table Content */}
-      <div className="mt-3.5 space-y-3 max-h-[560px] overflow-y-auto pr-1">
+      {/* Table Content with vertical & horizontal scroll */}
+      <div className="mt-3.5 space-y-3 max-h-[560px] overflow-y-auto overflow-x-auto pr-1">
         {loading ? (
           <div className="py-12 flex flex-col items-center justify-center text-slate-500">
             <div className="h-6 w-6 animate-spin rounded-full border-2 border-sky-600 border-t-transparent mb-2" />
             <span className="text-xs font-semibold">Đang tải danh sách bưu tá theo BCVH...</span>
           </div>
-        ) : processedUnits.length === 0 ? (
-          <div className="py-8 text-center text-xs text-slate-500">
-            Không có dữ liệu bưu tá cho kỳ đã chọn.
+        ) : !hasData || !hasAnyPostmen || units.length === 0 ? (
+          <div className="py-12 flex flex-col items-center justify-center text-slate-500">
+            <span className="text-xs font-semibold">
+              Không có dữ liệu bưu tá cho kỳ đã chọn.
+            </span>
           </div>
         ) : (
-          processedUnits.map((unit) => {
+          unitsToRender.map((unit) => {
             const isExpanded = capturing || expandedCodes.has(unit.ma_bcvh);
             const band = classifyF13HeatmapRate(unit.rate, indicator.heatmapBands);
             const toneClass = F13_HEATMAP_TONE_CLASS[band.tone] || F13_HEATMAP_TONE_CLASS.unavailable;
-
-            // When capturing and captureTop is set, limit rows
-            const displayedPostmen = (capturing && captureTop !== 'all')
-              ? unit.filteredPostmen.slice(0, captureTop)
-              : unit.filteredPostmen;
+            const displayedPostmen = unit.filteredPostmen;
 
             return (
               <div
                 key={unit.ma_bcvh}
-                className="rounded-xl border border-slate-200/90 bg-white overflow-hidden shadow-2xs transition-all duration-150"
+                className="rounded-xl border border-slate-200/90 bg-white shadow-2xs transition-all duration-150"
               >
                 {/* BCVH Header Bar */}
                 <div
                   onClick={() => toggleExpand(unit.ma_bcvh)}
-                  className={`flex flex-wrap items-center justify-between gap-2 px-3.5 py-2.5 cursor-pointer select-none transition-colors ${
+                  className={`flex flex-wrap items-center justify-between gap-2 px-3.5 py-2.5 cursor-pointer select-none transition-colors rounded-t-xl ${
+                    !isExpanded ? 'rounded-b-xl' : ''
+                  } ${
                     isExpanded ? 'bg-slate-100/80 border-b border-slate-200/80' : 'bg-slate-50/70 hover:bg-slate-100/60'
                   }`}
                 >
@@ -312,9 +326,9 @@ export default function F42PostmanTableBlock({
                   </div>
                 </div>
 
-                {/* Postmen List Table */}
+                {/* Postmen List Table with Sticky Header */}
                 {isExpanded && (
-                  <div className="overflow-x-auto">
+                  <div>
                     {displayedPostmen.length === 0 ? (
                       <div className="py-6 text-center text-xs text-slate-500">
                         {search || belowTargetOnly
@@ -322,8 +336,8 @@ export default function F42PostmanTableBlock({
                           : 'BCVH này không có phát sinh sản lượng phát giao trong kỳ.'}
                       </div>
                     ) : (
-                      <table className="w-full text-left text-xs border-collapse">
-                        <thead>
+                      <table className="w-full min-w-[620px] text-left text-xs border-collapse">
+                        <thead className={`sticky top-0 z-10 ${theme.headerBg} ${theme.headerText} shadow-xs`}>
                           <tr className={`border-b border-slate-200/80 text-[11px] font-bold ${theme.headerBg} ${theme.headerText}`}>
                             <SortableTh field="rank" sort={sort} onSort={handleSort} className="py-2 px-2 text-center w-12" activeClassName={theme.sortActive}>
                               Hạng
@@ -374,7 +388,7 @@ export default function F42PostmanTableBlock({
                                   {formatVolume(postman.failed)}
                                   {postman.blank > 0 && (
                                     <span className="block text-[10px] text-slate-400 font-normal">
-                                      ({postman.blank} blank)
+                                      (gồm {postman.blank} chưa ĐG)
                                     </span>
                                   )}
                                 </td>

@@ -1,5 +1,4 @@
 import { useEffect, useState, useMemo } from 'react';
-import { useIndicator } from '../../indicator/IndicatorContext.js';
 import { useIndicatorApi } from '../../indicator/useIndicatorApi.js';
 import { formatPeriodHeader } from './f42PostmanTableHelpers.js';
 import F42PostmanAttentionBlock from './F42PostmanAttentionBlock.jsx';
@@ -9,7 +8,6 @@ export default function F42PostmanDashboardBlocks({
   anchorDate = null,
   maBcvh = 'all',
 }) {
-  const indicator = useIndicator();
   const api = useIndicatorApi();
 
   const [period, setPeriod] = useState('day'); // 'day' | 'week' | 'month'
@@ -64,6 +62,7 @@ export default function F42PostmanDashboardBlocks({
 
   const units = tableData?.units || [];
   const totalRow = tableData?.total_row || null;
+  const hasData = tableData?.meta?.has_data !== false;
 
   if (error) {
     return (
@@ -91,6 +90,7 @@ export default function F42PostmanDashboardBlocks({
         onPeriodChange={setPeriod}
         periodLabel={periodLabel}
         loading={loading}
+        hasData={hasData}
       />
     </div>
   );

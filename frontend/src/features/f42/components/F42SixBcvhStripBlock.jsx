@@ -9,11 +9,11 @@ import {
   F13_HEATMAP_TONE_CLASS,
 } from '../../../components/f13/f13HeatmapBandCatalog.js';
 import {
-  CANONICAL_BCVH_UNITS,
   formatDateVN,
   formatRate,
   formatVolume,
 } from '../../dashboard/components/bcvhOperationTableData.js';
+import { extractDailyBcvhUnits } from './f42PostmanTableHelpers.js';
 
 export default function F42SixBcvhStripBlock({ anchorDate = null }) {
   const indicator = useIndicator();
@@ -59,29 +59,11 @@ export default function F42SixBcvhStripBlock({ anchorDate = null }) {
   const effectiveDate = overviewData?.meta?.anchor_date || anchorDate;
   const formattedDate = formatDateVN(effectiveDate);
 
-  // Extract the 6 canonical BCVH records for the effective anchor date
+  // Extract BCVH records returned by backend for the effective anchor date
   const units = useMemo(() => {
     if (!overviewData || !overviewData.daily) return [];
     const dailyRows = overviewData.daily.filter((row) => row.date === effectiveDate);
-
-    const items = CANONICAL_BCVH_UNITS.map((canonical) => {
-      const found = dailyRows.find((row) => String(row.ma_bcvh) === canonical.ma_bcvh);
-      const volume = found ? Number(found.volume || 0) : 0;
-      const passed = found ? Number(found.passed || 0) : 0;
-      const failed = found ? Number(found.failed || 0) : 0;
-      const rate = found && found.rate !== null && found.rate !== undefined
-        ? Number(found.rate)
-        : (volume > 0 ? Number(((passed / volume) * 100).toFixed(2)) : null);
-
-      return {
-        ma_bcvh: canonical.ma_bcvh,
-        ten_bcvh: canonical.ten_bcvh,
-        volume,
-        passed,
-        failed,
-        rate,
-      };
-    });
+    const items = extractDailyBcvhUnits(dailyRows);
 
     const sign = sortDirection === 'asc' ? 1 : -1;
     return items.sort((a, b) => {
@@ -113,7 +95,7 @@ export default function F42SixBcvhStripBlock({ anchorDate = null }) {
       <div className="w-full rounded-2xl border border-slate-200/90 bg-white p-5 shadow-2xs">
         <div className="flex items-center justify-center gap-2.5 text-slate-500 py-3">
           <div className="h-5 w-5 animate-spin rounded-full border-2 border-sky-600 border-t-transparent" />
-          <span className="text-xs font-semibold">Đang tải dải số liệu 6 BCVH hôm nay...</span>
+          <span className="text-xs font-semibold">Đang tải dải số liệu BCVH hôm nay...</span>
         </div>
       </div>
     );
@@ -122,13 +104,15 @@ export default function F42SixBcvhStripBlock({ anchorDate = null }) {
   if (error) {
     return (
       <div className="w-full rounded-2xl border border-rose-200 bg-rose-50/70 p-4 text-xs text-rose-800 shadow-2xs">
-        <span className="font-semibold">Không thể tải số liệu 6 BCVH hôm nay: </span>
+        <span className="font-semibold">Không thể tải số liệu BCVH hôm nay: </span>
         {error}
       </div>
     );
   }
 
-  const blockTitle = `6 BCVH hôm nay – Ngày ${formattedDate}`;
+  const blockTitle = units.length === 1
+    ? `BCVH hôm nay – Ngày ${formattedDate}`
+    : `6 BCVH hôm nay – Ngày ${formattedDate}`;
 
   return (
     <div
@@ -141,7 +125,7 @@ export default function F42SixBcvhStripBlock({ anchorDate = null }) {
           <div className="flex items-center gap-2">
             <span className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-bold ${theme.chip}`}>
               <Layers size={12} />
-              6 BCVH hôm nay
+              {units.length === 1 ? 'BCVH hôm nay' : '6 BCVH hôm nay'}
             </span>
             <span className="text-xs font-medium text-slate-500">
               Ngày <span className="font-semibold text-slate-700">{formattedDate}</span>
@@ -151,7 +135,7 @@ export default function F42SixBcvhStripBlock({ anchorDate = null }) {
             </span>
           </div>
           <p className="mt-1 text-xs text-slate-500">
-            Tổng quan tỷ lệ đạt và sản lượng phát giao của 6 Bưu cục Vận hành theo ngày được chọn.
+            Tổng quan tỷ lệ đạt và sản lượng phát giao của các Bưu cục Vận hành theo ngày được chọn.
           </p>
         </div>
 
@@ -199,65 +183,77 @@ export default function F42SixBcvhStripBlock({ anchorDate = null }) {
         </div>
       </div>
 
-      {/* 6 BCVH Strip Grid */}
-      <div className="mt-3.5 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-        {units.map((unit, index) => {
-          const rate = unit.rate;
-          const band = classifyF13HeatmapRate(rate, indicator.heatmapBands);
-          const toneClass = F13_HEATMAP_TONE_CLASS[band.tone] || F13_HEATMAP_TONE_CLASS.unavailable;
-          const isMet = rate !== null && rate >= targetRate;
+      {/* BCVH Strip Grid / Empty State */}
+      {units.length === 0 ? (
+        <div className="py-6 text-center text-xs text-slate-500">
+          Không có dữ liệu BCVH cho ngày đã chọn.
+        </div>
+      ) : (
+        <div className={`mt-3.5 grid gap-3 ${
+          units.length === 1
+            ? 'grid-cols-1 sm:max-w-xs'
+            : 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-6'
+        }`}>
+          {units.map((unit, index) => {
+            const rate = unit.rate;
+            const band = classifyF13HeatmapRate(rate, indicator.heatmapBands);
+            const toneClass = F13_HEATMAP_TONE_CLASS[band.tone] || F13_HEATMAP_TONE_CLASS.unavailable;
+            const isMet = rate !== null && rate >= targetRate;
 
-          return (
-            <div
-              key={unit.ma_bcvh}
-              className="relative flex flex-col justify-between rounded-xl border border-slate-200/80 bg-slate-50/50 p-3 hover:bg-white hover:shadow-xs hover:border-slate-300 transition-all duration-150"
-            >
-              {/* Order badge & unit name */}
-              <div className="flex items-start justify-between gap-1">
-                <span className="text-[11px] font-bold text-slate-700 leading-tight">
-                  {unit.ten_bcvh.replace('BCVH ', '')}
-                </span>
-                <span className="shrink-0 text-[10px] font-bold text-slate-500 bg-white border border-slate-200 px-1 rounded">
-                  #{index + 1}
-                </span>
-              </div>
-
-              {/* Rate badge */}
-              <div className="mt-2.5 flex items-center justify-between">
-                <span
-                  className={`inline-flex items-center justify-center px-2 py-0.5 rounded-md border text-base font-extrabold tabular-nums ${toneClass}`}
-                  title={`${band.label}: ${formatRate(rate)}`}
-                >
-                  {formatRate(rate)}
-                </span>
-
-                {/* Target indicator icon */}
-                {rate !== null ? (
-                  isMet ? (
-                    <span className="inline-flex items-center text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200/70" title={`Đạt mục tiêu ≥ ${targetRate}%`}>
-                      <CheckCircle size={10} className="mr-0.5" />
-                      Đạt
+            return (
+              <div
+                key={unit.ma_bcvh}
+                className="relative flex flex-col justify-between rounded-xl border border-slate-200/80 bg-slate-50/50 p-3 hover:bg-white hover:shadow-xs hover:border-slate-300 transition-all duration-150"
+              >
+                {/* Order badge & unit name */}
+                <div className="flex items-start justify-between gap-1">
+                  <span className="text-[11px] font-bold text-slate-700 leading-tight">
+                    {unit.ten_bcvh.replace('BCVH ', '')}
+                  </span>
+                  {units.length > 1 && (
+                    <span className="shrink-0 text-[10px] font-bold text-slate-500 bg-white border border-slate-200 px-1 rounded">
+                      #{index + 1}
                     </span>
-                  ) : (
-                    <span className="inline-flex items-center text-[10px] font-bold text-rose-700 bg-rose-50 px-1.5 py-0.5 rounded border border-rose-200/70" title={`Dưới mục tiêu < ${targetRate}%`}>
-                      <AlertTriangle size={10} className="mr-0.5" />
-                      Chưa đạt
-                    </span>
-                  )
-                ) : null}
-              </div>
+                  )}
+                </div>
 
-              {/* Volume & detail stats */}
-              <div className="mt-2.5 pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
-                <span>Sản lượng:</span>
-                <span className="font-bold text-slate-800 tabular-nums">
-                  {formatVolume(unit.volume)}
-                </span>
+                {/* Rate badge */}
+                <div className="mt-2.5 flex items-center justify-between">
+                  <span
+                    className={`inline-flex items-center justify-center px-2 py-0.5 rounded-md border text-base font-extrabold tabular-nums ${toneClass}`}
+                    title={`${band.label}: ${formatRate(rate)}`}
+                  >
+                    {formatRate(rate)}
+                  </span>
+
+                  {/* Target indicator icon */}
+                  {rate !== null ? (
+                    isMet ? (
+                      <span className="inline-flex items-center text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200/70" title={`Đạt mục tiêu ≥ ${targetRate}%`}>
+                        <CheckCircle size={10} className="mr-0.5" />
+                        Đạt
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center text-[10px] font-bold text-rose-700 bg-rose-50 px-1.5 py-0.5 rounded border border-rose-200/70" title={`Dưới mục tiêu < ${targetRate}%`}>
+                        <AlertTriangle size={10} className="mr-0.5" />
+                        Chưa đạt
+                      </span>
+                    )
+                  ) : null}
+                </div>
+
+                {/* Volume & detail stats */}
+                <div className="mt-2.5 pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
+                  <span>Sản lượng:</span>
+                  <span className="font-bold text-slate-800 tabular-nums">
+                    {formatVolume(unit.volume)}
+                  </span>
+                </div>
               </div>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

@@ -2,10 +2,14 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   deriveAttentionPostmen,
+  extractDailyBcvhUnits,
   formatPeriodHeader,
+  formatSortCaption,
+  getNextPostmanSort,
   matchesPostmanSearch,
   processPostmanList,
   removeDiacritics,
+  sliceUnitsForCapture,
 } from './components/f42PostmanTableHelpers.js';
 
 test('removeDiacritics strips accents and normalizes to lower case', () => {
@@ -131,4 +135,78 @@ test('formatPeriodHeader formats day, week, month accurately', () => {
     'Tuần (08/10 – 14/10/2026)'
   );
   assert.equal(formatPeriodHeader('month', { anchorDate: '2026-10-10' }), 'Tháng 10/2026');
+});
+
+test('formatSortCaption formats Vietnamese sort caption without printing raw field names', () => {
+  assert.equal(formatSortCaption({ field: 'volume', direction: 'desc' }), 'sắp xếp theo Sản lượng, giảm dần');
+  assert.equal(formatSortCaption({ field: 'rate', direction: 'asc' }), 'sắp xếp theo Tỷ lệ, tăng dần');
+  assert.equal(formatSortCaption({ field: 'rank', direction: 'asc' }), 'sắp xếp theo Hạng, tăng dần');
+  assert.equal(formatSortCaption({ field: 'ma_buu_ta', direction: 'asc' }), 'sắp xếp theo Mã bưu tá, tăng dần');
+  assert.equal(formatSortCaption(null), '');
+  assert.equal(formatSortCaption({}), '');
+});
+
+test('getNextPostmanSort starts rank and text fields with asc, numbers with desc, and toggles active column', () => {
+  // 1. First click on rank starts asc (rank 1, 2, 3...)
+  assert.deepEqual(getNextPostmanSort(null, 'rank'), { field: 'rank', direction: 'asc' });
+  // Second click on rank toggles to desc
+  assert.deepEqual(getNextPostmanSort({ field: 'rank', direction: 'asc' }, 'rank'), { field: 'rank', direction: 'desc' });
+
+  // 2. Text fields start asc (A-Z)
+  assert.deepEqual(getNextPostmanSort(null, 'ten_buu_ta'), { field: 'ten_buu_ta', direction: 'asc' });
+  assert.deepEqual(getNextPostmanSort(null, 'ma_buu_ta'), { field: 'ma_buu_ta', direction: 'asc' });
+
+  // 3. Numeric metric fields start desc (highest volume/rate first)
+  assert.deepEqual(getNextPostmanSort(null, 'volume'), { field: 'volume', direction: 'desc' });
+  assert.deepEqual(getNextPostmanSort(null, 'rate'), { field: 'rate', direction: 'desc' });
+  assert.deepEqual(getNextPostmanSort({ field: 'volume', direction: 'desc' }, 'volume'), { field: 'volume', direction: 'asc' });
+});
+
+test('sliceUnitsForCapture limits total postmen rows across entire table to <= captureLimit', () => {
+  const units = [
+    {
+      ma_bcvh: '533140',
+      filteredPostmen: [
+        { ma_buu_ta: 'BT01' },
+        { ma_buu_ta: 'BT02' },
+        { ma_buu_ta: 'BT03' },
+      ],
+    },
+    {
+      ma_bcvh: '536250',
+      filteredPostmen: [
+        { ma_buu_ta: 'BT04' },
+        { ma_buu_ta: 'BT05' },
+        { ma_buu_ta: 'BT06' },
+      ],
+    },
+  ];
+
+  // Limit to 4 across whole table
+  const sliced = sliceUnitsForCapture(units, 4);
+  const total = sliced.reduce((sum, u) => sum + u.filteredPostmen.length, 0);
+  assert.equal(total, 4);
+  assert.equal(sliced[0].filteredPostmen.length, 3);
+  assert.equal(sliced[1].filteredPostmen.length, 1);
+
+  // 'all' returns untouched units
+  assert.deepEqual(sliceUnitsForCapture(units, 'all'), units);
+  assert.deepEqual(sliceUnitsForCapture([]), []);
+});
+
+test('extractDailyBcvhUnits extracts only rows returned by backend and does not synthesize missing canonical units', () => {
+  const dailyRows = [
+    { ma_bcvh: '533140', volume: 100, passed: 92, failed: 8, rate: 92.0 },
+  ];
+
+  const extracted = extractDailyBcvhUnits(dailyRows);
+  // Only 1 unit returned, NOT 6!
+  assert.equal(extracted.length, 1);
+  assert.equal(extracted[0].ma_bcvh, '533140');
+  assert.equal(extracted[0].ten_bcvh, 'BCVH Thuận Hóa');
+  assert.equal(extracted[0].rate, 92.0);
+
+  // Empty rows returns empty array
+  assert.deepEqual(extractDailyBcvhUnits([]), []);
+  assert.deepEqual(extractDailyBcvhUnits(null), []);
 });
