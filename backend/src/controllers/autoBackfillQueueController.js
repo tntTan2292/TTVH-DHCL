@@ -51,6 +51,8 @@ class AutoBackfillQueueController {
                 confirmReplaceCompleted: Boolean(req.body?.confirm_replace_completed),
                 // IMPORT-LOG-AUDIT-01 Part B: chosen day + the two days before it, all indicators, both lanes.
                 anchorDate: req.body?.anchor_date || null,
+                // AUTO-IMPORT-LOG-01: a list of cells -> one run with many jobs
+                items: Array.isArray(req.body?.items) ? req.body.items : (req.body?.items === undefined ? null : []),
                 actor: requestActor(req),
                 roles: requestRoles(req),
             });

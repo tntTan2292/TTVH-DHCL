@@ -28,6 +28,20 @@ function normalizeClass(value) {
     return Object.values(ERROR_CLASSES).includes(normalized) ? normalized : null;
 }
 
+// AUTO-IMPORT-LOG-01 (1): a locked database is local contention between two writers, not a portal or adapter fault.
+// It is retried (bounded by the lane's attempt budget, never faster than MIN_LOCK_RETRY_DELAY_MS) and never counts
+// toward the circuit that stops a lane.
+const LOCK_CODES = new Set(['SQLITE_BUSY', 'SQLITE_LOCKED']);
+const LOCK_MESSAGE = /SQLITE_BUSY|SQLITE_LOCKED|database (table )?is locked/i;
+const MIN_LOCK_RETRY_DELAY_MS = 15000;
+
+// AUTO-IMPORT-LOG-01 (3): the portal data of a day is not complete (yet): TCT rows without an accepting province,
+// the portal's own summary disagreeing with the file (the portal is still computing or revised the day). Nothing is
+// wrong with the system, so it is class DATA (isolated to that day, does not count toward the circuit) with the code
+// DATA_NOT_READY unless the error already carries a specific code. The scheduled import retries such days.
+const DATA_NOT_READY_MESSAGE = /missing accepting province code|has no accepting province code/i;
+const DATA_NOT_READY_CODE = /(RECONCILIATION|OUTER_SUMMARY)/;
+
 function sanitizeCode(value) {
     const code = String(value || 'QUEUE_EXECUTION_ERROR').toUpperCase().replace(/[^A-Z0-9_.-]/g, '_');
     return code.slice(0, 96) || 'QUEUE_EXECUTION_ERROR';
@@ -87,20 +101,30 @@ class AutoBackfillSafetyCoordinator {
         const code = sanitizeCode(error?.code);
         const declared = error?.autoBackfill?.classification
             || lane?.errorMap?.[code];
-        const classification = normalizeClass(declared) || ERROR_CLASSES.SYSTEM;
+        const message = String(error?.message || '');
+        const lockContention = !declared && (LOCK_CODES.has(code) || LOCK_MESSAGE.test(message));
+        const dataNotReady = !declared && !lockContention && (DATA_NOT_READY_MESSAGE.test(message) || DATA_NOT_READY_CODE.test(code));
+        const classification = normalizeClass(declared)
+            || (lockContention ? ERROR_CLASSES.TRANSIENT : null)
+            || (dataNotReady ? ERROR_CLASSES.DATA : null)
+            || ERROR_CLASSES.SYSTEM;
+        const reportedCode = dataNotReady && code === 'QUEUE_EXECUTION_ERROR' ? 'DATA_NOT_READY' : code;
         const declaredRetryable = (lane?.retryPolicy?.retryableClasses || [])
             .map(normalizeClass)
             .filter(Boolean);
         const retryable = classification === ERROR_CLASSES.TRANSIENT
             && declaredRetryable.includes(ERROR_CLASSES.TRANSIENT);
-        const systemic = retryable || classification === ERROR_CLASSES.SYSTEM;
+        const systemic = lockContention ? false : (retryable || classification === ERROR_CLASSES.SYSTEM);
         return {
-            code,
+            code: reportedCode,
             classification,
             retryable,
             systemic,
+            lockContention,
+            dataNotReady,
+            minRetryDelayMs: lockContention ? MIN_LOCK_RETRY_DELAY_MS : 0,
             integrityFatal: classification === ERROR_CLASSES.INTEGRITY_FATAL,
-            signature: errorSignature(classification, code, error?.message),
+            signature: errorSignature(classification, reportedCode, error?.message),
             message: diagnosticMessage(error?.message),
             scope: this.scopeFor(lane, job),
         };
@@ -120,6 +144,7 @@ class AutoBackfillSafetyCoordinator {
 module.exports = {
     AutoBackfillSafetyCoordinator,
     ERROR_CLASSES,
+    MIN_LOCK_RETRY_DELAY_MS,
     errorSignature,
     scopeKey,
 };

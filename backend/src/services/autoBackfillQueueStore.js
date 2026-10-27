@@ -397,7 +397,9 @@ class AutoBackfillQueueStore {
                         j.force_reimport, j.last_error_class, j.last_error_signature, j.action_required, j.terminal_reason,
                         j.completion_evidence_json, j.created_at, j.started_at, j.ended_at,
                         r.requested_by AS actor, r.status AS run_status,
-                        (SELECT COUNT(*) FROM auto_backfill_attempt a WHERE a.job_id = j.id) AS attempt_count
+                        (SELECT COUNT(*) FROM auto_backfill_attempt a WHERE a.job_id = j.id) AS attempt_count,
+                        (SELECT a.evidence_json FROM auto_backfill_attempt a WHERE a.job_id = j.id ORDER BY a.attempt_number DESC LIMIT 1) AS last_attempt_evidence,
+                        (SELECT a.result_code FROM auto_backfill_attempt a WHERE a.job_id = j.id ORDER BY a.attempt_number DESC LIMIT 1) AS last_result_code
                  ${base} ${itemWhere}
                  ORDER BY COALESCE(j.ended_at, j.started_at, j.created_at) DESC, j.id DESC
                  LIMIT ? OFFSET ?`,
@@ -405,9 +407,12 @@ class AutoBackfillQueueStore {
             );
             const items = rows.map((row) => {
                 const evidence = parseJson(row.completion_evidence_json) || {};
-                const { completion_evidence_json: _omit, ...rest } = row;
+                const { completion_evidence_json: _omit, last_attempt_evidence: lastEvidence, ...rest } = row;
+                const attemptEvidence = parseJson(lastEvidence) || {};
                 return {
                     ...rest,
+                    // readable (already redacted) message of the latest attempt: why the job failed
+                    last_error_message: typeof attemptEvidence.message === 'string' ? attemptEvidence.message : null,
                     force_reimport: Number(row.force_reimport) === 1,
                     row_count: Number.isFinite(Number(evidence.row_count)) ? Number(evidence.row_count) : null,
                     replaced_row_count: Number.isFinite(Number(evidence.replaced_row_count)) ? Number(evidence.replaced_row_count) : null,
@@ -745,7 +750,9 @@ class AutoBackfillQueueStore {
             } else if (failure.classification === 'PERMISSION') {
                 actionRequired = 'Verify the supported account permission; automatic retry is not permitted.';
             } else if (failure.classification === 'DATA') {
-                actionRequired = 'Review the isolated date/data evidence; automatic retry is not permitted.';
+                actionRequired = failure.dataNotReady
+                    ? 'The portal data for this day is not complete yet; the scheduled import retries it, or re-import it later.'
+                    : 'Review the isolated date/data evidence; automatic retry is not permitted.';
             }
 
             await run(

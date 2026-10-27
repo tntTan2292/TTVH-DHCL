@@ -35,6 +35,10 @@ function addDays(isoDate, delta) {
 // PO decision 2026-10-16: the chosen day plus the two days before it (D, D-1, D-2).
 const REFRESH_DAY_SPAN = 3;
 
+// AUTO-IMPORT-LOG-01: largest list of cells accepted by one bulk request (3 days x 4 indicators x 2 lanes is 24; a year of one indicator
+// on both lanes is 730).
+const MAX_BULK_ITEMS = 1000;
+
 function sortJobs(jobs) {
     return jobs.sort((left, right) =>
         right.businessDate.localeCompare(left.businessDate)
@@ -117,8 +121,13 @@ class AutoBackfillQueueService {
         return { indicator, lane };
     }
 
-    async createRun({ indicator = null, lane = null, fromDate = null, toDate = null, includeExcluded = false, confirmReplaceCompleted = false, anchorDate = null, actor, roles }) {
+    async createRun({ indicator = null, lane = null, fromDate = null, toDate = null, includeExcluded = false, confirmReplaceCompleted = false, anchorDate = null, items = null, actor, roles }) {
         assertAdmin(roles);
+        // AUTO-IMPORT-LOG-01 (2): a list of cells (indicator, source, day) becomes ONE run with many jobs, instead of
+        // one run per cell (a bulk selection used to create hundreds of one-job runs).
+        if (items !== null && items !== undefined) {
+            return this.createBulkRun({ items, indicator, lane, fromDate, toDate, includeExcluded, anchorDate, confirmReplaceCompleted, actor });
+        }
         // IMPORT-LOG-AUDIT-01 Part B (PO decision 2026-10-16): one chosen day D plus the two days before it
         // (D, D-1, D-2 = REFRESH_DAY_SPAN days), every ACTIVE indicator on every AUTOMATED lane.
         if (anchorDate) return this.createAnchorRun({ anchorDate, indicator, lane, fromDate, toDate, includeExcluded, confirmReplaceCompleted, actor });
@@ -268,6 +277,107 @@ class AutoBackfillQueueService {
     // replaced (admin-only, one confirmation, same as Nhập lại). Every existing guard stays: holiday / exception days
     // (EXCLUDED), MANUAL_ONLY lanes, lanes without a verified executor, future days. A tuple that already has an open
     // job is skipped by the store, as for any run.
+    /**
+     * AUTO-IMPORT-LOG-01 (2): one run for a list of cells `{ indicator, lane (or source_lane), business_date }`.
+     * A cell whose day has no data (queue-eligible) is a new import; a COMPLETED cell of an ACTIVE indicator on an
+     * AUTOMATED lane with a verified executor is a re-import (replaces the day) and needs `confirmReplaceCompleted`
+     * for the whole request. Every other cell (holiday / exception day, manual-only lane, paused indicator, unknown
+     * cell) is skipped and reported, never queued. The same cell twice counts once. A cell that already has an open
+     * job is skipped by the store like in any run.
+     */
+    async createBulkRun({ items, indicator, lane, fromDate, toDate, includeExcluded, anchorDate, confirmReplaceCompleted, actor }) {
+        if (indicator || lane || fromDate || toDate || includeExcluded || anchorDate) {
+            throw queueError(
+                'AUTO_BACKFILL_ITEMS_EXCLUSIVE',
+                'items cannot be combined with indicator, lane, from_date, to_date, include_excluded or anchor_date (confirm_replace_completed is the only extra field allowed).',
+                400,
+            );
+        }
+        if (!Array.isArray(items) || items.length === 0) {
+            throw queueError('AUTO_BACKFILL_ITEMS_REQUIRED', 'items must be a non-empty list of { indicator, lane, business_date }.', 400);
+        }
+        if (items.length > MAX_BULK_ITEMS) {
+            throw queueError('AUTO_BACKFILL_ITEMS_TOO_MANY', `At most ${MAX_BULK_ITEMS} cells per request.`, 400);
+        }
+        const wanted = new Map();
+        for (const raw of items) {
+            const code = String(raw?.indicator || '').trim().toUpperCase();
+            const laneCode = String(raw?.lane || raw?.source_lane || '').trim().toUpperCase();
+            if (!code || !laneCode) {
+                throw queueError('AUTO_BACKFILL_ITEM_INVALID', 'Every item needs indicator, lane and business_date.', 400);
+            }
+            const businessDate = normalizeBusinessDate(raw?.business_date, 'business_date');
+            wanted.set(`${code}|${laneCode}|${businessDate}`, { indicator: code, lane: laneCode, businessDate });
+        }
+        const coverage = await this.coverageService.scan({ roles: ['admin'], fresh: true });
+        const byKey = new Map(coverage.items.map((item) => [`${item.indicator}|${item.source_lane}|${item.business_date}`, item]));
+        const jobs = [];
+        const skipped = [];
+        for (const [key, cell] of wanted) {
+            const item = byKey.get(key);
+            const skip = (reason) => skipped.push({ indicator: cell.indicator, source_lane: cell.lane, business_date: cell.businessDate, reason });
+            if (!item) { skip('NOT_IN_COVERAGE'); continue; }
+            let registration;
+            try {
+                registration = this.findRegistration(item.indicator, item.source_lane);
+            } catch (_) { skip('NOT_REGISTERED'); continue; }
+            const runnable = registration.indicator.status === 'ACTIVE'
+                && registration.lane.automationMode === 'AUTOMATED'
+                && registration.lane.portalAdapter?.verified
+                && Boolean(this.executorRegistry.getVerified(registration.lane.portalAdapter.id));
+            if (!runnable) { skip('NOT_AUTOMATED_OR_NOT_ACTIVE'); continue; }
+            if (item.queue_eligible) {
+                jobs.push(this.buildJobSpec(item, { forceReimport: false, importMode: 'NEW' }));
+            } else if (item.status === 'COMPLETED') {
+                jobs.push(this.buildJobSpec(item, { forceReimport: true, importMode: 'REIMPORT' }));
+            } else {
+                skip(String(item.queue_ineligible_reason || item.status || 'NOT_ELIGIBLE'));
+            }
+        }
+        if (jobs.length === 0) {
+            throw queueError('AUTO_BACKFILL_NO_EXECUTABLE_COVERAGE', 'None of the requested cells can be imported.', 409);
+        }
+        const replaceCount = jobs.filter((job) => job.forceReimport).length;
+        if (replaceCount > 0 && !confirmReplaceCompleted) {
+            throw queueError(
+                'AUTO_BACKFILL_BULK_CONFIRM_REQUIRED',
+                `${replaceCount} completed day(s) would be overwritten; resend with confirm_replace_completed=true to confirm.`,
+                409,
+            );
+        }
+        sortJobs(jobs);
+        const sameIndicator = new Set(jobs.map((job) => job.indicator));
+        const sameLane = new Set(jobs.map((job) => job.sourceLane));
+        const requestKey = stableRequestKey({
+            registry_version: coverage.registry_version || this.registryVersion,
+            as_of_business_date: coverage.as_of_business_date,
+            mode: 'BULK_ITEMS',
+            identities: jobs.map((job) => [job.indicator, job.sourceLane, job.businessDate, job.forceReimport]),
+        });
+        const result = await this.store.createRunWithJobs({
+            requestKey,
+            registryVersion: coverage.registry_version || this.registryVersion,
+            asOfBusinessDate: coverage.as_of_business_date,
+            requestedIndicator: sameIndicator.size === 1 ? [...sameIndicator][0] : null,
+            requestedLane: sameLane.size === 1 ? [...sameLane][0] : null,
+            requestedBy: String(actor || 'unknown'),
+            jobs,
+        });
+        this.notifyWorkAvailable('run-created');
+        const created = result.creation?.created ? result.jobs : [];
+        return {
+            ...result,
+            bulk: {
+                requested: wanted.size,
+                job_count: created.length,
+                new_count: created.filter((job) => Number(job.force_reimport) !== 1).length,
+                replace_count: created.filter((job) => Number(job.force_reimport) === 1).length,
+                skipped_open_conflicts: Number(result.creation?.skippedConflicts || 0),
+                skipped,
+            },
+        };
+    }
+
     async createAnchorRun({ anchorDate, indicator, lane, fromDate, toDate, includeExcluded, confirmReplaceCompleted, actor }) {
         if (indicator || lane || fromDate || toDate || includeExcluded) {
             throw queueError(
@@ -653,7 +763,7 @@ class AutoBackfillQueueService {
                 const failure = this.safetyCoordinator.classify(error, { lane, job });
                 const maxAttempts = this.safetyCoordinator.maxAttempts(lane.retryPolicy);
                 const retryAt = failure.retryable && Number(job.attempt_number) < maxAttempts
-                    ? new Date(this.store.clock().getTime() + this.safetyCoordinator.retryDelayMs(lane.retryPolicy, job.attempt_number)).toISOString()
+                    ? new Date(this.store.clock().getTime() + Math.max(this.safetyCoordinator.retryDelayMs(lane.retryPolicy, job.attempt_number), Number(failure.minRetryDelayMs) || 0)).toISOString()
                     : null;
                 const result = await this.store.recordLeasedFailure(job.id, job.lease_token, {
                     failure,
