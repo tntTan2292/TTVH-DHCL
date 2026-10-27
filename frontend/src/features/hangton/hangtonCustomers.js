@@ -49,6 +49,12 @@ export function customersParam(selected = []) {
   return selected.length > 0 ? selected.join('|') : undefined;
 }
 
+// Warning shown while the module is limited to some groups (every figure then covers those groups only); null = no filter.
+export function customerFilterNotice(selected = []) {
+  if (!Array.isArray(selected) || selected.length === 0) return null;
+  return `Đang lọc theo nhóm KH: ${selected.join(', ')} — mọi số liệu trên các màn hình Hàng tồn chỉ tính riêng nhóm này, chưa phải toàn bộ.`;
+}
+
 // 0 or 1 group selected: the stock-age chart in red; 2 or more: one stacked series per selected group.
 export function chartMode(selected = []) {
   return selected.length >= 2 ? 'groups' : 'levels';

@@ -281,6 +281,9 @@ test('customer groups: handling order, toggling, stored selection, API parameter
   assert.deepEqual(c.sanitizeSelectedCustomers('rác'), []);
   assert.equal(c.customersParam([]), undefined);
   assert.equal(c.customersParam(['KH Mới', 'KH Shopee']), 'KH Mới|KH Shopee');
+  assert.equal(c.customerFilterNotice([]), null, 'no filter, no warning');
+  assert.match(c.customerFilterNotice(['KH Mới']), /KH Mới/);
+  assert.match(c.customerFilterNotice(['KH Mới', 'KH Shopee']), /KH Mới, KH Shopee/);
   assert.equal(c.chartMode([]), 'levels');
   assert.equal(c.chartMode(['KH Mới']), 'levels', 'one group keeps the red stock-age chart');
   assert.equal(c.chartMode(['KH Mới', 'KH Shopee']), 'groups');

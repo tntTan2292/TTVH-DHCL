@@ -1,6 +1,6 @@
 import React from 'react';
-import { Users } from 'lucide-react';
-import { sortCustomerGroups, customerColor, toggleCustomer } from '../hangtonCustomers.js';
+import { Users, TriangleAlert } from 'lucide-react';
+import { sortCustomerGroups, customerColor, toggleCustomer, customerFilterNotice } from '../hangtonCustomers.js';
 import { formatNumber } from '../hangtonLevels.js';
 
 // Customer-group selector: one chip per group of the snapshot (count + stock of 5 days and more), a group is
@@ -9,11 +9,26 @@ export default function CustomerFilterBar({ groups = [], selected = [], onChange
   const ordered = sortCustomerGroups(groups);
   if (ordered.length === 0) return null;
   const none = selected.length === 0;
+  const notice = customerFilterNotice(selected);
 
   return (
+    <div className="space-y-2" data-no-capture="true">
+    {notice ? (
+      <div role="alert" className="flex flex-wrap items-center gap-3 rounded-xl border-2 border-amber-400 bg-amber-50 px-4 py-2.5 text-sm font-bold text-amber-900 shadow-xs">
+        <TriangleAlert size={18} className="shrink-0 text-amber-600" />
+        <span className="min-w-0 flex-1">{notice}</span>
+        <button
+          type="button"
+          disabled={disabled}
+          onClick={() => onChange([])}
+          className="cursor-pointer rounded-md border border-amber-600 bg-amber-600 px-3 py-1 text-[13px] font-bold text-white transition-colors hover:bg-amber-700 disabled:opacity-50"
+        >
+          Bỏ lọc, xem tất cả
+        </button>
+      </div>
+    ) : null}
     <div
-      className="flex flex-wrap items-center gap-1.5 rounded-xl border border-slate-200/80 bg-white px-3 py-1.5 shadow-xs"
-      data-no-capture="true"
+      className={`flex flex-wrap items-center gap-1.5 rounded-xl border bg-white px-3 py-1.5 shadow-xs ${none ? 'border-slate-200/80' : 'border-amber-400'}`}
     >
       <span className="flex items-center gap-1 text-[13px] font-bold text-slate-700">
         <Users size={15} className="text-rose-600" />
@@ -55,6 +70,7 @@ export default function CustomerFilterBar({ groups = [], selected = [], onChange
           </button>
         );
       })}
+    </div>
     </div>
   );
 }
