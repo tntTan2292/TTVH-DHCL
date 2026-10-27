@@ -61,7 +61,8 @@ test('Review Fix 4 & 5: ExecutiveIndicatorCard handles nulls cleanly and provide
   assert.match(cardSrc, /gap_to_target/);
   assert.match(cardSrc, /rank_movement/);
   assert.match(cardSrc, /periodShortTitle/);
-  assert.match(cardSrc, /BlockCaptureButton/);
+  // PO 2026-10-27: no camera button on a single indicator widget (the page and the report blocks keep theirs)
+  assert.doesNotMatch(cardSrc, /BlockCaptureButton/);
   assert.match(cardSrc, /Chưa có dữ liệu/);
   assert.doesNotMatch(cardSrc, /24h\/48h/);
   // Null movement or change renders "—"

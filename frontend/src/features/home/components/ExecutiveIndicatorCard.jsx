@@ -11,7 +11,6 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { LineChart, Line, YAxis, ReferenceLine, ResponsiveContainer } from 'recharts';
-import BlockCaptureButton from '../../../components/common/BlockCaptureButton.jsx';
 import { INDICATORS, indicatorTheme } from '../../indicator/indicatorConfig.js';
 import { IndicatorProvider } from '../../indicator/IndicatorContext.js';
 import { computeTrendYDomain, formatGap, INDICATOR_FULL_NAMES } from '../homeTableSort.js';
@@ -49,11 +48,6 @@ export default function ExecutiveIndicatorCard({ data, isSelected, onSelect }) {
               <h3 className="text-lg font-black text-slate-900 tracking-tight">{data?.label || indConfig.moduleLabel}</h3>
               <span className="text-xs font-semibold text-slate-500">{fullName}</span>
             </div>
-            <BlockCaptureButton
-              targetRef={cardRef}
-              blockTitle={`Chỉ tiêu ${data?.label || indConfig.moduleLabel}`}
-              dateOrPeriod="Chưa có dữ liệu"
-            />
           </div>
           <div className="py-6 text-center space-y-1.5">
             <div className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-amber-50 text-amber-600">
@@ -105,19 +99,12 @@ export default function ExecutiveIndicatorCard({ data, isSelected, onSelect }) {
       <div ref={cardRef} onClick={onSelect} className={frame}>
         {/* Header: indicator, its name, target and camera */}
         <div className="flex items-center justify-between gap-2 pb-1">
-          <div className="flex min-w-0 items-center gap-2">
+          <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
             <span className={`h-4 w-1.5 shrink-0 rounded-full ${theme.accentBar}`} />
             <h3 className="text-lg font-black leading-none text-slate-900 tracking-tight">{data.label}</h3>
             <span className={`whitespace-nowrap rounded-md border px-1.5 py-0.5 text-[11px] font-bold ${theme.chip}`}>
               Mục tiêu {targetRate}%
             </span>
-          </div>
-          <div data-no-capture="true" className="shrink-0">
-            <BlockCaptureButton
-              targetRef={cardRef}
-              blockTitle={`Chỉ tiêu ${data.label}`}
-              dateOrPeriod={periodTitle(data)}
-            />
           </div>
         </div>
         <div className="-mt-0.5 flex items-center justify-between gap-2 border-b border-slate-100 pb-2 text-xs font-semibold text-slate-600" title={`Kỳ số liệu của chỉ tiêu ${data.label}: ${periodTitle(data)}`}>
@@ -132,7 +119,7 @@ export default function ExecutiveIndicatorCard({ data, isSelected, onSelect }) {
         <div className="mt-2 grid grid-cols-2 gap-2">
           <div className="rounded-xl border border-slate-200/80 bg-slate-50/70 p-2.5 flex flex-col justify-between">
             <div>
-              <div className="flex items-center justify-between gap-1">
+              <div className="flex flex-wrap items-center justify-between gap-1">
                 <span className="text-xs font-bold uppercase tracking-wide text-slate-600">Tỷ lệ đạt</span>
                 {isTargetMet ? (
                   <span className="inline-flex items-center gap-0.5 rounded border border-emerald-200 bg-emerald-100/80 px-1.5 py-0.5 text-[10px] font-bold text-emerald-800">
@@ -151,25 +138,13 @@ export default function ExecutiveIndicatorCard({ data, isSelected, onSelect }) {
                 <span className="text-sm 2xl:text-base font-extrabold text-slate-500">%</span>
               </div>
             </div>
-            <div className="mt-1.5 space-y-1 border-t border-slate-200/80 pt-1.5">
-              <div className="flex items-center justify-between text-xs">
-                <span className="whitespace-nowrap font-medium text-slate-600">Chênh mục tiêu</span>
-                <span className={`whitespace-nowrap font-black tabular-nums ${isTargetMet ? 'text-emerald-700' : 'text-rose-600'}`}>
-                  {formatGap(gapToTarget)}
-                </span>
-              </div>
-              <div className="flex items-center justify-between text-xs">
-                <span className="whitespace-nowrap font-medium text-slate-600">So {basis}</span>
-                <span className="ml-auto whitespace-nowrap">{rateChangeView}</span>
-              </div>
-            </div>
           </div>
 
           <div className="rounded-xl border border-rose-200/80 bg-rose-50/50 p-2.5 flex flex-col justify-between">
             <div>
               <div className="flex items-center justify-between">
-                <span className="whitespace-nowrap text-xs font-bold uppercase tracking-wide text-rose-800">Vị thứ toàn quốc</span>
-                <Award size={15} className="shrink-0 text-rose-500" />
+                <span className="text-xs font-bold uppercase leading-tight tracking-wide text-rose-800">Vị thứ toàn quốc</span>
+                <Award size={15} className="hidden shrink-0 text-rose-500 @[17rem]:block" />
               </div>
               <div className="mt-1 flex items-baseline gap-1">
                 <span className="text-2xl 2xl:text-3xl font-black leading-tight tracking-tight text-rose-600 tabular-nums">
@@ -178,12 +153,22 @@ export default function ExecutiveIndicatorCard({ data, isSelected, onSelect }) {
                 <span className="text-sm 2xl:text-base font-bold text-rose-400">/{total}</span>
               </div>
             </div>
-            <div className="mt-1.5 border-t border-rose-200/70 pt-1.5">
-              <div className="flex items-center justify-between text-xs">
-                <span className="whitespace-nowrap font-medium text-slate-600">So {basis}</span>
-                <span className="ml-auto whitespace-nowrap">{movementView}</span>
-              </div>
-            </div>
+          </div>
+        </div>
+
+        {/* Gap and changes on full-width lines: five cards share one row, so nothing is squeezed into the number boxes */}
+        <div className="mt-2 space-y-1 rounded-xl border border-slate-200/80 bg-white px-2.5 py-1.5 text-xs">
+          <div className="flex items-center justify-between gap-2">
+            <span className="whitespace-nowrap font-medium text-slate-600">Chênh mục tiêu</span>
+            <span className={`whitespace-nowrap font-black tabular-nums ${isTargetMet ? "text-emerald-700" : "text-rose-600"}`}>{formatGap(gapToTarget)}</span>
+          </div>
+          <div className="flex items-center justify-between gap-2">
+            <span className="whitespace-nowrap font-medium text-slate-600">Tỷ lệ so {basis}</span>
+            <span className="whitespace-nowrap">{rateChangeView}</span>
+          </div>
+          <div className="flex items-center justify-between gap-2">
+            <span className="whitespace-nowrap font-medium text-slate-600">Hạng so {basis}</span>
+            <span className="whitespace-nowrap">{movementView}</span>
           </div>
         </div>
 
