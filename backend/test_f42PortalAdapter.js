@@ -23,7 +23,7 @@ const { DkclHueF13PortalClient } = require('./src/services/dkclHueF13PortalClien
 const methods = require('./src/services/f42PortalClientMethods');
 const { F42_EXECUTOR_IDENTITIES } = require('./src/services/autoBackfillF42Contract');
 const { F42HueSingleDateService, F42TctSingleDateService, F42HueAdapter, standardizedFilename } = require('./src/services/f42SingleDateServices');
-const { F42AutoBackfillExecutor, createF42AutoBackfillExecutors } = require('./src/services/autoBackfillF42Executors');
+const { F42AutoBackfillExecutor, F42_BACKFILL_EXPORT_TIMEOUT_MS, createF42AutoBackfillExecutors } = require('./src/services/autoBackfillF42Executors');
 const { selectNewestGeneratedFile } = require('./src/services/dkclHueF13SyncService');
 const { hueCsvBuffer, tctBuffer, tctPopulation } = require('./test/f42Fixtures');
 
@@ -558,6 +558,17 @@ test('executor refuses an expired session and a source already owned by another 
     await assert.rejects(expired.execute({ indicator: 'F4.2', sourceLane: 'TCT', businessDate: '2026-10-10' }), (error) => error.code === 'AUTHENTICATION_REQUIRED');
     const busy = new F42AutoBackfillExecutor({ identity: F42_EXECUTOR_IDENTITIES.TCT, adapter, sessionPreflightService: fakePreflight({ client: {}, entry: { activeOperation: 'OTHER' } }) });
     await assert.rejects(busy.execute({ indicator: 'F4.2', sourceLane: 'TCT', businessDate: '2026-10-10' }), (error) => error.code === 'DKCL_SOURCE_OPERATION_ACTIVE');
+});
+
+test('the queue waits 5 minutes for an F4.2 export, the plain service keeps its 15-minute default', () => {
+    const executors = createF42AutoBackfillExecutors({ sessionPreflightService: fakePreflight() });
+    assert.equal(F42_BACKFILL_EXPORT_TIMEOUT_MS, 300000);
+    for (const lane of ['HUE', 'TCT']) {
+        assert.equal(executors[lane].adapter.service.config.generationTimeoutMs, 300000);
+    }
+    const custom = createF42AutoBackfillExecutors({ sessionPreflightService: fakePreflight(), serviceOptions: { generationTimeoutMs: 1000 } });
+    assert.equal(custom.TCT.adapter.service.config.generationTimeoutMs, 1000);
+    assert.equal(new F42TctSingleDateService().config.generationTimeoutMs, 900000);
 });
 
 test('the executor factory builds one executor per lane with the F4.2 identities', () => {

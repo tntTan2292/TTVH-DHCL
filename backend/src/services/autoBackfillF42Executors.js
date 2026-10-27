@@ -74,10 +74,16 @@ class F42AutoBackfillExecutor {
     }
 }
 
+// A healthy DKCL portal produces the F4.2 export in 0.7-1.6 minutes. Dates the portal cannot
+// export never produce it, and each wasted wait blocks the whole lane (PO decision 2026-10-27:
+// 15 -> 5 minutes). Applies only to the queue's own service instances, not to the 15-minute default.
+const F42_BACKFILL_EXPORT_TIMEOUT_MS = 300000;
+
 function createF42AutoBackfillExecutors(options = {}) {
     const sessionPreflightService = options.sessionPreflightService || new DkclSessionPreflightService();
-    const hueService = options.hueService || new F42HueSingleDateService(options.hueServiceOptions || options.serviceOptions);
-    const tctService = options.tctService || new F42TctSingleDateService(options.tctServiceOptions || options.serviceOptions);
+    const serviceOptions = (laneOptions) => ({ generationTimeoutMs: F42_BACKFILL_EXPORT_TIMEOUT_MS, ...(laneOptions || options.serviceOptions) });
+    const hueService = options.hueService || new F42HueSingleDateService(serviceOptions(options.hueServiceOptions));
+    const tctService = options.tctService || new F42TctSingleDateService(serviceOptions(options.tctServiceOptions));
     return {
         HUE: new F42AutoBackfillExecutor({ identity: F42_EXECUTOR_IDENTITIES.HUE, adapter: options.hueAdapter || new F42HueAdapter({ service: hueService }), sessionPreflightService }),
         TCT: new F42AutoBackfillExecutor({ identity: F42_EXECUTOR_IDENTITIES.TCT, adapter: options.tctAdapter || new F42TctAdapter({ service: tctService }), sessionPreflightService }),
@@ -93,6 +99,7 @@ function registerF42AutoBackfillExecutors(executorRegistry, options = {}) {
 }
 
 module.exports = {
+    F42_BACKFILL_EXPORT_TIMEOUT_MS,
     F42_EXECUTOR_IDENTITIES,
     F42AutoBackfillExecutor,
     createF42AutoBackfillExecutors,
