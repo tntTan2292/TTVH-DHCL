@@ -1277,3 +1277,166 @@ export function summarizeCalendarDayGroups(calendarDays = []) {
   return { totalDays, completeDays, missingDays, label };
 }
 
+// ============================================================================
+// AUTO-BACKFILL-BULK-01 (Manifest UI-IMPORT-PROCESS-LOG-01 Section 6)
+// Pure helper functions for Bulk Items Payload, Chunking, Skip Reason Translation,
+// and Bulk Run Reports Aggregation.
+// ============================================================================
+
+export const MAX_BULK_ITEMS_PER_REQUEST = 1000;
+
+export const BULK_SKIP_REASON_LABELS = Object.freeze({
+  NOT_IN_COVERAGE: 'Ngoài phạm vi theo dõi',
+  NOT_REGISTERED: 'Chưa đăng ký cấu hình chỉ tiêu / nguồn',
+  NOT_AUTOMATED_OR_NOT_ACTIVE: 'Chỉ tiêu không hoạt động hoặc nguồn chưa tự động hóa',
+  ALREADY_SUCCESS: 'Dữ liệu đã hoàn tất',
+  HOLIDAY: 'Lịch nghỉ / ngày lễ',
+  VERIFIED_NO_DATA: 'Đã xác nhận không có dữ liệu',
+  PO_EXEMPTED: 'PO miễn trừ',
+  LEGACY_DATA_PRESENT_WITHOUT_EVIDENCE: 'Dữ liệu lịch sử không có bằng chứng',
+  INDICATOR_NOT_ACTIVE: 'Chỉ tiêu không kích hoạt',
+  AUTOMATION_DISABLED: 'Đã tắt tự động hóa',
+  PORTAL_ADAPTER_NOT_REGISTERED: 'Chưa đăng ký kết nối Portal',
+  COMPLETION_EVIDENCE_REQUIRES_REVIEW: 'Bằng chứng cần kiểm tra',
+  NOT_ELIGIBLE: 'Không đủ điều kiện nạp',
+  COMPLETED: 'Đã hoàn tất',
+  INCOMPLETE: 'Chưa hoàn tất',
+  EXCLUDED: 'Được loại trừ',
+  DATA_ERROR: 'Lỗi dữ liệu',
+});
+
+/**
+ * Translates a bulk skipped reason code to Vietnamese official wording.
+ * Unknown codes return raw reason as required.
+ * Pure.
+ * @param {string} reason
+ * @returns {string}
+ */
+export function translateBulkSkipReason(reason) {
+  if (!reason) return 'Chưa xác định';
+  return BULK_SKIP_REASON_LABELS[reason] || String(reason);
+}
+
+/**
+ * Formats API errors for bulk run execution, especially 409 AUTO_BACKFILL_BULK_CONFIRM_REQUIRED.
+ * Pure.
+ * @param {any} err
+ * @returns {{ code: string|null, isConfirmRequired: boolean, message: string, displayText: string }|null}
+ */
+export function formatBulkError(err) {
+  if (!err) return null;
+  const errorObj = err?.response?.data?.error || err?.error;
+  const code = errorObj?.code || err?.code || (err?.response?.status === 409 ? 'AUTO_BACKFILL_BULK_CONFIRM_REQUIRED' : null);
+  const rawMessage = errorObj?.message || err?.response?.data?.message || err?.message || 'Đã xảy ra lỗi khi gọi API.';
+  const isConfirmRequired = code === 'AUTO_BACKFILL_BULK_CONFIRM_REQUIRED' ||
+    (typeof rawMessage === 'string' && rawMessage.includes('confirm_replace_completed'));
+
+  const message = rawMessage;
+  const displayText = isConfirmRequired
+    ? `Cần xác nhận thay thế dữ liệu đã hoàn tất (AUTO_BACKFILL_BULK_CONFIRM_REQUIRED): ${message}`
+    : (code ? `[${code}] ${message}` : message);
+
+  return {
+    code: code || (isConfirmRequired ? 'AUTO_BACKFILL_BULK_CONFIRM_REQUIRED' : null),
+    isConfirmRequired,
+    message,
+    displayText,
+  };
+}
+
+/**
+ * Builds payload for POST /import/auto-backfill/runs with items list.
+ * Pure.
+ * @param {Object[]} items - Array of coverage items
+ * @param {{ confirmReplaceCompleted?: boolean }} [options]
+ * @returns {{ items: Array<{ indicator: string, lane: string, business_date: string }>, confirm_replace_completed?: boolean }}
+ */
+export function buildBulkRunPayload(items = [], { confirmReplaceCompleted = false } = {}) {
+  const mapped = (items || []).map((item) => ({
+    indicator: item.indicator,
+    lane: item.lane || item.source_lane,
+    business_date: item.business_date,
+  }));
+  const payload = { items: mapped };
+  if (confirmReplaceCompleted) {
+    payload.confirm_replace_completed = true;
+  }
+  return payload;
+}
+
+/**
+ * Splits items array into chunks of at most maxChunkSize (default 1000).
+ * Pure.
+ * @param {any[]} items
+ * @param {number} [maxChunkSize=1000]
+ * @returns {any[][]}
+ */
+export function chunkBulkItems(items = [], maxChunkSize = MAX_BULK_ITEMS_PER_REQUEST) {
+  if (!Array.isArray(items) || items.length === 0) return [];
+  const chunkSize = Math.max(1, maxChunkSize || MAX_BULK_ITEMS_PER_REQUEST);
+  const chunks = [];
+  for (let i = 0; i < items.length; i += chunkSize) {
+    chunks.push(items.slice(i, i + chunkSize));
+  }
+  return chunks;
+}
+
+/**
+ * Aggregates responses from single or chunked bulk requests into a unified report.
+ * Pure.
+ * @param {{ responses?: any[], totalRequested?: number, errors?: any[] }} param
+ * @returns {Object}
+ */
+export function aggregateBulkReports({ responses = [], totalRequested = 0, errors = [] } = {}) {
+  let jobCount = 0;
+  let newCount = 0;
+  let replaceCount = 0;
+  let skippedOpenConflicts = 0;
+  let skipped = [];
+  let lastSuccessfulRunId = null;
+
+  for (const res of responses) {
+    const data = res?.data?.data || res?.data || {};
+    const bulk = data.bulk;
+    if (bulk) {
+      jobCount += Number(bulk.job_count || 0);
+      newCount += Number(bulk.new_count || 0);
+      replaceCount += Number(bulk.replace_count || 0);
+      skippedOpenConflicts += Number(bulk.skipped_open_conflicts || 0);
+      if (Array.isArray(bulk.skipped)) {
+        for (const s of bulk.skipped) {
+          skipped.push({
+            business_date: s.business_date,
+            indicator: s.indicator,
+            source_lane: s.source_lane || s.lane,
+            reason: s.reason,
+            translatedReason: translateBulkSkipReason(s.reason),
+          });
+        }
+      }
+    }
+    const runId = data.run?.id || data.run_id;
+    if (runId && (bulk ? bulk.job_count > 0 : true)) {
+      lastSuccessfulRunId = runId;
+    }
+  }
+
+  const primaryError = errors.length > 0 ? formatBulkError(errors[0]) : null;
+
+  return {
+    total: totalRequested,
+    jobCount,
+    newCount,
+    replaceCount,
+    skippedOpenConflicts,
+    skipped,
+    skippedCount: skipped.length,
+    lastSuccessfulRunId,
+    error: primaryError,
+    successCount: jobCount,
+    failCount: skipped.length + skippedOpenConflicts + (primaryError ? 1 : 0),
+    results: primaryError ? [{ error: primaryError.displayText, success: false }] : [],
+  };
+}
+
+

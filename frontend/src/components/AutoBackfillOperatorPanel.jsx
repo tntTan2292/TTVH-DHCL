@@ -57,7 +57,11 @@ import {
   calculateAnchorOverwrites,
   formatAnchorSkippedSummary,
   buildLatestImportLogMap,
-  formatLastImportTooltip
+  formatLastImportTooltip,
+  buildBulkRunPayload,
+  chunkBulkItems,
+  translateBulkSkipReason,
+  aggregateBulkReports
 } from './autoBackfillUiHelpers';
 import AutoBackfillIndicatorMatrix from './AutoBackfillIndicatorMatrix';
 import AutoBackfillSmartDayView from './AutoBackfillSmartDayView';
@@ -1108,52 +1112,139 @@ export default function AutoBackfillOperatorPanel() {
     }
   };
 
-  // Bulk Nhập mới Execution Handler (renamed from old Bulk Reimport, for selectedBulkKeys)
+  // AUTO-BACKFILL-BULK-01 (Manifest UI-IMPORT-PROCESS-LOG-01 Section 6)
+  // Shared renderer for bulk execution results (created jobs, open conflicts, skipped items, error reporting)
+  const renderBulkExecutionReport = (report) => {
+    if (!report) return null;
+    return (
+      <div className="mt-3 text-xs rounded-xl p-3 border bg-slate-50 space-y-2">
+        {report.error && (
+          <div
+            className={`p-3 rounded-xl border text-xs flex items-start gap-2 ${
+              report.error.isConfirmRequired
+                ? 'bg-amber-50 border-amber-300 text-amber-900'
+                : 'bg-red-50 border-red-200 text-red-700'
+            }`}
+          >
+            <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+            <div>
+              <span className="font-bold block">
+                {report.error.isConfirmRequired
+                  ? 'Cần xác nhận thay thế dữ liệu đã hoàn tất (AUTO_BACKFILL_BULK_CONFIRM_REQUIRED)'
+                  : 'Lỗi khởi tạo tiến trình'}
+              </span>
+              <p className="mt-0.5">{report.error.message || report.error.displayText}</p>
+            </div>
+          </div>
+        )}
+
+        <div className="font-bold text-slate-900 flex items-center justify-between">
+          <span>Kết quả tạo yêu cầu: {report.jobCount}/{report.total} ô đã tạo</span>
+          {report.failCount > 0 && (
+            <span className="text-amber-700 font-semibold">({report.failCount} chưa tạo)</span>
+          )}
+        </div>
+
+        <div className="grid grid-cols-2 gap-2 text-[11px]">
+          <div className="bg-white p-2 rounded-lg border border-slate-200">
+            <span className="block text-slate-500">Nhập mới:</span>
+            <span className="font-bold text-blue-700">{report.newCount} ô</span>
+          </div>
+          <div className="bg-white p-2 rounded-lg border border-slate-200">
+            <span className="block text-slate-500">Thay thế:</span>
+            <span className="font-bold text-amber-700">{report.replaceCount} ô</span>
+          </div>
+        </div>
+
+        {report.skippedOpenConflicts > 0 && (
+          <div className="p-2 rounded-lg bg-amber-50 border border-amber-200 text-[11px] text-amber-900 font-medium">
+            ⚠️ <strong>{report.skippedOpenConflicts} ô</strong> bị bỏ qua vì đã có tiến trình đang mở.
+          </div>
+        )}
+
+        {report.skipped && report.skipped.length > 0 && (
+          <div className="space-y-1 pt-1">
+            <span className="font-semibold text-slate-700 block text-[11px]">
+              Danh sách ô bị bỏ qua ({report.skipped.length} ô):
+            </span>
+            <div className="max-h-32 overflow-y-auto space-y-1 pr-1">
+              {report.skipped.map((s, idx) => (
+                <div
+                  key={idx}
+                  className="flex items-center justify-between p-1.5 rounded bg-white border border-slate-200 text-[11px]"
+                >
+                  <div>
+                    <span className="font-semibold text-slate-900">{s.business_date}</span>
+                    <span className="text-slate-500 ml-1.5">• {s.indicator} ({s.source_lane || s.lane})</span>
+                  </div>
+                  <span className="text-amber-800 font-medium">
+                    {s.translatedReason || translateBulkSkipReason(s.reason)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Fallback error items if any */}
+        {Array.isArray(report.results) && report.results.filter((r) => !r.success && r.item).map((r, i) => (
+          <div key={i} className="text-red-600 text-[11px]">
+            • {r.item.indicator} × {r.item.source_lane} × {r.item.business_date}: {r.error}
+          </div>
+        ))}
+      </div>
+    );
+  };
+
+  // Bulk Nhập mới Execution Handler (AUTO-BACKFILL-BULK-01)
   const handleExecuteBulkNewImport = async () => {
     if (!isAdmin || selectedBulkKeys.size === 0) return;
     setBulkNewImportLoading(true);
     setBulkNewImportReport(null);
 
     const selectedItems = selectionLookupItems.filter((item) => selectedBulkKeys.has(getItemKey(item)));
-    const results = [];
-    let successCount = 0;
-    let failCount = 0;
+    const chunks = chunkBulkItems(selectedItems);
+    const responses = [];
+    const errors = [];
 
-    for (const item of selectedItems) {
+    for (const chunk of chunks) {
       try {
-        const payload = buildRunPayload(item);
+        const payload = buildBulkRunPayload(chunk);
         const res = await api.post('/import/auto-backfill/runs', payload);
         if (res.data?.success) {
-          successCount++;
-          results.push({ item, success: true, run_id: res.data.data?.run?.id });
+          responses.push(res);
         } else {
-          failCount++;
-          results.push({ item, success: false, error: res.data?.error?.message || 'Lỗi API' });
+          errors.push(new Error(res.data?.error?.message || 'Lỗi API'));
         }
       } catch (err) {
-        failCount++;
-        results.push({ item, success: false, error: getApiErrorMessage(err, 'Lỗi kết nối API') });
+        errors.push(err);
       }
     }
 
-    setBulkNewImportLoading(false);
-    setBulkNewImportReport({ successCount, failCount, total: selectedItems.length, results });
+    const report = aggregateBulkReports({
+      responses,
+      totalRequested: selectedItems.length,
+      errors,
+    });
 
-    if (successCount > 0) {
-      const lastSuccessfulRun = results.find((r) => r.success)?.run_id;
-      if (lastSuccessfulRun) {
-        setActiveRunId(lastSuccessfulRun);
+    setBulkNewImportLoading(false);
+    setBulkNewImportReport(report);
+
+    if (report.jobCount > 0) {
+      if (report.lastSuccessfulRunId) {
+        setActiveRunId(report.lastSuccessfulRunId);
       }
       fetchCoverage();
     }
-    if (failCount === 0) {
-      showToast(`Đã tạo thành công ${successCount}/${selectedItems.length} yêu cầu nhập mới`);
+    const hasIssues = report.skippedCount > 0 || report.skippedOpenConflicts > 0 || errors.length > 0;
+    if (!hasIssues && report.jobCount > 0) {
+      showToast(`Đã tạo thành công ${report.jobCount}/${selectedItems.length} yêu cầu nhập mới`);
       clearBulkSelection();
       setShowBulkNewImportModal(false);
     }
   };
 
-  // Bulk Reimport Execution Handler (IMPORT-BULK-REIMPORT-ALL-01: for selectedReimportKeys, includes COMPLETED)
+  // Bulk Reimport Execution Handler (IMPORT-BULK-REIMPORT-ALL-01 / AUTO-BACKFILL-BULK-01)
   const handleExecuteBulkReimport = async () => {
     if (!isAdmin || selectedReimportKeys.size === 0) return;
     const selectedItems = selectionLookupItems.filter((item) => selectedReimportKeys.has(getItemKey(item)));
@@ -1163,39 +1254,42 @@ export default function AutoBackfillOperatorPanel() {
     setBulkReimportLoading(true);
     setBulkReimportReport(null);
 
-    const results = [];
-    let successCount = 0;
-    let failCount = 0;
+    const chunks = chunkBulkItems(selectedItems);
+    const responses = [];
+    const errors = [];
 
-    for (const item of selectedItems) {
+    for (const chunk of chunks) {
       try {
-        const payload = buildRunPayload(item, { confirmReplaceCompleted: true });
+        const payload = buildBulkRunPayload(chunk, { confirmReplaceCompleted: true });
         const res = await api.post('/import/auto-backfill/runs', payload);
         if (res.data?.success) {
-          successCount++;
-          results.push({ item, success: true, run_id: res.data.data?.run?.id });
+          responses.push(res);
         } else {
-          failCount++;
-          results.push({ item, success: false, error: res.data?.error?.message || 'Lỗi API' });
+          errors.push(new Error(res.data?.error?.message || 'Lỗi API'));
         }
       } catch (err) {
-        failCount++;
-        results.push({ item, success: false, error: getApiErrorMessage(err, 'Lỗi kết nối API') });
+        errors.push(err);
       }
     }
 
-    setBulkReimportLoading(false);
-    setBulkReimportReport({ successCount, failCount, total: selectedItems.length, results });
+    const report = aggregateBulkReports({
+      responses,
+      totalRequested: selectedItems.length,
+      errors,
+    });
 
-    if (successCount > 0) {
-      const lastSuccessfulRun = results.find((r) => r.success)?.run_id;
-      if (lastSuccessfulRun) {
-        setActiveRunId(lastSuccessfulRun);
+    setBulkReimportLoading(false);
+    setBulkReimportReport(report);
+
+    if (report.jobCount > 0) {
+      if (report.lastSuccessfulRunId) {
+        setActiveRunId(report.lastSuccessfulRunId);
       }
       fetchCoverage();
     }
-    if (failCount === 0) {
-      showToast(`Đã tạo thành công ${successCount}/${selectedItems.length} yêu cầu nhập lại`);
+    const hasIssues = report.skippedCount > 0 || report.skippedOpenConflicts > 0 || errors.length > 0;
+    if (!hasIssues && report.jobCount > 0) {
+      showToast(`Đã tạo thành công ${report.jobCount}/${selectedItems.length} yêu cầu nhập lại`);
       clearReimportSelection();
       setShowBulkReimportModal(false);
       setBulkReimportAck(false);
@@ -2265,19 +2359,7 @@ export default function AutoBackfillOperatorPanel() {
               })}
             </div>
 
-            {bulkNewImportReport && (
-              <div className="mt-3 text-xs rounded-xl p-3 border bg-slate-50 space-y-1">
-                <div className="font-bold text-slate-900">
-                  Kết quả tạo yêu cầu: {bulkNewImportReport.successCount}/{bulkNewImportReport.total} thành công
-                  {bulkNewImportReport.failCount > 0 && <span className="text-red-600 ml-2">({bulkNewImportReport.failCount} thất bại)</span>}
-                </div>
-                {bulkNewImportReport.results.filter(r => !r.success).map((r, i) => (
-                  <div key={i} className="text-red-600">
-                    • {r.item.indicator} × {r.item.source_lane} × {r.item.business_date}: {r.error}
-                  </div>
-                ))}
-              </div>
-            )}
+            {renderBulkExecutionReport(bulkNewImportReport)}
 
             <div className="mt-6 flex items-center justify-end gap-3">
               <button
@@ -2390,19 +2472,7 @@ export default function AutoBackfillOperatorPanel() {
               </label>
             )}
 
-            {bulkReimportReport && (
-              <div className="mt-3 text-xs rounded-xl p-3 border bg-slate-50 space-y-1">
-                <div className="font-bold text-slate-900">
-                  Kết quả tạo yêu cầu: {bulkReimportReport.successCount}/{bulkReimportReport.total} thành công
-                  {bulkReimportReport.failCount > 0 && <span className="text-red-600 ml-2">({bulkReimportReport.failCount} thất bại)</span>}
-                </div>
-                {bulkReimportReport.results.filter(r => !r.success).map((r, i) => (
-                  <div key={i} className="text-red-600">
-                    • {r.item.indicator} × {r.item.source_lane} × {r.item.business_date}: {r.error}
-                  </div>
-                ))}
-              </div>
-            )}
+            {renderBulkExecutionReport(bulkReimportReport)}
 
             <div className="mt-5 flex items-center justify-end gap-3">
               <button

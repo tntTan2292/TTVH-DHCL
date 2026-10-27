@@ -15,7 +15,12 @@ import {
   resolveRunActionButtons,
   resolveRunIdleState,
   resolveWaitingAuthLanes,
-  splitReimportItems
+  splitReimportItems,
+  buildBulkRunPayload,
+  chunkBulkItems,
+  translateBulkSkipReason,
+  formatBulkError,
+  aggregateBulkReports
 } from './autoBackfillUiHelpers.js';
 
 console.log('Running AUTO-BACKFILL-UI behavior and contract test suite...');
@@ -1154,8 +1159,151 @@ console.log('Running AUTO-BACKFILL-UI behavior and contract test suite...');
   assert.equal(selectedReimportKeys.has(key2), true, 'Reimport selection contains incomplete item');
 
   console.log('✔ 24. IMPORT-BULK-REIMPORT-ALL-01 Bulk Reimport All Contract tests PASSED!');
-  console.log('\nALL AUTO-BACKFILL-UI behavior, contract & remediation tests PASSED SUCCESSFULLY! (24/24 Test Suites)');
 }
+
+// ==========================================
+// 25. AUTO-BACKFILL-BULK-01: Bulk Items Payload, Chunking & Translation Tests
+// ==========================================
+{
+  // Test case 25.1: buildBulkRunPayload constructs { items: [...] } without confirm flag for Nhập mới
+  const items = [
+    { indicator: 'F4.2', source_lane: 'HUE', business_date: '2026-10-01' },
+    { indicator: 'F4.2', lane: 'TCT', business_date: '2026-10-02' }
+  ];
+  const newImportPayload = buildBulkRunPayload(items);
+  assert.deepEqual(newImportPayload, {
+    items: [
+      { indicator: 'F4.2', lane: 'HUE', business_date: '2026-10-01' },
+      { indicator: 'F4.2', lane: 'TCT', business_date: '2026-10-02' }
+    ]
+  });
+  assert.equal(newImportPayload.confirm_replace_completed, undefined, 'Nhập mới must not send confirm_replace_completed');
+
+  // Test case 25.2: buildBulkRunPayload sets confirm_replace_completed: true for Nhập lại
+  const reimportPayload = buildBulkRunPayload(items, { confirmReplaceCompleted: true });
+  assert.equal(reimportPayload.confirm_replace_completed, true, 'Nhập lại must set confirm_replace_completed: true');
+  assert.equal(reimportPayload.items.length, 2);
+
+  // Test case 25.3: chunkBulkItems bounds requests to max 1000 items
+  const manyItems = Array.from({ length: 2500 }, (_, i) => ({
+    indicator: 'F4.2',
+    lane: 'HUE',
+    business_date: `2026-01-${String((i % 28) + 1).padStart(2, '0')}`
+  }));
+  const chunks = chunkBulkItems(manyItems, 1000);
+  assert.equal(chunks.length, 3, '2500 items must be split into 3 chunks');
+  assert.equal(chunks[0].length, 1000);
+  assert.equal(chunks[1].length, 1000);
+  assert.equal(chunks[2].length, 500);
+
+  // Empty items chunking
+  assert.deepEqual(chunkBulkItems([]), []);
+  assert.deepEqual(chunkBulkItems(null), []);
+
+  // Test case 25.4: translateBulkSkipReason translates known reasons to Vietnamese and preserves unknown codes
+  assert.equal(translateBulkSkipReason('NOT_IN_COVERAGE'), 'Ngoài phạm vi theo dõi');
+  assert.equal(translateBulkSkipReason('ALREADY_SUCCESS'), 'Dữ liệu đã hoàn tất');
+  assert.equal(translateBulkSkipReason('HOLIDAY'), 'Lịch nghỉ / ngày lễ');
+  assert.equal(translateBulkSkipReason('NOT_AUTOMATED_OR_NOT_ACTIVE'), 'Chỉ tiêu không hoạt động hoặc nguồn chưa tự động hóa');
+  assert.equal(translateBulkSkipReason('VERIFIED_NO_DATA'), 'Đã xác nhận không có dữ liệu');
+  assert.equal(translateBulkSkipReason('PO_EXEMPTED'), 'PO miễn trừ');
+  assert.equal(translateBulkSkipReason('NOT_REGISTERED'), 'Chưa đăng ký cấu hình chỉ tiêu / nguồn');
+
+  // Unknown codes must show raw reason code
+  assert.equal(translateBulkSkipReason('SOME_UNSEEN_CUSTOM_CODE_123'), 'SOME_UNSEEN_CUSTOM_CODE_123');
+  assert.equal(translateBulkSkipReason(null), 'Chưa xác định');
+
+  // Test case 25.5: formatBulkError detects 409 AUTO_BACKFILL_BULK_CONFIRM_REQUIRED
+  const err409 = {
+    response: {
+      status: 409,
+      data: {
+        error: {
+          code: 'AUTO_BACKFILL_BULK_CONFIRM_REQUIRED',
+          message: '3 completed day(s) would be overwritten; resend with confirm_replace_completed=true to confirm.'
+        }
+      }
+    }
+  };
+  const formatted409 = formatBulkError(err409);
+  assert.equal(formatted409.code, 'AUTO_BACKFILL_BULK_CONFIRM_REQUIRED');
+  assert.equal(formatted409.isConfirmRequired, true);
+  assert.ok(formatted409.displayText.includes('AUTO_BACKFILL_BULK_CONFIRM_REQUIRED'));
+
+  const genericErr = {
+    response: {
+      status: 500,
+      data: {
+        error: {
+          code: 'DATABASE_LOCKED',
+          message: 'SQLITE_BUSY: database is locked'
+        }
+      }
+    }
+  };
+  const formattedGeneric = formatBulkError(genericErr);
+  assert.equal(formattedGeneric.code, 'DATABASE_LOCKED');
+  assert.equal(formattedGeneric.isConfirmRequired, false);
+
+  // Test case 25.6: aggregateBulkReports combines chunk responses
+  const mockResp1 = {
+    data: {
+      success: true,
+      data: {
+        run: { id: 'run_bulk_chunk_1' },
+        bulk: {
+          requested: 1000,
+          job_count: 950,
+          new_count: 700,
+          replace_count: 250,
+          skipped_open_conflicts: 30,
+          skipped: [
+            { indicator: 'F4.2', source_lane: 'HUE', business_date: '2026-05-01', reason: 'NOT_IN_COVERAGE' }
+          ]
+        }
+      }
+    }
+  };
+  const mockResp2 = {
+    data: {
+      success: true,
+      data: {
+        run: { id: 'run_bulk_chunk_2' },
+        bulk: {
+          requested: 500,
+          job_count: 480,
+          new_count: 400,
+          replace_count: 80,
+          skipped_open_conflicts: 10,
+          skipped: [
+            { indicator: 'F4.2', source_lane: 'TCT', business_date: '2026-05-02', reason: 'CUSTOM_GATE_REASON' }
+          ]
+        }
+      }
+    }
+  };
+
+  const aggregated = aggregateBulkReports({
+    responses: [mockResp1, mockResp2],
+    totalRequested: 1500,
+    errors: []
+  });
+
+  assert.equal(aggregated.total, 1500);
+  assert.equal(aggregated.jobCount, 1430);
+  assert.equal(aggregated.newCount, 1100);
+  assert.equal(aggregated.replaceCount, 330);
+  assert.equal(aggregated.skippedOpenConflicts, 40);
+  assert.equal(aggregated.skipped.length, 2);
+  assert.equal(aggregated.skipped[0].translatedReason, 'Ngoài phạm vi theo dõi');
+  assert.equal(aggregated.skipped[1].translatedReason, 'CUSTOM_GATE_REASON', 'Unknown reason in report keeps raw code');
+  assert.equal(aggregated.lastSuccessfulRunId, 'run_bulk_chunk_2');
+  assert.equal(aggregated.error, null);
+
+  console.log('✔ 25. AUTO-BACKFILL-BULK-01 Bulk Run Items Payload, Chunking, Skip Translation & Aggregation tests PASSED!');
+  console.log('\nALL AUTO-BACKFILL-UI behavior, contract & remediation tests PASSED SUCCESSFULLY! (25/25 Test Suites)');
+}
+
 
 
 
