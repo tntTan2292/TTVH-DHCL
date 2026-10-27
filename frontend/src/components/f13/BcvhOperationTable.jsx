@@ -64,6 +64,10 @@ export default function BcvhOperationTable({ globalFilter, anchorDate } = {}) {
   const api = useIndicatorApi();
   const effectiveAnchor = anchorDate || globalFilter?.dateRange?.[1] || globalFilter?.anchorDate || null;
   // Same call sites as always, but the colour bands follow the page's indicator (F4.1: 80/70/60).
+  // Compact density (F4.2): tighter rows and a smaller title so the table fits one laptop screen at 90 % zoom; the 16-18px cell fonts (PO layout lock) and the other indicators are untouched.
+  const compact = Boolean(indicator.compactOperationTable);
+  const cellPy = compact ? 'py-1' : 'py-2.5';
+  const headPy = compact ? 'py-1' : 'py-2';
   const renderRateBadge = (rate) => renderRateBadgeWithBands(rate, indicator.heatmapBands);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -255,10 +259,10 @@ export default function BcvhOperationTable({ globalFilter, anchorDate } = {}) {
             } : {})}
           />
         </div>
-        <h2 className="text-base sm:text-xl md:text-2xl font-black uppercase tracking-tight text-slate-900 leading-snug whitespace-normal sm:whitespace-nowrap">
+        <h2 className={`text-base sm:text-xl ${compact ? '' : 'md:text-2xl'} font-black uppercase tracking-tight text-slate-900 leading-snug whitespace-normal sm:whitespace-nowrap`}>
           {titleLine1}
         </h2>
-        <p className={`mt-1 text-xs sm:text-base md:text-lg font-black uppercase tracking-wide ${theme.text} whitespace-normal sm:whitespace-nowrap`}>
+        <p className={`mt-1 text-xs sm:text-base ${compact ? '' : 'md:text-lg'} font-black uppercase tracking-wide ${theme.text} whitespace-normal sm:whitespace-nowrap`}>
           {titleLine2}
         </p>
         <div className="mt-2 flex justify-center items-center gap-2 lg:hidden">
@@ -366,40 +370,40 @@ export default function BcvhOperationTable({ globalFilter, anchorDate } = {}) {
             {/* Level 2: Exact Column Headers (All 10 horizontally and vertically centered, 16-18px) */}
             <tr className="border-b-2 border-slate-300 bg-slate-50/95 text-slate-800 text-base sm:text-lg font-extrabold">
               {/* Identity (30%) */}
-              <th className="py-2 px-1 text-center align-middle w-[5%] border-r border-slate-200 whitespace-nowrap">
+              <th className={`${headPy} px-1 text-center align-middle w-[5%] border-r border-slate-200 whitespace-nowrap`}>
                 STT
               </th>
-              <SortableTh field="ma_bcvh" sort={headerSort} onSort={handleSort} activeClassName={theme.sortActive} className="py-2 px-1 text-center align-middle w-[8%] border-r border-slate-200 whitespace-nowrap">{officeLevel ? officeLevel.codeHeader : 'Mã bưu cục'}</SortableTh>
-              <SortableTh field="ten_bcvh" sort={headerSort} onSort={handleSort} activeClassName={theme.sortActive} className="py-2 px-2 text-center align-middle w-[17%] border-r border-slate-300 whitespace-nowrap">{officeLevel ? officeLevel.nameHeader : 'Tên bưu cục'}</SortableTh>
+              <SortableTh field="ma_bcvh" sort={headerSort} onSort={handleSort} activeClassName={theme.sortActive} className={`${headPy} px-1 text-center align-middle w-[8%] border-r border-slate-200 whitespace-nowrap`}>{officeLevel ? officeLevel.codeHeader : 'Mã bưu cục'}</SortableTh>
+              <SortableTh field="ten_bcvh" sort={headerSort} onSort={handleSort} activeClassName={theme.sortActive} className={`${headPy} px-2 text-center align-middle w-[17%] border-r border-slate-300 whitespace-nowrap`}>{officeLevel ? officeLevel.nameHeader : 'Tên bưu cục'}</SortableTh>
 
               {/* Lũy kế tháng (30% = 3 * 10%) */}
-              <SortableTh field="mtd_volume" sort={headerSort} onSort={handleSort} activeClassName={theme.sortActive} className="py-2 px-1 text-center align-middle w-[10%] border-r border-slate-200 leading-snug">Sản lượng đo kiểm</SortableTh>
-              <SortableTh field="mtd_rate" sort={headerSort} onSort={handleSort} activeClassName={theme.sortActive} className="py-2 px-1 text-center align-middle w-[10%] border-r border-slate-200 leading-snug">{indicator.id === 'f13' ? 'Tỷ lệ đạt KPI 2026' : `Tỷ lệ đạt ${indicator.moduleLabel}`}</SortableTh>
+              <SortableTh field="mtd_volume" sort={headerSort} onSort={handleSort} activeClassName={theme.sortActive} className={`${headPy} px-1 text-center align-middle w-[10%] border-r border-slate-200 leading-snug`}>Sản lượng đo kiểm</SortableTh>
+              <SortableTh field="mtd_rate" sort={headerSort} onSort={handleSort} activeClassName={theme.sortActive} className={`${headPy} px-1 text-center align-middle w-[10%] border-r border-slate-200 leading-snug`}>{indicator.id === 'f13' ? 'Tỷ lệ đạt KPI 2026' : `Tỷ lệ đạt ${indicator.moduleLabel}`}</SortableTh>
               {showPrevMonth ? (
                 <>
-                  <SortableTh field="prev_month_volume" sort={headerSort} onSort={handleSort} activeClassName={theme.sortActive} className="py-2 px-1 text-center align-middle border-r border-slate-200 leading-snug">
+                  <SortableTh field="prev_month_volume" sort={headerSort} onSort={handleSort} activeClassName={theme.sortActive} className={`${headPy} px-1 text-center align-middle border-r border-slate-200 leading-snug`}>
                     <span className="block">Sản lượng</span>
                     <span className="block">{prevMonthLabel.toLowerCase().replace('tháng', 'T')} ({isFullPrevMonth ? 'cả tháng' : 'cùng kỳ'})</span>
                   </SortableTh>
-                  <SortableTh field="prev_month_rate" sort={headerSort} onSort={handleSort} activeClassName={theme.sortActive} className="py-2 px-1 text-center align-middle border-r border-slate-200 leading-snug">
+                  <SortableTh field="prev_month_rate" sort={headerSort} onSort={handleSort} activeClassName={theme.sortActive} className={`${headPy} px-1 text-center align-middle border-r border-slate-200 leading-snug`}>
                     <span className="block">Tỷ lệ đạt</span>
                     <span className="block">{prevMonthLabel.toLowerCase().replace('tháng', 'T')} ({isFullPrevMonth ? 'cả tháng' : 'cùng kỳ'})</span>
                   </SortableTh>
                 </>
               ) : null}
-              <SortableTh field="mtd_delta_rate" sort={headerSort} onSort={handleSort} activeClassName={theme.sortActive} className="py-2 px-1 text-center align-middle w-[10%] border-r border-slate-300 leading-snug">
+              <SortableTh field="mtd_delta_rate" sort={headerSort} onSort={handleSort} activeClassName={theme.sortActive} className={`${headPy} px-1 text-center align-middle w-[10%] border-r border-slate-300 leading-snug`}>
                 <span className="block">Tăng/giảm so với</span>
                 <span className="block">{prevMonthShortLabel}</span>
               </SortableTh>
 
               {/* Điều hành ngày (40% = 4 * 10%) */}
-              <SortableTh field="daily_volume" sort={headerSort} onSort={handleSort} activeClassName={theme.sortActive} className="py-2 px-1 text-center align-middle w-[10%] border-r border-slate-200 leading-snug">Sản lượng đo kiểm</SortableTh>
-              <SortableTh field="daily_rate" sort={headerSort} onSort={handleSort} activeClassName={theme.sortActive} className="py-2 px-1 text-center align-middle w-[10%] border-r border-slate-200 leading-snug">{indicator.id === 'f13' ? 'Tỷ lệ đạt KPI 2026' : `Tỷ lệ đạt ${indicator.moduleLabel}`}</SortableTh>
-              <SortableTh field="daily_delta_rate" sort={headerSort} onSort={handleSort} activeClassName={theme.sortActive} className="py-2 px-1 text-center align-middle w-[10%] border-r border-slate-200 leading-snug">
+              <SortableTh field="daily_volume" sort={headerSort} onSort={handleSort} activeClassName={theme.sortActive} className={`${headPy} px-1 text-center align-middle w-[10%] border-r border-slate-200 leading-snug`}>Sản lượng đo kiểm</SortableTh>
+              <SortableTh field="daily_rate" sort={headerSort} onSort={handleSort} activeClassName={theme.sortActive} className={`${headPy} px-1 text-center align-middle w-[10%] border-r border-slate-200 leading-snug`}>{indicator.id === 'f13' ? 'Tỷ lệ đạt KPI 2026' : `Tỷ lệ đạt ${indicator.moduleLabel}`}</SortableTh>
+              <SortableTh field="daily_delta_rate" sort={headerSort} onSort={handleSort} activeClassName={theme.sortActive} className={`${headPy} px-1 text-center align-middle w-[10%] border-r border-slate-200 leading-snug`}>
                 <span className="block">Tăng/Giảm so với</span>
                 <span className="block">ngày trước</span>
               </SortableTh>
-              <SortableTh field="daily_week_delta_rate" sort={headerSort} onSort={handleSort} activeClassName={theme.sortActive} className="py-2 px-1 text-center align-middle w-[10%] leading-snug">
+              <SortableTh field="daily_week_delta_rate" sort={headerSort} onSort={handleSort} activeClassName={theme.sortActive} className={`${headPy} px-1 text-center align-middle w-[10%] leading-snug`}>
                 <span className="block">Tăng/giảm so với</span>
                 <span className="block">cùng kỳ (tuần trước)</span>
               </SortableTh>
@@ -409,48 +413,48 @@ export default function BcvhOperationTable({ globalFilter, anchorDate } = {}) {
           <tbody className="divide-y divide-slate-200 text-base sm:text-lg">
             {/* Row 1: TỔNG CỘNG (First Row) */}
             <tr className={`${theme.soft} text-slate-950 font-black border-b-2 ${theme.headerBorder} hover:bg-slate-100/70 transition-colors`}>
-              <td className="py-2.5 px-1 text-center text-slate-500 font-extrabold border-r border-blue-200 whitespace-nowrap">
+              <td className={`${cellPy} px-1 text-center text-slate-500 font-extrabold border-r border-blue-200 whitespace-nowrap`}>
                 {totalRow.stt}
               </td>
-              <td className="py-2.5 px-1 text-center text-slate-500 font-extrabold border-r border-blue-200 whitespace-nowrap">
+              <td className={`${cellPy} px-1 text-center text-slate-500 font-extrabold border-r border-blue-200 whitespace-nowrap`}>
                 {totalRow.ma_bcvh}
               </td>
-              <td className="py-2.5 px-2 text-left font-black text-blue-950 border-r border-slate-300 whitespace-nowrap">
+              <td className={`${cellPy} px-2 text-left font-black text-blue-950 border-r border-slate-300 whitespace-nowrap`}>
                 {totalRow.ten_bcvh}
               </td>
 
               {/* Lũy kế tháng (30%) */}
-              <td className="py-2.5 px-2 text-right font-black tabular-nums border-r border-blue-200 whitespace-nowrap">
+              <td className={`${cellPy} px-2 text-right font-black tabular-nums border-r border-blue-200 whitespace-nowrap`}>
                 {formatVolume(totalRow.mtd_volume)}
               </td>
-              <td className="py-2.5 px-1 sm:px-2 text-center tabular-nums border-r border-blue-200 whitespace-nowrap">
+              <td className={`${cellPy} px-1 sm:px-2 text-center tabular-nums border-r border-blue-200 whitespace-nowrap`}>
                 {renderRateBadge(totalRow.mtd_rate)}
               </td>
               {showPrevMonth ? (
                 <>
-                  <td className="py-2.5 px-2 text-right font-black tabular-nums border-r border-blue-200 whitespace-nowrap">
+                  <td className={`${cellPy} px-2 text-right font-black tabular-nums border-r border-blue-200 whitespace-nowrap`}>
                     {totalRow.prev_month_volume === null ? DASH : formatVolume(totalRow.prev_month_volume)}
                   </td>
-                  <td className="py-2.5 px-1 sm:px-2 text-center tabular-nums border-r border-blue-200 whitespace-nowrap">
+                  <td className={`${cellPy} px-1 sm:px-2 text-center tabular-nums border-r border-blue-200 whitespace-nowrap`}>
                     {renderRateBadge(totalRow.prev_month_rate)}
                   </td>
                 </>
               ) : null}
-              <td className="py-2.5 px-2 text-right tabular-nums border-r border-slate-300 whitespace-nowrap">
+              <td className={`${cellPy} px-2 text-right tabular-nums border-r border-slate-300 whitespace-nowrap`}>
                 {renderDeltaBadge(totalRow.mtd_delta_rate)}
               </td>
 
               {/* Điều hành ngày (40%) */}
-              <td className="py-2.5 px-2 text-right font-black tabular-nums border-r border-emerald-200 whitespace-nowrap">
+              <td className={`${cellPy} px-2 text-right font-black tabular-nums border-r border-emerald-200 whitespace-nowrap`}>
                 {formatVolume(totalRow.daily_volume)}
               </td>
-              <td className="py-2.5 px-1 sm:px-2 text-center tabular-nums border-r border-emerald-200 whitespace-nowrap">
+              <td className={`${cellPy} px-1 sm:px-2 text-center tabular-nums border-r border-emerald-200 whitespace-nowrap`}>
                 {renderRateBadge(totalRow.daily_rate)}
               </td>
-              <td className="py-2.5 px-2 text-right tabular-nums border-r border-emerald-200 whitespace-nowrap">
+              <td className={`${cellPy} px-2 text-right tabular-nums border-r border-emerald-200 whitespace-nowrap`}>
                 {renderDeltaBadge(totalRow.daily_delta_rate)}
               </td>
-              <td className="py-2.5 px-2 text-right tabular-nums whitespace-nowrap">
+              <td className={`${cellPy} px-2 text-right tabular-nums whitespace-nowrap`}>
                 {renderDeltaBadge(totalRow.daily_week_delta_rate)}
               </td>
             </tr>
@@ -458,48 +462,48 @@ export default function BcvhOperationTable({ globalFilter, anchorDate } = {}) {
             {/* Rows 2..7: The 6 Canonical BCVH (STT 1..6 sorted by daily_rate DESC) */}
             {displayRows.map((row) => (
               <tr key={row.ma_bcvh} className="hover:bg-slate-50/90 transition-colors font-bold text-slate-800">
-                <td className="py-2.5 px-1 text-center font-extrabold text-slate-600 border-r border-slate-200 whitespace-nowrap">
+                <td className={`${cellPy} px-1 text-center font-extrabold text-slate-600 border-r border-slate-200 whitespace-nowrap`}>
                   {row.stt}
                 </td>
-                <td className="py-2.5 px-1 text-center font-bold text-slate-700 border-r border-slate-200 tabular-nums whitespace-nowrap">
+                <td className={`${cellPy} px-1 text-center font-bold text-slate-700 border-r border-slate-200 tabular-nums whitespace-nowrap`}>
                   {row.ma_bcvh}
                 </td>
-                <td className="py-2.5 px-2 text-left font-black text-slate-900 border-r border-slate-300 whitespace-nowrap">
+                <td className={`${cellPy} px-2 text-left font-black text-slate-900 border-r border-slate-300 whitespace-nowrap`}>
                   {row.ten_bcvh}
                 </td>
 
                 {/* Lũy kế tháng (30%) */}
-                <td className="py-2.5 px-2 text-right font-bold text-slate-800 tabular-nums border-r border-slate-200 whitespace-nowrap">
+                <td className={`${cellPy} px-2 text-right font-bold text-slate-800 tabular-nums border-r border-slate-200 whitespace-nowrap`}>
                   {formatVolume(row.mtd_volume)}
                 </td>
-                <td className="py-2.5 px-1 sm:px-2 text-center tabular-nums border-r border-slate-200 whitespace-nowrap">
+                <td className={`${cellPy} px-1 sm:px-2 text-center tabular-nums border-r border-slate-200 whitespace-nowrap`}>
                   {renderRateBadge(row.mtd_rate)}
                 </td>
                 {showPrevMonth ? (
                   <>
-                    <td className="py-2.5 px-2 text-right font-bold text-slate-800 tabular-nums border-r border-slate-200 whitespace-nowrap">
+                    <td className={`${cellPy} px-2 text-right font-bold text-slate-800 tabular-nums border-r border-slate-200 whitespace-nowrap`}>
                       {row.prev_month_volume === null ? DASH : formatVolume(row.prev_month_volume)}
                     </td>
-                    <td className="py-2.5 px-1 sm:px-2 text-center tabular-nums border-r border-slate-200 whitespace-nowrap">
+                    <td className={`${cellPy} px-1 sm:px-2 text-center tabular-nums border-r border-slate-200 whitespace-nowrap`}>
                       {renderRateBadge(row.prev_month_rate)}
                     </td>
                   </>
                 ) : null}
-                <td className="py-2.5 px-2 text-right tabular-nums border-r border-slate-300 whitespace-nowrap">
+                <td className={`${cellPy} px-2 text-right tabular-nums border-r border-slate-300 whitespace-nowrap`}>
                   {renderDeltaBadge(row.mtd_delta_rate)}
                 </td>
 
                 {/* Điều hành ngày (40%) */}
-                <td className="py-2.5 px-2 text-right font-bold text-slate-800 tabular-nums border-r border-slate-200 whitespace-nowrap">
+                <td className={`${cellPy} px-2 text-right font-bold text-slate-800 tabular-nums border-r border-slate-200 whitespace-nowrap`}>
                   {formatVolume(row.daily_volume)}
                 </td>
-                <td className="py-2.5 px-1 sm:px-2 text-center tabular-nums border-r border-slate-200 whitespace-nowrap">
+                <td className={`${cellPy} px-1 sm:px-2 text-center tabular-nums border-r border-slate-200 whitespace-nowrap`}>
                   {renderRateBadge(row.daily_rate)}
                 </td>
-                <td className="py-2.5 px-2 text-right tabular-nums border-r border-slate-200 whitespace-nowrap">
+                <td className={`${cellPy} px-2 text-right tabular-nums border-r border-slate-200 whitespace-nowrap`}>
                   {renderDeltaBadge(row.daily_delta_rate)}
                 </td>
-                <td className="py-2.5 px-2 text-right tabular-nums whitespace-nowrap">
+                <td className={`${cellPy} px-2 text-right tabular-nums whitespace-nowrap`}>
                   {renderDeltaBadge(row.daily_week_delta_rate)}
                 </td>
               </tr>

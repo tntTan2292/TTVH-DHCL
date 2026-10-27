@@ -271,6 +271,8 @@ export const F42_INDICATOR = Object.freeze({
     nationalRanking: '/dashboard/national-ranking',
     postmanTable: '/dashboard/postman-table',
   }),
+  // Denser operation table (smaller rows and fonts) so the whole table fits one laptop screen at 90 % zoom.
+  compactOperationTable: true,
   targetRate: 90,
   heatmapFloors: Object.freeze([90, 80, 70]),
   heatmapBands: buildHeatmapBands([90, 80, 70]),

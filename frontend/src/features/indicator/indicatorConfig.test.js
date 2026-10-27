@@ -182,3 +182,9 @@ test('IndicatorProvider only carries a value: it holds no state, so a discarded 
     '<span>f42|yellow|scoped</span>',
   );
 });
+
+test('only F4.2 uses the compact operation table (one screen at 90 % zoom); the other indicators keep their size', () => {
+  assert.equal(F42_INDICATOR.compactOperationTable, true);
+  assert.equal(F13_INDICATOR.compactOperationTable, undefined);
+  assert.equal(F41_INDICATOR.compactOperationTable, undefined);
+});
