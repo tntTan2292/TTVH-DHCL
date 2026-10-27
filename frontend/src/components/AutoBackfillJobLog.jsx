@@ -17,7 +17,7 @@ import {
   JOB_LOG_PAGE_SIZE_OPTIONS,
   buildJobLogQueryParams,
   translateJobState,
-  translateJobErrorSignature,
+  jobErrorText,
   formatVietnamDateTime,
   formatJobDuration
 } from './autoBackfillUiHelpers';
@@ -459,7 +459,7 @@ export default function AutoBackfillJobLog({ isAdmin = false, onSwitchToFileLog 
                 jobs.map((job) => {
                   const stateInfo = translateJobState(job.state);
                   const isFailed = job.state === 'FAILED_TERMINAL';
-                  const errorLabel = translateJobErrorSignature(job.last_error_signature || job.last_result_code);
+                  const errorLabel = jobErrorText(job.last_error_signature || job.last_result_code);
 
                   return (
                     <tr

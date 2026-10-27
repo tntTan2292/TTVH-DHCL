@@ -25,6 +25,7 @@ import {
   groupOpenRuns,
   translateJobState,
   translateJobErrorSignature,
+  jobErrorText,
   formatVietnamDateTime,
   formatJobDuration,
   buildJobLogQueryParams,
@@ -1385,6 +1386,11 @@ console.log('Running AUTO-BACKFILL-UI behavior and contract test suite...');
   const unknownErr = translateJobErrorSignature('CUSTOM_EXCEPTION_999', 'Lỗi không xác định');
   assert.equal(unknownErr.vietnamese, 'CUSTOM_EXCEPTION_999', 'Unknown error signature preserves raw code');
   assert.ok(unknownErr.actionRequired);
+
+  // The job log table renders this value as a cell: it must be text, never the object (a React child error blanked the page)
+  assert.equal(typeof jobErrorText('F11_HUE_RECONCILIATION_FAILED:b8934d25d4a08654'), 'string');
+  assert.equal(jobErrorText('PORTAL_AUTH_EXPIRED'), 'Phiên đăng nhập DKCL đã hết hạn');
+  assert.equal(jobErrorText(null), null);
 
   // Test case 26.5: formatVietnamDateTime
   const utcIso = '2026-05-15T02:30:00.000Z'; // 02:30 UTC = 09:30 VN

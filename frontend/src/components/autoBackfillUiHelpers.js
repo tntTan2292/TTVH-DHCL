@@ -1543,6 +1543,12 @@ export function translateJobErrorSignature(signature, fallbackMessage = '') {
   return resultObj;
 }
 
+// translateJobErrorSignature() returns an object; a screen can only render text, so this is what a table cell shows.
+export function jobErrorText(signature, fallbackMessage = '') {
+  const translated = translateJobErrorSignature(signature, fallbackMessage);
+  return translated ? translated.displayText : null;
+}
+
 export function formatVietnamDateTime(isoString) {
   if (!isoString) return '-';
   try {
