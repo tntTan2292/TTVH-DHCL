@@ -19,7 +19,9 @@ test('maps titles to tiers and units/indicators to scopes', () => {
     ]);
     assert.deepEqual(users.map((u) => u.tier), ['STAFF', 'STAFF', 'STAFF', 'LEADER', 'STAFF', 'LEADER']);
     assert.deepEqual(users[0].bcvh, ['537220', '535790']);
-    assert.deepEqual(users[1], { username: '2', displayName: 'B', tier: 'STAFF', bcvh: ['535470'], indicators: ['F1.1'] });
+    assert.deepEqual(users[1], { username: '2', displayName: 'B', tier: 'STAFF', position: 'CHUYEN_QUAN', bcvh: ['535470'], indicators: ['F1.1'] });
+    // HANGTON-HANDLING-01: the "Chức vụ" also becomes the position
+    assert.deepEqual(users.map((u) => u.position), ['CHUYEN_QUAN', 'CHUYEN_QUAN', 'CHUYEN_QUAN', 'IT_BDTP', 'GD_BCVH', 'LD_TTVH']);
     assert.deepEqual(users[2].bcvh, []);
     assert.deepEqual(users[2].indicators, ['F1.2']);
 });

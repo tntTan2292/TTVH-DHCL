@@ -3,6 +3,7 @@
 const authSessionStore = require('../services/auth/AuthSessionStore');
 const userStore = require('../services/auth/userStore');
 const { BCVH_CODES } = require('../services/auth/access/officeMap');
+const { POSITIONS, isValidPositionForTier } = require('../services/auth/access/roles');
 
 const TIERS = ['ADMIN', 'LEADER', 'STAFF'];
 const INDICATORS = ['F1.1', 'F1.2', 'F1.3', 'F4.1', 'F4.2', 'HANGTON'];
@@ -10,8 +11,9 @@ const INDICATORS = ['F1.1', 'F1.2', 'F1.3', 'F4.1', 'F4.2', 'HANGTON'];
 const fail = (res, status, code, message) => res.status(status).json({ success: false, error: { code, message } });
 const initialPassword = () => String(process.env.QIS_INITIAL_PASSWORD || '');
 
-function validateScopes({ tier, bcvh = [], indicators = [] }) {
+function validateScopes({ tier, bcvh = [], indicators = [], position = null }) {
     if (!TIERS.includes(tier)) return 'tier phải là ADMIN, LEADER hoặc STAFF';
+    if (!isValidPositionForTier(tier, position)) return `position không hợp lệ cho ${tier} (${Object.values(POSITIONS).filter((entry) => entry.tier === tier).map((entry) => entry.code).join(', ')})`;
     if (!Array.isArray(bcvh) || bcvh.some((code) => !BCVH_CODES.includes(String(code)))) return 'bcvh chứa mã không hợp lệ';
     if (!Array.isArray(indicators) || indicators.some((code) => !INDICATORS.includes(code))) return 'indicators chứa chỉ số không hợp lệ';
     if (tier !== 'STAFF' && (bcvh.length > 0 || indicators.length > 0)) return 'ADMIN và LEADER không có phạm vi riêng';
@@ -27,16 +29,16 @@ exports.list = async (req, res) => {
 };
 
 exports.create = async (req, res) => {
-    const { username, display_name: displayName = '', tier, bcvh = [], indicators = [] } = req.body || {};
+    const { username, display_name: displayName = '', tier, position = null, bcvh = [], indicators = [] } = req.body || {};
     if (!String(username || '').trim()) return fail(res, 400, 'MISSING_FIELDS', 'Yêu cầu username (mã HRM)');
-    const problem = validateScopes({ tier, bcvh, indicators });
+    const problem = validateScopes({ tier, bcvh, indicators, position });
     if (problem) return fail(res, 400, 'INVALID_INPUT', problem);
     if (!initialPassword()) return fail(res, 500, 'NO_INITIAL_PASSWORD', 'Chưa cấu hình QIS_INITIAL_PASSWORD trên máy chủ');
 
     try {
         if (await userStore.findByUsername(username)) return fail(res, 409, 'USER_EXISTS', 'Tên đăng nhập đã tồn tại');
         const result = await userStore.upsertUser({
-            username: String(username).trim(), displayName, tier, bcvh, indicators, initialPassword: initialPassword(), mustChange: true,
+            username: String(username).trim(), displayName, tier, position, bcvh, indicators, initialPassword: initialPassword(), mustChange: true,
         });
         await userStore.logEvent({ userId: result.id, username, event: 'ADMIN_CREATE', detail: req.auth.user.username });
         return res.status(201).json({ success: true, data: { id: result.id } });
@@ -53,6 +55,8 @@ exports.update = async (req, res) => {
         const current = (await userStore.listUsers()).find((user) => user.id === row.id);
         const next = {
             tier: body.tier ?? row.tier,
+            // a tier change drops the old position unless a new one comes with it
+            position: body.position !== undefined ? body.position : (body.tier && body.tier !== row.tier ? null : row.position),
             bcvh: body.bcvh ?? current.bcvh,
             indicators: body.indicators ?? current.indicators,
         };
@@ -68,7 +72,7 @@ exports.update = async (req, res) => {
         }
 
         await userStore.upsertUser({
-            username: row.username, displayName: body.display_name ?? row.display_name, tier: next.tier, bcvh: next.bcvh, indicators: next.indicators,
+            username: row.username, displayName: body.display_name ?? row.display_name, tier: next.tier, position: next.position || null, bcvh: next.bcvh, indicators: next.indicators,
         });
         await userStore.setActive(row.id, isActive);
         authSessionStore.deleteSessionsForUser(row.id);
@@ -76,7 +80,7 @@ exports.update = async (req, res) => {
             userId: row.id,
             username: row.username,
             event: 'ADMIN_UPDATE',
-            detail: `${req.auth.user.username}: tier=${next.tier} bcvh=${next.bcvh.join(',')} ind=${next.indicators.join(',')} active=${isActive}`,
+            detail: `${req.auth.user.username}: tier=${next.tier} position=${next.position || '-'} bcvh=${next.bcvh.join(',')} ind=${next.indicators.join(',')} active=${isActive}`,
         });
         return res.json({ success: true, data: { id: row.id } });
     } catch (error) {

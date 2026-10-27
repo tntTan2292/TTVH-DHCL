@@ -2460,3 +2460,23 @@ Six backfill days of F4.2 HUE (14/05, 21/05, 17/07, 22/08, 31/08, 15/10) failed 
 ## 2026-10-27 - F42-DASHBOARD-UI-01 OPENED, F42-POSTMAN-API-01 DONE
 
 PO approved the F4.2 screen plan (colour bands 90 / 80 / 70, target 90 %). Opened `F42-DASHBOARD-UI-01` phases A+B for Antigravity (frame, 6-BCVH strip, postman table per BCVH, "cần chú ý" list) with a lean prompt; Claude Code delivered phase C `F42-POSTMAN-API-01` (`GET /api/f42/dashboard/postman-trend`, scope-pinned, tests service 8 and route scope 7). Home card and the postman trend screen follow in phase D. Backend restart needed for the new endpoint.
+
+## 2026-10-27 - HANGTON-HANDLING-01 Phase 1 IMPLEMENTED (PO UI check pending)
+
+Follow-up of stock handling at the BCVH: Giám đốc / Chuyên quản BCVH enter cause, plan and result per parcel (with "Khác" free text grouped smartly in the statistics), append-only log per day and mốc, carry-over with "Giữ nguyên", same-day correction and past-day correction only after the Chuyên quản approves, review statistics, bulk entry and Excel in/out. Built on a reusable position / capability registry (`roles.js`: Lãnh đạo BĐTP above Lãnh đạo TTVH + IT, Giám đốc, Chuyên quản; leaders view only). Tests: backend 13 + 4 route + auth suites green, frontend 802/802, build OK. Needs a backend restart and `scripts/backfill-user-positions.js --apply` (dry run reports the column is missing until the restart). Manifest: docs/10_TICKETS/HANGTON-HANDLING-01_MANIFEST.md.
+
+## 2026-10-27 - HANGTON-HANDLING-01 amendment: drop-down Excel, entry in the table
+
+PO fixed the lists (cause: Khách hàng hẹn phát lại / Thư TCNH lưu 7 ngày / Chờ chuyển VTN / Nguyên nhân khác; plan: Phát lại ngày / Chuyển hoàn ngày / Liên hệ Bưu cục gốc / Chuyển cấp trên hỗ trợ; result: Đã xử lý / Chưa xử lý). The Excel file now has drop-downs (library exceljs) and the parcel table holds the same columns as entry cells with "Xác nhận dữ liệu" and click-to-order on every title. Backend 14 + 4 route tests, frontend 815/815, build OK; PO UI check and a backend restart pending.
+
+## 2026-10-27 - HANGTON-HANDLING-01 amendment 2: narrower table, row "Lưu", fixed confirm bar
+
+After the PO's first look: default 20 rows; Nhóm KH / Trạng thái TMS / Bưu tá / Lý do moved to the parcel panel; the date picker sits inside "Hướng xử lý"; each typed row has its own "Lưu" and a bottom bar holds "Xác nhận dữ liệu (N)" and the save answer; rows memoised against the slow redraw. Frontend 819/819, build OK; PO UI check pending (frontend only, no restart needed).
+
+## 2026-10-27 - HANGTON-HANDLING-01 amendment 3: smarter Excel, auto-settled causes, result colours, recheck warning
+
+Cause list now starts with Phát thành công and Chuyển hoàn, which settle the parcel (plan locked, result Đã xử lý, Chuyển hoàn dated today). The Excel file marks required cells, greys the unneeded ones, checks each row by formula and colours the result; the import names what is missing per parcel. A parcel still in stock after being marked Đã xử lý shows a recheck warning and cannot be kept as it was. Backend 27 + frontend 821 tests green (one unrelated f42 failure from another session); backend restart and PO UI check pending.
+
+## 2026-10-27 - HANGTON-HANDLING-01 reviewed by Opus and fixed
+
+Independent Opus review found 2 HIGH (Excel re-import re-saving untouched lines; two transactions on the shared SQLite connection) and 4 MEDIUM issues; all fixed with tests (backend hangtonInventory + routes 32, auth 17, frontend hangton 73, build OK). Search by parcel code, "Chờ hoàn" cause and the Đã-xử-lý-but-still-in-stock warning added. Backend restart and PO check of the function still pending.

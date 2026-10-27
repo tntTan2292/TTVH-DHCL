@@ -10,6 +10,10 @@ import { useEffect, useRef, useState } from 'react';
 export const HANGTON_DESIGN_WIDTH = 1280;
 export const HANGTON_MIN_ZOOM = 0.7;
 export const HANGTON_MAX_ZOOM = 1.5;
+// The parcel table with the stock-handling columns (cause, plan, result, note, save) needs more room to keep one parcel on
+// one line (PO 2026-10-27): that screen is laid out for a wider logical width and may shrink further.
+export const HANGTON_WIDE_DESIGN_WIDTH = 1600;
+export const HANGTON_WIDE_MIN_ZOOM = 0.6;
 const STEP = 0.02; // zoom moves in steps, so a scrollbar appearing or disappearing cannot make it flicker
 
 /**
@@ -50,7 +54,7 @@ export function useFitZoom(options = {}) {
     const observer = new ResizeObserver(update);
     observer.observe(element);
     return () => observer.disconnect();
-  }, [element]);
+  }, [element, options.design, options.min]);
 
   return { fitRef, zoom };
 }

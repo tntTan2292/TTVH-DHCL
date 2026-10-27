@@ -7,6 +7,7 @@
 //  - extra points and make-ups can be deleted, scheduled snapshots cannot;
 //  - no interval or daily cap (PO): only one fetch runs at a time.
 const { SLOTS, isManualSlot, manualSlotFor, slotTime, slotClock } = require('./scope');
+const { withImportWriteLock } = require('../importWriteLock');
 const { takeSnapshot, localDate, withSnapshotLock, isSnapshotBusy } = require('./snapshotService');
 
 const RECENT_DAYS = 7;
@@ -57,15 +58,17 @@ async function deleteExtraSnapshot(db, id) {
     const snapshot = await db.get('SELECT id, trigger FROM hangton_snapshot WHERE id = ?', [Number(id)]);
     if (!snapshot) throw new Error('HANGTON_NOT_FOUND');
     if (!DELETABLE_TRIGGERS.includes(snapshot.trigger)) throw new Error('HANGTON_NOT_DELETABLE');
-    await db.run('BEGIN IMMEDIATE');
-    try {
-        await db.run('DELETE FROM hangton_snapshot_item WHERE snapshot_id = ?', [snapshot.id]);
-        await db.run('DELETE FROM hangton_snapshot WHERE id = ?', [snapshot.id]);
-        await db.run('COMMIT');
-    } catch (error) {
-        await db.run('ROLLBACK').catch(() => {});
-        throw error;
-    }
+    await withImportWriteLock(async () => {
+        await db.run('BEGIN IMMEDIATE');
+        try {
+            await db.run('DELETE FROM hangton_snapshot_item WHERE snapshot_id = ?', [snapshot.id]);
+            await db.run('DELETE FROM hangton_snapshot WHERE id = ?', [snapshot.id]);
+            await db.run('COMMIT');
+        } catch (error) {
+            await db.run('ROLLBACK').catch(() => {});
+            throw error;
+        }
+    });
     return { id: snapshot.id, deleted: true };
 }
 

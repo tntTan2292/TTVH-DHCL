@@ -4,6 +4,7 @@
 // slots are separate points in time (PO D12); one (business_date, slot) holds one snapshot, a re-run
 // replaces it.
 const { selectScope, isValidSlot } = require('./scope');
+const { withImportWriteLock } = require('../importWriteLock');
 
 const COLUMNS = ['snapshot_id', 'item_code', 'status_name', 'ton_level', 'ton_rank', 'office', 'office_code', 'district',
     'cod', 'parcel_type', 'customer_class', 'postman_code', 'postman_name', 'reason', 'tms_scan_ms', 'weight'];
@@ -39,34 +40,37 @@ async function takeSnapshot({ db, fetchStock, slot, now = new Date(), trigger = 
           ORDER BY captured_at DESC, id DESC LIMIT 1`, [businessDate, slot, now.toISOString()]);
     const isStale = previous && portalTimestamp && previous.portal_timestamp === portalTimestamp ? 1 : 0;
 
-    await db.run('BEGIN IMMEDIATE');
-    try {
-        const old = await db.get('SELECT id FROM hangton_snapshot WHERE business_date = ? AND slot = ?', [businessDate, slot]);
-        if (old) {
-            await db.run('DELETE FROM hangton_snapshot_item WHERE snapshot_id = ?', [old.id]);
-            await db.run('DELETE FROM hangton_snapshot WHERE id = ?', [old.id]);
-        }
-        const ins = await db.run(
-            `INSERT INTO hangton_snapshot (business_date, slot, captured_at, portal_timestamp, source_row_count, kept_row_count, is_stale, trigger, actor)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-            [businessDate, slot, now.toISOString(), portalTimestamp, count, items.length, isStale, trigger, actor]);
-        const snapshotId = ins.lastID;
-        for (let i = 0; i < items.length; i += CHUNK) {
-            const part = items.slice(i, i + CHUNK);
-            const sql = `INSERT INTO hangton_snapshot_item (${COLUMNS.join(',')}) VALUES ${part.map(() => `(${COLUMNS.map(() => '?').join(',')})`).join(',')}`;
-            const params = [];
-            for (const it of part) {
-                params.push(snapshotId, it.item_code, it.status_name, it.ton_level, it.ton_rank, it.office, it.office_code, it.district,
-                    it.cod, it.parcel_type, it.customer_class, it.postman_code, it.postman_name, it.reason, it.tms_scan_ms, it.weight);
+    // one write transaction at a time on the shared connection (the handling entries use the same lock)
+    return withImportWriteLock(async () => {
+        await db.run('BEGIN IMMEDIATE');
+        try {
+            const old = await db.get('SELECT id FROM hangton_snapshot WHERE business_date = ? AND slot = ?', [businessDate, slot]);
+            if (old) {
+                await db.run('DELETE FROM hangton_snapshot_item WHERE snapshot_id = ?', [old.id]);
+                await db.run('DELETE FROM hangton_snapshot WHERE id = ?', [old.id]);
             }
-            await db.run(sql, params);
+            const ins = await db.run(
+                `INSERT INTO hangton_snapshot (business_date, slot, captured_at, portal_timestamp, source_row_count, kept_row_count, is_stale, trigger, actor)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                [businessDate, slot, now.toISOString(), portalTimestamp, count, items.length, isStale, trigger, actor]);
+            const snapshotId = ins.lastID;
+            for (let i = 0; i < items.length; i += CHUNK) {
+                const part = items.slice(i, i + CHUNK);
+                const sql = `INSERT INTO hangton_snapshot_item (${COLUMNS.join(',')}) VALUES ${part.map(() => `(${COLUMNS.map(() => '?').join(',')})`).join(',')}`;
+                const params = [];
+                for (const it of part) {
+                    params.push(snapshotId, it.item_code, it.status_name, it.ton_level, it.ton_rank, it.office, it.office_code, it.district,
+                        it.cod, it.parcel_type, it.customer_class, it.postman_code, it.postman_name, it.reason, it.tms_scan_ms, it.weight);
+                }
+                await db.run(sql, params);
+            }
+            await db.run('COMMIT');
+            return { snapshotId, businessDate, slot, sourceRows: count, keptRows: items.length, isStale: Boolean(isStale), portalTimestamp };
+        } catch (error) {
+            await db.run('ROLLBACK').catch(() => {});
+            throw error;
         }
-        await db.run('COMMIT');
-        return { snapshotId, businessDate, slot, sourceRows: count, keptRows: items.length, isStale: Boolean(isStale), portalTimestamp };
-    } catch (error) {
-        await db.run('ROLLBACK').catch(() => {});
-        throw error;
-    }
+    });
 }
 
 module.exports = { takeSnapshot, localDate, withSnapshotLock, isSnapshotBusy };

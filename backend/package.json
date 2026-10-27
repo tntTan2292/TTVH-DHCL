@@ -16,6 +16,7 @@
     "chokidar": "^5.0.0",
     "compression": "^1.8.1",
     "cors": "^2.8.6",
+    "exceljs": "^4.4.0",
     "express": "^5.2.1",
     "koffi": "^3.1.2",
     "multer": "^2.2.0",

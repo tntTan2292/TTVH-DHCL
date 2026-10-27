@@ -60,6 +60,10 @@ CREATE TABLE IF NOT EXISTS qis_auth_event (
 CREATE INDEX IF NOT EXISTS idx_qis_auth_event_user ON qis_auth_event(user_id, at);
 `;
 
+// HANGTON-HANDLING-01: the position (chức vụ) of an account, see src/services/auth/access/roles.js. Added to the
+// existing table in place (SQLite cannot add a column in CREATE TABLE IF NOT EXISTS), nullable = tier default.
+const POSITION_COLUMN_SQL = 'ALTER TABLE qis_user ADD COLUMN position TEXT';
+
 const RBAC_TABLES = ['qis_user', 'qis_user_bcvh', 'qis_user_indicator', 'qis_session', 'qis_auth_event'];
 
 function applyRbac01Schema(dbPath) {
@@ -73,10 +77,16 @@ function applyRbac01Schema(dbPath) {
                     return reject(pragmaError);
                 }
                 db.exec(RBAC_SCHEMA_SQL, (schemaError) => {
-                    db.close((closeError) => {
-                        if (schemaError) return reject(schemaError);
+                    const finish = (error) => db.close((closeError) => {
+                        if (error) return reject(error);
                         if (closeError) return reject(closeError);
                         return resolve({ tables: RBAC_TABLES });
+                    });
+                    if (schemaError) return finish(schemaError);
+                    return db.all('PRAGMA table_info(qis_user)', (infoError, columns) => {
+                        if (infoError) return finish(infoError);
+                        if ((columns || []).some((column) => column.name === 'position')) return finish(null);
+                        return db.exec(POSITION_COLUMN_SQL, (alterError) => finish(alterError));
                     });
                 });
             });

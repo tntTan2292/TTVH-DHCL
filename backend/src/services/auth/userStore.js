@@ -33,12 +33,13 @@ async function findById(id) {
 /** Shape stored in the session and sent to the frontend. Never includes the hash. */
 async function toSessionUser(row) {
     const scopes = await loadScopes(row.id);
-    const access = resolveAccess({ tier: row.tier, bcvh: scopes.bcvh, indicators: scopes.indicators });
+    const access = resolveAccess({ tier: row.tier, bcvh: scopes.bcvh, indicators: scopes.indicators, position: row.position });
     return {
         id: row.id,
         username: row.username,
         display_name: row.display_name,
         tier: row.tier,
+        position: access.position,
         // Legacy field so the existing frontend / requireRole gates keep working until Phase 3.
         role: row.tier === 'ADMIN' ? 'admin' : 'viewer',
         must_change_password: !!row.must_change_password,
@@ -140,18 +141,23 @@ async function setScopes(userId, { bcvh = [], indicators = [] }) {
 }
 
 /** Creates the user when the username is new; otherwise updates tier, name and scopes only (never the password). */
-async function upsertUser({ username, displayName, tier, bcvh = [], indicators = [], initialPassword, mustChange = true }) {
+async function upsertUser({ username, displayName, tier, position, bcvh = [], indicators = [], initialPassword, mustChange = true }) {
     const existing = await findByUsername(username);
     if (existing) {
-        await run('UPDATE qis_user SET display_name = ?, tier = ?, updated_at = ? WHERE id = ?', [displayName, tier, now(), existing.id]);
+        // position undefined = leave the stored one alone (callers that do not know about positions keep working).
+        if (position === undefined) {
+            await run('UPDATE qis_user SET display_name = ?, tier = ?, updated_at = ? WHERE id = ?', [displayName, tier, now(), existing.id]);
+        } else {
+            await run('UPDATE qis_user SET display_name = ?, tier = ?, position = ?, updated_at = ? WHERE id = ?', [displayName, tier, position || null, now(), existing.id]);
+        }
         await setScopes(existing.id, { bcvh, indicators });
         return { id: existing.id, created: false };
     }
     if (!initialPassword) throw new Error('initialPassword is required to create a user');
     const result = await run(
-        `INSERT INTO qis_user (username, display_name, tier, password_hash, must_change_password, is_active, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, 1, ?, ?)`,
-        [String(username).trim(), displayName, tier, hashPassword(initialPassword), mustChange ? 1 : 0, now(), now()],
+        `INSERT INTO qis_user (username, display_name, tier, position, password_hash, must_change_password, is_active, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, 1, ?, ?)`,
+        [String(username).trim(), displayName, tier, position || null, hashPassword(initialPassword), mustChange ? 1 : 0, now(), now()],
     );
     await setScopes(result.lastID, { bcvh, indicators });
     await logEvent({ userId: result.lastID, username, event: 'USER_CREATED' });
@@ -171,7 +177,7 @@ async function unlock(userId, actor = null) {
 
 async function listUsers() {
     const rows = await all(
-        'SELECT id, username, display_name, tier, must_change_password, is_active, failed_attempts, locked_until, last_login_at FROM qis_user ORDER BY tier, username',
+        'SELECT id, username, display_name, tier, position, must_change_password, is_active, failed_attempts, locked_until, last_login_at FROM qis_user ORDER BY tier, username',
     );
     const out = [];
     for (const row of rows) {

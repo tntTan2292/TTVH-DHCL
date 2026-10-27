@@ -1,11 +1,16 @@
 'use strict';
 
 const { HANGTON_OFFICES_BY_BCVH, HANGTON_OFFICES_BY_INDICATOR } = require('./officeMap');
+const { resolvePosition, capabilitiesOf, CAPABILITIES } = require('./roles');
 
 const TIERS = Object.freeze({ ADMIN: 'ADMIN', LEADER: 'LEADER', STAFF: 'STAFF' });
 const MODULES = Object.freeze({ f11: 'F1.1', f12: 'F1.2', f13: 'F1.3', f41: 'F4.1', f42: 'F4.2' });
 const HANGTON_SCREENS = Object.freeze(['overview', 'office', 'compare', 'items']);
 const STAFF_HANGTON_SCREENS = Object.freeze(['office', 'compare']);
+// HANGTON-HANDLING-01: the stock-handling screen (review statistics, approvals, reason grouping) and, for the people who
+// enter the handling data, the parcel list it is entered from.
+const HANDLING_SCREEN = 'handling';
+const HANDLING_ENTRY_SCREENS = Object.freeze(['office', 'compare', 'items', HANDLING_SCREEN]);
 
 function sortedUnique(values) {
     return [...new Set((values || []).map((value) => String(value).trim()).filter(Boolean))].sort();
@@ -17,8 +22,17 @@ function sortedUnique(values) {
  * Cross-BCVH blocks (summary table "tai cac BCVH", reconciliation, national rank) are shown for a
  * module only when modules[m].mode === 'all'.
  */
-function resolveAccess({ tier, bcvh = [], indicators = [] } = {}) {
+function resolveAccess({ tier, bcvh = [], indicators = [], position = null } = {}) {
     const normalizedTier = String(tier || '').trim().toUpperCase();
+    const who = resolvePosition(normalizedTier, position);
+    const identity = {
+        position: who ? who.code : null,
+        positionLabel: who ? who.label : null,
+        rank: who ? who.rank : 0,
+        group: who ? who.group : null,
+        capabilities: capabilitiesOf(who),
+    };
+    const holds = (capability) => identity.capabilities.includes(capability);
     const bcvhList = sortedUnique(bcvh);
     const indicatorSet = new Set(sortedUnique(indicators));
 
@@ -27,8 +41,9 @@ function resolveAccess({ tier, bcvh = [], indicators = [] } = {}) {
         for (const key of Object.keys(MODULES)) modules[key] = { mode: 'all', bcvh: [] };
         return {
             tier: normalizedTier,
+            ...identity,
             modules,
-            hangton: { screens: [...HANGTON_SCREENS], offices: 'all' },
+            hangton: { screens: [...HANGTON_SCREENS, ...(holds(CAPABILITIES.HANGTON_HANDLING_VIEW) ? [HANDLING_SCREEN] : [])], offices: 'all' },
             network: true,
             admin: normalizedTier === TIERS.ADMIN,
             home: true,
@@ -38,6 +53,8 @@ function resolveAccess({ tier, bcvh = [], indicators = [] } = {}) {
     if (normalizedTier !== TIERS.STAFF) {
         return {
             tier: normalizedTier,
+            ...identity,
+            capabilities: [],
             modules: Object.fromEntries(Object.keys(MODULES).map((key) => [key, { mode: 'none', bcvh: [] }])),
             hangton: { screens: [], offices: [] },
             network: false,
@@ -62,12 +79,15 @@ function resolveAccess({ tier, bcvh = [], indicators = [] } = {}) {
     for (const indicator of indicatorSet) (HANGTON_OFFICES_BY_INDICATOR[indicator] || []).forEach((office) => offices.add(office));
     const hasHangton = offices.size > 0;
     // The HANGTON indicator specialist sees the whole Hang ton module (PO 2026-10-25): all four screens, every office.
+    // A director / specialist who may enter handling data gets the parcel list and the handling screen on top.
+    const handles = holds(CAPABILITIES.HANGTON_HANDLING_VIEW);
     const hangton = indicatorSet.has('HANGTON')
-        ? { screens: [...HANGTON_SCREENS], offices: 'all' }
-        : { screens: hasHangton ? [...STAFF_HANGTON_SCREENS] : [], offices: [...offices].sort() };
+        ? { screens: [...HANGTON_SCREENS, ...(handles ? [HANDLING_SCREEN] : [])], offices: 'all' }
+        : { screens: hasHangton ? [...(handles ? HANDLING_ENTRY_SCREENS : STAFF_HANGTON_SCREENS)] : [], offices: [...offices].sort() };
 
     return {
         tier: normalizedTier,
+        ...identity,
         modules,
         hangton,
         network: false,
@@ -76,4 +96,4 @@ function resolveAccess({ tier, bcvh = [], indicators = [] } = {}) {
     };
 }
 
-module.exports = { resolveAccess, TIERS, MODULES, HANGTON_SCREENS, STAFF_HANGTON_SCREENS };
+module.exports = { resolveAccess, TIERS, MODULES, HANGTON_SCREENS, STAFF_HANGTON_SCREENS, HANDLING_SCREEN, HANDLING_ENTRY_SCREENS };

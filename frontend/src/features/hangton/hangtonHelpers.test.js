@@ -233,7 +233,7 @@ test('office table: empty-row colSpan follows the visible columns; hiding the so
 
 test('tab resolution: unknown tab falls back to the overview', async () => {
   const { resolveHangtonTab, isHangtonTab, HANGTON_TAB_IDS } = await import('./hangtonTabs.js');
-  assert.deepEqual([...HANGTON_TAB_IDS], ['overview', 'office', 'compare', 'items']);
+  assert.deepEqual([...HANGTON_TAB_IDS], ['overview', 'office', 'compare', 'items', 'handling']);
   assert.equal(resolveHangtonTab('items'), 'items');
   assert.equal(resolveHangtonTab('foo'), 'overview');
   assert.equal(resolveHangtonTab(undefined), 'overview');
@@ -347,4 +347,11 @@ test('level picker chips are short so the picker fits one line', async () => {
   const { shortLevelLabel, TON_LEVELS } = await import('./hangtonLevels.js');
   assert.deepEqual(TON_LEVELS.map(shortLevelLabel), ['<1', '≥1', '≥1.5', '≥2', '≥3', '≥4', '≥5', '≥7', '≥14']);
   assert.equal(shortLevelLabel(''), '');
+});
+
+test('buildItemsParams sends the parcel-code search as ?q= (trimmed) and nothing when the box is empty', async () => {
+  const { buildItemsParams } = await import('./hangtonExport.js');
+  assert.equal(buildItemsParams({ snapshotId: 1, search: '  CE379 ' }).q, 'CE379');
+  assert.equal('q' in buildItemsParams({ snapshotId: 1, search: '   ' }), false);
+  assert.equal('q' in buildItemsParams({ snapshotId: 1 }), false);
 });

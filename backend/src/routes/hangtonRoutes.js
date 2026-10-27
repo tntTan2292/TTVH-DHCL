@@ -11,6 +11,9 @@ const inventory = require('../services/hangtonInventory/compareService');
 const { takeSnapshot } = require('../services/hangtonInventory/snapshotService');
 const { fetchStockData } = require('../services/hangtonInventory/client');
 const { buildItemsXlsx, buildItemsCsv } = require('../services/hangtonInventory/itemsExport');
+const handling = require('../services/hangtonInventory/handling/handlingService');
+const createHandlingRouter = require('./hangtonHandlingRoutes');
+const { CAPABILITIES, can } = require('../services/auth/access/roles');
 
 function createHangtonRouter({ db = require('../config/db'), fetchStock = () => fetchStockData() } = {}) {
     const router = express.Router();
@@ -31,20 +34,24 @@ function createHangtonRouter({ db = require('../config/db'), fetchStock = () => 
         res.json({ success: true, data: { snapshot: inventory.publicSnapshot(snapshot, req.hangtonOffices), ...(await inventory.overview(db, snapshot.id, { customers: req.query.customers, offices: req.hangtonOffices })) } });
     }));
 
-    // Parcel list of one snapshot (Chi tiết): ?id|date&slot, ?office=, ?min_rank= (e.g. 5), ?status=, ?levels=a|b (exact Loại Tồn), ?sort=rank|office|cod|item_code|status|postman|customer, ?dir=asc|desc, ?limit&offset (limit up to 20000).
+    // Parcel list of one snapshot (Chi tiết): ?id|date&slot, ?q= (parcel code or several), ?office=, ?min_rank= (e.g. 5), ?status=, ?levels=a|b (exact Loại Tồn), ?sort=rank|office|cod|item_code|status|postman|customer, ?dir=asc|desc, ?limit&offset (limit up to 20000).
     router.get('/items', ...read, requireHangton('items', 'office'), wrap(async (req, res) => {
         const snapshot = await inventory.resolveSnapshot(db, req.query);
         if (!snapshot) return fail(res, 404, 'NO_SNAPSHOT', 'Chưa có snapshot hàng tồn.');
-        const { office, min_rank: minRank, levels, customers, status, sort, dir, limit, offset } = req.query;
-        res.json({ success: true, data: { snapshot: inventory.publicSnapshot(snapshot, req.hangtonOffices), ...(await inventory.items(db, snapshot.id, { office, offices: req.hangtonOffices, minRank, levels, customers, status, sort, dir, limit, offset })) } });
+        const { office, min_rank: minRank, levels, customers, status, review, q, sort, dir, limit, offset } = req.query;
+        const reviewDate = await handling.reviewDateOf(db, snapshot);
+        const page = await inventory.items(db, snapshot.id, { office, offices: req.hangtonOffices, minRank, levels, customers, status, review, q, reviewDate, sort, dir, limit, offset });
+        // HANGTON-HANDLING-01: whoever may see the handling gets the review state and last entry of every parcel.
+        if (can(req.access, CAPABILITIES.HANGTON_HANDLING_VIEW)) page.rows = await handling.decorateItems(db, page.rows, reviewDate, snapshot.business_date);
+        res.json({ success: true, data: { snapshot: inventory.publicSnapshot(snapshot, req.hangtonOffices), ...page } });
     }));
 
     // Same filters as /items, but every matching row as a file: ?format=xlsx (default) | csv.
     router.get('/items/export', ...read, requireHangton('items', 'office'), wrap(async (req, res) => {
         const snapshot = await inventory.resolveSnapshot(db, req.query);
         if (!snapshot) return fail(res, 404, 'NO_SNAPSHOT', 'Chưa có snapshot hàng tồn.');
-        const { office, min_rank: minRank, levels, customers, status, sort, dir } = req.query;
-        const { rows } = await inventory.items(db, snapshot.id, { office, offices: req.hangtonOffices, minRank, levels, customers, status, sort, dir, limit: inventory.ITEMS_MAX_LIMIT, offset: 0 });
+        const { office, min_rank: minRank, levels, customers, status, review, q, sort, dir } = req.query;
+        const { rows } = await inventory.items(db, snapshot.id, { office, offices: req.hangtonOffices, minRank, levels, customers, status, review, q, reviewDate: await handling.reviewDateOf(db, snapshot), sort, dir, limit: inventory.ITEMS_MAX_LIMIT, offset: 0 });
         const csv = String(req.query.format).toLowerCase() === 'csv';
         const name = `Hang_ton_${snapshot.business_date}_${snapshot.slot}`;
         res.setHeader('Content-Disposition', `attachment; filename="${name}.${csv ? 'csv' : 'xlsx'}"`);
@@ -68,6 +75,8 @@ function createHangtonRouter({ db = require('../config/db'), fetchStock = () => 
         const data = await inventory.compare(db, from.id, to.id, { detail: req.query.detail === '1', customers: req.query.customers, offices: req.hangtonOffices });
         res.json({ success: true, data: { from: inventory.publicSnapshot(from, req.hangtonOffices), to: inventory.publicSnapshot(to, req.hangtonOffices), ...data } });
     }));
+
+    router.use('/handling', createHandlingRouter({ db }));
 
     router.post('/snapshots/run', requireAuth, requireRole(['admin']), wrap(async (req, res) => {
         const slot = String(req.body?.slot || '');

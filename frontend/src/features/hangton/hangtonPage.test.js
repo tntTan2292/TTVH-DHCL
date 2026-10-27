@@ -141,7 +141,7 @@ test('Theo bưu cục: every figure opens the parcel list; Chi tiết pages thro
   assert.match(modal, /downloadItemsFile/);
   assert.match(client, /\/hangton\/items\/export/);
   assert.match(client, /responseType: 'blob'/);
-  assert.match(items, /PAGE_SIZES = \[50, 100, 200, 500, 1000, 0\]/);
+  assert.match(items, /PAGE_SIZES = \[20, 50, 100, 200, 500, 1000, 0\]/);
   assert.match(items, /Tất cả/);
   assert.match(items, /goToPage\(1\)/);
   assert.match(items, /goToPage\(totalPages\)/);

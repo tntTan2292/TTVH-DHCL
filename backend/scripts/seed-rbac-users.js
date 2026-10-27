@@ -20,6 +20,7 @@ const path = require('path');
 const XLSX = require('xlsx');
 const { bcvhCodeFromName } = require('../src/services/auth/access/officeMap');
 const { validateNewPassword } = require('../src/services/auth/passwordPolicy');
+const { positionFromTitle } = require('../src/services/auth/access/roles');
 
 const LEADER_TITLES = ['lãnh đạo bđtp', 'lãnh đạo ttvh', 'it bđtp'];
 // Same list as the database CHECK constraint and the admin API: a value outside it must stop the run BEFORE any write.
@@ -60,7 +61,8 @@ function parseRows(rows) {
         if (tier === 'STAFF' && bcvh.length === 0 && indicators.length === 0) {
             throw new Error(`Dòng ${line} (${username}): chuyên viên không có đơn vị hoặc chỉ tiêu nào`);
         }
-        users.push({ username, displayName: cell(row['Họ và tên']), tier, bcvh, indicators });
+        // HANGTON-HANDLING-01: the "Chức vụ" also becomes the position (null for a title the registry does not know).
+        users.push({ username, displayName: cell(row['Họ và tên']), tier, position: positionFromTitle(title), bcvh, indicators });
     });
 
     const seen = new Set();
@@ -150,7 +152,7 @@ async function main(argv) {
     return 0;
 }
 
-module.exports = { parseRows };
+module.exports = { parseRows, readExcel };
 
 if (require.main === module) {
     main(process.argv.slice(2))

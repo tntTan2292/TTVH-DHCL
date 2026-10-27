@@ -6,6 +6,8 @@ import {
   HANGTON_DESIGN_WIDTH,
   HANGTON_MIN_ZOOM,
   HANGTON_MAX_ZOOM,
+  HANGTON_WIDE_DESIGN_WIDTH,
+  HANGTON_WIDE_MIN_ZOOM,
 } from './hangtonFit.js';
 
 test('fit zoom: shrinks when narrow, grows when wide, one step per 2 %, never outside the limits', () => {
@@ -41,13 +43,21 @@ test('fit zoom is stable and safe on unknown widths', () => {
 
 test('HangTonPage wraps its content in the fit-zoom wrapper (zoom on an inner element, measured on the outer one)', () => {
   const page = fs.readFileSync(new URL('./HangTonPage.jsx', import.meta.url), 'utf8');
-  assert.match(page, /const \{ fitRef, zoom: fitZoom \} = useFitZoom\(\);/, 'callback ref: the wrapper mounts after the loading state');
+  assert.match(page, /const \{ fitRef, zoom: fitZoom \} = useFitZoom\(/, 'callback ref: the wrapper mounts after the loading state');
   assert.match(page, /<div ref=\{fitRef\}>\s*<div style=\{\{ zoom: fitZoom \}\}/, 'the measured wrapper is outside the zoomed one');
 });
 
 test('the fit hook uses a callback ref (an effect on a ref object ran before the wrapper existed and never measured)', () => {
   const hook = fs.readFileSync(new URL('./hangtonFit.js', import.meta.url), 'utf8');
   assert.match(hook, /const \[element, fitRef\] = useState\(null\);/);
-  assert.match(hook, /\}, \[element\]\);/);
+  assert.match(hook, /\}, \[element, options\.design, options\.min\]\);/, 'a change of design width re-measures');
   assert.doesNotMatch(hook, /ref\.current/);
+});
+
+test('the parcel table with the handling columns is laid out wider and may shrink further', () => {
+  const wide = { design: HANGTON_WIDE_DESIGN_WIDTH, min: HANGTON_WIDE_MIN_ZOOM };
+  assert.equal(computeFitZoom({ width: 1600, ...wide }), 1);
+  assert.equal(computeFitZoom({ width: 1200, ...wide }), 0.74, 'menu open on a laptop: smaller text, whole table in view');
+  assert.equal(computeFitZoom({ width: 800, ...wide }), HANGTON_WIDE_MIN_ZOOM);
+  assert.ok(computeFitZoom({ width: 1200, ...wide }) < computeFitZoom({ width: 1200 }));
 });

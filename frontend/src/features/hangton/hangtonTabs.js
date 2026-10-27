@@ -1,5 +1,5 @@
 // HANGTON-INVENTORY-01: the four screens, one URL each (/hangton/<id>).
-export const HANGTON_TAB_IDS = Object.freeze(['overview', 'office', 'compare', 'items']);
+export const HANGTON_TAB_IDS = Object.freeze(['overview', 'office', 'compare', 'items', 'handling']);
 export const HANGTON_DEFAULT_TAB = 'overview';
 
 export function isHangtonTab(tab) {

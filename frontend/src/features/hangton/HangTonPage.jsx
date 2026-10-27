@@ -4,6 +4,7 @@ import {
   Building2,
   GitCompare,
   FileText,
+  ClipboardCheck,
   RefreshCw,
 } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -13,7 +14,7 @@ import { PageContainer } from '../../components/shared/SharedComponents.jsx';
 import { LoadingLayout, ErrorLayout, EmptyLayout } from '../../components/common/StateLayouts.jsx';
 import { resolveHangtonTab, isHangtonTab } from './hangtonTabs.js';
 import { levelsFromRank } from './hangtonLevels.js';
-import { useFitZoom } from './hangtonFit.js';
+import { useFitZoom, HANGTON_WIDE_DESIGN_WIDTH, HANGTON_WIDE_MIN_ZOOM } from './hangtonFit.js';
 import SnapshotPicker from './components/SnapshotPicker.jsx';
 import CustomerFilterBar from './components/CustomerFilterBar.jsx';
 import { sanitizeSelectedCustomers, customersParam } from './hangtonCustomers.js';
@@ -22,13 +23,15 @@ import HangTonByOfficeTab from './components/HangTonByOfficeTab.jsx';
 import HangTonCompareTab from './components/HangTonCompareTab.jsx';
 import HangTonItemsTab from './components/HangTonItemsTab.jsx';
 import HangTonItemsModal from './components/HangTonItemsModal.jsx';
-import { fetchSnapshots, fetchOverview, fetchCompare } from './api/hangtonClient.js';
+import HangTonHandlingTab from './components/HangTonHandlingTab.jsx';
+import { fetchSnapshots, fetchOverview, fetchCompare, fetchHandlingCatalog } from './api/hangtonClient.js';
 
 const TABS = [
   { id: 'overview', label: 'Tổng quan', icon: Layers },
   { id: 'office', label: 'Theo bưu cục', icon: Building2 },
   { id: 'compare', label: 'So sánh hai mốc', icon: GitCompare },
   { id: 'items', label: 'Chi tiết', icon: FileText },
+  { id: 'handling', label: 'Xử lý tồn', icon: ClipboardCheck },
 ];
 
 export default function HangTonPage() {
@@ -73,9 +76,23 @@ export default function HangTonPage() {
   const [overview, setOverview] = useState(null);
   const [compare, setCompare] = useState(null);
 
+  // HANGTON-HANDLING-01: what this account may do with the stock handling (view / enter / approve / group reasons).
+  const [handlingCatalog, setHandlingCatalog] = useState(null);
+  const [handlingRefresh, setHandlingRefresh] = useState(0);
+  const [selectedReview, setSelectedReview] = useState(''); // review-state filter the statistics open the list with
+  const canSeeHandling = allowedScreens.includes('handling');
+  useEffect(() => {
+    if (!canSeeHandling) { setHandlingCatalog(null); return undefined; }
+    let active = true;
+    fetchHandlingCatalog().then((data) => { if (active) setHandlingCatalog(data); }).catch(() => { if (active) setHandlingCatalog(null); });
+    return () => { active = false; };
+  }, [canSeeHandling]);
+
   const requestToken = useRef(0);
   // The screens follow the width they are given (menu open or closed, window size): see hangtonFit.js
-  const { fitRef, zoom: fitZoom } = useFitZoom();
+  // The parcel table with the handling columns is laid out wider so one parcel stays on one line.
+  const wideTable = activeTab === 'items' && Boolean(handlingCatalog);
+  const { fitRef, zoom: fitZoom } = useFitZoom(wideTable ? { design: HANGTON_WIDE_DESIGN_WIDTH, min: HANGTON_WIDE_MIN_ZOOM } : {});
   // Customer groups the whole module is limited to ([] = every group); remembered per viewer.
   const [selectedCustomers, setSelectedCustomers] = useState(() => {
     try {
@@ -180,6 +197,14 @@ export default function HangTonPage() {
       setModalOffice(officeName);
       setModalLevels(minRank === '' ? [] : levelsFromRank(minRank));
     }
+  };
+
+  // From the review statistics: open the parcel list of one office limited to >= 5 days and one review state.
+  const handleOpenHandlingList = ({ office, review }) => {
+    setSelectedOfficeDrilldown(office || '');
+    setSelectedMinRank('5');
+    setSelectedReview(review || '');
+    setActiveTab('items');
   };
 
   const handleSelectSnapshot = (id) => {
@@ -344,7 +369,20 @@ export default function HangTonPage() {
                 officeOptions={officeOptions}
                 initialOffice={selectedOfficeDrilldown}
                 initialMinRank={selectedMinRank}
+                initialReview={selectedReview}
+                handlingCatalog={handlingCatalog}
+                onHandlingChanged={() => setHandlingRefresh((n) => n + 1)}
                 selectedCustomers={selectedCustomers}
+              />
+            )}
+
+            {activeTab === 'handling' && (
+              <HangTonHandlingTab
+                currentSnapshot={currentSnapshot}
+                selectedCustomers={selectedCustomers}
+                handlingCatalog={handlingCatalog}
+                onOpenList={handleOpenHandlingList}
+                refreshKey={handlingRefresh}
               />
             )}
           </div>

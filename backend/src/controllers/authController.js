@@ -20,6 +20,7 @@ const publicUser = (user) => ({
     username: user.username,
     display_name: user.display_name,
     tier: user.tier,
+    position: user.position ?? user.access?.position ?? null,
     role: user.role,
     must_change_password: !!user.must_change_password,
     access: user.access,

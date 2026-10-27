@@ -65,13 +65,15 @@ export function saveBlob(blob, filename) {
 /**
  * Query parameters of GET /api/hangton/items (and /items/export): empty values are dropped, levels are joined with "|".
  */
-export function buildItemsParams({ snapshotId, office, levels, customers, minRank, status, sort, dir, limit, offset } = {}) {
+export function buildItemsParams({ snapshotId, office, levels, customers, minRank, status, review, search, sort, dir, limit, offset } = {}) {
   const params = { id: snapshotId };
   if (office) params.office = office;
   if (Array.isArray(levels) && levels.length > 0) params.levels = levels.join('|');
   if (Array.isArray(customers) && customers.length > 0) params.customers = customers.join('|');
   if (minRank !== undefined && minRank !== null && minRank !== '') params.min_rank = minRank;
   if (status) params.status = status;
+  if (review) params.review = review;
+  if (String(search ?? '').trim()) params.q = String(search).trim();
   if (sort) params.sort = sort;
   if (dir) params.dir = dir;
   if (limit !== undefined) params.limit = limit;

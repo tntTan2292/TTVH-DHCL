@@ -39,6 +39,7 @@ const { applyImportLogAudit01Schema } = require('./migrate_import_log_audit_01_s
 const { applyBfPhat01Schema } = require('./migrate_bf_phat_01_schema');
 const { applyPerfLoad01AggSchema } = require('./migrate_perf_load_01_agg_schema');
 const { applyHangtonInventory01Schema } = require('./migrate_hangton_inventory_01_schema');
+const { applyHangtonHandling01Schema } = require('./migrate_hangton_handling_01_schema');
 
 const app = express();
 const PORT = Number(process.env.PORT || 5050);
@@ -162,6 +163,7 @@ async function ensureStartupSchemaMigrations(dbPath = activeDbPath) {
     await applyPerfLoad01AggSchema(dbPath);
     await applyHangtonInventory01Schema(dbPath);
     await applyRbac01Schema(dbPath);
+    await applyHangtonHandling01Schema(dbPath);
     await applyBfPhat01Schema(dbPath);
 }
 

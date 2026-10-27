@@ -3,6 +3,8 @@
 // HANGTON-INVENTORY-01 phase 2: read side. Overview of one snapshot and the parcel-level comparison of
 // two snapshots keyed by item_code: resolved (left the stock), aged_up, new, unchanged, aged_down.
 
+const handlingCatalog = require('./handling/catalog');
+
 async function listSnapshots(db, { limit = 90 } = {}) {
     return db.all(
         `SELECT id, business_date, slot, captured_at, portal_timestamp, source_row_count, kept_row_count, is_stale, trigger
@@ -112,8 +114,41 @@ async function overview(db, snapshotId, { customers, offices } = {}) {
 // Parcel list of one snapshot for the detail table: optional office / min level rank / status / customer groups, paged.
 const ITEM_SORT_COLUMNS = Object.freeze({
     rank: 'ton_rank', office: 'office', cod: 'cod', item_code: 'item_code', status: 'status_name', postman: 'postman_name', customer: 'customer_class',
+    reason: 'reason',
 });
 const ITEM_SORT_DEFAULT_DIR = Object.freeze({ rank: 'DESC', cod: 'DESC' });
+
+// HANGTON-HANDLING-01: columns that come from the handling log. The entry shown for a parcel is its newest one.
+const LATEST_ENTRY = (column) => `(SELECT l.${column} FROM hangton_handling_log l WHERE l.item_code = hangton_snapshot_item.item_code ORDER BY l.business_date DESC, l.id DESC LIMIT 1)`;
+const answerOrder = (kind) => {
+    const codes = handlingCatalog.CATALOG[kind].map((entry) => `'${entry.code}'`);
+    const whens = codes.map((code, index) => `WHEN ${code} THEN ${index + 1}`).join(' ');
+    return `CASE ${LATEST_ENTRY(`${kind}_code`)} ${whens} ELSE 99 END`;
+};
+// field -> { sql (primary key, ascending order), params, then (secondary expressions) }
+function handlingSort(field, reviewDate) {
+    switch (field) {
+    case 'review':
+        // 0 = never reviewed, 1 = only older entries (waiting for confirmation), 2 = reviewed on the snapshot's day
+        return {
+            sql: `CASE WHEN EXISTS (SELECT 1 FROM hangton_handling_log l WHERE l.item_code = hangton_snapshot_item.item_code AND l.business_date = ?) THEN 2
+                       WHEN EXISTS (SELECT 1 FROM hangton_handling_log l WHERE l.item_code = hangton_snapshot_item.item_code) THEN 1 ELSE 0 END`,
+            params: [reviewDate || ''],
+        };
+    case 'cause':
+        return { sql: answerOrder('cause'), params: [], then: LATEST_ENTRY('cause_text') };
+    case 'plan':
+        return { sql: answerOrder('plan'), params: [], then: LATEST_ENTRY('due_date') };
+    case 'result':
+        return { sql: answerOrder('result'), params: [] };
+    case 'due':
+        return { sql: `(${LATEST_ENTRY('due_date')} IS NULL)`, params: [], then: LATEST_ENTRY('due_date') };
+    case 'note':
+        return { sql: `(${LATEST_ENTRY('note')} IS NULL)`, params: [], then: LATEST_ENTRY('note') };
+    default:
+        return null;
+    }
+}
 const ITEMS_MAX_LIMIT = 20000;
 
 // "levels": exact "Loại Tồn" values, as an array or a "|"-joined string (e.g. "≥5 ngày|≥7 ngày").
@@ -122,7 +157,22 @@ function parseLevels(levels) {
     return list.map((l) => String(l).trim()).filter(Boolean);
 }
 
-async function items(db, snapshotId, { office, offices, minRank, levels, customers, status, sort = 'rank', dir, limit = 200, offset = 0 } = {}) {
+// HANGTON-HANDLING-01: filter by review state on the snapshot's business day: done (complete entry that day), pending
+// (not done), never (no entry ever), stale (older entries only).
+const REVIEW_FILTERS = Object.freeze({
+    done: 'EXISTS (SELECT 1 FROM hangton_handling_log l WHERE l.item_code = hangton_snapshot_item.item_code AND l.business_date = ?)',
+    pending: 'NOT EXISTS (SELECT 1 FROM hangton_handling_log l WHERE l.item_code = hangton_snapshot_item.item_code AND l.business_date = ?)',
+    never: 'NOT EXISTS (SELECT 1 FROM hangton_handling_log l WHERE l.item_code = hangton_snapshot_item.item_code)',
+    stale: 'EXISTS (SELECT 1 FROM hangton_handling_log l WHERE l.item_code = hangton_snapshot_item.item_code) AND NOT EXISTS (SELECT 1 FROM hangton_handling_log l WHERE l.item_code = hangton_snapshot_item.item_code AND l.business_date = ?)',
+});
+
+// Search box of the parcel list: one or several (space / comma / line separated) pieces of a parcel code, case-insensitive.
+const SEARCH_MAX_TERMS = 50;
+function searchTerms(q) {
+    return [...new Set(String(q ?? '').split(/[\s,;]+/).map((term) => term.trim()).filter(Boolean))].slice(0, SEARCH_MAX_TERMS);
+}
+
+async function items(db, snapshotId, { office, offices, minRank, levels, customers, status, review, reviewDate, q, sort = 'rank', dir, limit = 200, offset = 0 } = {}) {
     const where = ['snapshot_id = ?'];
     const params = [snapshotId];
     const scoped = officeClause(offices);
@@ -134,14 +184,31 @@ async function items(db, snapshotId, { office, offices, minRank, levels, custome
     const customerList = parseList(customers);
     if (customerList.length > 0) { where.push(`customer_class IN (${customerList.map(() => '?').join(',')})`); params.push(...customerList); }
     if (status) { where.push('status_name = ?'); params.push(status); }
-    const field = ITEM_SORT_COLUMNS[sort] ? sort : 'rank';
+    const terms = searchTerms(q);
+    if (terms.length > 0) {
+        where.push(`(${terms.map(() => "item_code LIKE ? ESCAPE '!'").join(' OR ')})`);
+        params.push(...terms.map((term) => `%${term.replace(/[!%_]/g, '!$&')}%`));
+    }
+    if (review && REVIEW_FILTERS[review] && reviewDate) {
+        where.push(`(${REVIEW_FILTERS[review]})`);
+        if (REVIEW_FILTERS[review].includes('?')) params.push(reviewDate);
+    }
+    const viaLog = handlingSort(sort, reviewDate);
+    const field = viaLog || ITEM_SORT_COLUMNS[sort] ? sort : 'rank';
     const direction = String(dir).toLowerCase() === 'asc' ? 'ASC' : String(dir).toLowerCase() === 'desc' ? 'DESC' : (ITEM_SORT_DEFAULT_DIR[field] || 'ASC');
-    const orderBy = `${ITEM_SORT_COLUMNS[field]} ${direction}, ${field === 'rank' ? 'office, ' : ''}item_code`;
+    const orderParams = [];
+    let orderBy;
+    if (viaLog) {
+        orderBy = `${viaLog.sql} ${direction}${viaLog.then ? `, ${viaLog.then} ${direction}` : ''}, office, item_code`;
+        orderParams.push(...viaLog.params);
+    } else {
+        orderBy = `${ITEM_SORT_COLUMNS[field]} ${direction}, ${field === 'rank' ? 'office, ' : ''}item_code`;
+    }
     const total = (await db.get(`SELECT COUNT(*) AS n FROM hangton_snapshot_item WHERE ${where.join(' AND ')}`, params)).n;
     const rows = await db.all(
-        `SELECT item_code, status_name, ton_level, ton_rank, office, district, cod, parcel_type, customer_class, postman_code, postman_name, reason, weight
+        `SELECT item_code, status_name, ton_level, ton_rank, office, office_code, district, cod, parcel_type, customer_class, postman_code, postman_name, reason, weight
            FROM hangton_snapshot_item WHERE ${where.join(' AND ')} ORDER BY ${orderBy} LIMIT ? OFFSET ?`,
-        [...params, Math.min(Number(limit) || 200, ITEMS_MAX_LIMIT), Math.max(Number(offset) || 0, 0)]);
+        [...params, ...orderParams, Math.min(Number(limit) || 200, ITEMS_MAX_LIMIT), Math.max(Number(offset) || 0, 0)]);
     return { total, rows };
 }
 
