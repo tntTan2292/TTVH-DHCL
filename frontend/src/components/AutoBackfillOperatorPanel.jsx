@@ -10,9 +10,11 @@ import {
   ChevronLeft,
   ChevronRight,
   ChevronUp,
+  FileText,
   Filter,
   Grid,
   History,
+  Layers,
   List,
   MinusSquare,
   MoreHorizontal,
@@ -61,11 +63,14 @@ import {
   buildBulkRunPayload,
   chunkBulkItems,
   translateBulkSkipReason,
-  aggregateBulkReports
+  aggregateBulkReports,
+  summarizeOpenRuns,
+  groupOpenRuns
 } from './autoBackfillUiHelpers';
 import AutoBackfillIndicatorMatrix from './AutoBackfillIndicatorMatrix';
 import AutoBackfillSmartDayView from './AutoBackfillSmartDayView';
 import AutoBackfillImportHistory from './AutoBackfillImportHistory';
+import AutoBackfillJobLog from './AutoBackfillJobLog';
 
 const getApiErrorMessage = (error, fallback = 'Đã xảy ra lỗi khi gọi API.') => (
   error?.response?.data?.error?.message ||
@@ -128,6 +133,12 @@ export default function AutoBackfillOperatorPanel() {
   // AB-AUTH-07 (design Section 5, C2): every open run, not just whichever one activeRunId
   // happens to point at -- otherwise a run that blocks the whole queue can be invisible.
   const [openRuns, setOpenRuns] = useState([]);
+  const [openRunsTotal, setOpenRunsTotal] = useState(0);
+  const [openRunsViewMode, setOpenRunsViewMode] = useState('GROUPED'); // 'GROUPED' | 'FLAT'
+  const [openRunsLaneFilter, setOpenRunsLaneFilter] = useState('ALL');
+  const [openRunsStateFilter, setOpenRunsStateFilter] = useState('ALL');
+  const [openRunsPage, setOpenRunsPage] = useState(1);
+  const [expandedRunGroupKeys, setExpandedRunGroupKeys] = useState(new Set());
   const [openRunsLoading, setOpenRunsLoading] = useState(false);
   const [openRunsError, setOpenRunsError] = useState(null);
   const [openRunActionLoadingId, setOpenRunActionLoadingId] = useState(null);
@@ -607,6 +618,7 @@ export default function AutoBackfillOperatorPanel() {
       const res = await api.get('/import/auto-backfill/runs');
       if (res.data.success) {
         setOpenRuns(res.data.data?.runs || []);
+        setOpenRunsTotal(res.data.data?.total != null ? res.data.data.total : (res.data.data?.runs?.length || 0));
         setOpenRunsError(null);
       }
     } catch (err) {
@@ -621,6 +633,47 @@ export default function AutoBackfillOperatorPanel() {
     const interval = setInterval(fetchOpenRuns, 5000);
     return () => clearInterval(interval);
   }, [fetchOpenRuns]);
+
+  const openRunsSummary = useMemo(() => {
+    return summarizeOpenRuns({ runs: openRuns, total: openRunsTotal });
+  }, [openRuns, openRunsTotal]);
+
+  const filteredOpenRuns = useMemo(() => {
+    return openRuns.filter((entry) => {
+      const run = entry?.run || {};
+      const { runState } = resolveOpenRunRowActions(entry);
+      if (openRunsLaneFilter !== 'ALL' && run.requested_lane !== openRunsLaneFilter) {
+        return false;
+      }
+      if (openRunsStateFilter !== 'ALL') {
+        if (openRunsStateFilter === 'WAITING_AUTH' && runState !== 'WAITING_AUTH') return false;
+        if (openRunsStateFilter === 'BLOCKED' && runState !== 'CIRCUIT_OPEN' && runState !== 'BLOCKED_INTEGRITY') return false;
+        if (openRunsStateFilter === 'PAUSED' && runState !== 'PAUSED') return false;
+        if (openRunsStateFilter === 'RUNNING' && runState !== 'RUNNING') return false;
+      }
+      return true;
+    });
+  }, [openRuns, openRunsLaneFilter, openRunsStateFilter]);
+
+  const groupedOpenRuns = useMemo(() => {
+    return groupOpenRuns(filteredOpenRuns);
+  }, [filteredOpenRuns]);
+
+  const paginatedFlatRuns = useMemo(() => {
+    const start = (openRunsPage - 1) * 10;
+    return filteredOpenRuns.slice(start, start + 10);
+  }, [filteredOpenRuns, openRunsPage]);
+
+  const totalFlatPages = Math.max(1, Math.ceil(filteredOpenRuns.length / 10));
+
+  const toggleRunGroupExpand = (key) => {
+    setExpandedRunGroupKeys((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
 
   // Fetch Events
   const fetchEvents = useCallback(async (runId) => {
@@ -1513,109 +1566,409 @@ export default function AutoBackfillOperatorPanel() {
             </button>
 
             {isAdmin && (
-              <button
-                type="button"
-                onClick={() => setViewMode('HISTORY')}
-                className={`inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 ${
-                  viewMode === 'HISTORY' ? 'ring-2 ring-indigo-400 bg-indigo-50/50 font-bold text-indigo-900' : ''
-                }`}
-              >
-                <History className="h-4 w-4 text-indigo-600" />
-                <span>Lịch sử Import</span>
-              </button>
+              <>
+                <button
+                  type="button"
+                  onClick={() => setViewMode('JOB_LOG')}
+                  className={`inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 ${
+                    viewMode === 'JOB_LOG' ? 'ring-2 ring-blue-500 bg-blue-50/50 font-bold text-blue-900' : ''
+                  }`}
+                >
+                  <Activity className="h-4 w-4 text-blue-600" />
+                  <span>Nhật ký Import (Job Log)</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setViewMode('HISTORY')}
+                  className={`inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 ${
+                    viewMode === 'HISTORY' ? 'ring-2 ring-indigo-400 bg-indigo-50/50 font-bold text-indigo-900' : ''
+                  }`}
+                >
+                  <History className="h-4 w-4 text-indigo-600" />
+                  <span>Lịch sử Tệp (File Log)</span>
+                </button>
+              </>
             )}
           </div>
         </div>
 
-        {/* AB-AUTH-07 (design Section 5, C2): every open run at once, so a run blocking the
-            queue is never invisible just because it isn't the one this panel happens to be
-            tracking below. */}
-        <div className="mt-4 rounded-xl border border-slate-200 bg-white">
-          <div className="flex items-center justify-between border-b border-slate-200 px-4 py-2.5">
-            <span className="text-xs font-bold text-slate-700 uppercase tracking-wider">
-              Tất cả tiến trình đang mở {openRuns.length > 0 && `(${openRuns.length})`}
-            </span>
-            <button
-              type="button"
-              onClick={fetchOpenRuns}
-              disabled={openRunsLoading}
-              className="inline-flex items-center gap-1 text-xs font-medium text-slate-500 hover:text-slate-800 disabled:opacity-50"
-            >
-              <RefreshCw className={`h-3 w-3 ${openRunsLoading ? 'animate-spin' : ''}`} />
-              <span>Làm mới</span>
-            </button>
+        {/* ======================================================== */}
+        {/* UI-IMPORT-PROCESS-LOG-01: READABLE OPEN RUNS SUMMARY & GROUPING */}
+        {/* ======================================================== */}
+        <div className="mt-4 rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+          {/* Top Header */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-slate-200 px-5 py-3.5 bg-slate-50/70 gap-3">
+            <div className="flex items-center gap-2.5">
+              <div className="rounded-lg bg-blue-100 p-1.5 text-blue-700">
+                <Layers className="h-4 w-4" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold text-slate-800 uppercase tracking-wider">
+                    Tất cả tiến trình đang mở ({openRunsSummary.total})
+                  </span>
+                  {openRunsSummary.total > openRuns.length && (
+                    <span className="rounded-full bg-slate-200/80 px-2 py-0.5 text-[10px] font-semibold text-slate-600">
+                      Hiển thị {openRuns.length}/{openRunsSummary.total}
+                    </span>
+                  )}
+                </div>
+                <p className="text-[11px] text-slate-500">
+                  Tóm tắt theo nguồn và trạng thái • Tự động cập nhật mỗi 5 giây
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              {/* Grouped vs Flat switcher */}
+              <div className="inline-flex rounded-lg bg-slate-200/70 p-0.5 text-xs">
+                <button
+                  type="button"
+                  onClick={() => setOpenRunsViewMode('GROUPED')}
+                  className={`rounded-md px-2.5 py-1 font-semibold transition ${
+                    openRunsViewMode === 'GROUPED'
+                      ? 'bg-white text-slate-900 shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  Gộp theo nhóm ({groupedOpenRuns.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setOpenRunsViewMode('FLAT')}
+                  className={`rounded-md px-2.5 py-1 font-semibold transition ${
+                    openRunsViewMode === 'FLAT'
+                      ? 'bg-white text-slate-900 shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  Từng run ({filteredOpenRuns.length})
+                </button>
+              </div>
+
+              <button
+                type="button"
+                onClick={fetchOpenRuns}
+                disabled={openRunsLoading}
+                className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold text-slate-700 shadow-2xs hover:bg-slate-50 disabled:opacity-50"
+              >
+                <RefreshCw className={`h-3 w-3 ${openRunsLoading ? 'animate-spin' : ''}`} />
+                <span>Làm mới</span>
+              </button>
+            </div>
           </div>
+
+          {/* KPI Summary Strip */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 p-3.5 bg-slate-50/40 border-b border-slate-100 text-xs">
+            <div className="bg-white p-2.5 rounded-xl border border-slate-200">
+              <span className="text-slate-500 block text-[11px]">Đang chạy:</span>
+              <span className="text-base font-extrabold text-blue-700">
+                {openRunsSummary.countsByState.running}
+              </span>
+              <span className="text-[10px] text-slate-400 block mt-0.5">
+                HUE: {openRunsSummary.countsByLane.HUE} · TCT: {openRunsSummary.countsByLane.TCT}
+              </span>
+            </div>
+
+            <div className="bg-white p-2.5 rounded-xl border border-slate-200">
+              <span className="text-slate-500 block text-[11px]">Chờ đăng nhập:</span>
+              <span className={`text-base font-extrabold ${openRunsSummary.countsByState.waitingAuth > 0 ? 'text-amber-700' : 'text-slate-700'}`}>
+                {openRunsSummary.countsByState.waitingAuth}
+              </span>
+              <span className="text-[10px] text-slate-400 block mt-0.5">Yêu cầu xác thực</span>
+            </div>
+
+            <div className="bg-white p-2.5 rounded-xl border border-slate-200">
+              <span className="text-slate-500 block text-[11px]">Bị chặn (ngắt mạch/lỗi):</span>
+              <span className={`text-base font-extrabold ${openRunsSummary.countsByState.blocked > 0 ? 'text-rose-700' : 'text-slate-700'}`}>
+                {openRunsSummary.countsByState.blocked}
+              </span>
+              <span className="text-[10px] text-slate-400 block mt-0.5">Cần người vận hành</span>
+            </div>
+
+            <div className="bg-white p-2.5 rounded-xl border border-slate-200">
+              <span className="text-slate-500 block text-[11px]">Tạm dừng:</span>
+              <span className="text-base font-extrabold text-slate-700">
+                {openRunsSummary.countsByState.paused}
+              </span>
+              <span className="text-[10px] text-slate-400 block mt-0.5">Chờ tiếp tục run</span>
+            </div>
+          </div>
+
+          {/* Prominent Blocking Alert Banner */}
+          {openRunsSummary.isAnyBlocked && (
+            <div className="px-4 py-3 bg-amber-50/90 border-b border-amber-200 flex flex-wrap items-center justify-between gap-3 text-xs text-amber-950">
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0" />
+                <span>
+                  <strong>Cảnh báo tắc nghẽn:</strong> Đang chặn nguồn{' '}
+                  <strong className="text-rose-700">{openRunsSummary.blockedLanes.join(', ') || 'Portal'}</strong>{' '}
+                  do cần đăng nhập xác thực hoặc ngắt mạch bảo vệ.
+                </span>
+              </div>
+              {isAdmin && (
+                <div className="flex items-center gap-2">
+                  {openRunsSummary.blockedLanes.map((lane) => (
+                    <button
+                      key={lane}
+                      type="button"
+                      onClick={() => handleOpenManualLogin(lane)}
+                      disabled={authLoginLoading || authLoginPending}
+                      className="rounded-lg bg-blue-700 px-3 py-1 font-bold text-white hover:bg-blue-800 disabled:opacity-50 shadow-sm"
+                    >
+                      Mở đăng nhập {lane}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
           {openRunsError && (
             <div className="px-4 py-2 text-xs font-semibold text-red-700 bg-red-50 border-b border-red-200">{openRunsError}</div>
           )}
 
-          {openRuns.length === 0 ? (
-            <div className="px-4 py-4 text-xs text-slate-500">
-              {openRunsLoading ? 'Đang tải...' : 'Không có tiến trình nào đang mở.'}
+          {/* Filter Bar for Open Runs */}
+          <div className="px-4 py-2 bg-slate-50/50 border-b border-slate-100 flex flex-wrap items-center justify-between gap-2 text-xs">
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-1.5">
+                <span className="text-slate-500 font-medium">Nguồn:</span>
+                <select
+                  value={openRunsLaneFilter}
+                  onChange={(e) => { setOpenRunsLaneFilter(e.target.value); setOpenRunsPage(1); }}
+                  className="rounded border border-slate-200 bg-white px-2 py-0.5 text-xs font-bold text-slate-700 focus:outline-none"
+                >
+                  <option value="ALL">Tất cả nguồn</option>
+                  <option value="HUE">Nguồn HUE</option>
+                  <option value="TCT">Nguồn TCT</option>
+                </select>
+              </div>
+
+              <div className="flex items-center gap-1.5">
+                <span className="text-slate-500 font-medium">Trạng thái:</span>
+                <select
+                  value={openRunsStateFilter}
+                  onChange={(e) => { setOpenRunsStateFilter(e.target.value); setOpenRunsPage(1); }}
+                  className="rounded border border-slate-200 bg-white px-2 py-0.5 text-xs font-bold text-slate-700 focus:outline-none"
+                >
+                  <option value="ALL">Tất cả trạng thái</option>
+                  <option value="RUNNING">Đang chạy</option>
+                  <option value="WAITING_AUTH">Chờ đăng nhập</option>
+                  <option value="BLOCKED">Bị chặn an toàn</option>
+                  <option value="PAUSED">Tạm dừng</option>
+                </select>
+              </div>
             </div>
-          ) : (
-            <div className="divide-y divide-slate-100">
-              {openRuns.map((entry) => {
-                const { runState: rowRunState, isBlocking, blockedLanes, canResume } = resolveOpenRunRowActions(entry);
-                const isCurrentlyActive = entry.run.id === activeRunId;
-                return (
-                  <div
-                    key={entry.run.id}
-                    className={`flex flex-wrap items-center gap-3 px-4 py-2.5 text-xs cursor-pointer hover:bg-slate-50 ${isCurrentlyActive ? 'bg-blue-50/60' : ''}`}
-                    onClick={() => handleSelectRunFromList(entry.run.id)}
-                  >
-                    <span className="font-mono font-semibold text-slate-700">#{String(entry.run.id).slice(0, 8)}</span>
-                    <span className="font-semibold text-slate-800">
-                      {entry.run.requested_indicator || 'Nhiều chỉ tiêu'}
-                      {entry.run.requested_lane && entry.run.requested_lane !== 'ALL' ? ` · ${entry.run.requested_lane}` : ''}
-                    </span>
-                    <span className={`inline-flex items-center rounded-full px-2 py-0.5 font-semibold ${
-                      rowRunState === 'WAITING_AUTH' ? 'bg-amber-100 text-amber-900' :
-                      rowRunState === 'PAUSED' ? 'bg-slate-100 text-slate-700' :
-                      rowRunState === 'CIRCUIT_OPEN' || rowRunState === 'BLOCKED_INTEGRITY' ? 'bg-red-100 text-red-800' :
-                      'bg-blue-100 text-blue-800'
-                    }`}>
-                      {rowRunState}
-                    </span>
-                    <span className="text-slate-500">{entry.jobTotal} job</span>
 
-                    {isBlocking && (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-red-100 px-2 py-0.5 font-bold text-red-800">
-                        <ShieldAlert className="h-3 w-3" />
-                        Đang chặn nguồn {blockedLanes.join(' / ')}
-                      </span>
-                    )}
+            <span className="text-slate-400 text-[11px]">
+              {filteredOpenRuns.length} tiến trình khớp bộ lọc
+            </span>
+          </div>
 
-                    {isAdmin && (
-                      <span className="ml-auto flex items-center gap-2" onClick={(event) => event.stopPropagation()}>
-                        {isBlocking && blockedLanes.map((lane) => (
-                          <button
-                            key={lane}
-                            type="button"
-                            onClick={() => handleOpenManualLogin(lane)}
-                            disabled={authLoginLoading || authLoginPending}
-                            className="inline-flex items-center rounded-lg bg-vnpost-blue px-2.5 py-1 font-bold text-white hover:bg-blue-800 disabled:opacity-50"
-                          >
-                            Mở đăng nhập {lane}
-                          </button>
-                        ))}
-                        {canResume && (
-                          <button
-                            type="button"
-                            onClick={() => handleResumeRunFromList(entry.run.id)}
-                            disabled={openRunActionLoadingId === entry.run.id}
-                            className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1 font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
-                          >
-                            <Play className="h-3 w-3 fill-current" />
-                            {openRunActionLoadingId === entry.run.id ? 'Đang xử lý...' : 'Tiếp tục Run'}
-                          </button>
-                        )}
-                      </span>
-                    )}
+          {/* Grouped View Content */}
+          {openRunsViewMode === 'GROUPED' && (
+            <div className="divide-y divide-slate-100 max-h-96 overflow-y-auto">
+              {groupedOpenRuns.length === 0 ? (
+                <div className="px-4 py-8 text-center text-xs text-slate-400">
+                  {openRunsLoading ? 'Đang tải tiến trình...' : 'Không có nhóm tiến trình nào phù hợp.'}
+                </div>
+              ) : (
+                groupedOpenRuns.map((group) => {
+                  const isExpanded = expandedRunGroupKeys.has(group.groupKey);
+                  return (
+                    <div key={group.groupKey} className="text-xs">
+                      <div
+                        onClick={() => toggleRunGroupExpand(group.groupKey)}
+                        className="flex items-center justify-between px-4 py-2.5 hover:bg-slate-50 cursor-pointer transition select-none"
+                      >
+                        <div className="flex items-center gap-3">
+                          <span className={`transition-transform duration-150 font-mono text-slate-400 ${isExpanded ? 'rotate-90' : ''}`}>
+                            ▶
+                          </span>
+                          <span className="font-bold text-slate-900">
+                            {group.indicator}
+                          </span>
+                          <span className="text-slate-500">
+                            · Nguồn {group.lane}
+                          </span>
+                          <span className="text-slate-500">
+                            · {group.actor}
+                          </span>
+                          <span className={`inline-flex items-center rounded-full px-2 py-0.5 font-semibold text-[11px] ${
+                            group.state === 'WAITING_AUTH' ? 'bg-amber-100 text-amber-900' :
+                            group.state === 'PAUSED' ? 'bg-slate-100 text-slate-700' :
+                            group.state === 'CIRCUIT_OPEN' || group.state === 'BLOCKED_INTEGRITY' ? 'bg-red-100 text-red-800' :
+                            'bg-blue-100 text-blue-800'
+                          }`}>
+                            {group.state}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold text-slate-700 bg-slate-100 px-2 py-0.5 rounded-full">
+                            {group.runCount} tiến trình ({group.jobTotal} jobs)
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Expandable run rows inside this group */}
+                      {isExpanded && (
+                        <div className="bg-slate-50/60 pl-8 pr-4 py-2 divide-y divide-slate-200/60 border-t border-slate-100">
+                          {group.runs.map((entry) => {
+                            const { runState: rowRunState, isBlocking, blockedLanes, canResume } = resolveOpenRunRowActions(entry);
+                            const isCurrentlyActive = entry.run.id === activeRunId;
+                            return (
+                              <div
+                                key={entry.run.id}
+                                onClick={() => handleSelectRunFromList(entry.run.id)}
+                                className={`flex items-center justify-between py-2 hover:bg-white px-2 rounded cursor-pointer transition ${isCurrentlyActive ? 'bg-blue-50/80 font-bold' : ''}`}
+                              >
+                                <div className="flex items-center gap-3">
+                                  <span className="font-mono text-slate-600">#{String(entry.run.id).slice(0, 8)}</span>
+                                  <span className="font-semibold text-slate-700 bg-slate-200/80 px-1.5 py-0.5 rounded text-[10px]">{rowRunState}</span>
+                                  <span className="text-slate-500">{entry.jobTotal} job</span>
+                                  {isBlocking && (
+                                    <span className="text-red-700 font-bold text-[11px] flex items-center gap-1">
+                                      <ShieldAlert className="h-3 w-3" />
+                                      Chặn {blockedLanes.join('/')}
+                                    </span>
+                                  )}
+                                </div>
+
+                                {isAdmin && (
+                                  <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                                    {isBlocking && blockedLanes.map((lane) => (
+                                      <button
+                                        key={lane}
+                                        type="button"
+                                        onClick={() => handleOpenManualLogin(lane)}
+                                        disabled={authLoginLoading || authLoginPending}
+                                        className="rounded bg-blue-700 px-2 py-0.5 text-[11px] font-bold text-white hover:bg-blue-800 disabled:opacity-50"
+                                      >
+                                        Đăng nhập {lane}
+                                      </button>
+                                    ))}
+                                    {canResume && (
+                                      <button
+                                        type="button"
+                                        onClick={() => handleResumeRunFromList(entry.run.id)}
+                                        disabled={openRunActionLoadingId === entry.run.id}
+                                        className="rounded border border-slate-200 bg-white px-2 py-0.5 text-[11px] font-bold text-slate-700 hover:bg-slate-100 disabled:opacity-50"
+                                      >
+                                        Tiếp tục Run
+                                      </button>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          )}
+
+          {/* Flat View Content with Pagination */}
+          {openRunsViewMode === 'FLAT' && (
+            <div>
+              <div className="divide-y divide-slate-100 max-h-96 overflow-y-auto">
+                {paginatedFlatRuns.length === 0 ? (
+                  <div className="px-4 py-8 text-center text-xs text-slate-400">
+                    {openRunsLoading ? 'Đang tải tiến trình...' : 'Không có tiến trình nào đang mở.'}
                   </div>
-                );
-              })}
+                ) : (
+                  paginatedFlatRuns.map((entry) => {
+                    const { runState: rowRunState, isBlocking, blockedLanes, canResume } = resolveOpenRunRowActions(entry);
+                    const isCurrentlyActive = entry.run.id === activeRunId;
+                    return (
+                      <div
+                        key={entry.run.id}
+                        className={`flex flex-wrap items-center gap-3 px-4 py-2.5 text-xs cursor-pointer hover:bg-slate-50 ${isCurrentlyActive ? 'bg-blue-50/60' : ''}`}
+                        onClick={() => handleSelectRunFromList(entry.run.id)}
+                      >
+                        <span className="font-mono font-semibold text-slate-700">#{String(entry.run.id).slice(0, 8)}</span>
+                        <span className="font-semibold text-slate-800">
+                          {entry.run.requested_indicator || 'Nhiều chỉ tiêu'}
+                          {entry.run.requested_lane && entry.run.requested_lane !== 'ALL' ? ` · ${entry.run.requested_lane}` : ''}
+                        </span>
+                        <span className={`inline-flex items-center rounded-full px-2 py-0.5 font-semibold ${
+                          rowRunState === 'WAITING_AUTH' ? 'bg-amber-100 text-amber-900' :
+                          rowRunState === 'PAUSED' ? 'bg-slate-100 text-slate-700' :
+                          rowRunState === 'CIRCUIT_OPEN' || rowRunState === 'BLOCKED_INTEGRITY' ? 'bg-red-100 text-red-800' :
+                          'bg-blue-100 text-blue-800'
+                        }`}>
+                          {rowRunState}
+                        </span>
+                        <span className="text-slate-500">{entry.jobTotal} job</span>
+
+                        {isBlocking && (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-red-100 px-2 py-0.5 font-bold text-red-800">
+                            <ShieldAlert className="h-3 w-3" />
+                            Đang chặn nguồn {blockedLanes.join(' / ')}
+                          </span>
+                        )}
+
+                        {isAdmin && (
+                          <span className="ml-auto flex items-center gap-2" onClick={(event) => event.stopPropagation()}>
+                            {isBlocking && blockedLanes.map((lane) => (
+                              <button
+                                key={lane}
+                                type="button"
+                                onClick={() => handleOpenManualLogin(lane)}
+                                disabled={authLoginLoading || authLoginPending}
+                                className="inline-flex items-center rounded-lg bg-vnpost-blue px-2.5 py-1 font-bold text-white hover:bg-blue-800 disabled:opacity-50"
+                              >
+                                Mở đăng nhập {lane}
+                              </button>
+                            ))}
+                            {canResume && (
+                              <button
+                                type="button"
+                                onClick={() => handleResumeRunFromList(entry.run.id)}
+                                disabled={openRunActionLoadingId === entry.run.id}
+                                className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1 font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                              >
+                                <Play className="h-3 w-3 fill-current" />
+                                {openRunActionLoadingId === entry.run.id ? 'Đang xử lý...' : 'Tiếp tục Run'}
+                              </button>
+                            )}
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+
+              {/* Flat View Pagination */}
+              {totalFlatPages > 1 && (
+                <div className="flex items-center justify-between border-t border-slate-100 px-4 py-2 bg-slate-50 text-xs text-slate-600">
+                  <span>Trang {openRunsPage} / {totalFlatPages}</span>
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      disabled={openRunsPage <= 1}
+                      onClick={() => setOpenRunsPage((p) => Math.max(1, p - 1))}
+                      className="px-2 py-1 rounded border border-slate-200 bg-white hover:bg-slate-100 disabled:opacity-40"
+                    >
+                      Trước
+                    </button>
+                    <button
+                      type="button"
+                      disabled={openRunsPage >= totalFlatPages}
+                      onClick={() => setOpenRunsPage((p) => Math.min(totalFlatPages, p + 1))}
+                      className="px-2 py-1 rounded border border-slate-200 bg-white hover:bg-slate-100 disabled:opacity-40"
+                    >
+                      Sau
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -1916,13 +2269,24 @@ export default function AutoBackfillOperatorPanel() {
               </button>
               {isAdmin && (
                 <button
+                  onClick={() => setViewMode('JOB_LOG')}
+                  className={`flex items-center gap-1.5 rounded-lg px-3 py-1 text-xs font-semibold transition-[color,background-color,box-shadow] duration-150 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-blue-400 ${
+                    viewMode === 'JOB_LOG' ? 'bg-white text-slate-900 shadow-xs font-bold ring-1 ring-blue-300' : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <FileText className="h-3.5 w-3.5 text-blue-600" />
+                  <span>Nhật ký Import (Jobs)</span>
+                </button>
+              )}
+              {isAdmin && (
+                <button
                   onClick={() => setViewMode('HISTORY')}
                   className={`flex items-center gap-1.5 rounded-lg px-3 py-1 text-xs font-semibold transition-[color,background-color,box-shadow] duration-150 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 ${
                     viewMode === 'HISTORY' ? 'bg-white text-slate-900 shadow-xs font-bold ring-1 ring-indigo-200' : 'text-slate-600 hover:text-slate-900'
                   }`}
                 >
                   <History className="h-3.5 w-3.5 text-indigo-600" />
-                  <span>Lịch sử Import</span>
+                  <span>Lịch sử Import (File)</span>
                 </button>
               )}
             </div>
@@ -1981,9 +2345,20 @@ export default function AutoBackfillOperatorPanel() {
         />
       )}
 
+      {/* VIEW MODE 4: AUTO BACKFILL JOB LOG (GET /import/auto-backfill/jobs - ADMIN ONLY) */}
+      {viewMode === 'JOB_LOG' && isAdmin && (
+        <AutoBackfillJobLog
+          isAdmin={isAdmin}
+          onSwitchToFileLog={() => setViewMode('HISTORY')}
+        />
+      )}
+
       {/* VIEW MODE 3: IMPORT AUDIT LOG HISTORY (GET /import/log - ADMIN ONLY) */}
       {viewMode === 'HISTORY' && isAdmin && (
-        <AutoBackfillImportHistory isAdmin={isAdmin} />
+        <AutoBackfillImportHistory
+          isAdmin={isAdmin}
+          onSwitchToJobLog={() => setViewMode('JOB_LOG')}
+        />
       )}
 
       {/* VIEW MODE 2: TABLE VIEW WITH BULK CHECKBOXES & PER-ROW REIMPORT */}

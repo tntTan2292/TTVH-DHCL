@@ -2,15 +2,11 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   History,
   RefreshCw,
-  Search,
   Filter,
-  Calendar,
-  User,
-  Layers,
   CheckCircle2,
   XCircle,
   AlertTriangle,
-  RotateCcw,
+  User,
   Zap,
   Upload,
   ChevronLeft,
@@ -34,11 +30,6 @@ const MODES = [
   { value: 'MANUAL_REIMPORT', label: 'Nhập lại thủ công (MANUAL_REIMPORT)' },
   { value: 'NEW', label: 'Nạp mới (NEW)' },
   { value: 'REIMPORT', label: 'Tái nạp (REIMPORT)' },
-];
-const STATUSES = [
-  { value: 'ALL', label: 'Tất cả trạng thái' },
-  { value: 'SUCCESS', label: 'Thành công (SUCCESS)' },
-  { value: 'FAILED', label: 'Thất bại (FAILED)' },
 ];
 
 /**
@@ -97,7 +88,7 @@ function LogModeBadge({ mode }) {
  * Nhật ký lịch sử nạp dữ liệu (Audit Log) theo dõi: Ai import, lúc nào, chế độ nào, số dòng thay thế.
  * Nguồn: GET /import/log (Admin only).
  */
-export default function AutoBackfillImportHistory({ isAdmin = false }) {
+export default function AutoBackfillImportHistory({ isAdmin = false, onSwitchToJobLog = null }) {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -193,19 +184,38 @@ export default function AutoBackfillImportHistory({ isAdmin = false }) {
           <div>
             <div className="flex items-center gap-2">
               <h3 className="text-base font-bold text-slate-900">
-                Lịch sử Import Dữ liệu (Audit Log)
+                Lịch sử Tệp Import (File Audit Log)
               </h3>
               <span className="rounded-full bg-indigo-50 px-2.5 py-0.5 text-xs font-bold text-indigo-700 border border-indigo-200">
                 GET /import/log
               </span>
             </div>
             <p className="text-xs text-slate-500 mt-0.5">
-              Theo dõi chi tiết các lần nạp: Người thực hiện, chế độ, số dòng thay thế và giờ Việt Nam. Dòng cũ hiển thị &quot;chưa ghi nhận&quot;.
+              Nhật ký cấp tệp đã ghi vào CSDL: Tệp nào, người nạp, chế độ, số dòng thay thế. Khác với <em>Nhật ký Job</em> theo dõi tiến trình hàng đợi.
             </p>
           </div>
         </div>
 
         <div className="flex items-center gap-2 self-start sm:self-auto">
+          {/* SUB-NAV SWITCHER: JOB LOG VS FILE LOG */}
+          <div className="inline-flex rounded-xl bg-slate-100 p-1 border border-slate-200">
+            {onSwitchToJobLog && (
+              <button
+                type="button"
+                onClick={onSwitchToJobLog}
+                className="rounded-lg px-3 py-1.5 text-xs font-medium text-slate-600 hover:text-slate-900 transition flex items-center gap-1.5"
+              >
+                <span>Nhật ký Job (Tất cả tiến trình)</span>
+              </button>
+            )}
+            <button
+              type="button"
+              className="rounded-lg bg-white px-3 py-1.5 text-xs font-bold text-slate-900 shadow-sm"
+            >
+              Lịch sử Tệp (import_log)
+            </button>
+          </div>
+
           <button
             type="button"
             onClick={fetchLog}

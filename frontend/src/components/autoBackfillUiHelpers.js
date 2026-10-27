@@ -1439,4 +1439,321 @@ export function aggregateBulkReports({ responses = [], totalRequested = 0, error
   };
 }
 
+// ============================================================================
+// UI-IMPORT-PROCESS-LOG-01 Helpers
+// Pure functions for Open Runs Summary, Sensible Grouping, Job Log Query & Mapping
+// ============================================================================
+
+export const JOB_LOG_PAGE_SIZE_OPTIONS = [20, 50, 100];
+
+export const JOB_STATE_LABELS = Object.freeze({
+  SUCCESS: { label: 'Thành công', badgeClass: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+  SUCCEEDED: { label: 'Thành công', badgeClass: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+  COMPLETED: { label: 'Thành công', badgeClass: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+  FAILED_TERMINAL: { label: 'Thất bại', badgeClass: 'bg-rose-50 text-rose-700 border-rose-200' },
+  FAILED: { label: 'Thất bại', badgeClass: 'bg-rose-50 text-rose-700 border-rose-200' },
+  RUNNING: { label: 'Đang chạy', badgeClass: 'bg-blue-50 text-blue-700 border-blue-200' },
+  QUEUED: { label: 'Đang chờ', badgeClass: 'bg-amber-50 text-amber-700 border-amber-200' },
+  PENDING: { label: 'Đang chờ', badgeClass: 'bg-amber-50 text-amber-700 border-amber-200' },
+  WAITING_AUTH: { label: 'Chờ đăng nhập', badgeClass: 'bg-amber-50 text-amber-800 border-amber-300' },
+  PAUSED: { label: 'Tạm dừng', badgeClass: 'bg-slate-100 text-slate-700 border-slate-200' },
+  CANCELLED: { label: 'Đã hủy', badgeClass: 'bg-slate-100 text-slate-500 border-slate-200' },
+  RECOVERY_CHECK: { label: 'Khôi phục', badgeClass: 'bg-purple-50 text-purple-700 border-purple-200' },
+  SKIPPED: { label: 'Bỏ qua', badgeClass: 'bg-slate-100 text-slate-600 border-slate-200' },
+  SKIPPED_ALREADY_SUCCESS: { label: 'Bỏ qua', badgeClass: 'bg-slate-100 text-slate-600 border-slate-200' },
+});
+
+export function translateJobState(state) {
+  if (!state) return { label: 'Chưa xác định', badgeClass: 'bg-slate-100 text-slate-500 border-slate-200' };
+  const upper = String(state).trim().toUpperCase();
+  return JOB_STATE_LABELS[upper] || { label: state, badgeClass: 'bg-slate-100 text-slate-700 border-slate-200' };
+}
+
+export const KNOWN_ERROR_SIGNATURES = Object.freeze({
+  SQLITE_BUSY: 'Cơ sở dữ liệu đang bận (hệ thống tự động thử lại)',
+  SQLITE_LOCKED: 'Cơ sở dữ liệu bị khóa (hệ thống tự động thử lại)',
+  DATA_NOT_READY: 'Dữ liệu Portal cho ngày này chưa sẵn sàng',
+  F12_TCT_RECONCILIATION_FAILED: 'Đối soát dữ liệu Portal không khớp với tệp',
+  F41_HUE_OUTER_SUMMARY_INVALID: 'Tệp tổng hợp ngoài không hợp lệ',
+  AUTHENTICATION_REQUIRED: 'Yêu cầu đăng nhập tài khoản Portal (DKCL)',
+  SESSION_CHECK_FAILED: 'Phiên làm việc Portal hết hạn hoặc lỗi',
+  PORTAL_AUTH_EXPIRED: 'Phiên đăng nhập DKCL đã hết hạn',
+  DKCL_CREDENTIALS_INVALID: 'Thông tin tài khoản DKCL không chính xác',
+  LOGIN_TIMEOUT: 'Quá thời gian đăng nhập Portal',
+  CIRCUIT_OPEN: 'Ngắt mạch bảo vệ do gặp lỗi liên tiếp',
+  BLOCKED_INTEGRITY: 'Bị chặn an toàn toàn vẹn dữ liệu',
+  QUEUE_EXECUTION_ERROR: 'Lỗi thực thi tiến trình hàng đợi',
+  PORTAL_ERROR: 'Lỗi kết nối cổng dịch vụ Portal',
+  PORTAL_TIMEOUT: 'Quá thời gian phản hồi từ Portal',
+  FILE_PARSE_ERROR: 'Lỗi phân tích cú pháp tệp dữ liệu',
+  RATE_LIMITED: 'Bị giới hạn tần suất yêu cầu Portal',
+  NO_DATA_RETURNED: 'Portal không trả về bản ghi nào',
+  TARGET_ROW_MISMATCH: 'Số dòng dữ liệu không khớp chỉ tiêu',
+});
+
+export function translateJobErrorSignature(signature, fallbackMessage = '') {
+  if (!signature && !fallbackMessage) return null;
+  const raw = String(signature || fallbackMessage).trim();
+  let vietnamese = null;
+  let actionRequired = 'Kiểm tra lại kết nối mạng hoặc thử lại lượt chạy.';
+
+  if (KNOWN_ERROR_SIGNATURES[raw]) {
+    vietnamese = KNOWN_ERROR_SIGNATURES[raw];
+  } else {
+    for (const [code, label] of Object.entries(KNOWN_ERROR_SIGNATURES)) {
+      if (raw.startsWith(`${code}:`) || raw.startsWith(code)) {
+        const rest = raw.slice(code.length).replace(/^[:\s-]+/, '');
+        vietnamese = rest ? `${label} (${rest})` : label;
+        break;
+      }
+    }
+  }
+
+  // Error signature not recognized -> keep raw code
+  if (!vietnamese) {
+    vietnamese = raw;
+  }
+
+  if (
+    raw.includes('AUTH') ||
+    raw.includes('LOGIN') ||
+    raw.includes('AUTHENTICATION') ||
+    raw.includes('DKCL') ||
+    raw.includes('SESSION')
+  ) {
+    actionRequired = 'Mở đăng nhập Portal DKCL thủ công để khôi phục phiên xác thực.';
+  } else if (raw.includes('CIRCUIT')) {
+    actionRequired = 'Khôi phục ngắt mạch bảo vệ trong panel tiến trình sau khi kiểm tra lỗi.';
+  } else if (raw.includes('BUSY') || raw.includes('LOCKED')) {
+    actionRequired = 'Chờ tiến trình nền hoàn tất hoặc thử lại sau vài giây.';
+  } else if (raw.includes('DATA_NOT_READY')) {
+    actionRequired = 'Dữ liệu chưa được đơn vị đưa lên DKCL. Chờ đơn vị hoàn tất đối soát.';
+  }
+
+  const resultObj = {
+    vietnamese,
+    actionRequired,
+    rawSignature: raw,
+    displayText: vietnamese,
+    toString() {
+      return this.vietnamese;
+    }
+  };
+
+  return resultObj;
+}
+
+export function formatVietnamDateTime(isoString) {
+  if (!isoString) return '-';
+  try {
+    const d = new Date(isoString);
+    if (isNaN(d.getTime())) return String(isoString);
+    const options = {
+      timeZone: 'Asia/Ho_Chi_Minh',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false,
+    };
+    const parts = new Intl.DateTimeFormat('en-GB', options).formatToParts(d);
+    const get = (type) => parts.find((p) => p.type === type)?.value || '';
+    return `${get('day')}/${get('month')}/${get('year')} ${get('hour')}:${get('minute')}:${get('second')}`;
+  } catch {
+    return String(isoString);
+  }
+}
+
+export function formatJobDuration(arg1, arg2 = null) {
+  if (arg1 === null || arg1 === undefined) return '-';
+  let ms = 0;
+  if (arg2 !== null && arg2 !== undefined) {
+    const t1 = new Date(arg1).getTime();
+    const t2 = new Date(arg2).getTime();
+    if (!isNaN(t1) && !isNaN(t2)) {
+      ms = Math.max(0, t2 - t1);
+    }
+  } else if (typeof arg1 === 'number' || (typeof arg1 === 'string' && !isNaN(Number(arg1)))) {
+    ms = Math.max(0, Number(arg1));
+  } else {
+    return '-';
+  }
+
+  if (ms < 1000) return `${ms}ms`;
+  const sec = (ms / 1000).toFixed(1);
+  if (ms < 60000) return `${sec}s`;
+  const min = Math.floor(ms / 60000);
+  const remainingSec = Math.round((ms % 60000) / 1000);
+  return `${min}m ${remainingSec}s`;
+}
+
+export function buildJobLogQueryParams(filters = {}) {
+  const params = {};
+  const bFrom = filters.business_date_from || filters.businessDateFrom;
+  const bTo = filters.business_date_to || filters.businessDateTo;
+  const cFrom = filters.created_from || filters.createdDateFrom;
+  const cTo = filters.created_to || filters.createdDateTo;
+  const ind = filters.indicator;
+  const lane = filters.lane;
+  const state = filters.state || filters.stateFilter;
+  const actor = filters.actor || filters.actorFilter;
+  const mode = filters.import_mode || filters.importModeFilter;
+  const runId = filters.run_id || filters.runId;
+
+  if (bFrom) params.business_date_from = bFrom;
+  if (bTo) params.business_date_to = bTo;
+
+  if (cFrom) {
+    if (/^\d{4}-\d{2}-\d{2}$/.test(cFrom)) {
+      params.created_from = new Date(`${cFrom}T00:00:00+07:00`).toISOString();
+    } else {
+      params.created_from = cFrom;
+    }
+  }
+
+  if (cTo) {
+    if (/^\d{4}-\d{2}-\d{2}$/.test(cTo)) {
+      params.created_to = new Date(`${cTo}T23:59:59.999+07:00`).toISOString();
+    } else {
+      params.created_to = cTo;
+    }
+  }
+
+  if (ind && ind !== 'ALL') params.indicator = ind;
+  if (lane && lane !== 'ALL') params.lane = lane;
+  if (state && state !== 'ALL') params.state = state;
+  if (actor && String(actor).trim()) params.actor = String(actor).trim();
+  if (mode && mode !== 'ALL') params.import_mode = mode;
+  if (runId && String(runId).trim()) params.run_id = String(runId).trim();
+  if (filters.page) params.page = Number(filters.page);
+  if (filters.pageSize) params.pageSize = Number(filters.pageSize);
+  return params;
+}
+
+export function summarizeOpenRuns(arg1 = {}, arg2 = null) {
+  let runs = [];
+  let total = null;
+  if (Array.isArray(arg1)) {
+    runs = arg1;
+    total = typeof arg2 === 'number' ? arg2 : null;
+  } else if (arg1 && typeof arg1 === 'object') {
+    runs = Array.isArray(arg1.runs) ? arg1.runs : [];
+    total = typeof arg1.total === 'number' ? arg1.total : null;
+  }
+
+  const safeTotal = typeof total === 'number' && total >= 0 ? total : runs.length;
+  let runningCount = 0;
+  let pausedCount = 0;
+  let waitingAuthCount = 0;
+  let circuitOpenCount = 0;
+  let blockedIntegrityCount = 0;
+  const laneCounts = { HUE: 0, TCT: 0, ALL: 0, OTHER: 0 };
+  const blockedLanesSet = new Set();
+
+  for (const entry of runs) {
+    const run = entry?.run || {};
+    const jobs = Array.isArray(entry?.jobs) ? entry.jobs : [];
+    const firstJob = jobs[0] || {};
+    const state = run.safety_state || firstJob.state || run.status || 'RUNNING';
+
+    if (state === 'WAITING_AUTH') {
+      waitingAuthCount += 1;
+      const blockingLane = run.requested_lane || firstJob.source_lane;
+      if (blockingLane && blockingLane !== 'ALL') blockedLanesSet.add(blockingLane);
+    } else if (state === 'CIRCUIT_OPEN') {
+      circuitOpenCount += 1;
+      const blockingLane = run.requested_lane || firstJob.source_lane;
+      if (blockingLane && blockingLane !== 'ALL') blockedLanesSet.add(blockingLane);
+    } else if (state === 'BLOCKED_INTEGRITY') {
+      blockedIntegrityCount += 1;
+    } else if (state === 'PAUSED' || state === 'PAUSING') {
+      pausedCount += 1;
+    } else {
+      runningCount += 1;
+    }
+
+    const rawLane = run.requested_lane || firstJob.source_lane || 'OTHER';
+    const lane = String(rawLane).toUpperCase();
+    if (lane === 'HUE') laneCounts.HUE += 1;
+    else if (lane === 'TCT') laneCounts.TCT += 1;
+    else if (lane === 'ALL') laneCounts.ALL += 1;
+    else laneCounts.OTHER += 1;
+
+    if (Array.isArray(entry?.circuits)) {
+      for (const circuit of entry.circuits) {
+        if (circuit.state === 'OPEN' && circuit.lane) {
+          blockedLanesSet.add(circuit.lane);
+        }
+      }
+    }
+  }
+
+  const blockedLanesArray = Array.from(blockedLanesSet);
+
+  return {
+    total: safeTotal,
+    loadedCount: runs.length,
+    countsByState: {
+      running: runningCount,
+      paused: pausedCount,
+      waitingAuth: waitingAuthCount,
+      circuitOpen: circuitOpenCount,
+      blockedIntegrity: blockedIntegrityCount,
+      blocked: waitingAuthCount + circuitOpenCount + blockedIntegrityCount,
+    },
+    byState: {
+      RUNNING: runningCount,
+      PAUSED: pausedCount,
+      WAITING_AUTH: waitingAuthCount,
+      CIRCUIT_OPEN: circuitOpenCount,
+      BLOCKED_INTEGRITY: blockedIntegrityCount,
+    },
+    countsByLane: laneCounts,
+    byLane: laneCounts,
+    blockedLanes: blockedLanesArray,
+    blockingLanes: blockedLanesArray,
+    isAnyBlocked: blockedLanesSet.size > 0 || waitingAuthCount > 0 || circuitOpenCount > 0,
+  };
+}
+
+export function groupOpenRuns(runs = []) {
+  if (!Array.isArray(runs) || runs.length === 0) return [];
+  const groupsMap = new Map();
+
+  for (const entry of runs) {
+    const run = entry?.run || {};
+    const jobs = Array.isArray(entry?.jobs) ? entry.jobs : [];
+    const firstJob = jobs[0] || {};
+    const indicator = run.requested_indicator || firstJob.indicator || run.target_indicators?.[0] || 'ALL';
+    const lane = run.requested_lane || firstJob.source_lane || 'ALL';
+    const state = run.safety_state || firstJob.state || run.status || 'RUNNING';
+    const actor = run.requested_by || run.actor || 'system';
+    const groupKey = `${indicator}::${lane}::${state}::${actor}`;
+
+    if (!groupsMap.has(groupKey)) {
+      groupsMap.set(groupKey, {
+        groupKey,
+        key: groupKey,
+        indicator,
+        lane,
+        state,
+        actor,
+        runCount: 0,
+        jobTotal: 0,
+        runs: [],
+      });
+    }
+
+    const grp = groupsMap.get(groupKey);
+    grp.runCount += 1;
+    grp.jobTotal += Number(entry?.jobTotal || jobs.length || 1);
+    grp.runs.push(entry);
+  }
+
+  return Array.from(groupsMap.values()).sort((a, b) => b.runCount - a.runCount);
+}
+
+
 

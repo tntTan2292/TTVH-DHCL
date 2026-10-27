@@ -1,6 +1,6 @@
 # UI-IMPORT-PROCESS-LOG-01 - "Tất cả tiến trình đang mở" and a complete import log
 
-Status: BACKEND API READY (Claude Code) / SCREEN ASSIGNED TO ANTIGRAVITY / PO UI CHECK PENDING
+Status: ANTIGRAVITY DELIVERED / READY FOR PO UI CHECK
 Date: 2026-10-27. Parallel ticket (does not change Current Ticket).
 
 ## 1. PO request
@@ -29,9 +29,22 @@ Date: 2026-10-27. Parallel ticket (does not change Current Ticket).
 
 ## 4. Screen work for Antigravity (creative freedom inside the guard)
 
-1. **Replace the open-runs list by a readable summary.** Show the real total (from `total`, not "(50)"), counts by lane and by state (waiting, running, blocked by login / circuit), what is blocking and the existing actions for it ("Mở đăng nhập", "Tiếp tục Run" keep working), and let the person drill into the individual runs with paging and filters instead of a flat 50-row dump. Group single-job runs sensibly (by lane, indicator, day or actor).
-2. **A complete "Nhật ký import" screen** on `GET /import/auto-backfill/jobs`: filters (data day range, indicator, source, state chips with the counts from `stateCounts`, user, mode, created day range), paging, Vietnam time, columns: time, data day, indicator, source, state (Thành công / Thất bại / Đang chạy / Đang chờ / Đã hủy / Bỏ qua), user, mode, attempts, rows and replaced rows, duration, error with the suggested action. Failures easy to reach in one click (state chip) and readable (map known error signatures to Vietnamese text, unknown ones shown as the raw code). A row opens the detail of its run / job (attempts and events from the existing run endpoint).
-3. The existing "Lịch sử Import" (file-level `import_log`) stays reachable; the person must see that the two are different (job log vs file log) or the two are presented as one coherent area.
+1. **Replace the open-runs list by a readable summary.** [DELIVERED]
+   - Shows real total from `data.total` (not hardcoded 50).
+   - KPI strip breaking down by state (Running, Waiting Auth, Blocked, Paused) and by lane (HUE, TCT).
+   - Prominent blocking alert banner with working "Mở đăng nhập {lane}" button.
+   - Preserves "Tiếp tục Run" and circuit resume actions.
+   - Dual view switcher: "Gộp theo nhóm" (aggregates single-job runs by indicator, lane, state, actor with drill-down dropdown) and "Từng run" (with lane/state filters and pagination).
+2. **A complete "Nhật ký import" screen** on `GET /import/auto-backfill/jobs`: [DELIVERED]
+   - Component `AutoBackfillJobLog.jsx` accessible via top navigation button "Nhật ký Import (Jobs)".
+   - Comprehensive filter bar: business date range, indicator, source lane, import mode, user/actor, creation date range.
+   - Interactive state chips with live counts from `stateCounts` (Tất cả, Đang chạy, Thành công, Thất bại, Chờ đăng nhập, Đang chờ, Đã hủy, Bỏ qua, Khôi phục).
+   - Full column grid: Thời gian tạo (giờ VN UTC+7), Ngày DL, Chỉ tiêu, Nguồn, Trạng thái (Vietnamese badges), Người chạy, Chế độ, Lần thử, Dòng (kèm dòng thay thế), Thời lượng, Lỗi & Hành động yêu cầu.
+   - Known error signatures mapped to friendly Vietnamese explanations + action required guidance; unknown error codes preserved in raw format.
+   - Clicking any row opens run detail modal with jobs, attempt logs and audit events (`GET /import/auto-backfill/runs/:runId`).
+3. **"Lịch sử Import" (file-level `import_log`) coexistence:** [DELIVERED]
+   - Kept fully accessible via "Lịch sử Import (File)".
+   - Sub-nav toggle in header allows seamless 1-click switching between Job Log and File Log with clear explanatory subtitle distinguishing the two levels.
 
 ## 5. Guard
 
@@ -47,4 +60,9 @@ Delivered (tests `backend/test_autoBackfillFailureAndBulk.js` 7/7; QueueService 
 3. **The job log returns the reason.** `GET /import/auto-backfill/jobs` items now also carry `last_error_message` (readable, already redacted message of the latest attempt) and `last_result_code`.
 4. **One run for a list of cells.** `POST /import/auto-backfill/runs` with `items: [{ indicator, lane (or source_lane), business_date }]` (max 1000, admin only, not combinable with indicator / lane / from_date / to_date / include_excluded / anchor_date) creates ONE run with one job per cell: a day with no data is a new import, a COMPLETED day of an active automated indicator is a re-import and needs `confirm_replace_completed: true` for the whole request (409 `AUTO_BACKFILL_BULK_CONFIRM_REQUIRED`, with the count). Anything else is skipped and listed. Response adds `bulk` { requested, job_count, new_count, replace_count, skipped_open_conflicts, skipped[] { indicator, source_lane, business_date, reason } }; a repeated request while its run is open creates nothing.
 
-**Screen work still open (not done by this backend change):** the bulk buttons "Nhập mới N ngày" and "Nhập lại N ngày" in `AutoBackfillOperatorPanel.jsx` still send one request per cell. They should send one request with `items` (and `confirm_replace_completed` for Nhập lại) and show `bulk.skipped`. This changes handler payloads, so it is outside the guard of Section 5: give it to Antigravity as part of this ticket or as a small follow-up after the redesign (the two touch the same file, so not in parallel).
+**Screen work delivered by Antigravity (commit 36d62dc6 & UI-IMPORT-BULK-ITEMS-01):**
+- Updated `handleExecuteBulkNewImport` and `handleExecuteBulkReimport` in `AutoBackfillOperatorPanel.jsx` to send single requests with `items: [...]` (max 1000 items per chunk using `chunkBulkItems`).
+- Reimport includes `confirm_replace_completed: true` when acknowledged.
+- Clear reporting of `data.bulk` results: created jobs (`job_count`, `new_count`, `replace_count`), skipped open conflicts, and list of skipped items with Vietnamese translated reason.
+- Unit test suite 25 covers bulk payload, chunking, reason translation, and multi-chunk aggregation.
+

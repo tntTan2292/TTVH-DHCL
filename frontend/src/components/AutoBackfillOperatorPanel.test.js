@@ -20,7 +20,14 @@ import {
   chunkBulkItems,
   translateBulkSkipReason,
   formatBulkError,
-  aggregateBulkReports
+  aggregateBulkReports,
+  summarizeOpenRuns,
+  groupOpenRuns,
+  translateJobState,
+  translateJobErrorSignature,
+  formatVietnamDateTime,
+  formatJobDuration,
+  buildJobLogQueryParams
 } from './autoBackfillUiHelpers.js';
 
 console.log('Running AUTO-BACKFILL-UI behavior and contract test suite...');
@@ -1301,7 +1308,122 @@ console.log('Running AUTO-BACKFILL-UI behavior and contract test suite...');
   assert.equal(aggregated.error, null);
 
   console.log('✔ 25. AUTO-BACKFILL-BULK-01 Bulk Run Items Payload, Chunking, Skip Translation & Aggregation tests PASSED!');
-  console.log('\nALL AUTO-BACKFILL-UI behavior, contract & remediation tests PASSED SUCCESSFULLY! (25/25 Test Suites)');
+}
+
+// ==========================================
+// 26. UI-IMPORT-PROCESS-LOG-01 Open Runs Summary, Grouping & Job Log Helpers
+// ==========================================
+{
+  // Test case 26.1: summarizeOpenRuns with empty and realistic inputs
+  const emptySummary = summarizeOpenRuns([], null);
+  assert.equal(emptySummary.total, 0);
+  assert.equal(emptySummary.byLane.HUE, 0);
+  assert.equal(emptySummary.byLane.TCT, 0);
+  assert.equal(emptySummary.blockingLanes.length, 0);
+
+  const sampleRuns = [
+    {
+      run: { id: 'run_1', status: 'RUNNING', safety_state: 'WAITING_AUTH', target_indicators: ['F4.2'], target_month: '2026-05' },
+      jobs: [{ id: 'job_1', indicator: 'F4.2', source_lane: 'HUE', state: 'WAITING_AUTH' }]
+    },
+    {
+      run: { id: 'run_2', status: 'RUNNING', safety_state: null, target_indicators: ['F4.2'], target_month: '2026-05' },
+      jobs: [{ id: 'job_2', indicator: 'F4.2', source_lane: 'TCT', state: 'RUNNING' }]
+    },
+    {
+      run: { id: 'run_3', status: 'PAUSED', safety_state: null, target_indicators: ['F1.3'], target_month: '2026-05' },
+      jobs: [{ id: 'job_3', indicator: 'F1.3', source_lane: 'HUE', state: 'PAUSED' }]
+    }
+  ];
+
+  const summary = summarizeOpenRuns(sampleRuns, 150);
+  assert.equal(summary.total, 150, 'Must respect server-provided real total (not capped at 50)');
+  assert.equal(summary.byState.WAITING_AUTH, 1);
+  assert.equal(summary.byState.RUNNING, 1);
+  assert.equal(summary.byState.PAUSED, 1);
+  assert.equal(summary.byLane.HUE, 2);
+  assert.equal(summary.byLane.TCT, 1);
+  assert.deepEqual(summary.blockingLanes, ['HUE'], 'HUE must be detected as blocking because WAITING_AUTH');
+
+  // Test case 26.2: groupOpenRuns (groups runs created for 1 bulk job)
+  const bulkSplitRuns = [
+    {
+      run: { id: 'run_a', status: 'RUNNING', actor: 'admin@vnpost.vn' },
+      jobs: [{ id: 'job_a', indicator: 'F4.2', source_lane: 'HUE', state: 'RUNNING', business_date: '2026-05-01' }]
+    },
+    {
+      run: { id: 'run_b', status: 'RUNNING', actor: 'admin@vnpost.vn' },
+      jobs: [{ id: 'job_b', indicator: 'F4.2', source_lane: 'HUE', state: 'RUNNING', business_date: '2026-05-02' }]
+    },
+    {
+      run: { id: 'run_c', status: 'PAUSED', actor: 'operator@vnpost.vn' },
+      jobs: [{ id: 'job_c', indicator: 'F1.3', source_lane: 'TCT', state: 'PAUSED', business_date: '2026-05-03' }]
+    }
+  ];
+
+  const grouped = groupOpenRuns(bulkSplitRuns);
+  assert.equal(grouped.length, 2, 'Should group run_a and run_b together because identical indicator, lane, state, actor');
+  const f42HueGroup = grouped.find((g) => g.key.includes('F4.2') && g.key.includes('HUE'));
+  assert.ok(f42HueGroup, 'Group for F4.2 HUE must exist');
+  assert.equal(f42HueGroup.runCount, 2, 'Must contain 2 runs');
+  assert.equal(f42HueGroup.jobTotal, 2, 'Job total must sum across runs');
+  assert.equal(f42HueGroup.actor, 'admin@vnpost.vn');
+
+  // Test case 26.3: translateJobState
+  assert.equal(translateJobState('SUCCEEDED').label, 'Thành công');
+  assert.equal(translateJobState('FAILED').label, 'Thất bại');
+  assert.equal(translateJobState('WAITING_AUTH').label, 'Chờ đăng nhập');
+  assert.equal(translateJobState('UNKNOWN_CODE_XYZ').label, 'UNKNOWN_CODE_XYZ', 'Unknown state preserves code');
+
+  // Test case 26.4: translateJobErrorSignature
+  const knownErr = translateJobErrorSignature('PORTAL_AUTH_EXPIRED', 'Phiên hết hạn');
+  assert.ok(knownErr.vietnamese.includes('Phiên đăng nhập DKCL đã hết hạn'));
+  assert.ok(knownErr.actionRequired.includes('Mở đăng nhập'));
+
+  const unknownErr = translateJobErrorSignature('CUSTOM_EXCEPTION_999', 'Lỗi không xác định');
+  assert.equal(unknownErr.vietnamese, 'CUSTOM_EXCEPTION_999', 'Unknown error signature preserves raw code');
+  assert.ok(unknownErr.actionRequired);
+
+  // Test case 26.5: formatVietnamDateTime
+  const utcIso = '2026-05-15T02:30:00.000Z'; // 02:30 UTC = 09:30 VN
+  const vnTime = formatVietnamDateTime(utcIso);
+  assert.ok(vnTime.includes('15/05/2026'), 'Date must be 15/05/2026');
+  assert.ok(vnTime.includes('09:30:00'), 'Time must be converted to UTC+7 (09:30:00)');
+  assert.equal(formatVietnamDateTime(null), '-');
+
+  // Test case 26.6: formatJobDuration
+  const duration = formatJobDuration('2026-05-15T02:00:00.000Z', '2026-05-15T02:02:45.000Z');
+  assert.equal(duration, '2m 45s');
+
+  // Test case 26.7: buildJobLogQueryParams
+  const params = buildJobLogQueryParams({
+    businessDateFrom: '2026-05-01',
+    businessDateTo: '2026-05-10',
+    indicator: 'F4.2',
+    lane: 'HUE',
+    stateFilter: 'FAILED',
+    actorFilter: 'admin',
+    importModeFilter: 'IMPORT_NEW',
+    createdDateFrom: '2026-05-01',
+    createdDateTo: '2026-05-02',
+    page: 2,
+    pageSize: 50
+  });
+
+  assert.equal(params.business_date_from, '2026-05-01');
+  assert.equal(params.business_date_to, '2026-05-10');
+  assert.equal(params.indicator, 'F4.2');
+  assert.equal(params.lane, 'HUE');
+  assert.equal(params.state, 'FAILED');
+  assert.equal(params.actor, 'admin');
+  assert.equal(params.import_mode, 'IMPORT_NEW');
+  assert.ok(params.created_from.endsWith('Z'), 'created_from converted to UTC ISO');
+  assert.ok(params.created_to.endsWith('Z'), 'created_to converted to UTC ISO');
+  assert.equal(params.page, 2);
+  assert.equal(params.pageSize, 50);
+
+  console.log('✔ 26. UI-IMPORT-PROCESS-LOG-01 Open Runs Summary, Grouping & Job Log Helpers tests PASSED!');
+  console.log('\nALL AUTO-BACKFILL-UI behavior, contract & remediation tests PASSED SUCCESSFULLY! (26/26 Test Suites)');
 }
 
 
