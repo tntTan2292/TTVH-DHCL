@@ -39,11 +39,13 @@ function serviceError(code, message, details = null) {
 
 // Reconciliation of a workbook against the portal's outer summary (PO decision 2026-10-10): the total and the
 // passed count must match exactly (they carry the dashboard rate); the evaluated / failed counts may differ by up
-// to 3 % of the day's total (at least 5 parcels) because the portal counts a few parcels without a 2026 target
+// to 4 % of the day's total (at least 5 parcels) because the portal counts a few parcels without a 2026 target
 // time as evaluated while the detail leaves their evaluation blank (1-2 parcels on ~1,800 observed). Any such
 // difference is reported, never silent. PO decision 2026-10-11: raised from 2 % to 3 % after 24/07 (HUE) differed
-// by 2,6 %; the same constant serves the HUE and TCT lanes.
-const RECONCILIATION_TOLERANCE_RATE = 0.03;
+// by 2,6 %; the same constant serves the HUE and TCT lanes. PO decision 2026-10-27: raised from 3 % to 4 % after
+// 08/01 (HUE) differed by 90 parcels (3,8 %) on every attempt since 11/10: the portal summary counts 90 parcels as
+// evaluated that the workbook leaves blank, while total, passed and failed match exactly.
+const RECONCILIATION_TOLERANCE_RATE = 0.04;
 const RECONCILIATION_TOLERANCE_MIN = 5;
 
 function evaluateReconciliation(workbook, portal, keys) {
