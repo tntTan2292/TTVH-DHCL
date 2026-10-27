@@ -1,7 +1,7 @@
 'use strict';
 
 /**
- * AUTO-IMPORT-SCHEDULE-01 -- scheduled automatic import with hourly retries.
+ * AUTO-IMPORT-SCHEDULE-01 -- scheduled automatic import with retries every 30 minutes.
  *
  * The DKCL sign-in goes through portal.vnpost.vn with a captcha, so it stays a human step (the existing login window).
  * The scheduler therefore never signs in; it uses whatever session is valid.
@@ -12,7 +12,7 @@
  *   2. creates one ordinary Auto Backfill run for the lane (every ACTIVE indicator: the missing days, the newest day
  *      included, plus the 2-day refresh window), requested by the user "scheduler".
  * When the runs of the attempt have ended, the attempt is a success only if every lane had a valid session and its run
- * COMPLETED without a failed job (or had nothing to import). Otherwise the next attempt starts one hour after the
+ * COMPLETED without a failed job (or had nothing to import). Otherwise the next attempt starts 30 minutes after the
  * previous one began (AUTO_IMPORT_SCHEDULE_RETRY_MS), until everything succeeds or AUTO_IMPORT_SCHEDULE_MAX_ATTEMPTS
  * (default 16) is reached. Because a failed day stays missing / not refreshed, each retry plans exactly what is left.
  *
@@ -95,7 +95,8 @@ class AutoImportScheduler {
 
     catchupMs() { return this.number('AUTO_IMPORT_SCHEDULE_CATCHUP_MS', 3 * 60 * 60 * 1000); }
 
-    retryMs() { return this.number('AUTO_IMPORT_SCHEDULE_RETRY_MS', 60 * 60 * 1000); }
+    // 30 minutes (PO 2026-10-27): at 07:30 the TCT data may not be synced from the DKCL portal yet, so look again soon.
+    retryMs() { return this.number('AUTO_IMPORT_SCHEDULE_RETRY_MS', 30 * 60 * 1000); }
 
     recentDays() { return Math.floor(this.number('AUTO_IMPORT_SCHEDULE_RECENT_DAYS', 3)); }
 
@@ -202,7 +203,7 @@ class AutoImportScheduler {
         return { label, lanes: cycle.attempt.lanes };
     }
 
-    /** Waits for the attempt's runs to end, then decides: done, or retry in one hour. */
+    /** Waits for the attempt's runs to end, then decides: done, or retry in 30 minutes. */
     async finishAttemptIfReady(state, now) {
         const cycle = state.cycle;
         const attempt = cycle.attempt;

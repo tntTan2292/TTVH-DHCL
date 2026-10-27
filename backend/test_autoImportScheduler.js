@@ -52,7 +52,7 @@ function build({ env = {}, now = at('07:30'), sessions = {}, runStatuses = {}, r
     const scheduler = new AutoImportScheduler({
         queueService,
         sessionService,
-        env: { AUTO_IMPORT_SCHEDULE_ENABLED: 'true', ...env },
+        env: { AUTO_IMPORT_SCHEDULE_ENABLED: 'true', AUTO_IMPORT_SCHEDULE_RETRY_MS: String(HOUR), ...env },
         clock: () => clockNow,
         stateDir,
         logger: silent,
@@ -385,4 +385,22 @@ test('a failed recent day, or any unknown detail, still counts as a failure and 
             assert.equal(t.state().cycle.nextAttemptAt, at('08:30').getTime());
         }
     } finally { recent.cleanup(); unknown.cleanup(); cancelled.cleanup(); }
+});
+
+test('the default retry interval is 30 minutes (PO 2026-10-27), and it is the wait between attempts', async () => {
+    const probe = new AutoImportScheduler({ queueService: {}, sessionService: {}, env: {}, logger: silent });
+    assert.equal(probe.retryMs(), 30 * 60 * 1000);
+
+    const t = build({ env: { AUTO_IMPORT_SCHEDULE_RETRY_MS: undefined }, sessions: { TCT: ['AUTHENTICATION_REQUIRED', 'SESSION_VALID'] } });
+    try {
+        await t.scheduler.tick(); // 07:30 attempt 1: TCT data not ready / no session
+        await t.scheduler.tick();
+        assert.equal(t.state().cycle.nextAttemptAt, at('08:00').getTime(), 'the next attempt is 30 minutes after the first began');
+        t.setNow(at('07:59'));
+        await t.scheduler.tick();
+        assert.equal(t.state().cycle.attempts, 1, 'not before 30 minutes');
+        t.setNow(at('08:00'));
+        await t.scheduler.tick();
+        assert.equal(t.state().cycle.attempts, 2, 'attempt 2 at 08:00');
+    } finally { t.cleanup(); }
 });
