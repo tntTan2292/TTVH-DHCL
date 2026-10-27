@@ -1,6 +1,6 @@
 # F42-POSTMAN-API-01 Manifest
 
-Status: `BACKEND DONE / TECH PASS` (2026-10-27). Phase C of `F42-DASHBOARD-UI-01`: the read endpoint behind the "xu hướng một bưu tá" block. Parallel ticket (does not change Current Ticket). Needs a backend restart to exist.
+Status: `DONE / PO PASS` (2026-10-27, with F42-DASHBOARD-UI-01). Backend phase C plus the Home card; the backend was restarted and the endpoint answers.
 
 ## 1. Ticket Information
 

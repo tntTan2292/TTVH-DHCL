@@ -2504,3 +2504,7 @@ PO decisions on the Home page: five indicator cards must not overlap text; no ca
 ## 2026-10-27 - Home page scope filtering: PO decision, no filtering
 
 PO confirmed the Home page does not filter any indicator card by the user's scope (as RBAC-01 decided); F4.2 follows the same rule. No code change.
+
+## 2026-10-27 - F42-DASHBOARD-UI-01 and F42-POSTMAN-API-01 closed (PO PASS)
+
+PO passed the F4.2 screens: Operation Dashboard, BCVH Ranking, six-BCVH strip, postman table and "cần chú ý" list, one-postman trend, Home fifth card, compact operation table, Home with one camera and short labels. Phases A-D delivered (Antigravity UI, Claude Code backend and Home card, Opus reviews of A+B twice and D). Open outside this ticket: re-import six HUE days (14/5, 21/5, 17/7, 22/8, 31/8, 15/10), PO to press Tiếp tục Run if the backfill is paused.
