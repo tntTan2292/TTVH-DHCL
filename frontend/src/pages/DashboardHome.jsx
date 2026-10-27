@@ -13,7 +13,7 @@ import MonthlyRankProgressionBlock from '../features/home/components/MonthlyRank
  *
  * Built to be shown on a TV, on one screen without scrolling:
  *   1. one-line control bar (Ngày / Tuần / Tháng filter with back and forward buttons, each indicator's loaded period);
- *   2. four indicator cards (rate, national rank, gap to target, change, own 30-day line);
+ *   2. five indicator cards (rate, national rank, gap to target, change, own 30-day line);
  *   3. left: 34-province ranking (default "Huế & lân cận"); right: monthly rank + units to act on.
  * Data: GET /api/home/executive and GET /api/home/national-ranking.
  * Each indicator is its own measure: nothing is compared or summed across indicators.
@@ -207,11 +207,11 @@ export default function DashboardHome() {
         </div>
       )}
 
-      {/* Four indicator cards: rate, national rank, gap to target, change, own 30-day line */}
+      {/* Indicator cards (F1.1, F1.2, F1.3, F4.1, F4.2): rate, national rank, gap to target, change, own 30-day line */}
       <section aria-label="Thẻ chỉ tiêu điều hành" aria-busy={loadingExecutive} className={loadingExecutive ? "opacity-60 transition-opacity" : "transition-opacity"}>
         {loadingExecutive && !indicators.length ? (
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-            {[1, 2, 3, 4].map((i) => (
+          <div className={`grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-3 ${indicators.length >= 5 ? 'xl:grid-cols-5' : 'xl:grid-cols-4'}`}>
+            {[1, 2, 3, 4, 5].map((i) => (
               <div key={i} className="h-60 animate-pulse rounded-2xl border border-slate-200/80 bg-white p-4">
                 <div className="h-4 w-24 rounded bg-slate-200" />
                 <div className="mt-4 grid grid-cols-2 gap-3">
@@ -222,7 +222,7 @@ export default function DashboardHome() {
             ))}
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <div className={`grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-3 ${indicators.length >= 5 ? 'xl:grid-cols-5' : 'xl:grid-cols-4'}`}>
             {indicators.map((ind) => (
               <ExecutiveIndicatorCard
                 key={ind.id}

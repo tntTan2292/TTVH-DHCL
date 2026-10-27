@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import {
   deriveAttentionPostmen,
   extractDailyBcvhUnits,
+  computePostmanTrendDateRange,
+  normalizePostmanTrendDays,
   formatPeriodHeader,
   formatSortCaption,
   getBcvhStripTitle,
@@ -280,3 +282,65 @@ test('extractDailyBcvhUnits extracts only rows returned by backend and does not 
   assert.deepEqual(extractDailyBcvhUnits([]), []);
   assert.deepEqual(extractDailyBcvhUnits(null), []);
 });
+
+test('computePostmanTrendDateRange calculates accurate ISO date ranges ending on anchorDate', () => {
+  // 30 days default: 2026-10-27 minus 29 days = 2026-09-28
+  const r30 = computePostmanTrendDateRange('2026-10-27', 30);
+  assert.equal(r30.toDate, '2026-10-27');
+  assert.equal(r30.fromDate, '2026-09-28');
+
+  // 7 days: 2026-10-27 minus 6 days = 2026-10-21
+  const r7 = computePostmanTrendDateRange('2026-10-27', 7);
+  assert.equal(r7.toDate, '2026-10-27');
+  assert.equal(r7.fromDate, '2026-10-21');
+
+  // 14 days: 2026-10-27 minus 13 days = 2026-10-14
+  const r14 = computePostmanTrendDateRange('2026-10-27', 14);
+  assert.equal(r14.toDate, '2026-10-27');
+  assert.equal(r14.fromDate, '2026-10-14');
+
+  // 90 days: 2026-10-27 minus 89 days = 2026-07-30
+  const r90 = computePostmanTrendDateRange('2026-10-27', 90);
+  assert.equal(r90.toDate, '2026-10-27');
+  assert.equal(r90.fromDate, '2026-07-30');
+
+  // Month boundary across leap/non-leap years (e.g., 2024 leap year Feb 29)
+  const leap = computePostmanTrendDateRange('2024-03-01', 2);
+  assert.equal(leap.toDate, '2024-03-01');
+  assert.equal(leap.fromDate, '2024-02-29');
+});
+
+test('normalizePostmanTrendDays leaves missing days as null (not 0, not connected), formats labels, and sorts', () => {
+  const rawDays = [
+    { date: '2026-10-27', data_available: true, volume: 50, passed: 48, failed: 2, blank: 0, rate: 96.0 },
+    { date: '2026-10-25', data_available: true, volume: 40, passed: 32, failed: 8, blank: 2, rate: 80.0 },
+    // Missing day: no parcels delivered
+    { date: '2026-10-26', data_available: false, volume: 0, passed: 0, failed: 0, blank: 0, rate: null },
+  ];
+
+  const normalized = normalizePostmanTrendDays(rawDays);
+
+  // 1. Sorted chronologically
+  assert.deepEqual(normalized.map((d) => d.date), ['2026-10-25', '2026-10-26', '2026-10-27']);
+
+  // 2. Labels formatted DD/MM
+  assert.equal(normalized[0].label, '25/10');
+  assert.equal(normalized[1].label, '26/10');
+  assert.equal(normalized[2].label, '27/10');
+
+  // 3. Critical requirement: missing day has rate = null (not 0!)
+  assert.equal(normalized[0].rate, 80.0);
+  assert.equal(normalized[0].data_available, true);
+
+  assert.equal(normalized[1].rate, null, 'Date without parcels must have rate: null so chart creates an empty gap');
+  assert.equal(normalized[1].data_available, false);
+  assert.notEqual(normalized[1].rate, 0, 'Must NOT be 0%');
+
+  assert.equal(normalized[2].rate, 96.0);
+  assert.equal(normalized[2].data_available, true);
+
+  // 4. Empty / null input handling
+  assert.deepEqual(normalizePostmanTrendDays([]), []);
+  assert.deepEqual(normalizePostmanTrendDays(null), []);
+});
+

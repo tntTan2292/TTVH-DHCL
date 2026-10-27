@@ -80,3 +80,46 @@ test('F42SixBcvhStripBlock renders "6 BCVH hôm nay" with order # only when back
   assert.match(stripSource, /\{isFullSix && \(\s*<span[^>]*>\s*#\{index \+ 1\}\s*<\/span>\s*\)\}/);
 });
 
+test('F42PostmanTrendModal conforms to UI report block standard and postman trend requirements', () => {
+  const modalSource = readSource('./components/F42PostmanTrendModal.jsx');
+
+  // 1. Recharts Line has connectNulls={false} to keep data gaps empty (not 0, not connected)
+  assert.match(modalSource, /connectNulls=\{false\}/);
+
+  // 2. ReferenceLine with 90% target in red dashed
+  assert.match(modalSource, /<ReferenceLine[\s\S]*?stroke="#EF4444"[\s\S]*?strokeDasharray="4 4"/);
+
+  // 3. F4.2 Sky color family
+  assert.match(modalSource, /stroke="#0284C7"/);
+
+  // 4. BlockCaptureButton with indicatorOverride="F4.2"
+  assert.match(modalSource, /<BlockCaptureButton[\s\S]*?indicatorOverride="F4\.2"/);
+
+  // 5. Total row metrics (volume, passed, failed, rate)
+  assert.match(modalSource, /totalRow\.volume/);
+  assert.match(modalSource, /totalRow\.passed/);
+  assert.match(modalSource, /totalRow\.failed/);
+  assert.match(modalSource, /totalRow\.rate/);
+
+  // 6. Friendly notice when empty or scoped out (no red error banner)
+  assert.match(modalSource, /emptyNotice/);
+  assert.match(modalSource, /RANGE_CHOICES\s*=\s*\[7,\s*14,\s*30,\s*60,\s*90\]/);
+});
+
+test('F42PostmanTableBlock and F42PostmanAttentionBlock trigger onSelectPostman on clicking postman name', () => {
+  const tableSource = readSource('./components/F42PostmanTableBlock.jsx');
+  const attentionSource = readSource('./components/F42PostmanAttentionBlock.jsx');
+  const blocksSource = readSource('./components/F42PostmanDashboardBlocks.jsx');
+
+  // Table has clickable button calling onSelectPostman
+  assert.match(tableSource, /onSelectPostman\?\.\(postman,\s*unit\)/);
+
+  // Attention block has clickable button calling onSelectPostman
+  assert.match(attentionSource, /onSelectPostman\?\.\(postman,/);
+
+  // Container passes handleSelectPostman and renders F42PostmanTrendModal
+  assert.match(blocksSource, /handleSelectPostman/);
+  assert.match(blocksSource, /<F42PostmanTrendModal/);
+});
+
+

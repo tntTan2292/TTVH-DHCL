@@ -32,6 +32,7 @@ export default function F42PostmanTableBlock({
   periodLabel = '',
   loading = false,
   hasData = true,
+  onSelectPostman = null,
 }) {
   const indicator = useIndicator();
   const theme = indicatorTheme(indicator);
@@ -381,8 +382,15 @@ export default function F42PostmanTableBlock({
                                 <td className="py-2 px-2.5 font-mono text-[11px] text-slate-600">
                                   {postman.ma_buu_ta}
                                 </td>
-                                <td className="py-2 px-2.5 font-bold text-slate-900">
-                                  {postman.ten_buu_ta}
+                                <td className="py-2 px-2.5">
+                                  <button
+                                    type="button"
+                                    onClick={() => onSelectPostman?.(postman, unit)}
+                                    className="font-bold text-slate-900 hover:text-sky-700 hover:underline cursor-pointer text-left transition-colors"
+                                    title={`Xem xu hướng phát giao của bưu tá ${postman.ten_buu_ta}`}
+                                  >
+                                    {postman.ten_buu_ta}
+                                  </button>
                                 </td>
                                 <td className="py-2 px-2.5 text-right tabular-nums text-slate-700">
                                   {formatVolume(postman.volume)}

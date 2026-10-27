@@ -244,3 +244,77 @@ export function formatPeriodHeader(period = 'day', { anchorDate, fromDate, toDat
   }
   return 'Kỳ báo cáo';
 }
+
+/**
+ * Compute ISO date range for postman trend chart ending at anchorDate.
+ * Default is 30 days. Handles date math using UTC to prevent timezone drift.
+ */
+export function computePostmanTrendDateRange(anchorDate, days = 30) {
+  let end;
+  if (anchorDate && /^\d{4}-\d{2}-\d{2}$/.test(anchorDate)) {
+    const [y, m, d] = anchorDate.split('-').map(Number);
+    end = new Date(Date.UTC(y, m - 1, d));
+  } else {
+    const now = new Date();
+    end = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
+  }
+
+  const start = new Date(end.getTime());
+  start.setUTCDate(start.getUTCDate() - (Math.max(1, days) - 1));
+
+  const formatUtc = (d) => {
+    const y = d.getUTCFullYear();
+    const m = String(d.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(d.getUTCDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  };
+
+  return {
+    fromDate: formatUtc(start),
+    toDate: formatUtc(end),
+  };
+}
+
+/**
+ * Normalize and sort postman daily trend records.
+ * Days without parcels or data have `rate: null` so Recharts leaves a gap (connectNulls={false}).
+ */
+export function normalizePostmanTrendDays(days = []) {
+  if (!Array.isArray(days)) return [];
+
+  const sorted = [...days].sort((a, b) => String(a.date || '').localeCompare(String(b.date || '')));
+
+  return sorted.map((day) => {
+    const dateStr = String(day.date || '');
+    let label = dateStr;
+    if (dateStr.length >= 10) {
+      const parts = dateStr.split('-');
+      if (parts.length === 3) {
+        label = `${parts[2]}/${parts[1]}`;
+      }
+    }
+
+    const dataAvailable = Boolean(day.data_available);
+    const volume = Number(day.volume || 0);
+    const passed = Number(day.passed || 0);
+    const failed = Number(day.failed || 0);
+    const blank = Number(day.blank || 0);
+
+    // CRITICAL: ngày không có dữ liệu để trống (không nối, không bằng 0)
+    const rate = (dataAvailable && day.rate !== null && day.rate !== undefined)
+      ? Number(day.rate)
+      : null;
+
+    return {
+      date: dateStr,
+      label,
+      data_available: dataAvailable,
+      volume,
+      passed,
+      failed,
+      blank,
+      rate,
+    };
+  });
+}
+

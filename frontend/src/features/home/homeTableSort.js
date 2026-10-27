@@ -11,6 +11,7 @@ export const INDICATOR_FULL_NAMES = Object.freeze({
   f12: 'Thu gom liên tỉnh',
   f13: 'Phát liên tỉnh',
   f41: 'Phát thành công bưu cục',
+  f42: 'Phát giao bưu tá',
 });
 
 /**

@@ -3,6 +3,7 @@ import { useIndicatorApi } from '../../indicator/useIndicatorApi.js';
 import { formatPeriodHeader } from './f42PostmanTableHelpers.js';
 import F42PostmanAttentionBlock from './F42PostmanAttentionBlock.jsx';
 import F42PostmanTableBlock from './F42PostmanTableBlock.jsx';
+import F42PostmanTrendModal from './F42PostmanTrendModal.jsx';
 
 export default function F42PostmanDashboardBlocks({
   anchorDate = null,
@@ -14,6 +15,7 @@ export default function F42PostmanDashboardBlocks({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [tableData, setTableData] = useState(null);
+  const [selectedPostman, setSelectedPostman] = useState(null);
 
   useEffect(() => {
     let active = true;
@@ -73,6 +75,15 @@ export default function F42PostmanDashboardBlocks({
     );
   }
 
+  const handleSelectPostman = (postman, unit) => {
+    setSelectedPostman({
+      ma_buu_ta: postman.ma_buu_ta,
+      ten_buu_ta: postman.ten_buu_ta,
+      ma_bcvh: unit?.ma_bcvh || postman.ma_bcvh,
+      ten_bcvh: unit?.ten_bcvh || postman.ten_bcvh,
+    });
+  };
+
   return (
     <div className="space-y-3.5">
       {/* 1. Bưu tá cần chú ý (derived from table payload, no extra API call) */}
@@ -80,6 +91,7 @@ export default function F42PostmanDashboardBlocks({
         units={units}
         periodLabel={periodLabel}
         maBcvh={maBcvh}
+        onSelectPostman={handleSelectPostman}
       />
 
       {/* 2. Bưu tá theo BCVH */}
@@ -91,7 +103,19 @@ export default function F42PostmanDashboardBlocks({
         periodLabel={periodLabel}
         loading={loading}
         hasData={hasData}
+        onSelectPostman={handleSelectPostman}
       />
+
+      {/* 3. Modal xu hướng một bưu tá (Phase D) */}
+      {selectedPostman && (
+        <F42PostmanTrendModal
+          isOpen={Boolean(selectedPostman)}
+          onClose={() => setSelectedPostman(null)}
+          postman={selectedPostman}
+          anchorDate={anchorDate}
+          maBcvhScope={maBcvh}
+        />
+      )}
     </div>
   );
 }

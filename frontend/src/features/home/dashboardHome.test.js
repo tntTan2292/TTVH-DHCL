@@ -20,6 +20,7 @@ test('HOME-BI-01: DashboardHome mounts executive and national-ranking endpoints'
   // TV layout: the 30-day line of each indicator lives inside its own card, no separate trend block
   assert.doesNotMatch(homeSrc, /IndicatorTrendsGrid/);
   assert.match(homeSrc, /xl:grid-cols-4/);
+  assert.match(homeSrc, /xl:grid-cols-5/);
 });
 
 test('Review Fix 1: indicator official names come from INDICATOR_FULL_NAMES, shown on each card', () => {
@@ -28,6 +29,7 @@ test('Review Fix 1: indicator official names come from INDICATOR_FULL_NAMES, sho
   assert.match(names, /Thu gom liên tỉnh/);
   assert.match(names, /Phát liên tỉnh/);
   assert.match(names, /Phát thành công bưu cục/);
+  assert.match(names, /Phát giao bưu tá/);
   assert.match(readSource('./components/ExecutiveIndicatorCard.jsx'), /INDICATOR_FULL_NAMES/);
 });
 

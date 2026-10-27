@@ -20,7 +20,7 @@ import { periodShortTitle, periodTitle, previousBasisLabel, sparkCaption } from 
 const SPARK_DAYS = 30;
 
 /**
- * Executive card of one indicator (F1.1, F1.2, F1.3, F4.1), built for a TV screen:
+ * Executive card of one indicator (F1.1, F1.2, F1.3, F4.1, F4.2), built for a TV screen:
  * the two numbers leaders read first (rate and national rank) side by side, the gap to the
  * indicator's own target, the change against the previous day, and its own 30-day line with
  * its own target line (never shared with another indicator).
@@ -33,7 +33,7 @@ export default function ExecutiveIndicatorCard({ data, isSelected, onSelect }) {
   const targetRate = data?.target_rate ?? indConfig.targetRate;
   const fullName = INDICATOR_FULL_NAMES[data?.id] || '';
 
-  const frame = `@container group relative rounded-xl border p-3 transition-all duration-200 cursor-pointer ${
+  const frame = `@container group relative rounded-xl border p-2.5 sm:p-3 transition-all duration-200 cursor-pointer ${
     isSelected
       ? `border-slate-900 bg-white shadow-lg ring-2 ${theme.ring}`
       : 'border-slate-200/90 bg-white shadow-xs hover:shadow-md hover:border-slate-300'
@@ -145,10 +145,10 @@ export default function ExecutiveIndicatorCard({ data, isSelected, onSelect }) {
                 )}
               </div>
               <div className="mt-1 flex items-baseline gap-1">
-                <span className="text-3xl font-black leading-tight tracking-tight text-slate-900 tabular-nums">
+                <span className="text-2xl 2xl:text-3xl font-black leading-tight tracking-tight text-slate-900 tabular-nums">
                   {rate != null ? rate.toFixed(1) : '—'}
                 </span>
-                <span className="text-base font-extrabold text-slate-500">%</span>
+                <span className="text-sm 2xl:text-base font-extrabold text-slate-500">%</span>
               </div>
             </div>
             <div className="mt-1.5 space-y-1 border-t border-slate-200/80 pt-1.5">
@@ -172,10 +172,10 @@ export default function ExecutiveIndicatorCard({ data, isSelected, onSelect }) {
                 <Award size={15} className="shrink-0 text-rose-500" />
               </div>
               <div className="mt-1 flex items-baseline gap-1">
-                <span className="text-3xl font-black leading-tight tracking-tight text-rose-600 tabular-nums">
+                <span className="text-2xl 2xl:text-3xl font-black leading-tight tracking-tight text-rose-600 tabular-nums">
                   {rank != null ? rank : '—'}
                 </span>
-                <span className="text-base font-bold text-rose-400">/{total}</span>
+                <span className="text-sm 2xl:text-base font-bold text-rose-400">/{total}</span>
               </div>
             </div>
             <div className="mt-1.5 border-t border-rose-200/70 pt-1.5">

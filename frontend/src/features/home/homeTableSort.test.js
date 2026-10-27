@@ -19,6 +19,7 @@ import {
   F12_INDICATOR,
   F13_INDICATOR,
   F41_INDICATOR,
+  F42_INDICATOR,
 } from '../indicator/indicatorConfig.js';
 
 test('Defect 1: INDICATOR_FULL_NAMES matches the exact official system names', () => {
@@ -26,6 +27,7 @@ test('Defect 1: INDICATOR_FULL_NAMES matches the exact official system names', (
   assert.equal(INDICATOR_FULL_NAMES.f12, 'Thu gom liên tỉnh');
   assert.equal(INDICATOR_FULL_NAMES.f13, 'Phát liên tỉnh');
   assert.equal(INDICATOR_FULL_NAMES.f41, 'Phát thành công bưu cục');
+  assert.equal(INDICATOR_FULL_NAMES.f42, 'Phát giao bưu tá');
 });
 
 test('Defect 4: formatRankMovement distinguishes null (missing data = "—") from real 0 ("0")', () => {
@@ -66,7 +68,7 @@ test('Defect 2: computeTrendYDomain never clips low data points (e.g. F4.1 22.2%
   assert.ok(domainNormal[0] >= 70 && domainNormal[0] <= 80);
 });
 
-test('Defect 3: Rate colours use shared catalogue with indicator-specific bands (F1.x: 70/60/50, F4.1: 80/70/60)', () => {
+test('Defect 3: Rate colours use shared catalogue with indicator-specific bands (F1.x: 70/60/50, F4.1: 80/70/60, F4.2: 90/80/70)', () => {
   // F1.1, F1.2, F1.3 bands: 70 / 60 / 50
   for (const ind of [F11_INDICATOR, F12_INDICATOR, F13_INDICATOR]) {
     assert.equal(classifyF13HeatmapRate(75.0, ind.heatmapBands).tone, 'band-green');
@@ -81,6 +83,12 @@ test('Defect 3: Rate colours use shared catalogue with indicator-specific bands 
   assert.equal(classifyF13HeatmapRate(75.0, F41_INDICATOR.heatmapBands).tone, 'band-pink');
   assert.equal(classifyF13HeatmapRate(65.0, F41_INDICATOR.heatmapBands).tone, 'band-yellow');
   assert.equal(classifyF13HeatmapRate(55.0, F41_INDICATOR.heatmapBands).tone, 'band-red');
+
+  // F4.2 bands: 90 / 80 / 70 (85.0% is pink in F4.2, 75.0% is yellow, 65.0% is red)
+  assert.equal(classifyF13HeatmapRate(92.0, F42_INDICATOR.heatmapBands).tone, 'band-green');
+  assert.equal(classifyF13HeatmapRate(85.0, F42_INDICATOR.heatmapBands).tone, 'band-pink');
+  assert.equal(classifyF13HeatmapRate(75.0, F42_INDICATOR.heatmapBands).tone, 'band-yellow');
+  assert.equal(classifyF13HeatmapRate(65.0, F42_INDICATOR.heatmapBands).tone, 'band-red');
 
   // Verify tone class mappings exist in F13_HEATMAP_TONE_CLASS
   assert.ok(F13_HEATMAP_TONE_CLASS['band-green'].includes('emerald'));

@@ -14,7 +14,7 @@ import {
 } from '../homeTableSort.js';
 
 // PO 2026-10-13: what the block lists depends on the indicator (the backend sends it as `focus_units`).
-//   bcvh    (F1.3, F4.1) - quality of all six BCVH, lowest rate first
+//   bcvh    (F1.3, F4.1, F4.2) - quality of all six BCVH, lowest rate first
 //   pairs   (F1.1)       - the accepting-office x delivering-BCVH pairs with the largest volume below the threshold
 //   offices (F1.2)       - the accepting offices with the largest volume below the threshold
 // The server sends up to 10 of them (biggest volume first); the block shows as many as fit its height (PO 2026-10-22).

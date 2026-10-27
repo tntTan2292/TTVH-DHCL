@@ -247,14 +247,14 @@ export default function IndicatorTrendsGrid({ indicators = [] }) {
 
           <BlockCaptureButton
             targetRef={gridRef}
-            blockTitle="Diễn biến xu hướng 04 chỉ tiêu độc lập"
+            blockTitle={`Diễn biến xu hướng ${indicators.length >= 5 ? '05' : '04'} chỉ tiêu độc lập`}
             dateOrPeriod={`${rangeDays} ngày gần nhất`}
           />
         </div>
       </div>
 
-      {/* 2x2 Grid of Individual Charts */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {/* Grid of Individual Charts (2 columns for 4, 3 columns for 5) */}
+      <div className={`grid grid-cols-1 ${indicators.length >= 5 ? 'md:grid-cols-2 xl:grid-cols-3' : 'md:grid-cols-2'} gap-4`}>
         {indicators.map((ind) => (
           <SingleIndicatorTrendChart
             key={ind.id}
