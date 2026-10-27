@@ -8,20 +8,25 @@
 const OTHER = 'OTHER';
 const UNGROUPED = 'OTHER_UNGROUPED';
 const KINDS = Object.freeze(['cause', 'plan', 'result']);
-const KIND_LABELS = Object.freeze({ cause: 'Nguyên nhân tồn', plan: 'Hướng xử lý', result: 'Kết quả xử lý' });
+const KIND_LABELS = Object.freeze({ cause: 'Nội dung xử lý', plan: 'Hướng xử lý', result: 'Kết quả xử lý' });
+const DONE = 'DA_XU_LY';
+const NOT_DONE = 'CHUA_XU_LY';
 
 // selectable: shown in the entry form and in the Excel drop-downs. Entries with selectable=false only exist so the grouping
 // has somewhere to put a "Khác" free text (and so old wordings keep a label). needsDue: a date is required with this answer
 // ("Phát lại ngày ...", "Chuyển hoàn ngày ..."). askText: the answer takes an optional detail ("Liên hệ Bưu cục gốc ...").
-// keywords: no accents, lower case. The result has two answers only: why a parcel is not handled is read from the cause
-// and the plan.
-// auto: a cause that settles the parcel by itself ("Phát thành công", "Chuyển hoàn", PO 2026-10-27): the plan and the result
-// are not asked, they are set to auto.plan_code / auto.result_code (the plan is locked, the result is "Đã xử lý").
-// auto.dueDefaultsToToday: the date the plan asks for is today when left empty.
+// keywords: no accents, lower case.
+// The first question is shown as "Nội dung xử lý" (PO 2026-10-27); its code and column stay `cause`.
+// auto: a content that settles the parcel by itself ("Phát thành công", "Chuyển hoàn", "Mất", "Vô thừa nhận"): the plan is set
+// to auto.plan_code (locked) and the result is "Đã xử lý". Any other content leaves the parcel "Chưa xử lý". The result is
+// never typed or chosen: the backend always derives it from the content (resultOf).
+// auto.dueIsToday: the date of the plan is today whatever was sent ("Chuyển hoàn" = returned today).
 const CATALOG = Object.freeze({
     cause: [
         { code: 'PHAT_THANH_CONG', label: 'Phát thành công', selectable: true, auto: { plan_code: 'DA_PHAT', result_code: 'DA_XU_LY' }, keywords: ['phat thanh cong', 'phat hoan thanh cong', 'phat hoan tc', 'phat tc', 'ptc', 'da phat', 'phat duoc', 'da giao'] },
-        { code: 'CHUYEN_HOAN', label: 'Chuyển hoàn', selectable: true, auto: { plan_code: 'CHUYEN_HOAN', result_code: 'DA_XU_LY', dueDefaultsToToday: true }, keywords: ['chuyen hoan', 'hoan', 'hoan ve', 'tra ve', 'tra nguoi gui'] },
+        { code: 'CHUYEN_HOAN', label: 'Chuyển hoàn', selectable: true, auto: { plan_code: 'CHUYEN_HOAN', result_code: 'DA_XU_LY', dueIsToday: true }, keywords: ['chuyen hoan', 'hoan', 'hoan ve', 'tra ve', 'tra nguoi gui'] },
+        { code: 'MAT', label: 'Mất', selectable: true, auto: { plan_code: 'DA_MAT', result_code: 'DA_XU_LY' }, keywords: ['mat', 'mat hang', 'bi mat', 'that lac', 'da mat'] },
+        { code: 'VO_THUA_NHAN', label: 'Vô thừa nhận', selectable: true, auto: { plan_code: 'DA_VTN', result_code: 'DA_XU_LY' }, keywords: ['vo thua nhan', 'chuyen vo thua nhan', 'da chuyen vtn'] },
         { code: 'CHO_HOAN', label: 'Chờ hoàn', selectable: true, keywords: ['cho hoan', 'cho chuyen hoan', 'cho tra ve'] },
         { code: 'KH_HEN_PHAT_LAI', label: 'Khách hàng hẹn phát lại', selectable: true, keywords: ['hen phat lai', 'khach hen', 'hen lai', 'hen ngay', 'doi ngay'] },
         { code: 'THU_TCNH_LUU_7N', label: 'Thư TCNH có yêu cầu lưu 7 ngày', selectable: true, keywords: ['tcnh', 'luu 7 ngay', 'luu 7', 'yeu cau luu'] },
@@ -43,6 +48,8 @@ const CATALOG = Object.freeze({
         { code: 'CHUYEN_CAP_TREN', label: 'Chuyển cấp trên hỗ trợ', selectable: true, askText: true, keywords: ['cap tren', 'ho tro', 'bao cap tren', 'chuyen len'] },
         { code: OTHER, label: 'Hướng xử lý khác', selectable: true, keywords: [] },
         { code: 'DA_PHAT', label: 'Đã phát thành công', selectable: false, keywords: [] },
+        { code: 'DA_MAT', label: 'Ghi nhận mất', selectable: false, keywords: [] },
+        { code: 'DA_VTN', label: 'Ghi nhận vô thừa nhận', selectable: false, keywords: [] },
         { code: 'HEN_LAI_KH', label: 'Hẹn lại khách', selectable: false, keywords: ['hen lai', 'hen khach', 'hen ngay', 'khach hen', 'doi ngay'] },
         { code: 'LIEN_HE_KH', label: 'Liên hệ khách', selectable: false, keywords: ['lien he', 'goi khach', 'goi dien', 'nhan tin', 'zalo', 'xac nhan khach'] },
         { code: 'CHUYEN_BCVH_KHAC', label: 'Chuyển BCVH khác / sai địa chỉ', selectable: false, keywords: ['chuyen buu cuc', 'chuyen bcvh', 'chuyen sang', 'sai tuyen', 'chuyen tuyen', 'chuyen dia ban'] },
@@ -84,7 +91,7 @@ function selectableOptions(kind) {
                 result_code: auto.result_code,
                 result_label: optionOf('result', auto.result_code)?.label || auto.result_code,
                 needs_due: Boolean(optionOf('plan', auto.plan_code)?.needsDue),
-                due_defaults_to_today: Boolean(auto.dueDefaultsToToday),
+                due_is_today: Boolean(auto.dueIsToday),
             };
         }
         return option;
@@ -125,6 +132,12 @@ function groupLabel(kind, code, customGroups = new Map()) {
     return optionOf(kind, code)?.label || customGroups.get(code) || code;
 }
 
+/** The result of a review follows from its content: a content that settles the parcel is "Đã xử lý", any other one "Chưa xử lý". */
+function resultOf(causeCode) {
+    const option = optionOf('cause', causeCode);
+    return option?.selectable && option.auto ? option.auto.result_code : NOT_DONE;
+}
+
 function isValidDate(value) {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(String(value || ''))) return false;
     const parsed = new Date(`${value}T00:00:00Z`);
@@ -133,8 +146,9 @@ function isValidDate(value) {
 
 /**
  * Checks the fields of one review. Returns { ok, errors: [{field, message}], value } where value is the cleaned entry.
- * All three questions are required (a cause with `auto` answers the plan and the result by itself); a "Khác" answer needs
- * its text; a due date is required with a plan that has needsDue and must not be before `today`.
+ * The content and the plan are required (a content with `auto` sets the plan itself); the result is never asked, it is
+ * derived (resultOf). A "Khác" answer needs its text; a due date is required with a plan that has needsDue and must not be
+ * before `today`; with a content whose date is today ("Chuyển hoàn") the date is `today`.
  */
 function validateEntry(input = {}, { today } = {}) {
     const errors = [];
@@ -142,10 +156,15 @@ function validateEntry(input = {}, { today } = {}) {
     const causeOption = optionOf('cause', String(input.cause_code ?? '').trim());
     const auto = causeOption?.selectable ? causeOption.auto : null;
     for (const kind of KINDS) {
-        if (auto && kind !== 'cause') {
-            // the cause settles the parcel: plan and result are set by it, whatever was typed for them
-            value[`${kind}_code`] = auto[`${kind}_code`];
-            value[`${kind}_text`] = null;
+        if (kind === 'result') {
+            value.result_code = resultOf(causeOption?.code);
+            value.result_text = null;
+            continue;
+        }
+        if (auto && kind === 'plan') {
+            // the content settles the parcel: the plan is set by it, whatever was typed
+            value.plan_code = auto.plan_code;
+            value.plan_text = null;
             continue;
         }
         const code = String(input[`${kind}_code`] ?? '').trim();
@@ -170,8 +189,8 @@ function validateEntry(input = {}, { today } = {}) {
     }
     const needsDue = ['plan', 'result'].some((kind) => optionOf(kind, value[`${kind}_code`])?.needsDue);
     let due = String(input.due_date ?? '').trim();
-    if (auto?.dueDefaultsToToday && !due && today) due = today;
-    if (auto && !needsDue) due = ''; // "Phát thành công" has no date to keep
+    if (auto?.dueIsToday && today) due = today;
+    if (auto && !needsDue) due = ''; // "Phát thành công", "Mất", "Vô thừa nhận" have no date to keep
     if (needsDue && !due) errors.push({ field: 'due_date', message: 'Nhập ngày hẹn xử lý' });
     else if (due && !isValidDate(due)) errors.push({ field: 'due_date', message: 'Ngày hẹn không hợp lệ (YYYY-MM-DD)' });
     else if (due && today && due < today) errors.push({ field: 'due_date', message: 'Ngày hẹn không được trước hôm nay' });
@@ -195,6 +214,6 @@ function publicCatalog() {
 }
 
 module.exports = {
-    OTHER, UNGROUPED, KINDS, KIND_LABELS, CATALOG, TEXT_MAX, NOTE_MAX,
-    normalizeText, optionOf, selectableOptions, groupOf, groupLabel, isValidDate, validateEntry, publicCatalog,
+    OTHER, UNGROUPED, KINDS, KIND_LABELS, CATALOG, TEXT_MAX, NOTE_MAX, DONE, NOT_DONE,
+    normalizeText, resultOf, optionOf, selectableOptions, groupOf, groupLabel, isValidDate, validateEntry, publicCatalog,
 };

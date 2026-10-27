@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import {
-  KINDS, KIND_LABELS, OTHER_CODE, needsDueDate, asksText, validateForm, buildInput, localToday, autoOf, applyEdit, resultMeta,
+  KINDS, KIND_LABELS, OTHER_CODE, needsDueDate, asksText, validateForm, buildInput, localToday, autoOf, applyEdit, resultMeta, formatDate,
 } from './handlingModel.js';
 
 const FIELD = 'w-full rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-sm text-slate-800 shadow-2xs focus:border-rose-500 focus:outline-none';
@@ -30,14 +30,16 @@ export default function HandlingForm({
       {KINDS.map((kind) => {
         const options = catalog?.kinds?.find((k) => k.kind === kind)?.options || [];
         const code = form[`${kind}_code`];
-        if (auto && kind !== 'cause') {
-          // "Phát thành công" / "Chuyển hoàn": the plan is locked and the result is Đã xử lý, nothing to choose
-          const label = kind === 'plan' ? auto.plan_label : auto.result_label;
+        if (kind === 'result' || (auto && kind === 'plan')) {
+          // the result follows from the content; a settling content also locks the plan: nothing to choose
+          const locked = kind === 'result'
+            ? resultMeta(form.result_code)
+            : { label: `${auto.plan_label}${auto.due_is_today ? ` ${formatDate(form.due_date || today)}` : ''}`, className: 'border-slate-200 bg-slate-100 text-slate-500' };
           return (
             <div key={kind}>
               <label className="mb-1 block text-xs font-bold uppercase tracking-wide text-slate-600">{KIND_LABELS[kind]}</label>
-              <div className={`w-full rounded-lg border px-2.5 py-1.5 text-sm font-semibold ${kind === 'result' ? resultMeta(auto.result_code).className : 'border-slate-200 bg-slate-100 text-slate-500'}`}>
-                {label} <span className="font-normal opacity-70">· tự động theo nguyên nhân</span>
+              <div className={`w-full rounded-lg border px-2.5 py-1.5 text-sm font-semibold ${locked.className}`}>
+                {locked.label} <span className="font-normal opacity-70">· tự động theo nội dung xử lý</span>
               </div>
             </div>
           );
@@ -75,10 +77,10 @@ export default function HandlingForm({
         );
       })}
 
-      {dueRequired ? (
+      {dueRequired && !auto ? (
       <div>
         <label className="mb-1 block text-xs font-bold uppercase tracking-wide text-slate-600">
-          Ngày phát lại / chuyển hoàn {auto?.due_defaults_to_today ? <span className="font-medium normal-case text-slate-400">(để trống = hôm nay)</span> : <span className="text-rose-600">*</span>}
+          Ngày phát lại / chuyển hoàn <span className="text-rose-600">*</span>
         </label>
         <input
           type="date"

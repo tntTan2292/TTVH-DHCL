@@ -23,7 +23,7 @@ function EntryCard({ entry, children }) {
         <span>{formatDateTime(entry.created_at)} · {ACTION_LABELS[entry.action] || entry.action}</span>
       </div>
       <dl className="mt-2 grid grid-cols-[110px_1fr] gap-x-3 gap-y-1 text-sm">
-        <dt className="text-slate-500">Nguyên nhân</dt><dd className="font-semibold text-slate-800">{entry.cause_label}</dd>
+        <dt className="text-slate-500">Nội dung xử lý</dt><dd className="font-semibold text-slate-800">{entry.cause_label}</dd>
         <dt className="text-slate-500">Hướng xử lý</dt><dd className="font-semibold text-slate-800">{planSummary(entry)}</dd>
         <dt className="text-slate-500">Kết quả</dt><dd className="font-semibold text-slate-800">{entry.result_label}</dd>
         {entry.due_date && !/ngày$/i.test(entry.plan_label || '') ? (<><dt className="text-slate-500">Ngày hẹn</dt><dd className="text-slate-800">{formatDate(entry.due_date)}</dd></>) : null}
@@ -240,7 +240,7 @@ export default function HandlingDrawer({ row, catalog, canWrite, onClose, onSave
                         type="text"
                         value={reason}
                         onChange={(e) => setReason(e.target.value)}
-                        placeholder="Ví dụ: nhập nhầm nguyên nhân"
+                        placeholder="Ví dụ: nhập nhầm nội dung xử lý"
                         className="w-full rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-sm shadow-2xs focus:border-rose-500 focus:outline-none"
                       />
                       <p className={`mt-0.5 text-xs ${reason.trim().length >= 5 ? 'text-slate-400' : 'font-semibold text-rose-600'}`}>Tối thiểu 5 ký tự</p>

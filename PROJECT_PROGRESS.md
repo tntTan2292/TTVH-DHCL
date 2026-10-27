@@ -2488,3 +2488,7 @@ Antigravity delivered phases A+B (`5e50f0ec`); Opus review 1 (PASS with conditio
 ## 2026-10-27 - F4.2 Home card backend done, phase D opened
 
 Claude Code added F4.2 as the fifth indicator of the Home read model (`HomeExecutiveService`, 27/27 tests; live read: day 84.7 %, rank 5/34). Opened phase D of `F42-DASHBOARD-UI-01` for Antigravity (Home fifth card layout, one-postman trend block) with a lean prompt. Backend restart still pending (pauses backfill; PO to agree).
+
+## 2026-10-27 - HANGTON-HANDLING-01 amendment 4: automatic result, "Nội dung xử lý", Mất / Vô thừa nhận
+
+The result is no longer chosen: Phát thành công / Mất / Vô thừa nhận / Chuyển hoàn (today) = Đã xử lý, any other content = Chưa xử lý, set by the backend; the first column is renamed "Nội dung xử lý"; Excel result column is a formula. Backend hangtonInventory + routes 32, frontend hangton 73 tests green, build OK. Backend restart pending.

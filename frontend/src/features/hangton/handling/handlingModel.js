@@ -4,7 +4,7 @@
 
 export const OTHER_CODE = 'OTHER';
 export const KINDS = Object.freeze(['cause', 'plan', 'result']);
-export const KIND_LABELS = Object.freeze({ cause: 'Nguyên nhân tồn', plan: 'Hướng xử lý', result: 'Kết quả xử lý' });
+export const KIND_LABELS = Object.freeze({ cause: 'Nội dung xử lý', plan: 'Hướng xử lý', result: 'Kết quả xử lý' });
 
 export const STATE_META = Object.freeze({
   DONE: { label: 'Đã rà soát', badgeClass: 'border-emerald-200 bg-emerald-50 text-emerald-800' },
@@ -16,7 +16,7 @@ export const STATE_META = Object.freeze({
 export const RECHECK_META = Object.freeze({
   label: 'Đã xử lý nhưng còn tồn',
   note: 'Trạng thái Đã xử lý chỉ đúng khi Chuyển hoàn vào ngày hiện tại',
-  hint: 'Bưu gửi từng được ghi "Đã xử lý" nhưng vẫn còn trong danh sách tồn. Kiểm tra lại nguyên nhân và nhập lại. Trạng thái Đã xử lý chỉ đúng khi Chuyển hoàn vào ngày hiện tại.',
+  hint: 'Bưu gửi từng được ghi "Đã xử lý" nhưng vẫn còn trong danh sách tồn. Kiểm tra lại nội dung xử lý và nhập lại. Trạng thái Đã xử lý chỉ đúng khi Chuyển hoàn vào ngày hiện tại.',
   badgeClass: 'border-orange-400 bg-orange-100 text-orange-900',
 });
 
@@ -62,7 +62,7 @@ const SKIP_REASONS = Object.freeze({
   NO_CODE: 'thiếu mã bưu gửi',
   UNCHANGED: 'dòng không đổi so với lần nhập trước (dùng "Giữ nguyên" nếu muốn giữ)',
   DUPLICATE_IN_BATCH: 'mã bưu gửi xuất hiện nhiều lần, chỉ dòng đầu được lưu',
-  RECHECK_REQUIRED: 'đã xử lý nhưng vẫn còn tồn: kiểm tra lại nguyên nhân rồi nhập lại, không dùng "Giữ nguyên"',
+  RECHECK_REQUIRED: 'đã xử lý nhưng vẫn còn tồn: kiểm tra lại nội dung xử lý rồi nhập lại, không dùng "Giữ nguyên"',
 });
 
 export function localToday(now = new Date()) {
@@ -96,9 +96,15 @@ export function asksText(catalog, kind, code) {
   return Boolean(optionOf(catalog, kind, code)?.askText);
 }
 
-/** The cause settles the parcel by itself ("Phát thành công", "Chuyển hoàn"): { plan_code, plan_label, result_code, ... } or null. */
+/** The content settles the parcel by itself ("Phát thành công", "Mất", "Vô thừa nhận", "Chuyển hoàn"): { plan_code, plan_label, result_code, ... } or null. */
 export function autoOf(catalog, form) {
   return optionOf(catalog, 'cause', form?.cause_code)?.auto || null;
+}
+
+/** The result follows from the content, it is never chosen: Đã xử lý for a settling content, Chưa xử lý for any other, '' for none. */
+export function resultFor(catalog, form) {
+  if (!form?.cause_code) return '';
+  return autoOf(catalog, form)?.result_code || 'CHUA_XU_LY';
 }
 
 /** True when the chosen plan or result asks for a due date ("ngày hẹn"). */
@@ -113,12 +119,13 @@ export function validateForm(catalog, form, today = localToday()) {
   const errors = {};
   const auto = autoOf(catalog, form);
   for (const kind of KINDS) {
-    if (auto && kind !== 'cause') continue; // the cause answers the plan and the result
+    if (kind === 'result') continue; // derived from the content
+    if (auto && kind === 'plan') continue; // a settling content sets the plan itself
     const code = form[`${kind}_code`];
     if (!code || !optionOf(catalog, kind, code)) errors[`${kind}_code`] = `Chọn ${KIND_LABELS[kind].toLowerCase()}`;
     else if (code === OTHER_CODE && String(form[`${kind}_text`] || '').trim().length < 2) errors[`${kind}_text`] = 'Nhập nội dung "Khác"';
   }
-  if (needsDueDate(catalog, form) && !form.due_date && !auto?.due_defaults_to_today) errors.due_date = 'Nhập ngày hẹn xử lý';
+  if (needsDueDate(catalog, form) && !form.due_date && !auto?.due_is_today) errors.due_date = 'Nhập ngày hẹn xử lý';
   else if (form.due_date && form.due_date < today) errors.due_date = 'Ngày hẹn không được trước hôm nay';
   return errors;
 }
@@ -257,17 +264,20 @@ export function rowForm(row, drafts = {}) {
 /** A change in one cell: merges it, and drops the date when the plan no longer asks for one. */
 export function applyEdit(catalog, form, patch, today = localToday()) {
   const next = { ...form, ...patch };
+  const auto = autoOf(catalog, next);
   if (patch.cause_code !== undefined) {
-    const auto = autoOf(catalog, next);
     if (auto) {
-      // "Phát thành công" / "Chuyển hoàn": the plan is locked and the result is Đã xử lý; Chuyển hoàn takes today as its date
-      Object.assign(next, { plan_code: auto.plan_code, plan_text: '', result_code: auto.result_code, result_text: '' });
-      if (auto.needs_due && !next.due_date && auto.due_defaults_to_today) next.due_date = today;
+      // a settling content locks the plan (plan and date follow it)
+      Object.assign(next, { plan_code: auto.plan_code, plan_text: '' });
     } else if (autoOf(catalog, form)) {
-      Object.assign(next, { plan_code: '', plan_text: '', result_code: '', result_text: '', due_date: '' });
+      Object.assign(next, { plan_code: '', plan_text: '', due_date: '' });
     }
   }
-  if (!needsDueDate(catalog, next)) next.due_date = '';
+  // "Chuyển hoàn" is always dated today, even when only the note of an older entry is edited
+  if (auto?.due_is_today) next.due_date = today;
+  else if (!needsDueDate(catalog, next)) next.due_date = '';
+  // the result is never typed: it follows from the content
+  Object.assign(next, { result_code: resultFor(catalog, next), result_text: '' });
   return next;
 }
 

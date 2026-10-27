@@ -15,18 +15,20 @@ const LIST_SHEET = 'Danh mục';
 const GUIDE_SHEET = 'Hướng dẫn';
 
 // `*` = always required. The other answer columns are required only for some answers: the sheet colours them.
+// "Kết quả xử lý" is not filled in: it is calculated from the content (Phát thành công, Mất, Vô thừa nhận, Chuyển hoàn =
+// Đã xử lý, anything else = Chưa xử lý), like on the web.
 const HEADERS = Object.freeze({
     item_code: 'Mã bưu gửi',
     office: 'Bưu cục',
     ton_level: 'Mức tồn',
     customer_class: 'Nhóm KH',
     postman_name: 'Bưu tá',
-    cause: 'Nguyên nhân tồn *',
+    cause: 'Nội dung xử lý *',
     cause_text: 'Nội dung "Nguyên nhân khác"',
     plan: 'Hướng xử lý *',
     due_date: 'Ngày phát lại / chuyển hoàn',
     plan_text: 'Chi tiết hướng xử lý',
-    result: 'Kết quả xử lý *',
+    result: 'Kết quả xử lý (tự tính)',
     note: 'Ghi chú',
     check: 'Kiểm tra (tự tính)',
 });
@@ -43,10 +45,13 @@ const COLUMNS = Object.freeze([
     { key: 'plan', width: 26, input: true, must: true },
     { key: 'due_date', width: 16, input: true },
     { key: 'plan_text', width: 28, input: true },
-    { key: 'result', width: 16, input: true, must: true },
+    { key: 'result', width: 18 },
     { key: 'note', width: 32, input: true },
     { key: 'check', width: 40 },
 ]);
+
+// Titles of files made before (the first question was called "Nguyên nhân tồn"; the result had its own drop-down).
+const OLD_TITLES = Object.freeze({ 'Nguyên nhân tồn': 'cause', 'Nguyên nhân tồn *': 'cause', 'Kết quả xử lý': 'result', 'Kết quả xử lý *': 'result' });
 
 const FIRST_YEAR_DATE = new Date(Date.UTC(2020, 0, 1));
 const DATE_FORMAT = 'dd/mm/yyyy';
@@ -89,7 +94,7 @@ async function buildTemplate(rows) {
 
     // lists: one column per question, the standard answers only
     const listColumn = {};
-    ['cause', 'plan', 'result'].forEach((kind, index) => {
+    ['cause', 'plan'].forEach((kind, index) => {
         const options = catalog.selectableOptions(kind);
         lists.getColumn(index + 1).width = 36;
         lists.getCell(1, index + 1).value = catalog.KIND_LABELS[kind];
@@ -104,20 +109,20 @@ async function buildTemplate(rows) {
     const causeOther = catalog.optionOf('cause', catalog.OTHER).label;
     const planOther = catalog.optionOf('plan', catalog.OTHER).label;
     const datePlans = catalog.selectableOptions('plan').filter((option) => option.needsDue);
-    const resultDone = catalog.optionOf('result', 'DA_XU_LY').label;
-    const resultPending = catalog.optionOf('result', 'CHUA_XU_LY').label;
+    const resultDone = catalog.optionOf('result', catalog.DONE).label;
+    const resultPending = catalog.optionOf('result', catalog.NOT_DONE).label;
 
     [
         'Cách điền (hoặc nhập trực tiếp trên web, mục Chi tiết bưu gửi):',
-        '1. Chỉ cần chọn bằng ô xổ xuống ở mỗi dòng. Cột có dấu * trong tiêu đề luôn bắt buộc: Nguyên nhân tồn, Hướng xử lý, Kết quả xử lý.',
-        `2. ${autoCauses.map((option) => `"${option.label}"`).join(' và ')}: bưu gửi coi như đã xử lý xong. KHÔNG cần chọn Hướng xử lý và Kết quả xử lý (hệ thống tự tính Đã xử lý). `
-            + `Với "${autoCauses.find((option) => option.auto.due_defaults_to_today)?.label || ''}" ngày để trống thì tính là hôm nay.`,
-        `3. Ô nào còn phải điền thì tô ĐỎ, ô không cần điền thì tô XÁM. Cột "Kiểm tra (tự tính)" cuối dòng cho biết dòng đủ hay còn thiếu gì.`,
-        `4. Chọn ${datePlans.map((option) => `"${option.label}"`).join(' hoặc ')} thì mới phải nhập cột "Ngày phát lại / chuyển hoàn" (dd/mm/yyyy, không trước hôm nay).`,
-        '5. Chọn "Liên hệ Bưu cục gốc" hoặc "Chuyển cấp trên hỗ trợ" thì có thể ghi rõ liên hệ ai trong cột "Chi tiết hướng xử lý" (không bắt buộc).',
-        `6. Chọn "${causeOther}" thì bắt buộc gõ nội dung vào cột "Nội dung nguyên nhân khác"; chọn "${planOther}" thì bắt buộc gõ vào cột "Chi tiết hướng xử lý". Hệ thống tự gom các cách gõ giống nhau khi thống kê.`,
-        `7. Kết quả chỉ có: ${resultDone} (xanh lá), ${resultPending} (cam). Dòng chưa rà soát tô hồng.`,
-        '8. Dòng không điền gì được bỏ qua. Không đổi tên cột, không xóa cột Mã bưu gửi. Lưu file rồi bấm "Nhập file đã điền" trên web.',
+        '1. Chọn bằng ô xổ xuống ở mỗi dòng. Cột có dấu * trong tiêu đề luôn bắt buộc: Nội dung xử lý và Hướng xử lý (trừ các nội dung ở mục 2).',
+        `2. ${autoCauses.map((option) => `"${option.label}"`).join(', ')}: bưu gửi coi như đã xử lý xong. KHÔNG cần chọn Hướng xử lý. "Chuyển hoàn" luôn tính là hôm nay, không cần nhập ngày.`,
+        `3. Cột "Kết quả xử lý (tự tính)" do hệ thống tự tính, KHÔNG nhập: ${autoCauses.map((option) => option.label).join(', ')} = ${resultDone}; mọi nội dung khác = ${resultPending}.`,
+        `4. Ô nào còn phải điền thì tô ĐỎ, ô không cần điền thì tô XÁM. Cột "Kiểm tra (tự tính)" cuối dòng cho biết dòng đủ hay còn thiếu gì.`,
+        `5. Chọn ${datePlans.map((option) => `"${option.label}"`).join(' hoặc ')} (ở Hướng xử lý) thì mới phải nhập cột "Ngày phát lại / chuyển hoàn" (dd/mm/yyyy, không trước hôm nay).`,
+        '6. Chọn "Liên hệ Bưu cục gốc" hoặc "Chuyển cấp trên hỗ trợ" thì có thể ghi rõ liên hệ ai trong cột "Chi tiết hướng xử lý" (không bắt buộc).',
+        `7. Chọn "${causeOther}" thì bắt buộc gõ nội dung vào cột "Nội dung "Nguyên nhân khác""; chọn "${planOther}" thì bắt buộc gõ vào cột "Chi tiết hướng xử lý". Hệ thống tự gom các cách gõ giống nhau khi thống kê.`,
+        `8. Kết quả ${resultDone} tô xanh lá, ${resultPending} tô cam, dòng chưa rà soát tô hồng.`,
+        '9. Dòng không điền gì, hoặc dòng giữ nguyên như file tải về, được bỏ qua. Không đổi tên cột, không xóa cột Mã bưu gửi. Lưu file rồi bấm "Nhập file đã điền" trên web.',
     ].forEach((line, index) => { guide.getCell(index + 1, 1).value = line; });
     guide.getColumn(1).width = 150;
     guide.getCell(1, 1).font = { bold: true };
@@ -145,9 +150,8 @@ async function buildTemplate(rows) {
             cause: last ? labelOf('cause', last.cause_code, last.cause_text) : '',
             cause_text: last && last.cause_code === catalog.OTHER ? (last.cause_text || '') : '',
             plan: last && !auto ? labelOf('plan', last.plan_code, last.plan_text) : '',
-            due_date: excelDate(last?.due_date),
+            due_date: last && !auto ? excelDate(last.due_date) : null,
             plan_text: last && last.plan_code && !auto ? (last.plan_text || '') : '',
-            result: last ? labelOf('result', last.result_code, last.result_text) : '',
             note: last?.note || '',
         });
     }
@@ -168,16 +172,18 @@ async function buildTemplate(rows) {
     const missing = `TRIM(IF(AND(${F}=${quote(causeOther)},${G}=""),"Nội dung nguyên nhân khác; ","")`
         + `&IF(${H}="","Hướng xử lý; ","")`
         + `&IF(AND(${H}=${quote(planOther)},${J}=""),"Chi tiết hướng xử lý; ","")`
-        + `&IF(AND(${needsDate},${I}=""),"Ngày; ","")`
-        + `&IF(${K}="","Kết quả xử lý; ",""))`;
-    const pastDate = `AND(${I}<>"",${I}<TODAY())`;
-    const checkFormula = `IF(${F}="","",IF(${isAuto},IF(${pastDate},"✖ Ngày trước hôm nay","✔ Đủ · tự tính: ${resultDone}"),`
-        + `IF(${missing}<>"","✖ Thiếu: "&${missing},IF(${pastDate},"✖ Ngày trước hôm nay","✔ Đủ"))))`;
-    rows.forEach((_, index) => {
-        const r = index + 2;
-        sheet.getCell(`${col('check')}${r}`).value = { formula: checkFormula.replace(/\$([A-Z])2/g, (_m, c) => `$${c}${r}`) };
-    });
-    if (rows.length === 0) sheet.getCell(`${col('check')}2`).value = { formula: checkFormula };
+        + `&IF(AND(${needsDate},${I}=""),"Ngày; ",""))`;
+    // a date only counts with a plan that asks for one (the settled contents have none: Chuyển hoàn is always today)
+    const pastDate = `AND(${needsDate},${I}<>"",${I}<TODAY())`;
+    const resultFormula = `IF(${F}="","",IF(${isAuto},${quote(resultDone)},${quote(resultPending)}))`;
+    const checkFormula = `IF(${F}="","",IF(${isAuto},"✔ Đủ · tự tính: ${resultDone}",`
+        + `IF(${missing}<>"","✖ Thiếu: "&${missing},IF(${pastDate},"✖ Ngày trước hôm nay","✔ Đủ · tự tính: ${resultPending}"))))`;
+    const forRow = (formula, r) => formula.replace(/\$([A-Z])2/g, (_m, c) => `$${c}${r}`);
+    const lastFormulaRow = Math.max(rows.length + 1, 2);
+    for (let r = 2; r <= lastFormulaRow; r += 1) {
+        sheet.getCell(`${col('check')}${r}`).value = { formula: forRow(checkFormula, r) };
+        sheet.getCell(`${col('result')}${r}`).value = { formula: forRow(resultFormula, r) };
+    }
 
     const rule = (formula, argb, stopIfTrue = true) => ({ type: 'expression', formulae: [formula], style: cfFill(argb), stopIfTrue });
     const range = (key) => `${col(key)}2:${col(key)}${lastRow}`;
@@ -192,7 +198,7 @@ async function buildTemplate(rows) {
     sheet.addConditionalFormatting({ ref: range('due_date'), rules: [
         rule(`AND(${needsDate},${I}="")`, COLORS.needed),
         rule(pastDate, COLORS.needed),
-        rule(`AND(${F}<>"",NOT(${needsDate}),${F}<>${quote(autoCauses.find((option) => option.auto.due_defaults_to_today)?.label || '')})`, COLORS.notNeeded),
+        rule(`AND(${F}<>"",NOT(${needsDate}))`, COLORS.notNeeded),
     ] });
     sheet.addConditionalFormatting({ ref: range('plan_text'), rules: [
         rule(`AND(${H}=${quote(planOther)},${J}="")`, COLORS.needed),
@@ -201,9 +207,7 @@ async function buildTemplate(rows) {
     sheet.addConditionalFormatting({ ref: range('result'), rules: [
         rule(`${K}=${quote(resultDone)}`, COLORS.done),
         rule(`${K}=${quote(resultPending)}`, COLORS.pending),
-        rule(isAuto, COLORS.notNeeded),
-        rule(`AND(${F}<>"",${K}="")`, COLORS.needed),
-        rule(`AND(${F}="",${K}="")`, COLORS.unreviewed),
+        rule(`${F}=""`, COLORS.unreviewed),
     ] });
     sheet.addConditionalFormatting({ ref: range('check'), rules: [
         { type: 'expression', formulae: [`LEFT(${M},1)="✔"`], style: { font: { color: { argb: 'FF166534' }, bold: true } }, stopIfTrue: true },
@@ -224,7 +228,6 @@ async function buildTemplate(rows) {
     });
     sheet.dataValidations.add(`${col('cause')}2:${col('cause')}${lastRow}`, dropdown('cause'));
     sheet.dataValidations.add(`${col('plan')}2:${col('plan')}${lastRow}`, dropdown('plan'));
-    sheet.dataValidations.add(`${col('result')}2:${col('result')}${lastRow}`, dropdown('result'));
     sheet.dataValidations.add(`${col('due_date')}2:${col('due_date')}${lastRow}`, {
         type: 'date',
         operator: 'greaterThan',
@@ -275,7 +278,10 @@ function cellText(value) {
 }
 
 // A title is recognised without its "*" mark, quotes, case or accents, so files made before the marks came in still load.
-const HEADER_KEYS = new Map(Object.entries(HEADERS).map(([key, title]) => [catalog.normalizeText(title), key]));
+const HEADER_KEYS = new Map([
+    ...Object.entries(OLD_TITLES).map(([title, key]) => [catalog.normalizeText(title), key]),
+    ...Object.entries(HEADERS).map(([key, title]) => [catalog.normalizeText(title), key]),
+]);
 
 /** Rows of an uploaded workbook -> [{ item_code, input }] for recordEntries. Rows with no answer at all are ignored. */
 function parseUpload(buffer) {
@@ -296,13 +302,12 @@ function parseUpload(buffer) {
         if (!itemCode) { ignored += 1; continue; }
         const cause = resolveAnswer('cause', get('cause'), get('cause_text'));
         const plan = resolveAnswer('plan', get('plan'), get('plan_text'));
-        const result = resolveAnswer('result', get('result'));
-        if (!cause.code && !plan.code && !result.code) { ignored += 1; continue; }
+        // the result column is calculated, never read: the backend derives it from the content
+        if (!cause.code && !plan.code) { ignored += 1; continue; }
         entries.push({
             item_code: itemCode,
             input: {
                 cause_code: cause.code, cause_text: cause.text, plan_code: plan.code, plan_text: plan.text,
-                result_code: result.code, result_text: result.text,
                 due_date: cellDate(get('due_date')), note: cellText(get('note')), postman_name: cellText(get('postman_name')),
             },
         });

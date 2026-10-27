@@ -300,11 +300,12 @@ function inTransaction(db, work) {
 function sameAnswers(last, input) {
     const norm = (value) => String(value ?? '').trim();
     if (norm(input.cause_code) !== norm(last.cause_code) || norm(input.cause_text) !== norm(last.cause_text)) return false;
-    // a cause that settles the parcel by itself sets the plan and the result: only the cause, date and note can differ
+    // a content that settles the parcel sets the plan itself; the result always follows from the content (never compared)
     if (!catalog.optionOf('cause', last.cause_code)?.auto) {
-        for (const field of ['plan_code', 'plan_text', 'result_code', 'result_text']) if (norm(input[field]) !== norm(last[field])) return false;
+        for (const field of ['plan_code', 'plan_text']) if (norm(input[field]) !== norm(last[field])) return false;
     }
-    return norm(input.due_date) === norm(last.due_date) && norm(input.note) === norm(last.note);
+    const settled = Boolean(catalog.optionOf('cause', last.cause_code)?.auto);
+    return (settled || norm(input.due_date) === norm(last.due_date)) && norm(input.note) === norm(last.note);
 }
 
 /**

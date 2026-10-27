@@ -129,6 +129,15 @@ Read-side only, nothing stored changes. "hoàn" and "chuyển hoàn" = group Chu
 Fixed: (1) an Excel loaded back without changes no longer re-saves the pre-filled lines (import mode `IMPORT`, reason UNCHANGED), so "Giữ nguyên" and the recheck warning keep their meaning; (2) every write transaction of the handling (and the snapshot write / extra-snapshot delete) now queues on the shared `importWriteLock`, the shared SQLite connection can no longer be given two transactions at once; (3) an edit request can be decided once and created once per entry (checked inside the queued transaction); (4) the Excel export honours the review filter and the template the status filter, and says when it holds fewer parcels than the filter; (5) "đã rà soát" is counted on today for the newest snapshot (between midnight and the first snapshot of the day), and the recheck warning needs the snapshot to be of a later day than the entry; (6) the edit-request form validates dates against the day being corrected; smaller: duplicate parcel lines in a batch, an auto cause keeps no date, a negative log limit, "Gom nhóm lý do" shows only the wordings of the account's offices, inputs locked while saving, drafts of parcels that left the stock are dropped.
 Left as is (noted): counts of "chưa từng rà soát / chờ xác nhận" of an OLD snapshot also see entries typed later; `xlsx` 0.18.5 (already in the project) reads uploaded files; Excel conditional formats and `TODAY()` and the browser were not run for real.
 
+## 8i. Amendment 2026-10-27 (PO): the result is automatic; "Nội dung xử lý"; Mất and Vô thừa nhận
+
+Supersedes the result drop-down of 8/8b/8e. The user never chooses the result any more:
+1. The first question is called **"Nội dung xử lý"** (code and column stay `cause`). New contents: **Mất**, **Vô thừa nhận** (list: Phát thành công, Chuyển hoàn, Mất, Vô thừa nhận, Chờ hoàn, Khách hàng hẹn phát lại, Thư TCNH có yêu cầu lưu 7 ngày, Chờ chuyển VTN, Nguyên nhân khác).
+2. **Kết quả xử lý is derived by the backend** (`catalog.resultOf`, the input is ignored): Phát thành công, Mất, Vô thừa nhận and Chuyển hoàn = **Đã xử lý**; every other content (including "Nguyên nhân khác") = **Chưa xử lý**; nothing entered = Chưa rà soát.
+3. The four settling contents lock the plan (stored as DA_PHAT / DA_MAT / DA_VTN / CHUYEN_HOAN); **Chuyển hoàn is always dated today** (the date sent is ignored). Any other content asks for a plan (and a date for "Phát lại ngày" / "Chuyển hoàn ngày", which stays a plan of the non-settling contents).
+4. Excel: header "Nội dung xử lý *"; "Kết quả xử lý (tự tính)" is a formula column (no drop-down); the date column is grey unless the plan asks for a date; files made before (titles "Nguyên nhân tồn", a result column) still load, the result column is ignored.
+5. Entries stored before this change keep their stored result (append-only); a re-save recomputes it.
+
 ## 9. Not in Phase 1 (proposed Phases 2-3)
 
 Work queue and per-postman progress, due-date reminders and "tồn dai dẳng", cross-check of "đã phát" against the next mốc, assignment / escalation, effectiveness and cause analysis over time, end-of-day Viber summary.

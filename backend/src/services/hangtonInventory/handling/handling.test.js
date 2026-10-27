@@ -121,7 +121,7 @@ test('KTC1 office goes to the F1.2 chuyên quản (Nguyễn Anh Dũng) and a pla
 
 // ---- catalog ---------------------------------------------------------------------------------------------------------
 
-test('catalog: three required answers, "Khác" needs text, due date rules', () => {
+test('catalog: content and plan are required, the result is derived, "Khác" needs text, due date rules', () => {
     const today = '2026-10-27';
     assert.equal(catalog.validateEntry({}, { today }).ok, false);
     assert.equal(catalog.validateEntry({ ...REVIEW_INPUT }, { today }).ok, true);
@@ -133,9 +133,18 @@ test('catalog: three required answers, "Khác" needs text, due date rules', () =
     assert.deepEqual([detail.ok, detail.value.plan_text], [true, 'Phòng KHCL'], 'the detail of a plan is optional and kept');
     assert.equal(catalog.validateEntry({ cause_code: 'CHO_CHUYEN_VTN', plan_code: 'CHUYEN_CAP_TREN', result_code: 'CHUA_XU_LY' }, { today }).value.plan_text, null);
     assert.equal(catalog.validateEntry({ cause_code: 'CHO_CHUYEN_VTN', plan_code: 'PHAT_LAI', plan_text: 'bỏ qua', result_code: 'DA_XU_LY', due_date: '2026-10-29' }, { today }).value.plan_text, null, 'text is dropped where the answer takes none');
-    assert.equal(catalog.validateEntry({ ...REVIEW_INPUT, result_code: 'OTHER', result_text: 'Xong' }, { today }).ok, false, 'the result has only Đã xử lý / Chưa xử lý');
+    // the result is never taken from the input: a content that settles the parcel is Đã xử lý, any other one Chưa xử lý
+    const typedResult = catalog.validateEntry({ ...REVIEW_INPUT, result_code: 'DA_XU_LY' }, { today });
+    assert.deepEqual([typedResult.ok, typedResult.value.result_code], [true, 'CHUA_XU_LY'], 'a typed Đã xử lý does not count for a content that does not settle the parcel');
+    assert.equal(catalog.validateEntry({ ...REVIEW_INPUT, result_code: 'OTHER', result_text: 'Xong' }, { today }).value.result_code, 'CHUA_XU_LY');
+    for (const [cause, plan] of [['PHAT_THANH_CONG', 'DA_PHAT'], ['MAT', 'DA_MAT'], ['VO_THUA_NHAN', 'DA_VTN'], ['CHUYEN_HOAN', 'CHUYEN_HOAN']]) {
+        const settled = catalog.validateEntry({ cause_code: cause, plan_code: 'PHAT_LAI', result_code: 'CHUA_XU_LY', due_date: '2026-12-01' }, { today });
+        assert.deepEqual([settled.ok, settled.value.plan_code, settled.value.result_code], [true, plan, 'DA_XU_LY'], cause);
+        assert.equal(settled.value.due_date, cause === 'CHUYEN_HOAN' ? today : null, 'only Chuyển hoàn keeps a date, and it is today');
+    }
+    assert.equal(catalog.KIND_LABELS.cause, 'Nội dung xử lý');
     assert.deepEqual(catalog.selectableOptions('result').map((o) => o.label), ['Đã xử lý', 'Chưa xử lý']);
-    assert.deepEqual(catalog.selectableOptions('cause').map((o) => o.label), ['Phát thành công', 'Chuyển hoàn', 'Chờ hoàn', 'Khách hàng hẹn phát lại', 'Thư TCNH có yêu cầu lưu 7 ngày', 'Chờ chuyển VTN', 'Nguyên nhân khác']);
+    assert.deepEqual(catalog.selectableOptions('cause').map((o) => o.label), ['Phát thành công', 'Chuyển hoàn', 'Mất', 'Vô thừa nhận', 'Chờ hoàn', 'Khách hàng hẹn phát lại', 'Thư TCNH có yêu cầu lưu 7 ngày', 'Chờ chuyển VTN', 'Nguyên nhân khác']);
     assert.deepEqual(catalog.selectableOptions('plan').map((o) => o.label), ['Phát lại ngày', 'Chuyển hoàn ngày', 'Liên hệ Bưu cục gốc', 'Chuyển cấp trên hỗ trợ', 'Hướng xử lý khác']);
     assert.equal(catalog.validateEntry({ ...REVIEW_INPUT, due_date: '2026-10-26' }, { today }).ok, false, 'not before today');
     assert.equal(catalog.validateEntry({ ...REVIEW_INPUT, due_date: '2026-13-40' }, { today }).ok, false);
@@ -197,7 +206,7 @@ test('recordEntries: scope per office, newest snapshot only, complete answers on
 
     const bad = await handling.recordEntries(db, { entries: [{ item_code: 'A1', input: { cause_code: 'KH_HEN_PHAT_LAI' } }], actor: actor(GD_TH), now: D1 });
     assert.equal(bad.results[0].reason, 'INVALID');
-    assert.ok(bad.results[0].errors.length >= 2);
+    assert.deepEqual(bad.results[0].errors.map((e) => e.field), ['plan_code'], 'only the plan is missing: the result is not asked');
 
     await assert.rejects(handling.recordEntries(db, { entries: [{ item_code: 'A1', input: REVIEW_INPUT }], actor: actor(LEADER), now: D1 }), { code: 'FORBIDDEN' });
     await assert.rejects(handling.recordEntries(db, { entries: [], actor: actor(GD_TH), now: D1 }), { code: 'NO_ITEMS' });
@@ -252,7 +261,7 @@ test('stats: required = >= 5 days; done today / stale / never; answers grouped; 
     assert.deepEqual([th.needed, th.done, th.pending], [2, 2, 0]);
     assert.equal(all.by_cause.length, 1, '"Nguyên nhân khác: khách hẹn phát lại hôm sau" merged into the standard group');
     assert.deepEqual([all.by_cause[0].code, all.by_cause[0].n], ['KH_HEN_PHAT_LAI', 2]);
-    assert.deepEqual(all.by_result.map((r) => [r.code, r.label, r.n]), [['DA_XU_LY', 'Đã xử lý', 2]]);
+    assert.deepEqual(all.by_result.map((r) => [r.code, r.label, r.n]), [['CHUA_XU_LY', 'Chưa xử lý', 2]], 'a content that does not settle the parcel is Chưa xử lý');
 
     const scoped = await handling.stats(db, snapshot, { offices: ['536250'] });
     assert.deepEqual([scoped.total.needed, scoped.total.done], [1, 0]);
@@ -282,7 +291,7 @@ test('decorateItems + items review filter follow the day of the snapshot', async
     assert.deepEqual([byCode.A2.state, byCode.A3.required], ['NONE', false]);
     const nextDay = await handling.decorateItems(db, page.rows, '2026-10-28');
     assert.equal(nextDay.find((r) => r.item_code === 'A1').handling.state, 'STALE');
-    assert.equal(nextDay.find((r) => r.item_code === 'A1').handling.last.result_label, 'Đã xử lý', 'last entry carries over');
+    assert.equal(nextDay.find((r) => r.item_code === 'A1').handling.last.result_label, 'Chưa xử lý', 'last entry carries over');
 });
 
 test('edit of a past day: request -> chuyên quản approves -> a new row corrects that day; self-approval and other offices are refused', async () => {
@@ -387,11 +396,12 @@ test('Excel: drop-down template carries the last entry; an upload fills many par
     const sheet = wb.getWorksheet('Xử lý tồn');
     const headers = sheet.getRow(1).values.slice(1);
     assert.deepEqual(headers, Object.values(excel.HEADERS));
-    assert.deepEqual(['cause', 'plan', 'result'].map((key) => excel.HEADERS[key].endsWith('*')), [true, true, true], 'the always-required columns carry the * mark');
+    assert.deepEqual(['cause', 'plan', 'result'].map((key) => excel.HEADERS[key].endsWith('*')), [true, true, false], 'the always-required columns carry the * mark; the result is calculated');
+    assert.equal(excel.HEADERS.cause, 'Nội dung xử lý *');
     assert.ok(sheet.getCell(`${String.fromCharCode(65 + headers.indexOf(excel.HEADERS.check))}2`).value.formula, 'the check column is a live formula');
     assert.ok(sheet.conditionalFormattings.length >= 5, 'cells to fill are coloured by rules');
     const column = (header) => String.fromCharCode(65 + headers.indexOf(header));
-    for (const [key, list] of [['cause', 'A'], ['plan', 'B'], ['result', 'C']]) {
+    for (const [key, list] of [['cause', 'A'], ['plan', 'B']]) {
         const validation = sheet.getCell(`${column(excel.HEADERS[key])}2`).dataValidation;
         assert.equal(validation.type, 'list', key);
         assert.ok(validation.formulae[0].includes(`$${list}$2`), `${key} reads the list ${list}`);
@@ -400,14 +410,15 @@ test('Excel: drop-down template carries the last entry; an upload fills many par
     assert.ok(sheet.getCell(`${column(excel.HEADERS.cause)}${page.rows.length + 1}`).dataValidation, 'every row has the drop-down');
     const lists = wb.getWorksheet('Danh mục');
     const listOf = (c) => lists.getColumn(c).values.slice(2).filter(Boolean);
-    assert.deepEqual(listOf(3), ['Đã xử lý', 'Chưa xử lý']);
-    assert.deepEqual(listOf(1), ['Phát thành công', 'Chuyển hoàn', 'Chờ hoàn', 'Khách hàng hẹn phát lại', 'Thư TCNH có yêu cầu lưu 7 ngày', 'Chờ chuyển VTN', 'Nguyên nhân khác']);
+    assert.deepEqual(listOf(1), ['Phát thành công', 'Chuyển hoàn', 'Mất', 'Vô thừa nhận', 'Chờ hoàn', 'Khách hàng hẹn phát lại', 'Thư TCNH có yêu cầu lưu 7 ngày', 'Chờ chuyển VTN', 'Nguyên nhân khác']);
     assert.deepEqual(listOf(2), ['Phát lại ngày', 'Chuyển hoàn ngày', 'Liên hệ Bưu cục gốc', 'Chuyển cấp trên hỗ trợ', 'Hướng xử lý khác']);
 
     const book = XLSX.read(buffer, { type: 'buffer' });
     const rows = XLSX.utils.sheet_to_json(book.Sheets['Xử lý tồn']);
     const a1 = rows.find((r) => r[excel.HEADERS.item_code] === 'A1');
-    assert.deepEqual([a1[excel.HEADERS.cause], a1[excel.HEADERS.plan], a1[excel.HEADERS.result]], ['Khách hàng hẹn phát lại', 'Phát lại ngày', 'Đã xử lý']);
+    assert.deepEqual([a1[excel.HEADERS.cause], a1[excel.HEADERS.plan]], ['Khách hàng hẹn phát lại', 'Phát lại ngày']);
+    const resultCell = sheet.getCell(`${column(excel.HEADERS.result)}2`);
+    assert.ok(resultCell.value.formula.includes('Đã xử lý') && resultCell.value.formula.includes('Chưa xử lý'), 'the result column is a formula, not an input');
     assert.equal(typeof a1[excel.HEADERS.due_date], 'number', 'the date is a real Excel date');
 
     // fill A2 (reason "Nguyên nhân khác" + own wording, a plan with detail, a result), leave A1 as pre-filled
@@ -417,7 +428,6 @@ test('Excel: drop-down template carries the last entry; an upload fills many par
     a2[excel.HEADERS.cause_text] = 'Cổng khóa';
     a2[excel.HEADERS.plan] = 'liên hệ bưu cục gốc';
     a2[excel.HEADERS.plan_text] = 'BC Phú Bài';
-    a2[excel.HEADERS.result] = 'CHƯA XỬ LÝ';
     const sheet2 = XLSX.utils.json_to_sheet(fill);
     const book2 = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(book2, sheet2, 'Xử lý tồn');
@@ -432,7 +442,6 @@ test('Excel: drop-down template carries the last entry; an upload fills many par
     assert.deepEqual(excel.resolveAnswer('plan', 'phat lai ngay'), { code: 'PHAT_LAI', text: '' });
     assert.deepEqual(excel.resolveAnswer('plan', ''), { code: '', text: '' });
     assert.deepEqual(excel.resolveAnswer('cause', 'Cổng hỏng'), { code: 'OTHER', text: 'Cổng hỏng' }, 'a wording outside the list is kept as "khác"');
-    assert.equal(catalog.validateEntry({ ...REVIEW_INPUT, result_code: excel.resolveAnswer('result', 'Xong rồi').code }, { today: '2026-10-27' }).ok, false, 'an unknown result is refused');
     // typed dates
     const typed = XLSX.utils.json_to_sheet([{ [excel.HEADERS.item_code]: 'A2', [excel.HEADERS.cause]: 'Chờ chuyển VTN', [excel.HEADERS.plan]: 'Chuyển hoàn ngày', [excel.HEADERS.due_date]: '5/11/2026', [excel.HEADERS.result]: 'Chưa xử lý' }]);
     const book3 = XLSX.utils.book_new();
@@ -442,11 +451,11 @@ test('Excel: drop-down template carries the last entry; an upload fills many par
 
 test('parcel list sorts by the handling columns (review state, cause, plan, date, result, note) and by the TMS reason', async () => {
     const db = await seed();
-    const input = (cause, plan, result, extra = {}) => ({ cause_code: cause, plan_code: plan, result_code: result, ...extra });
+    const input = (cause, plan, extra = {}) => ({ cause_code: cause, plan_code: plan, ...extra });
     await handling.recordEntries(db, {
         entries: [
-            { item_code: 'A1', input: input('CHO_CHUYEN_VTN', 'CHUYEN_HOAN', 'CHUA_XU_LY', { due_date: '2026-10-30', note: 'b' }) },
-            { item_code: 'A2', input: input('KH_HEN_PHAT_LAI', 'PHAT_LAI', 'DA_XU_LY', { due_date: '2026-10-28', note: 'a' }) },
+            { item_code: 'A1', input: input('CHO_CHUYEN_VTN', 'CHUYEN_HOAN', { due_date: '2026-10-30', note: 'b' }) },
+            { item_code: 'A2', input: input('MAT', '', { note: 'a' }) },
         ],
         actor: actor(GD_TH), now: D1,
     });
@@ -454,9 +463,9 @@ test('parcel list sorts by the handling columns (review state, cause, plan, date
     // cause: list order (KH_HEN_PHAT_LAI before CHO_CHUYEN_VTN), parcels with nothing entered last
     assert.deepEqual((await order('cause', 'asc')).slice(0, 2), ['A2', 'A1']);
     assert.deepEqual((await order('cause', 'desc')).slice(-2), ['A1', 'A2']);
-    assert.deepEqual((await order('plan', 'asc')).slice(0, 2), ['A2', 'A1']);
-    assert.deepEqual((await order('result', 'asc')).slice(0, 2), ['A2', 'A1']);
-    assert.deepEqual((await order('due', 'asc')).slice(0, 2), ['A2', 'A1']);
+    assert.deepEqual((await order('plan', 'asc')).slice(0, 2), ['A1', 'A2'], 'list order: Chuyển hoàn ngày before the settled plans');
+    assert.deepEqual((await order('result', 'asc')).slice(0, 2), ['A2', 'A1'], 'Đã xử lý (Mất) before Chưa xử lý');
+    assert.deepEqual((await order('due', 'asc')).slice(0, 1), ['A1']);
     assert.deepEqual((await order('note', 'asc')).slice(0, 2), ['A2', 'A1']);
     // review: not reviewed first when ascending
     const review = await order('review', 'asc');

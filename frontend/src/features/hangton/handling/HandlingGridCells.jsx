@@ -1,18 +1,25 @@
 import React from 'react';
 import {
-  KINDS, KIND_LABELS, OTHER_CODE, asksText, needsDueDate, validateForm, localToday, planSummary, autoOf, resultMeta,
+  KINDS, KIND_LABELS, OTHER_CODE, asksText, needsDueDate, validateForm, localToday, planSummary, autoOf, resultMeta, formatDate,
 } from './handlingModel.js';
 
 const INPUT = 'w-full min-w-[8rem] rounded-md border bg-white px-1 py-0.5 text-[12.5px] text-slate-800 focus:border-rose-500 focus:outline-none';
 const BAD = 'border-rose-400 bg-rose-50/60';
 const OK = 'border-slate-300';
 const LOCKED = 'w-full min-w-[8rem] cursor-not-allowed rounded-md border border-slate-200 bg-slate-100 px-1.5 py-0.5 text-[12.5px] text-slate-500';
-const RESULT_BASE = 'w-full min-w-[8rem] rounded-md border px-1 py-0.5 text-[12.5px] font-semibold focus:border-rose-500 focus:outline-none';
+const RESULT_BASE = 'inline-block w-full min-w-[8rem] rounded-md border px-1.5 py-0.5 text-[12.5px] font-semibold';
 
-// The cells of one parcel row that hold the handling: Nguyên nhân, Hướng xử lý (with its date), Kết quả, Ghi chú and,
-// when editable, the "Lưu" cell. With `editable` they are the entry fields (the web way of filling what the Excel file
-// holds); otherwise the last entry is shown as text. `form` = values shown, `dirty` = the person changed them and has
-// not confirmed yet, `flagged` = a save was tried while something was missing (the empty cells turn red).
+// The result is never chosen: it follows from the content (Phát thành công / Mất / Vô thừa nhận / Chuyển hoàn = Đã xử lý,
+// any other content = Chưa xử lý, nothing entered = Chưa rà soát).
+function ResultBadge({ code, title }) {
+  const meta = resultMeta(code);
+  return <span className={`${RESULT_BASE} ${meta.className}`} title={title}>{meta.label}</span>;
+}
+
+// The cells of one parcel row that hold the handling: Nội dung xử lý, Hướng xử lý (with its date), Kết quả (automatic), Ghi chú
+// and, when editable, the "Lưu" cell. With `editable` they are the entry fields (the web way of filling what the Excel file
+// holds); otherwise the last entry is shown as text. `form` = values shown, `dirty` = the person changed them and has not
+// confirmed yet, `flagged` = a save was tried while something was missing (the empty cells turn red).
 export default function HandlingGridCells({
   row, catalog, form, editable = false, dirty = false, flagged = false, saving = false, today = localToday(), onChange, onSave, onDiscard,
 }) {
@@ -22,9 +29,7 @@ export default function HandlingGridCells({
       <>
         <td className="py-1.5 px-2 whitespace-nowrap text-slate-700">{last?.cause_label || <span className="text-slate-400">—</span>}</td>
         <td className="py-1.5 px-2 whitespace-nowrap text-slate-700">{last ? planSummary(last) : <span className="text-slate-400">—</span>}</td>
-        <td className="py-1.5 px-2 whitespace-nowrap">
-          <span className={`inline-block rounded-md border px-2 py-0.5 text-[12.5px] font-semibold ${resultMeta(last?.result_code).className}`}>{resultMeta(last?.result_code).label}</span>
-        </td>
+        <td className="py-1.5 px-2 whitespace-nowrap"><ResultBadge code={last?.result_code} /></td>
         <td className="max-w-[220px] truncate py-1.5 px-2 text-slate-600" title={last?.note || ''}>{last?.note || <span className="text-slate-400">—</span>}</td>
       </>
     );
@@ -33,8 +38,8 @@ export default function HandlingGridCells({
   const errors = flagged && dirty ? validateForm(catalog, form, today) : {};
   const cls = (field) => `${INPUT} ${errors[field] ? BAD : OK}`;
   const tint = dirty ? 'bg-amber-50/70' : '';
-  const dueRequired = needsDueDate(catalog, form);
   const auto = autoOf(catalog, form);
+  const dueRequired = !auto && needsDueDate(catalog, form);
   const optionsOf = (kind) => catalog?.kinds?.find((k) => k.kind === kind)?.options || [];
 
   const select = (kind) => (
@@ -69,12 +74,14 @@ export default function HandlingGridCells({
   const missing = Object.keys(errors).length > 0
     ? KINDS.filter((k) => errors[`${k}_code`] || errors[`${k}_text`]).map((k) => KIND_LABELS[k].toLowerCase()).concat(errors.due_date ? ['ngày'] : [])
     : [];
+  // a content that settles the parcel locks the plan; "Chuyển hoàn" is always dated today
+  const lockedPlan = auto ? `${auto.plan_label}${auto.due_is_today ? ` ${formatDate(form.due_date || today)}` : ''}` : '';
 
   return (
     <>
       <td className={`py-1 px-1 align-top ${tint}`}>{select('cause')}{detail('cause')}</td>
       <td className={`py-1 px-1 align-top ${tint}`}>
-        {auto ? (<div className={LOCKED} title="Tự động theo nguyên nhân, không cần chọn">{auto.needs_due ? auto.plan_label : '— (tự động)'}</div>) : select('plan')}
+        {auto ? (<div className={LOCKED} title="Tự động theo nội dung xử lý, không cần chọn">{lockedPlan}</div>) : select('plan')}
         {auto ? null : detail('plan')}
         {dueRequired ? (
           <input
@@ -90,20 +97,7 @@ export default function HandlingGridCells({
         ) : null}
       </td>
       <td className={`py-1 px-1 align-top ${tint}`}>
-        {auto ? (
-          <div className={`${RESULT_BASE} ${resultMeta(auto.result_code).className}`} title="Tự động theo nguyên nhân">{auto.result_label}</div>
-        ) : (
-          <select
-            value={form.result_code}
-            onChange={(e) => onChange({ result_code: e.target.value })}
-            disabled={saving}
-            className={`${RESULT_BASE} ${errors.result_code ? BAD : resultMeta(form.result_code).className}`}
-            aria-label={`Kết quả xử lý của ${row.item_code}`}
-          >
-            <option value="">Chưa rà soát</option>
-            {optionsOf('result').map((o) => (<option key={o.code} value={o.code}>{o.label}</option>))}
-          </select>
-        )}
+        <ResultBadge code={form.result_code} title="Tự động theo nội dung xử lý: Phát thành công, Mất, Vô thừa nhận, Chuyển hoàn = Đã xử lý; nội dung khác = Chưa xử lý" />
       </td>
       <td className={`py-1 px-1 align-top ${tint}`}>
         <input

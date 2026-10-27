@@ -14,8 +14,9 @@ const catalog = {
     {
       kind: 'cause',
       options: [
-        { code: 'PHAT_THANH_CONG', label: 'Phát thành công', auto: { plan_code: 'DA_PHAT', plan_label: 'Đã phát thành công', result_code: 'DA_XU_LY', result_label: 'Đã xử lý', needs_due: false, due_defaults_to_today: false } },
-        { code: 'CHUYEN_HOAN', label: 'Chuyển hoàn', auto: { plan_code: 'CHUYEN_HOAN', plan_label: 'Chuyển hoàn ngày', result_code: 'DA_XU_LY', result_label: 'Đã xử lý', needs_due: true, due_defaults_to_today: true } },
+        { code: 'PHAT_THANH_CONG', label: 'Phát thành công', auto: { plan_code: 'DA_PHAT', plan_label: 'Đã phát thành công', result_code: 'DA_XU_LY', result_label: 'Đã xử lý', needs_due: false, due_is_today: false } },
+        { code: 'MAT', label: 'Mất', auto: { plan_code: 'DA_MAT', plan_label: 'Ghi nhận mất', result_code: 'DA_XU_LY', result_label: 'Đã xử lý', needs_due: false, due_is_today: false } },
+        { code: 'CHUYEN_HOAN', label: 'Chuyển hoàn', auto: { plan_code: 'CHUYEN_HOAN', plan_label: 'Chuyển hoàn ngày', result_code: 'DA_XU_LY', result_label: 'Đã xử lý', needs_due: true, due_is_today: true } },
         { code: 'KH_HEN_PHAT_LAI', label: 'Khách hàng hẹn phát lại' },
         { code: OTHER_CODE, label: 'Nguyên nhân khác' },
       ],
@@ -35,8 +36,8 @@ const catalog = {
 const TODAY = '2026-10-27';
 
 test('form: three answers are required, "Khác" needs its text, a date is asked only when the plan needs one', () => {
-  assert.deepEqual(Object.keys(validateForm(catalog, emptyForm(), TODAY)).sort(), ['cause_code', 'plan_code', 'result_code']);
-  const ok = { ...emptyForm(), cause_code: 'KH_HEN_PHAT_LAI', plan_code: 'LIEN_HE_BC_GOC', result_code: 'CHUA_XU_LY' };
+  assert.deepEqual(Object.keys(validateForm(catalog, emptyForm(), TODAY)).sort(), ['cause_code', 'plan_code'], 'the result is never asked');
+  const ok = { ...emptyForm(), cause_code: 'KH_HEN_PHAT_LAI', plan_code: 'LIEN_HE_BC_GOC' };
   assert.deepEqual(validateForm(catalog, ok, TODAY), {}, 'the detail of "Liên hệ Bưu cục gốc" is optional');
   assert.equal(needsDueDate(catalog, ok), false);
   const due = { ...ok, plan_code: 'PHAT_LAI' };
@@ -48,8 +49,7 @@ test('form: three answers are required, "Khác" needs its text, a date is asked 
   const other = { ...ok, cause_code: OTHER_CODE, cause_text: ' ' };
   assert.deepEqual(Object.keys(validateForm(catalog, other, TODAY)), ['cause_text']);
   assert.deepEqual(validateForm(catalog, { ...other, cause_text: 'Cổng khóa' }, TODAY), {});
-  assert.equal(validateForm(catalog, { ...ok, cause_code: 'KHONG_CO' }, TODAY).cause_code, 'Chọn nguyên nhân tồn');
-  assert.equal(validateForm(catalog, { ...ok, result_code: OTHER_CODE }, TODAY).result_code, 'Chọn kết quả xử lý', 'the result has only two answers');
+  assert.equal(validateForm(catalog, { ...ok, cause_code: 'KHONG_CO' }, TODAY).cause_code, 'Chọn nội dung xử lý');
 });
 
 test('input: text travels with "Khác" and with an answer that asks a detail; an old entry fills the form again', () => {
@@ -150,21 +150,25 @@ test('parcel list parameters carry the review filter', () => {
   assert.equal(buildItemsParams({ snapshotId: 1, review: '' }).review, undefined);
 });
 
-test('auto causes: the plan is locked and the result is Đã xử lý; Chuyển hoàn takes today; leaving them clears what they set', () => {
+test('settling contents: the plan is locked, the result follows from the content (never chosen); Chuyển hoàn is dated today', () => {
   const done = applyEdit(catalog, emptyForm(), { cause_code: 'PHAT_THANH_CONG' }, TODAY);
   assert.deepEqual([done.plan_code, done.result_code, done.due_date], ['DA_PHAT', 'DA_XU_LY', '']);
   assert.deepEqual(validateForm(catalog, done, TODAY), {}, 'nothing else is required');
-  assert.equal(needsDueDate(catalog, done), false);
+  assert.equal(applyEdit(catalog, emptyForm(), { cause_code: 'MAT' }, TODAY).plan_code, 'DA_MAT');
   const back = applyEdit(catalog, emptyForm(), { cause_code: 'CHUYEN_HOAN' }, TODAY);
   assert.deepEqual([back.plan_code, back.result_code, back.due_date], ['CHUYEN_HOAN', 'DA_XU_LY', TODAY], 'the date is today');
   assert.deepEqual(validateForm(catalog, back, TODAY), {});
-  assert.deepEqual(validateForm(catalog, { ...back, due_date: '' }, TODAY), {}, 'an empty date means today');
-  assert.equal(validateForm(catalog, { ...back, due_date: '2026-10-20' }, TODAY).due_date, 'Ngày hẹn không được trước hôm nay');
-  assert.equal(applyEdit(catalog, back, { due_date: '2026-10-30' }, TODAY).due_date, '2026-10-30', 'the date can be moved');
+  assert.equal(applyEdit(catalog, { ...back, due_date: '2026-10-20' }, { note: 'x' }, TODAY).due_date, TODAY, 'an older date is replaced by today');
+  assert.equal(applyEdit(catalog, back, { due_date: '2026-10-30' }, TODAY).due_date, TODAY, 'the date cannot be moved');
+  // any other content: the plan is asked, the result is Chưa xử lý
   const open = applyEdit(catalog, back, { cause_code: 'KH_HEN_PHAT_LAI' }, TODAY);
-  assert.deepEqual([open.plan_code, open.result_code, open.due_date], ['', '', ''], 'back to a normal cause: plan and result are asked again');
-  assert.deepEqual(Object.keys(validateForm(catalog, open, TODAY)).sort(), ['plan_code', 'result_code']);
-  // the same cause kept: the other cells are left alone
+  assert.deepEqual([open.plan_code, open.result_code, open.due_date], ['', 'CHUA_XU_LY', ''], 'back to a normal content: the plan is asked again, the result is Chưa xử lý');
+  assert.deepEqual(Object.keys(validateForm(catalog, open, TODAY)), ['plan_code']);
+  const other = applyEdit(catalog, emptyForm(), { cause_code: OTHER_CODE, cause_text: 'x y' }, TODAY);
+  assert.equal(other.result_code, 'CHUA_XU_LY');
+  assert.equal(applyEdit(catalog, { ...other, result_code: 'DA_XU_LY' }, { note: 'n' }, TODAY).result_code, 'CHUA_XU_LY', 'a result typed by hand is overwritten');
+  assert.equal(applyEdit(catalog, emptyForm(), { note: 'n' }, TODAY).result_code, '', 'no content, no result');
+  // the same content kept: the other cells are left alone
   const kept = applyEdit(catalog, { ...emptyForm(), cause_code: 'KH_HEN_PHAT_LAI', plan_code: 'LIEN_HE_BC_GOC' }, { note: 'x' }, TODAY);
   assert.equal(kept.plan_code, 'LIEN_HE_BC_GOC');
 });
@@ -181,7 +185,7 @@ test('result colours, the "still in stock after Đã xử lý" warning and the r
     saved: 1,
     results: [
       { item_code: 'A1', status: 'SAVED' },
-      { item_code: 'A2', status: 'SKIPPED', reason: 'INVALID', errors: [{ field: 'cause_text', message: 'Nhập nội dung "Khác" cho nguyên nhân tồn' }] },
+      { item_code: 'A2', status: 'SKIPPED', reason: 'INVALID', errors: [{ field: 'cause_text', message: 'Nhập nội dung "Khác" cho nội dung xử lý' }] },
       { item_code: 'A3', status: 'SKIPPED', reason: 'RECHECK_REQUIRED' },
     ],
   });

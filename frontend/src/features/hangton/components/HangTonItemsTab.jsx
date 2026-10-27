@@ -312,7 +312,7 @@ export default function HangTonItemsTab({
     const { ready, incomplete } = splitDrafts(handlingCatalog, picked, today);
     setFlagged((current) => ({ ...current, ...Object.fromEntries(incomplete.map((code) => [code, true])) }));
     if (ready.length === 0) {
-      setNotice({ tone: 'error', lines: [`${incomplete.length} dòng chưa đủ Nguyên nhân, Hướng xử lý, Kết quả (và ngày nếu cần) nên chưa lưu. Điền đủ các ô viền đỏ rồi lưu lại.`] });
+      setNotice({ tone: 'error', lines: [`${incomplete.length} dòng chưa đủ Nội dung xử lý, Hướng xử lý (và ngày nếu cần) nên chưa lưu. Điền đủ các ô viền đỏ rồi lưu lại.`] });
       return;
     }
     setWorking(true);
@@ -585,9 +585,9 @@ export default function HangTonItemsTab({
               {canHandle ? (
                 <>
                   <SortableTh field="review" sort={sort} onSort={handleSort} className={`${TH} `} activeClassName={TH_ACTIVE}>Rà soát</SortableTh>
-                  <SortableTh field="cause" sort={sort} onSort={handleSort} className={`${TH}  min-w-[11rem]`} activeClassName={TH_ACTIVE}>Nguyên nhân tồn</SortableTh>
+                  <SortableTh field="cause" sort={sort} onSort={handleSort} className={`${TH}  min-w-[11rem]`} activeClassName={TH_ACTIVE}>Nội dung xử lý</SortableTh>
                   <SortableTh field="plan" sort={sort} onSort={handleSort} className={`${TH}  min-w-[11rem]`} activeClassName={TH_ACTIVE} title="Hướng xử lý (kèm ngày phát lại / chuyển hoàn). Bấm để sắp xếp.">Hướng xử lý</SortableTh>
-                  <SortableTh field="result" sort={sort} onSort={handleSort} className={`${TH}  min-w-[9rem]`} activeClassName={TH_ACTIVE}>Kết quả xử lý</SortableTh>
+                  <SortableTh field="result" sort={sort} onSort={handleSort} className={`${TH}  min-w-[9rem]`} activeClassName={TH_ACTIVE} title="Tự động theo nội dung xử lý. Bấm để sắp xếp.">Kết quả xử lý</SortableTh>
                   <SortableTh field="note" sort={sort} onSort={handleSort} className={`${TH}  min-w-[10rem]`} activeClassName={TH_ACTIVE}>Ghi chú</SortableTh>
                   {canWrite ? (<th className={`${TH} `} data-no-capture="true">Lưu</th>) : null}
                 </>
