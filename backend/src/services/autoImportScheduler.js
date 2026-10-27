@@ -196,6 +196,11 @@ class AutoImportScheduler {
         this.writeState(state); // the attempt is on record before it runs
         const label = `slot ${cycle.slot} attempt ${cycle.attempts}`;
         for (const lane of this.lanes()) {
+            // a lane that already finished in an earlier attempt is not run again: only the lanes still missing retry
+            if (cycle.doneLanes?.[lane]) {
+                cycle.attempt.lanes[lane] = { outcome: 'ALREADY_DONE' };
+                continue;
+            }
             cycle.attempt.lanes[lane] = await this.runLane(lane);
         }
         this.writeState(state);
@@ -210,6 +215,7 @@ class AutoImportScheduler {
         const results = {};
         let pending = false;
         for (const lane of this.lanes()) {
+            if (cycle.doneLanes?.[lane]) { results[lane] = 'OK'; continue; }
             const entry = attempt.lanes[lane] || { outcome: 'FAILED' };
             if (entry.runId) {
                 const status = await this.runStatus(entry.runId);
@@ -225,9 +231,13 @@ class AutoImportScheduler {
             } else {
                 results[lane] = entry.outcome === 'NOTHING_TO_IMPORT' ? 'OK' : entry.outcome;
             }
+            if (results[lane] === 'OK') cycle.doneLanes = { ...(cycle.doneLanes || {}), [lane]: true };
         }
         const timedOut = now.getTime() - attempt.startedAt >= this.retryMs();
-        if (pending && !timedOut) return null; // runs still working: look again on the next tick
+        if (pending && !timedOut) {
+            this.writeState(state); // keeps the lanes already done
+            return null; // runs still working: look again on the next tick
+        }
 
         const failed = this.lanes().filter((lane) => results[lane] !== 'OK');
         cycle.attempt = null;

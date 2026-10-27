@@ -110,7 +110,7 @@ test('a failure is retried one hour after the attempt began, until every lane su
     // HUE ok. TCT: no session at 07:30, a failed run at 08:30, success at 09:30.
     const t = build({
         sessions: { TCT: ['AUTHENTICATION_REQUIRED', 'SESSION_VALID', 'SESSION_VALID'] },
-        runStatuses: { 'run-TCT-3': 'COMPLETED_WITH_ERRORS' },
+        runStatuses: { 'run-TCT-2': 'COMPLETED_WITH_ERRORS' },
     });
     try {
         await t.scheduler.tick(); // 07:30 attempt 1: HUE run, TCT needs login
@@ -125,8 +125,8 @@ test('a failure is retried one hour after the attempt began, until every lane su
         assert.equal(t.createRuns().length, 1, 'not before the hour');
 
         t.setNow(at('08:30'));
-        await t.scheduler.tick(); // attempt 2: both lanes get a run (run-HUE-2, run-TCT-3)
-        assert.deepEqual(t.createRuns(), ['HUE', 'HUE', 'TCT']);
+        await t.scheduler.tick(); // attempt 2: only TCT gets a run (HUE finished in attempt 1)
+        assert.deepEqual(t.createRuns(), ['HUE', 'TCT']);
         await t.scheduler.tick(); // TCT run ended with errors -> retry
         cycle = t.state().cycle;
         assert.equal(cycle.done, false);
@@ -137,6 +137,26 @@ test('a failure is retried one hour after the attempt began, until every lane su
         await t.scheduler.tick();
         assert.equal(t.state().cycle.done, true, 'everything succeeded: stop retrying');
         assert.equal(t.state().cycle.attempts, 3);
+        assert.deepEqual(t.createRuns(), ['HUE', 'TCT', 'TCT'], 'HUE was never run again');
+    } finally { t.cleanup(); }
+});
+
+test('a lane that finished is not run again while another lane is still retried', async () => {
+    // HUE completes at once; TCT's run is still going after an hour, then completes
+    const t = build({ runStatuses: { 'run-TCT-2': ['RUNNING', 'RUNNING', 'RUNNING'], 'run-TCT-3': 'COMPLETED' } });
+    try {
+        await t.scheduler.tick(); // attempt 1: run-HUE-1, run-TCT-2
+        t.setNow(at('07:40'));
+        assert.equal(await t.scheduler.tick(), null, 'TCT still running');
+        assert.deepEqual(t.state().cycle.doneLanes, { HUE: true });
+        t.setNow(at('08:31'));
+        await t.scheduler.tick(); // TCT not finished in time: retry decision
+        t.setNow(at('08:31'));
+        await t.scheduler.tick(); // attempt 2 starts
+        assert.deepEqual(t.createRuns(), ['HUE', 'TCT', 'TCT'], 'HUE is not run again');
+        assert.equal(t.calls.filter((call) => call[0] === 'preflight' && call[1] === 'HUE').length, 1, 'its session is not even checked again');
+        await t.scheduler.tick();
+        assert.equal(t.state().cycle.done, true);
     } finally { t.cleanup(); }
 });
 
