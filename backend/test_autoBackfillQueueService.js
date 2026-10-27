@@ -1271,6 +1271,13 @@ test('AB-AUTH-06 listRuns returns every open run with per-run job counts and blo
         assert.deepEqual(entry.blockedLanes, ['TCT'], 'blockedLanes must reflect this run\'s own blocked lane');
         assert.ok(entry.jobTotal >= 2, 'both TCT and HUE jobs must be counted');
         assert.deepEqual(entry.lanes.sort(), ['HUE', 'TCT']);
+        // The open-runs screen tells a running job from a waiting one and says why it waits.
+        const waiting = entry.jobs.find((job) => job.safety_state === 'WAITING_AUTH');
+        assert.ok(waiting, 'the job waiting for a login must be in the list');
+        for (const key of ['state', 'started_at', 'next_attempt_at', 'last_error_signature', 'last_error_class']) {
+            assert.ok(key in waiting, `job row must carry ${key}`);
+        }
+        assert.match(String(waiting.last_error_signature), /^AUTHENTICATION_REQUIRED/);
     } finally {
         fixture.cleanup();
     }

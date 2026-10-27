@@ -2492,3 +2492,7 @@ Claude Code added F4.2 as the fifth indicator of the Home read model (`HomeExecu
 ## 2026-10-27 - HANGTON-HANDLING-01 amendment 4: automatic result, "Nội dung xử lý", Mất / Vô thừa nhận
 
 The result is no longer chosen: Phát thành công / Mất / Vô thừa nhận / Chuyển hoàn (today) = Đã xử lý, any other content = Chưa xử lý, set by the backend; the first column is renamed "Nội dung xử lý"; Excel result column is a formula. Backend hangtonInventory + routes 32, frontend hangton 73 tests green, build OK. Backend restart pending.
+
+## 2026-10-27 - AUTO-BACKFILL-QUEUE-UI-01: open-runs screen shows real job states
+
+Backend: the open-runs list now carries per job started_at, next_attempt_at, last_error_signature, last_error_class (test_autoBackfillQueueService 58/58). The screen showed every row as RUNNING because it lists runs, not jobs; UI rework handed to Antigravity (docs/10_TICKETS/AUTO-BACKFILL-QUEUE-UI-01_ANTIGRAVITY_PROMPT.md). Backend restart needed before the new fields appear.

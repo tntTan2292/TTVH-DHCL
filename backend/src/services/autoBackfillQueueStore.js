@@ -441,7 +441,8 @@ class AutoBackfillQueueStore {
             const runIdPlaceholders = runIds.map(() => '?').join(',');
             const jobRows = await all(
                 db,
-                `SELECT run_id, indicator, source_lane, business_date, state, safety_state
+                `SELECT run_id, indicator, source_lane, business_date, state, safety_state,
+                        started_at, next_attempt_at, last_error_signature, last_error_class
                  FROM auto_backfill_job WHERE run_id IN (${runIdPlaceholders})`,
                 runIds,
             );
@@ -485,6 +486,10 @@ class AutoBackfillQueueStore {
                         business_date: j.business_date,
                         state: j.state,
                         safety_state: j.safety_state,
+                        started_at: j.started_at,
+                        next_attempt_at: j.next_attempt_at,
+                        last_error_signature: j.last_error_signature,
+                        last_error_class: j.last_error_class,
                     })),
                     // AB-AUTH-06: exact (indicator, sourceLane) pairs, kept alongside the display
                     // arrays above so the service layer can apply the same per-lane permission
