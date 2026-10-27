@@ -188,3 +188,37 @@ test('the window is not hidden while the client says it is not signed in', async
     assert.equal(await service.hideWindowIfVisible({ source: 'TCT' }, entry, client), false);
     assert.equal(client.calls.hide, 0);
 });
+
+test('quiet reopen from a saved session the portal accepted: the window is never brought forward', async () => {
+    const prepareArgs = [];
+    const client = windowClient({ authenticatedOnOpen: true });
+    client.prepareInteractiveAuthentication = async (args) => { prepareArgs.push(args); };
+    const service = serviceFor(client);
+    await service.interactiveAuthenticate('HUE', { quiet: true });
+    const entry = service.getRegistryState('HUE');
+    await untilReady(entry);
+    assert.equal(prepareArgs[0].quiet, true);
+    assert.equal(client.calls.restore, 0, 'a reopened window must not pop up');
+    assert.equal(client.calls.hide, 1);
+    assert.equal(entry.windowHidden, true);
+});
+
+test('quiet reopen where the portal wants a sign-in: the window is shown for the person', async () => {
+    const client = windowClient({ authenticatedOnOpen: false });
+    client.prepareInteractiveAuthentication = async () => {};
+    client.waitInteractiveAuthentication = () => new Promise(() => {});
+    const service = serviceFor(client);
+    await service.interactiveAuthenticate('TCT', { quiet: true });
+    assert.equal(client.calls.restore, 1, 'a sign-in must be visible');
+});
+
+test('a person-started sign-in is not quiet', async () => {
+    const prepareArgs = [];
+    const client = windowClient({ authenticatedOnOpen: false });
+    client.prepareInteractiveAuthentication = async (args) => { prepareArgs.push(args); };
+    const service = serviceFor(client);
+    await service.interactiveAuthenticate('HUE');
+    await untilReady(service.getRegistryState('HUE'));
+    assert.equal(prepareArgs[0].quiet, undefined);
+    assert.equal(client.calls.restore, 1);
+});

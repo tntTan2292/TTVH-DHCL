@@ -891,7 +891,7 @@ class DkclSessionPreflightService {
         }
     }
 
-    async interactiveAuthenticate(source) {
+    async interactiveAuthenticate(source, { quiet = false } = {}) {
         const sourceConfig = this.normalizeSource(source);
         // IMPORT-SESSION-01: signing in is the person's explicit wish to reconnect.
         this.disconnectFlags.clear(sourceConfig.source);
@@ -1010,12 +1010,17 @@ class DkclSessionPreflightService {
 
                 await client.prepareInteractiveAuthentication({
                     baseUrl: this.portalBaseUrl,
-                    profileDir
+                    profileDir,
+                    ...(quiet ? { quiet: true } : {})
                 });
 
-                // AUTO-IMPORT-015: Ensure browser window is restored and visible
-                await processManager.showBrowserWindowsByProfile?.(profileDir).catch(() => {});
-                await client.restoreWindow?.().catch(() => {});
+                // AUTO-IMPORT-015: Ensure browser window is restored and visible. A quiet reopen from a saved session that
+                // the portal accepted has nothing for a person to do, so its window stays out of sight (when the portal
+                // wanted a sign-in the client has already shown it).
+                if (!(quiet && client.interactiveAuthenticatedOnOpen === true)) {
+                    await processManager.showBrowserWindowsByProfile?.(profileDir).catch(() => {});
+                    await client.restoreWindow?.().catch(() => {});
+                }
 
                 this.transitionEntry(sourceConfig.source, entry, DKCL_LIFECYCLE_STATES.WAITING_FOR_LOGIN, {
                     profileDir,
@@ -1106,7 +1111,7 @@ class DkclSessionPreflightService {
             const probe = await this.preflight(sourceConfig.source);
             if (probe?.status !== PREFLIGHT_STATUSES.SESSION_VALID) return { attached: false, reason: probe?.status || 'UNKNOWN' };
             if (entry.client && entry.authenticated) return { attached: true, reason: 'ALREADY_ATTACHED' };
-            await this.interactiveAuthenticate(sourceConfig.source);
+            await this.interactiveAuthenticate(sourceConfig.source, { quiet: true });
             const deadline = Date.now() + waitMs;
             while (Date.now() < deadline) {
                 if (entry.client && entry.authenticated && entry.state === DKCL_LIFECYCLE_STATES.F13_READY) {

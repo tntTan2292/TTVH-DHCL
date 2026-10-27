@@ -477,7 +477,10 @@ class DkclHueF13PortalClient {
         }
     }
 
-    async prepareInteractiveAuthentication({ baseUrl, profileDir }) {
+    // `quiet` is for reopening a window from a saved session (nobody is expected to type anything): the window starts
+    // minimized, is hidden at once and is never brought to the front. Only when the portal turns out to need a sign-in
+    // is it shown, because then a person has to see it.
+    async prepareInteractiveAuthentication({ baseUrl, profileDir, quiet = false }) {
         this.baseUrl = String(baseUrl || 'https://dkcl.vnpost.vn/').replace(/\/+$/, '');
         this.loginUrl = `${this.baseUrl}/login`;
         this.profileDir = this.path.resolve(profileDir || this.path.resolve(process.cwd(), `../Data DKCL/BrowserProfiles/${this.source}`));
@@ -487,7 +490,8 @@ class DkclHueF13PortalClient {
         const { chromium } = this.playwright || loadPlaywright();
         const launchOptions = buildPersistentLaunchOptions({
             headless: false,
-            acceptDownloads: true
+            acceptDownloads: true,
+            args: quiet ? ['--start-minimized'] : []
         });
         const launchPromise = chromium.launchPersistentContext(this.profileDir, launchOptions);
         this.context = await Promise.race([
@@ -501,23 +505,29 @@ class DkclHueF13PortalClient {
             });
         }
         this.page = await waitForPortalCapablePage(this.context);
+        if (quiet) await this.hideWindow().catch(() => false);
         if (!isDkclUrl(this.page.url())) {
             await this.gotoInterruptible(this.loginUrl);
         }
-        await this.page.bringToFront?.().catch(() => {});
-        await processManager.setBrowserWindowsVisibleByProfile?.(this.profileDir).catch(() => {});
-        const restoreResult = await this.restoreWindow();
-        if (!restoreResult) {
-            throw portalError('BROWSER_WINDOW_HIDDEN: Cannot show browser window for manual login. The process might be hung or the window is forcefully hidden.', 'BROWSER_WINDOW_HIDDEN');
-        }
+        if (!quiet) await this.showForManualLogin();
 
         await this.gotoInterruptible(this.baseUrl);
         this.interactiveAuthenticatedOnOpen = await this.isAuthenticated();
+        if (quiet && !this.interactiveAuthenticatedOnOpen) await this.showForManualLogin();
         if (!await this.isAuthenticated()) {
             // A page that is already on its way to the portal sign-in (the person was quick) is left alone.
             if (!this.page.url().includes('/login') && this.isOnPortalHost(this.page.url())) {
                 await this.gotoInterruptible(`${this.baseUrl}/login`);
             }
+        }
+    }
+
+    async showForManualLogin() {
+        await this.page.bringToFront?.().catch(() => {});
+        await processManager.setBrowserWindowsVisibleByProfile?.(this.profileDir).catch(() => {});
+        const restoreResult = await this.restoreWindow();
+        if (!restoreResult) {
+            throw portalError('BROWSER_WINDOW_HIDDEN: Cannot show browser window for manual login. The process might be hung or the window is forcefully hidden.', 'BROWSER_WINDOW_HIDDEN');
         }
     }
 
