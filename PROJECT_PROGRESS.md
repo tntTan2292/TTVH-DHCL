@@ -2480,3 +2480,7 @@ Cause list now starts with Phát thành công and Chuyển hoàn, which settle t
 ## 2026-10-27 - HANGTON-HANDLING-01 reviewed by Opus and fixed
 
 Independent Opus review found 2 HIGH (Excel re-import re-saving untouched lines; two transactions on the shared SQLite connection) and 4 MEDIUM issues; all fixed with tests (backend hangtonInventory + routes 32, auth 17, frontend hangton 73, build OK). Search by parcel code, "Chờ hoàn" cause and the Đã-xử-lý-but-still-in-stock warning added. Backend restart and PO check of the function still pending.
+
+## 2026-10-27 - F42-DASHBOARD-UI-01 phases A+B delivered, Opus-reviewed twice, in PO check
+
+Antigravity delivered phases A+B (`5e50f0ec`); Opus review 1 (PASS with conditions) led to one fix pass (`dd9da893`, `e30132f8`: sticky header, whole-table capture quota, strip title for fewer than 6 BCVH, label and colour fixes), Opus review 2 confirmed it with one capture finding, fixed. PO found the operation table too tall at 90 % zoom: Claude Code added the `compactOperationTable` flag (F4.2 only; 16-18px font lock kept) in `a81fc39e`; PO confirmed the table now shows whole. Remaining: PO sign-off of the rest of the screen, backend restart (pauses backfill) for `postman-trend`, phase D (postman trend block, Home card).
