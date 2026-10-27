@@ -68,12 +68,12 @@ function service(adapters, dates = { fact_x: '2026-10-11' }) {
     return new HomeExecutiveService({ adapters, db: fakeDb(dates) });
 }
 
-const all4 = (a) => ({ f11: a, f12: a, f13: a, f41: a });
+const all4 = (a) => ({ f11: a, f12: a, f13: a, f41: a, f42: a });
 
 test('card: rate, gap to its own target, change against the previous day, rank and movement', async () => {
     const out = await service(all4(adapter({ rate: 92, rank: 5 }))).getExecutive();
-    assert.equal(out.indicators.length, 4);
-    assert.deepEqual(out.indicators.map((i) => i.id), ['f11', 'f12', 'f13', 'f41']);
+    assert.equal(out.indicators.length, 5);
+    assert.deepEqual(out.indicators.map((i) => i.id), ['f11', 'f12', 'f13', 'f41', 'f42']);
     const f11 = out.indicators[0];
     const f13 = out.indicators[2];
     assert.equal(f11.rate, 92);
@@ -93,8 +93,8 @@ test('card: rate, gap to its own target, change against the previous day, rank a
     assert.equal(f11.monthly_rank.at(-1).month, '2026-10');
 });
 
-test('targets match the PO decision: F1.1 and F1.2 95, F1.3 and F4.1 90', () => {
-    assert.deepEqual({ ...TARGETS }, { f11: 95, f12: 95, f13: 90, f41: 90 });
+test('targets match the PO decision: F1.1 and F1.2 95, F1.3, F4.1 and F4.2 90', () => {
+    assert.deepEqual({ ...TARGETS }, { f11: 95, f12: 95, f13: 90, f41: 90, f42: 90 });
 });
 
 test('no national data for an indicator: explicit unavailable card, never 0 %', async () => {
@@ -145,7 +145,7 @@ test('F1.1 lists the accepting-office x delivering-BCVH pairs with the largest v
             { ma_chap_nhan: 'O5', ten_chap_nhan: 'Office 5', cells: { B1: cell(6, 10), B2: null } },
         ],
     });
-    const out = await service({ f11: a, f12: adapter(), f13: adapter(), f41: adapter() }).getExecutive();
+    const out = await service({ f11: a, f12: adapter(), f13: adapter(), f41: adapter(), f42: adapter() }).getExecutive();
     const focus = out.indicators[0].focus_units;
     assert.equal(focus.kind, 'pairs');
     assert.equal(focus.threshold, 85);
@@ -169,7 +169,7 @@ test('F1.2 lists the accepting offices with the largest volume below 90 %', asyn
         { ma_bcvh: 'G', ten_bcvh: 'G', total_bg: 11, passed_rate: 20, total_failed: 9 },
         { ma_bcvh: 'H', ten_bcvh: 'H', total_bg: 0, passed_rate: null, total_failed: 0 },
     ] });
-    const out = await service({ f11: adapter(), f12: a, f13: adapter(), f41: adapter() }).getExecutive();
+    const out = await service({ f11: adapter(), f12: a, f13: adapter(), f41: adapter(), f42: adapter() }).getExecutive();
     const focus = out.indicators[1].focus_units;
     assert.equal(focus.kind, 'offices');
     assert.equal(focus.threshold, 90);
@@ -180,7 +180,7 @@ test('F1.2 lists the accepting offices with the largest volume below 90 %', asyn
 test('F1.2 sends at most 10 offices, biggest volume first, so the screen can fill its height', async () => {
     const a = adapter();
     a.offices = async () => ({ data: Array.from({ length: 14 }, (_, i) => ({ ma_bcvh: `O${i}`, ten_bcvh: `Office ${i}`, total_bg: 10 + i, passed_rate: 50, total_failed: 5 })) });
-    const out = await service({ f11: adapter(), f12: a, f13: adapter(), f41: adapter() }).getExecutive();
+    const out = await service({ f11: adapter(), f12: a, f13: adapter(), f41: adapter(), f42: adapter() }).getExecutive();
     const items = out.indicators[1].focus_units.items;
     assert.equal(items.length, 10);
     assert.deepEqual(items.map((u) => u.volume), [23, 22, 21, 20, 19, 18, 17, 16, 15, 14]);
@@ -189,7 +189,7 @@ test('F1.2 sends at most 10 offices, biggest volume first, so the screen can fil
 test('a failing pair / office source leaves an empty list, not a broken card', async () => {
     const a = adapter();
     a.pairs = async () => { throw new Error('boom'); };
-    const out = await service({ f11: a, f12: adapter(), f13: adapter(), f41: adapter() }).getExecutive();
+    const out = await service({ f11: a, f12: adapter(), f13: adapter(), f41: adapter(), f42: adapter() }).getExecutive();
     assert.equal(out.indicators[0].available, true);
     assert.deepEqual(out.indicators[0].focus_units.items, []);
 });
@@ -197,7 +197,7 @@ test('a failing pair / office source leaves an empty list, not a broken card', a
 test('an indicator that throws does not break the others', async () => {
     const broken = adapter();
     broken.summary = async () => { throw new Error('boom'); };
-    const out = await service({ f11: broken, f12: adapter(), f13: adapter(), f41: adapter() }).getExecutive();
+    const out = await service({ f11: broken, f12: adapter(), f13: adapter(), f41: adapter(), f42: adapter() }).getExecutive();
     assert.equal(out.indicators[0].available, false);
     assert.equal(out.indicators[1].available, true);
 });
@@ -360,7 +360,7 @@ test('the back button stops at the limit of the offset range', async () => {
 test('period_info.mixed tells when the indicators stand in different weeks (data lag at a week boundary)', async () => {
     const a = periodAdapter();
     // F1.2 already loaded Thursday 22/10 (week 43); the others stop at Wednesday 21/10 (week 42)
-    const adapters = { f11: a, f12: Object.assign(periodAdapter(), { localTable: 'fact_y' }), f13: a, f41: a };
+    const adapters = { f11: a, f12: Object.assign(periodAdapter(), { localTable: 'fact_y' }), f13: a, f41: a, f42: a };
     const out = await new HomeExecutiveService({ adapters, db: fakeDb({ fact_x: '2026-10-21', fact_y: '2026-10-22' }) }).getExecutive({ period: 'week' });
     assert.equal(out.indicators[0].period_from, '2026-10-15');
     assert.equal(out.indicators[1].period_from, '2026-10-22');
@@ -395,4 +395,23 @@ test('national ranking follows the same period and offset as the cards', async (
     a.rank.getNationalRanking = async (from, to) => { calls.push(`${from}..${to}`); return base(from, to); };
     await service(all4(a), { fact_x: '2026-10-20' }).getNationalRanking({ indicator: 'f13', period: 'week', offset: -1 });
     assert.equal(calls[0], '2026-10-08..2026-10-14');
+});
+
+test('F4.2 is the fifth card: own label and target 90, its own rate and rank, six-BCVH list lowest rate first', async () => {
+    const rows = [
+        { ma_bcvh: '533140', ten_bcvh: 'BCVH Thuận Hóa', total_bg: 100, total_failed: 10, passed_rate: 90 },
+        { ma_bcvh: '536250', ten_bcvh: 'BCVH Hương Thủy', total_bg: 100, total_failed: 20, passed_rate: 80 },
+    ];
+    const f42 = adapter({ rate: 84.7, rank: 5, rows });
+    const out = await service({ f11: adapter(), f12: adapter(), f13: adapter(), f41: adapter({ rate: 70 }), f42 }).getExecutive();
+    const card = out.indicators.at(-1);
+    assert.equal(card.id, 'f42');
+    assert.equal(card.label, 'F4.2');
+    assert.equal(card.target_rate, 90);
+    assert.equal(card.rate, 84.7);
+    assert.equal(card.gap_to_target, -5.3);
+    assert.equal(card.rank, 5);
+    assert.deepEqual(card.focus_units.items.map((item) => item.ma_bcvh), ['536250', '533140']);
+    // each indicator is its own measure: F4.1 keeps its own rate
+    assert.equal(out.indicators.find((i) => i.id === 'f41').rate, 70);
 });

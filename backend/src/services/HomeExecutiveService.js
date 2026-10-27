@@ -1,12 +1,12 @@
 'use strict';
 
-// HOME-BI-01 (B1) - read model of the executive Home page: for each of F1.1 / F1.2 / F1.3 / F4.1 the current
+// HOME-BI-01 (B1) - read model of the executive Home page: for each of F1.1 / F1.2 / F1.3 / F4.1 / F4.2 the current
 // rate of Hue, its national rank among the 34 provinces, the gap to the indicator's own target, the change
 // against the previous day, a 30-day trend, Hue's rank history, the units to act on and the 34-province table.
 //
 // Nothing is recomputed here: every figure comes from the same service the indicator's own dashboard uses
 // (summary / daily trend / BCVH ranking), so the Home page can never disagree with those dashboards. The
-// only new query is the 34-province table for F1.3 and F4.1, which reuses the generic F11NationalRankService
+// only new query is the 34-province table for F1.3, F4.1 and F4.2, which reuses the generic F11NationalRankService
 // with the column map of fact_f13_national / fact_f41_national (both hold exactly the 34 ranked provinces).
 // Each indicator is its own measure: nothing is compared or summed across indicators.
 
@@ -14,9 +14,9 @@ const { F11NationalRankService, F11_RANK_SOURCE } = require('./F11NationalRankSe
 const { resolvePeriod, CANONICAL_CODES } = require('./F11RankingService');
 const defaultDb = require('../config/db').db;
 
-const TARGETS = Object.freeze({ f11: 95, f12: 95, f13: 90, f41: 90 }); // = frontend indicatorConfig.js
-const LABELS = Object.freeze({ f11: 'F1.1', f12: 'F1.2', f13: 'F1.3', f41: 'F4.1' });
-const ORDER = Object.freeze(['f11', 'f12', 'f13', 'f41']);
+const TARGETS = Object.freeze({ f11: 95, f12: 95, f13: 90, f41: 90, f42: 90 }); // = frontend indicatorConfig.js
+const LABELS = Object.freeze({ f11: 'F1.1', f12: 'F1.2', f13: 'F1.3', f41: 'F4.1', f42: 'F4.2' });
+const ORDER = Object.freeze(['f11', 'f12', 'f13', 'f41', 'f42']);
 const TREND_DAYS = 30;
 const SERIES_WEEKS = 12;
 const PERIODS = Object.freeze(['day', 'week', 'month']);
@@ -28,12 +28,13 @@ const CANONICAL_SET = new Set(CANONICAL_CODES.map(String));
 // PO 2026-10-13: what the "units to act on" block lists for each indicator.
 //   f11 - the accepting-office x delivering-BCVH pairs with the largest volume whose rate is below 85 % (up to 10)
 //   f12 - the accepting offices with the largest volume whose rate is below 90 % (up to 10)
-//   f13 / f41 - every BCVH (the six canonical ones), lowest rate first
+//   f13 / f41 / f42 - every BCVH (the six canonical ones), lowest rate first
 const FOCUS = Object.freeze({
     f11: { kind: 'pairs', threshold: 85 },
     f12: { kind: 'offices', threshold: 90 },
     f13: { kind: 'bcvh', threshold: null },
     f41: { kind: 'bcvh', threshold: null },
+    f42: { kind: 'bcvh', threshold: null },
 });
 
 const F13_RANK_SOURCE = Object.freeze({
@@ -116,6 +117,8 @@ function buildDefaultAdapters(db = defaultDb) {
     const { f11RankingService } = require('./F11RankingService');
     const { f12RankingService } = require('./F12RankingService');
     const { f41RankingService } = require('./F41RankingService');
+    const { f42RankingService } = require('./F42RankingService');
+    const { f42NationalRankService } = require('./F42NationalRankService');
     const f13DashboardService = require('./F13DashboardService');
     const factBuuGuiRepo = require('../repositories/FactBuuGuiRepository');
     const { f12NationalRankService } = require('./F12NationalRankService');
@@ -169,6 +172,13 @@ function buildDefaultAdapters(db = defaultDb) {
             ranking: (from, to) => f41RankingService.getBcvhRanking(from, to, 1, 200),
             rank: f41Rank,
             localTable: 'fact_f41',
+        },
+        f42: {
+            summary: (from, to) => f42RankingService.getSummary(from, to, {}),
+            trend: (from, to, opts) => f42RankingService.getDailyTrend(from, to, { ...opts }),
+            ranking: (from, to) => f42RankingService.getBcvhRanking(from, to, 1, 200),
+            rank: f42NationalRankService,
+            localTable: 'fact_f42',
         },
     };
 }
@@ -562,7 +572,7 @@ class HomeExecutiveService {
 
     // GET /api/home/national-ranking?indicator=&period=&anchor_date=
     async getNationalRanking({ indicator, period = 'day', anchorDate, fromDate, toDate, offset = 0 } = {}) {
-        if (!ORDER.includes(indicator)) throw codedError('INVALID_INDICATOR', 'indicator must be one of f11, f12, f13, f41');
+        if (!ORDER.includes(indicator)) throw codedError('INVALID_INDICATOR', 'indicator must be one of f11, f12, f13, f41, f42');
         const adapter = this._adapters()[indicator];
 
         let range;
