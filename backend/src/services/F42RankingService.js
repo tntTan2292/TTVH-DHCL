@@ -22,6 +22,12 @@ function codedError(code, message) {
     return error;
 }
 
+const POSTMAN_TREND_MAX_DAYS = 93;
+
+function shiftDay(isoDate) {
+    return new Date(Date.parse(`${isoDate}T00:00:00Z`) + 86400000).toISOString().slice(0, 10);
+}
+
 function rate2(part, total) {
     if (!total) return null;
     return Number(((part / total) * 100).toFixed(2));
@@ -126,6 +132,63 @@ class F42RankingService extends F41RankingService {
             },
             units,
             total_row: { label: 'TỔNG CỘNG', ...figures(grand.volume, grand.passed, grand.strict_failed, grand.blank) },
+        };
+    }
+
+    // One postman, day by day (F42-POSTMAN-API-01): volume, passed, failed and rate for each day of the range, days
+    // without parcels listed with a null rate so a chart shows the gap. `bcvhId` is the scope: a postman is looked up
+    // only in that BCVH (every canonical BCVH when it is empty), so a scoped user never reads another office's work.
+    async getPostmanTrend({ maBuuTa, fromDate, toDate, bcvhId = null } = {}) {
+        const postman = String(maBuuTa || '').trim();
+        if (!postman) throw codedError('MISSING_PARAM', 'Yêu cầu ma_buu_ta');
+        this._validateRange(fromDate, toDate);
+        const span = (Date.parse(`${toDate}T00:00:00Z`) - Date.parse(`${fromDate}T00:00:00Z`)) / 86400000 + 1;
+        if (span > POSTMAN_TREND_MAX_DAYS) throw codedError('INVALID_RANGE', `Khoảng ngày tối đa ${POSTMAN_TREND_MAX_DAYS} ngày.`);
+        const wanted = bcvhId && bcvhId !== 'all' ? String(bcvhId) : null;
+        if (wanted && !CANONICAL_CODES.includes(wanted)) throw codedError('INVALID_BCVH', 'Mã BCVH không hợp lệ.');
+
+        const rows = await this.repository.getPostmanDaily(fromDate, toDate, wanted ? [wanted] : CANONICAL_CODES, postman);
+        const byDay = new Map();
+        const offices = new Map();
+        let name = null;
+        for (const row of rows) {
+            const day = byDay.get(row.date) || { volume: 0, passed: 0, strict_failed: 0, blank: 0 };
+            day.volume += Number(row.volume || 0);
+            day.passed += Number(row.passed || 0);
+            day.strict_failed += Number(row.strict_failed || 0);
+            day.blank += Number(row.blank || 0);
+            byDay.set(row.date, day);
+            const office = offices.get(row.ma_bcvh) || { ma_bcvh: row.ma_bcvh, ten_bcvh: row.ten_bcvh || row.ma_bcvh, volume: 0 };
+            office.volume += Number(row.volume || 0);
+            offices.set(row.ma_bcvh, office);
+            name = row.ten_buu_ta || name;
+        }
+
+        const days = [];
+        const total = { volume: 0, passed: 0, strict_failed: 0, blank: 0 };
+        for (let cursor = fromDate; cursor <= toDate; cursor = shiftDay(cursor)) {
+            const day = byDay.get(cursor);
+            if (!day || day.volume === 0) {
+                days.push({ date: cursor, data_available: false, volume: 0, passed: 0, failed: 0, strict_failed: 0, blank: 0, rate: null });
+                continue;
+            }
+            for (const key of Object.keys(total)) total[key] += day[key];
+            days.push({ date: cursor, data_available: true, ...figures(day.volume, day.passed, day.strict_failed, day.blank) });
+        }
+
+        return {
+            meta: {
+                ma_buu_ta: postman,
+                ten_buu_ta: name || postman,
+                from_date: fromDate,
+                to_date: toDate,
+                days_with_data: days.filter((day) => day.data_available).length,
+                has_data: rows.length > 0,
+                target_rate: F42_TARGET_RATE,
+            },
+            offices: [...offices.values()],
+            days,
+            total_row: { label: 'TỔNG CỘNG', ...figures(total.volume, total.passed, total.strict_failed, total.blank) },
         };
     }
 }

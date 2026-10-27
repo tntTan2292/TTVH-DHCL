@@ -7,7 +7,7 @@ Status: `OPENED / WAITING FOR ANTIGRAVITY` (2026-10-27). Screens for F4.2 (chấ
 - Ticket ID: `F42-DASHBOARD-UI-01`; parent `F42-MODULE-PLAN`; backend `F42-DASHBOARD-RANKING-01` (done, reviewed by Opus, API in its Section 4).
 - Executor: `Antigravity` (UI/UX). Independent review `Opus` (after phases A+B and after phase D). PO UI check required.
 - Authorization: PO chat 2026-10-27 (plan approved with one change, Section 4). Parallel workstream: `PROJECT_SNAPSHOT.md` Current Ticket is another ticket, not a conflict.
-- Phases: **A** frame, **B** postman table (this prompt); **C** backend `F42-POSTMAN-API-01` (Claude Code, parallel); **D** postman trend and Home card on the screen (after C, separate prompt).
+- Phases: **A** frame, **B** postman table (this prompt); **C** backend `F42-POSTMAN-API-01` (Claude Code, **done 2026-10-27**: `GET /f42/dashboard/postman-trend`, manifest `F42-POSTMAN-API-01_MANIFEST.md`); **D** postman trend block on the screen (click a postman name opens the daily rate chart with the 90 % line) and the F4.2 Home card (backend side of the card still to do, after the access work of another session lands), separate prompt after A+B.
 
 ## 2. Required Reading
 

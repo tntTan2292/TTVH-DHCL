@@ -496,6 +496,30 @@ class FactF42Repository {
         `, [startDate, endDate, ...officeCodes]));
     }
 
+    // One postman, day by day (F42-POSTMAN-API-01): the same counting rules as the postman grid, limited to the
+    // given delivery offices (the caller passes the scope), grouped by data day and office.
+    getPostmanDaily(startDate, endDate, officeCodes = [], postmanCode = '') {
+        if (!officeCodes.length || !postmanCode) return Promise.resolve([]);
+        const placeholders = officeCodes.map(() => '?').join(', ');
+        return this._read('getPostmanDaily', (src) => this._all(`
+            SELECT
+                ngay_do_kiem AS date,
+                ma_bc_phat AS ma_bcvh,
+                MAX(ten_bc_phat) AS ten_bcvh,
+                MAX(ten_buu_ta) AS ten_buu_ta,
+                ${src.count()} AS volume,
+                ${src.passed()} AS passed,
+                ${src.strictFailed()} AS strict_failed,
+                ${src.blank()} AS blank
+            FROM ${src.table}
+            WHERE ngay_do_kiem BETWEEN ? AND ?
+              AND ma_buu_ta = ?
+              AND ma_bc_phat IN (${placeholders})
+            GROUP BY ngay_do_kiem, ma_bc_phat
+            ORDER BY ngay_do_kiem ASC
+        `, [startDate, endDate, postmanCode, ...officeCodes]));
+    }
+
     getDaysWithData(startDate, endDate) {
         return this._read('getDaysWithData', (src) => new Promise((resolve, reject) => {
             this.db.get(

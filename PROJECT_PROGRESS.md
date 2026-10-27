@@ -2456,3 +2456,7 @@ Investigation of the ~500 one-job runs and the failed jobs, then backend fixes: 
 ## 2026-10-27 - F4.2 HUE RECONCILIATION ACCEPTS A ONE-ROW "ĐẠT" SHORTFALL (PO DECISION)
 
 Six backfill days of F4.2 HUE (14/05, 21/05, 17/07, 22/08, 31/08, 15/10) failed reconciliation with the same difference: total and failed equal, "Đạt" one fewer in the file than in the portal summary (rate effect about 0.02 point). PO decided to accept it: the HUE reconcile now accepts exactly that case, stores the file figures and records `reconciliation: { exact: false, differences: { passed: -1 } }`; every other difference is still refused. Tests: `test_f42PortalAdapter.js` and `test_f42ImportPipeline.js` 36/36; stale expectations in `test_autoBackfillQueueController.js` updated (12/12). Backend restart and re-import of the six days pending.
+
+## 2026-10-27 - F42-DASHBOARD-UI-01 OPENED, F42-POSTMAN-API-01 DONE
+
+PO approved the F4.2 screen plan (colour bands 90 / 80 / 70, target 90 %). Opened `F42-DASHBOARD-UI-01` phases A+B for Antigravity (frame, 6-BCVH strip, postman table per BCVH, "cần chú ý" list) with a lean prompt; Claude Code delivered phase C `F42-POSTMAN-API-01` (`GET /api/f42/dashboard/postman-trend`, scope-pinned, tests service 8 and route scope 7). Home card and the postman trend screen follow in phase D. Backend restart needed for the new endpoint.

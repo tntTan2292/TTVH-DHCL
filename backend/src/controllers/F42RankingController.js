@@ -133,6 +133,21 @@ function createController(service = f42RankingService) {
                 ok(res, { data });
             } catch (error) { fail(res, error); }
         },
+
+        async getPostmanTrend(req, res) {
+            try {
+                const { from_date, to_date, ma_buu_ta } = req.query;
+                if (!from_date || !to_date) return missingRange(res);
+                const data = await service.getPostmanTrend({
+                    maBuuTa: ma_buu_ta,
+                    fromDate: from_date,
+                    toDate: to_date,
+                    // a BCVH-mode user is pinned to the scope: the postman is read inside that BCVH only
+                    bcvhId: resolveBcvh(req, bcvhParam(req.query.ma_bcvh)),
+                });
+                ok(res, { data });
+            } catch (error) { fail(res, error); }
+        },
     };
 }
 

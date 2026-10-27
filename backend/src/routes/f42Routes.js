@@ -24,6 +24,8 @@ router.get('/dashboard/summary', ...allowViewerRead, scopeBcvhResponse({ drop: [
 router.get('/dashboard/daily-trend', ...allowViewerRead, f42RankingController.getDailyTrend);
 // Postman table: BCVH blocks -> postmen. A BCVH-mode user keeps only the blocks of the scope (the sanitiser drops the others by ma_bcvh); the city total row goes.
 router.get('/dashboard/postman-table', ...allowViewerRead, scopeBcvhResponse({ drop: ['data.total_row'] }), f42RankingController.getPostmanTable);
+// One postman day by day; the controller pins the BCVH to the user's scope, so the postman is read only inside it.
+router.get('/dashboard/postman-trend', ...allowViewerRead, f42RankingController.getPostmanTrend);
 router.get('/dashboard/meta', ...allowViewerRead, scopeBcvhResponse({ drop: ['data.kpi_scope_note', 'data.kpi_includes_non_canonical_bcvh'] }), f42RankingController.getMeta);
 router.get('/dashboard/national-ranking', ...allowViewerRead, requireCityWide, f42RankingController.getNationalRanking);
 router.get('/ranking/bcvh/overview', ...allowViewerRead, scopeBcvhResponse({ drop: ['data.mtd[].rank', 'data.meta.national_rank'] }), f42RankingController.getOverview);

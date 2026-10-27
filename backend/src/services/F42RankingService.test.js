@@ -198,3 +198,29 @@ test('real 10/10/2026 file: 6 466 rows, 4 475 Đạt, the six BCVH of the DKCL a
         assert.equal(ranking.data.length, 6);
     } finally { await close(); }
 });
+
+test('postman trend: day by day, gaps as null, totals equal the postman table, scope limits the BCVH, input is checked', async () => {
+    const { service, close } = await makeService(fixture());
+    try {
+        const trend = await service.getPostmanTrend({ maBuuTa: 'A1', fromDate: '2026-10-08', toDate: '2026-10-10' });
+        assert.deepEqual(trend.days.map((day) => [day.date, day.data_available, day.volume, day.passed, day.rate]), [
+            ['2026-10-08', false, 0, 0, null],
+            ['2026-10-09', true, 10, 5, 50],
+            ['2026-10-10', true, 10, 8, 80],
+        ]);
+        assert.deepEqual([trend.meta.days_with_data, trend.meta.has_data, trend.meta.ten_buu_ta, trend.meta.target_rate], [2, true, 'Postman A1', 90]);
+        assert.deepEqual(trend.offices.map((office) => [office.ma_bcvh, office.volume]), [['533140', 20]]);
+        // the total of the trend is the postman's line of the postman table over the same days
+        const table = await service.getPostmanTable({ fromDate: '2026-10-08', toDate: '2026-10-10' });
+        const line = table.units.find((unit) => unit.ma_bcvh === '533140').postmen.find((p) => p.ma_buu_ta === 'A1');
+        assert.deepEqual([trend.total_row.volume, trend.total_row.passed, trend.total_row.failed, trend.total_row.rate], [line.volume, line.passed, line.failed, line.rate]);
+        // scope: the same postman looked up inside another BCVH is not found
+        const foreign = await service.getPostmanTrend({ maBuuTa: 'A1', fromDate: '2026-10-09', toDate: '2026-10-10', bcvhId: '537015' });
+        assert.deepEqual([foreign.meta.has_data, foreign.total_row.volume, foreign.offices.length], [false, 0, 0]);
+        await assert.rejects(service.getPostmanTrend({ fromDate: DAY, toDate: DAY }), (error) => error.code === 'MISSING_PARAM');
+        await assert.rejects(service.getPostmanTrend({ maBuuTa: 'A1', fromDate: DAY, toDate: '2026-10-01' }), (error) => error.code === 'INVALID_RANGE');
+        await assert.rejects(service.getPostmanTrend({ maBuuTa: 'A1', fromDate: '2026-01-01', toDate: '2026-12-31' }), (error) => error.code === 'INVALID_RANGE');
+        await assert.rejects(service.getPostmanTrend({ maBuuTa: 'A1', fromDate: 'x', toDate: DAY }), (error) => error.code === 'INVALID_DATE');
+        await assert.rejects(service.getPostmanTrend({ maBuuTa: 'A1', fromDate: DAY, toDate: DAY, bcvhId: '1' }), (error) => error.code === 'INVALID_BCVH');
+    } finally { await close(); }
+});

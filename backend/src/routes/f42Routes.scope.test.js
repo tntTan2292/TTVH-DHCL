@@ -162,6 +162,19 @@ test('F4.2 BCVH user: the postman table holds only the own block, own postmen an
     assert.deepEqual(ranking.data.map((row) => row.ma_bcvh), [OWN]);
 });
 
+test('F4.2 BCVH user: the postman trend works for an own postman only, a postman of another BCVH comes back empty, a foreign BCVH is 403', async () => {
+    const sessionId = session('STAFF', { bcvh: [OWN] });
+    const range = `from_date=${ANCHOR}&to_date=${ANCHOR}`;
+    const own = (await get(sessionId, `/f42/dashboard/postman-trend?${range}&ma_buu_ta=${OWN}P1`)).body.data;
+    assert.equal(own.meta.has_data, true);
+    assert.deepEqual(own.offices.map((office) => office.ma_bcvh), [OWN]);
+    const other = await get(sessionId, `/f42/dashboard/postman-trend?${range}&ma_buu_ta=${OTHER}P1`);
+    assert.equal(other.status, 200);
+    assert.deepEqual([other.body.data.meta.has_data, other.body.data.total_row.volume, other.body.data.offices.length], [false, 0, 0]);
+    assert.equal((await get(sessionId, `/f42/dashboard/postman-trend?${range}&ma_buu_ta=${OTHER}P1&ma_bcvh=${OTHER}`)).status, 403);
+    assert.equal((await get(sessionId, `/f42/dashboard/postman-trend?${range}`)).status, 400);
+});
+
 test('F4.2 BCVH user cannot widen the scope: a foreign BCVH is 403, the national table too, caches never mix', async () => {
     const sessionId = session('STAFF', { bcvh: [OWN] });
     for (const endpoint of [
