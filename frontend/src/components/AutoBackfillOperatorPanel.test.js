@@ -30,7 +30,15 @@ import {
   formatJobDuration,
   buildJobLogQueryParams,
   formatRunDatesSummary,
-  formatRunTargetSummary
+  formatRunTargetSummary,
+  formatJobDateRange,
+  groupJobsByRealStatus,
+  resolveJobShortReason,
+  formatLaneStatus,
+  computeJobCounts,
+  classifyJobRealState,
+  formatVietnamTime,
+  formatDateVN
 } from './autoBackfillUiHelpers.js';
 
 console.log('Running AUTO-BACKFILL-UI behavior and contract test suite...');
@@ -1447,7 +1455,150 @@ console.log('Running AUTO-BACKFILL-UI behavior and contract test suite...');
   assert.equal(target2.laneText, 'ALL');
 
   console.log('✔ 26. UI-IMPORT-PROCESS-LOG-01 Open Runs Summary, Grouping & Job Log Helpers tests PASSED!');
-  console.log('\nALL AUTO-BACKFILL-UI behavior, contract & remediation tests PASSED SUCCESSFULLY! (26/26 Test Suites)');
+}
+
+// ==========================================
+// 27. Non-Technical Open Runs Block: Job Counting, Date Range & Empty Group Helpers
+// ==========================================
+{
+  // Test case 27.1: Job counting by real state and source lane (HUE, TCT)
+  const realisticRuns = [
+    {
+      run: { id: 'run_alpha', status: 'RUNNING', safety_state: null, requested_lane: 'ALL' },
+      jobs: [
+        // Job 1: RUNNING in HUE
+        { id: 'j_1', indicator: 'F4.2', source_lane: 'HUE', business_date: '2026-06-26', state: 'RUNNING', started_at: '2026-06-26T03:15:00Z' },
+        // Job 2: WAITING_AUTH in TCT
+        { id: 'j_2', indicator: 'F4.2', source_lane: 'TCT', business_date: '2026-06-26', state: 'RUNNING', safety_state: 'WAITING_AUTH', last_error_signature: 'PORTAL_AUTH_EXPIRED' },
+        // Job 3: QUEUED in HUE
+        { id: 'j_3', indicator: 'F4.2', source_lane: 'HUE', business_date: '2026-06-25', state: 'QUEUED' },
+        // Job 4: Next attempt waiting (RETRY_WAIT) in TCT
+        { id: 'j_4', indicator: 'F4.2', source_lane: 'TCT', business_date: '2026-06-25', state: 'QUEUED', next_attempt_at: '2026-06-26T08:30:00Z', last_error_signature: 'NETWORK_TIMEOUT' },
+        // Job 5: Explicit RETRY_WAIT state in HUE
+        { id: 'j_5', indicator: 'F4.2', source_lane: 'HUE', business_date: '2026-06-24', state: 'RETRY_WAIT', next_attempt_at: '2026-06-26T09:00:00Z' },
+        // Job 6: WAITING_AUTH in HUE
+        { id: 'j_6', indicator: 'F4.2', source_lane: 'HUE', business_date: '2026-06-23', state: 'WAITING_AUTH' },
+      ]
+    }
+  ];
+
+  const summary = summarizeOpenRuns(realisticRuns);
+  assert.equal(summary.jobCounts.total, 6, 'Total jobs must be 6');
+  // 1. Đang chạy
+  assert.equal(summary.jobCounts.running.total, 1, 'Only 1 job is genuinely running');
+  assert.equal(summary.jobCounts.running.HUE, 1, 'Running job is in HUE');
+  assert.equal(summary.jobCounts.running.TCT, 0, 'No running job in TCT');
+  // 2. Đang chờ
+  assert.equal(summary.jobCounts.queued.total, 1, 'Only 1 job is purely queued without retry or waiting auth');
+  assert.equal(summary.jobCounts.queued.HUE, 1);
+  assert.equal(summary.jobCounts.queued.TCT, 0);
+  // 3. Chờ thử lại
+  assert.equal(summary.jobCounts.retryWait.total, 2, '2 jobs are waiting for retry');
+  assert.equal(summary.jobCounts.retryWait.HUE, 1);
+  assert.equal(summary.jobCounts.retryWait.TCT, 1);
+  // 4. Chờ đăng nhập
+  assert.equal(summary.jobCounts.waitingAuth.total, 2, '2 jobs are waiting auth');
+  assert.equal(summary.jobCounts.waitingAuth.HUE, 1);
+  assert.equal(summary.jobCounts.waitingAuth.TCT, 1);
+
+  // Test case 27.2: Date range formatting (formatJobDateRange)
+  // Example from requirements: "26/06 → 01/01, 171 ngày"
+  const dates171 = ['2026-06-26'];
+  for (let i = 1; i < 170; i++) dates171.push(`2026-04-${String((i % 28) + 1).padStart(2, '0')}`);
+  dates171.push('2026-01-01');
+  assert.equal(formatJobDateRange(dates171), '26/06 → 01/01, 171 ngày', 'Must match exact user format: "26/06 → 01/01, 171 ngày"');
+
+  // Single date
+  assert.equal(formatJobDateRange(['2026-05-15']), '15/05, 1 ngày');
+  // Cross year
+  assert.equal(formatJobDateRange(['2025-12-31', '2026-01-01']), '31/12/2025 → 01/01/2026, 2 ngày');
+  // Empty
+  assert.equal(formatJobDateRange([]), '');
+  assert.equal(formatJobDateRange(null), '');
+
+  // Test case 27.3: Empty groups calculation & default accordion open states
+  const emptyGroups = groupJobsByRealStatus([]);
+  assert.equal(emptyGroups.length, 3, 'Must return exactly 3 status groups: RUNNING, ATTENTION, QUEUED');
+
+  const runningGroup = emptyGroups.find((g) => g.key === 'RUNNING');
+  assert.ok(runningGroup, 'Group RUNNING must exist');
+  assert.equal(runningGroup.label, 'Đang chạy');
+  assert.equal(runningGroup.defaultOpen, true, 'RUNNING must default to open');
+  assert.equal(runningGroup.count, 0, 'Empty running count must be 0');
+  assert.equal(runningGroup.dateRange, '', 'Empty dateRange must be empty string');
+  assert.deepEqual(runningGroup.jobs, []);
+
+  const attentionGroup = emptyGroups.find((g) => g.key === 'ATTENTION');
+  assert.ok(attentionGroup, 'Group ATTENTION must exist');
+  assert.equal(attentionGroup.label, 'Chờ thử lại / Chờ đăng nhập');
+  assert.equal(attentionGroup.defaultOpen, true, 'ATTENTION must default to open');
+  assert.equal(attentionGroup.count, 0);
+  assert.equal(attentionGroup.dateRange, '');
+
+  const queuedGroup = emptyGroups.find((g) => g.key === 'QUEUED');
+  assert.ok(queuedGroup, 'Group QUEUED must exist');
+  assert.equal(queuedGroup.label, 'Đang chờ');
+  assert.equal(queuedGroup.defaultOpen, false, 'QUEUED must default to collapsed');
+  assert.equal(queuedGroup.count, 0);
+  assert.equal(queuedGroup.dateRange, '');
+
+  // Test case 27.4: Job short reason resolution (resolveJobShortReason)
+  // When next_attempt_at is present, format "Thử lại lúc hh:mm"
+  const jobWithNextAttempt = { next_attempt_at: '2026-06-26T08:30:00Z' }; // 15:30 VN
+  assert.equal(resolveJobShortReason(jobWithNextAttempt), 'Thử lại lúc 15:30');
+
+  // When next_attempt_at AND last_error_signature are present
+  const jobWithBoth = { next_attempt_at: '2026-06-26T08:30:00Z', last_error_signature: 'PORTAL_AUTH_EXPIRED' };
+  assert.equal(resolveJobShortReason(jobWithBoth), 'Thử lại lúc 15:30 (Phiên đăng nhập DKCL đã hết hạn)');
+
+  // When only last_error_signature is present
+  const jobWithError = { last_error_signature: 'PORTAL_AUTH_EXPIRED' };
+  assert.equal(resolveJobShortReason(jobWithError), 'Phiên đăng nhập DKCL đã hết hạn');
+
+  // When running with started_at (03:15 UTC -> 10:15 VN)
+  const jobRunning = { state: 'RUNNING', started_at: '2026-06-26T03:15:00Z' };
+  assert.equal(resolveJobShortReason(jobRunning), 'Bắt đầu lúc 10:15');
+
+  // When waiting auth
+  const jobWaitingAuth = { safety_state: 'WAITING_AUTH' };
+  assert.equal(resolveJobShortReason(jobWaitingAuth), 'Chờ phiên đăng nhập');
+
+  // When queued
+  const jobQueued = { state: 'QUEUED' };
+  assert.equal(resolveJobShortReason(jobQueued), 'Trong hàng chờ');
+
+  // Test case 27.5: Lane Status Strip (formatLaneStatus)
+  // Case A: Running job with duration
+  const fixedNow = new Date('2026-06-26T03:20:00Z').getTime(); // 5 minutes after 03:15
+  const hueRunningJob = { realState: 'RUNNING', source_lane: 'HUE', business_date: '2026-06-26', started_at: '2026-06-26T03:15:00Z' };
+  const hueWaitingJob = { realState: 'QUEUED', source_lane: 'HUE', business_date: '2026-06-25' };
+  const statusHueRunning = formatLaneStatus('HUE', {
+    jobs: [hueRunningJob, hueWaitingJob],
+    now: fixedNow
+  });
+  assert.equal(statusHueRunning, 'Đang chạy ngày 26/06/2026 từ 10:15 (5 phút) · còn 1 ngày chờ');
+
+  // Case B: No running job, waiting auth
+  const tctWaitingAuthJob = { realState: 'WAITING_AUTH', source_lane: 'TCT', business_date: '2026-06-26' };
+  const tctQueuedJob = { realState: 'QUEUED', source_lane: 'TCT', business_date: '2026-06-25' };
+  const statusTctAuth = formatLaneStatus('TCT', {
+    jobs: [tctWaitingAuthJob, tctQueuedJob]
+  });
+  assert.equal(statusTctAuth, 'Chờ đăng nhập · còn 2 ngày chờ');
+
+  // Case C: No running job, paused
+  const statusPaused = formatLaneStatus('HUE', {
+    jobs: [hueWaitingJob],
+    runs: [{ run: { requested_lane: 'HUE', status: 'PAUSED' } }]
+  });
+  assert.equal(statusPaused, 'Tạm dừng · còn 1 ngày chờ');
+
+  // Case D: Empty queue
+  const statusEmpty = formatLaneStatus('HUE', { jobs: [] });
+  assert.equal(statusEmpty, 'Hết hàng chờ');
+
+  console.log('✔ 27. Non-Technical Open Runs Block: Job Counting, Date Range & Empty Group Helpers tests PASSED!');
+  console.log('\nALL AUTO-BACKFILL-UI behavior, contract & remediation tests PASSED SUCCESSFULLY! (27/27 Test Suites)');
 }
 
 

@@ -1698,6 +1698,14 @@ export function summarizeOpenRuns(arg1 = {}, arg2 = null) {
 
   const blockedLanesArray = Array.from(blockedLanesSet);
 
+  const extractedJobs = extractJobsFromRuns(runs);
+  const jobCounts = computeJobCounts(extractedJobs);
+  const laneStatus = {
+    HUE: formatLaneStatus('HUE', { jobs: extractedJobs, runs, blockedLanes: blockedLanesArray }),
+    TCT: formatLaneStatus('TCT', { jobs: extractedJobs, runs, blockedLanes: blockedLanesArray }),
+  };
+  const statusGroups = groupJobsByRealStatus(extractedJobs);
+
   return {
     total: safeTotal,
     loadedCount: runs.length,
@@ -1721,7 +1729,288 @@ export function summarizeOpenRuns(arg1 = {}, arg2 = null) {
     blockedLanes: blockedLanesArray,
     blockingLanes: blockedLanesArray,
     isAnyBlocked: blockedLanesSet.size > 0 || waitingAuthCount > 0 || circuitOpenCount > 0,
+    extractedJobs,
+    totalJobs: jobCounts.total,
+    jobCounts,
+    laneStatus,
+    statusGroups,
   };
+}
+
+export function normalizeJobLane(rawLane) {
+  const str = String(rawLane || '').toUpperCase().trim();
+  if (str.includes('HUE')) return 'HUE';
+  if (str.includes('TCT')) return 'TCT';
+  if (str === 'ALL') return 'ALL';
+  return 'OTHER';
+}
+
+export function classifyJobRealState(job = {}, run = {}) {
+  if (job.safety_state === 'WAITING_AUTH' || job.state === 'WAITING_AUTH' || run?.safety_state === 'WAITING_AUTH') {
+    return 'WAITING_AUTH';
+  }
+  if ((job.next_attempt_at != null && String(job.next_attempt_at).trim() !== '') || job.state === 'RETRY_WAIT') {
+    return 'RETRY_WAIT';
+  }
+  if (job.state === 'RUNNING') {
+    return 'RUNNING';
+  }
+  return 'QUEUED';
+}
+
+export function formatVietnamTime(isoString) {
+  if (!isoString) return '';
+  try {
+    const d = new Date(isoString);
+    if (isNaN(d.getTime())) return '';
+    const options = {
+      timeZone: 'Asia/Ho_Chi_Minh',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    };
+    const parts = new Intl.DateTimeFormat('en-GB', options).formatToParts(d);
+    const get = (type) => parts.find((p) => p.type === type)?.value || '';
+    const hour = get('hour');
+    const minute = get('minute');
+    if (!hour || !minute) return '';
+    return `${hour}:${minute}`;
+  } catch {
+    return '';
+  }
+}
+
+export function formatDateVN(dateStr) {
+  if (!dateStr) return '';
+  const match = String(dateStr).match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (match) {
+    return `${match[3]}/${match[2]}/${match[1]}`;
+  }
+  const vnMatch = String(dateStr).match(/^(\d{2})\/(\d{2})\/(\d{4})/);
+  if (vnMatch) return dateStr;
+  return String(dateStr);
+}
+
+export function formatDayMonth(dateStr, includeYear = false) {
+  if (!dateStr) return '';
+  const isoMatch = String(dateStr).match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (isoMatch) {
+    return includeYear ? `${isoMatch[3]}/${isoMatch[2]}/${isoMatch[1]}` : `${isoMatch[3]}/${isoMatch[2]}`;
+  }
+  const vnMatch = String(dateStr).match(/^(\d{2})\/(\d{2})(?:\/(\d{4}))?/);
+  if (vnMatch) {
+    return (includeYear && vnMatch[3]) ? `${vnMatch[1]}/${vnMatch[2]}/${vnMatch[3]}` : `${vnMatch[1]}/${vnMatch[2]}`;
+  }
+  return String(dateStr);
+}
+
+export function formatJobDateRange(dates = []) {
+  const validDates = (Array.isArray(dates) ? dates : []).filter(Boolean);
+  if (validDates.length === 0) return '';
+  const first = validDates[0];
+  const last = validDates[validDates.length - 1];
+  const firstYear = String(first).slice(0, 4);
+  const lastYear = String(last).slice(0, 4);
+  const diffYear = Boolean(firstYear && lastYear && firstYear !== lastYear && /^\d{4}/.test(firstYear) && /^\d{4}/.test(lastYear));
+  if (validDates.length === 1) {
+    return `${formatDayMonth(first, diffYear)}, 1 ngày`;
+  }
+  return `${formatDayMonth(first, diffYear)} → ${formatDayMonth(last, diffYear)}, ${validDates.length} ngày`;
+}
+
+export function resolveJobShortReason(job = {}) {
+  if (job.next_attempt_at != null && String(job.next_attempt_at).trim() !== '') {
+    const timeStr = formatVietnamTime(job.next_attempt_at);
+    const err = jobErrorText(job.last_error_signature);
+    const base = timeStr ? `Thử lại lúc ${timeStr}` : 'Chờ thử lại';
+    return err ? `${base} (${err})` : base;
+  }
+  if (job.last_error_signature) {
+    return jobErrorText(job.last_error_signature) || String(job.last_error_signature);
+  }
+  if (job.safety_state === 'WAITING_AUTH' || job.state === 'WAITING_AUTH' || job.realState === 'WAITING_AUTH') {
+    return 'Chờ phiên đăng nhập';
+  }
+  if (job.realState === 'RUNNING' || job.state === 'RUNNING') {
+    if (job.started_at) {
+      const timeStr = formatVietnamTime(job.started_at);
+      return timeStr ? `Bắt đầu lúc ${timeStr}` : 'Đang xử lý';
+    }
+    return 'Đang xử lý';
+  }
+  return 'Trong hàng chờ';
+}
+
+export function formatLaneStatus(lane, { jobs = [], runs = [], blockedLanes = [], now = Date.now() } = {}) {
+  const targetLane = String(lane).toUpperCase();
+  const laneJobs = jobs.filter((j) => normalizeJobLane(j.source_lane) === targetLane);
+
+  const runningJob = laneJobs.find((j) => j.realState === 'RUNNING');
+  const waitingJobs = laneJobs.filter((j) => j.realState !== 'RUNNING' && j.realState !== 'TERMINAL');
+  const waitingCount = waitingJobs.length;
+
+  if (runningJob) {
+    const dateStr = formatDateVN(runningJob.business_date);
+    const timeStr = formatVietnamTime(runningJob.started_at);
+    let durationText = '';
+    if (runningJob.started_at) {
+      const startedTime = new Date(runningJob.started_at).getTime();
+      if (!isNaN(startedTime)) {
+        const mins = Math.max(0, Math.floor((now - startedTime) / 60000));
+        durationText = ` (${mins} phút)`;
+      }
+    }
+    const timePart = timeStr ? ` từ ${timeStr}${durationText}` : (durationText ? `${durationText}` : '');
+    return `Đang chạy ngày ${dateStr}${timePart} · còn ${waitingCount} ngày chờ`;
+  }
+
+  // No running job: check reasons (chờ đăng nhập, tạm dừng, hết hàng chờ)
+  const isWaitingAuth = laneJobs.some((j) => j.realState === 'WAITING_AUTH') ||
+    (blockedLanes || []).includes(targetLane) ||
+    runs.some((r) => r.run?.safety_state === 'WAITING_AUTH' && (normalizeJobLane(r.run?.requested_lane || r.lanes?.[0]) === targetLane || r.run?.requested_lane === 'ALL'));
+
+  if (isWaitingAuth) {
+    return waitingCount > 0 ? `Chờ đăng nhập · còn ${waitingCount} ngày chờ` : 'Chờ đăng nhập';
+  }
+
+  const isPaused = runs.some((r) => {
+    const runLane = normalizeJobLane(r.run?.requested_lane);
+    const isMatchingLane = runLane === targetLane || r.run?.requested_lane === 'ALL' || (Array.isArray(r.lanes) && r.lanes.includes(targetLane));
+    return isMatchingLane && (r.run?.status === 'PAUSED' || r.run?.safety_state === 'PAUSED');
+  });
+
+  if (isPaused) {
+    return waitingCount > 0 ? `Tạm dừng · còn ${waitingCount} ngày chờ` : 'Tạm dừng';
+  }
+
+  if (waitingCount === 0) {
+    return 'Hết hàng chờ';
+  }
+
+  const retryJob = laneJobs.find((j) => j.realState === 'RETRY_WAIT' && j.next_attempt_at);
+  if (retryJob) {
+    const retryTime = formatVietnamTime(retryJob.next_attempt_at);
+    return retryTime ? `Chờ thử lại lúc ${retryTime} · còn ${waitingCount} ngày chờ` : `Chờ thử lại · còn ${waitingCount} ngày chờ`;
+  }
+
+  return `Đang chờ · còn ${waitingCount} ngày chờ`;
+}
+
+export function extractJobsFromRuns(runs = []) {
+  const jobList = [];
+  for (const entry of (Array.isArray(runs) ? runs : [])) {
+    const run = entry?.run || entry || {};
+    const rawJobs = Array.isArray(entry?.jobs) ? entry.jobs : [];
+    if (rawJobs.length > 0) {
+      for (const job of rawJobs) {
+        const lane = normalizeJobLane(job.source_lane || job.lane || run.requested_lane);
+        const realState = classifyJobRealState(job, run);
+        jobList.push({
+          ...job,
+          indicator: job.indicator || run.requested_indicator || 'OTHER',
+          source_lane: lane,
+          realState,
+          runId: run.id,
+          run,
+        });
+      }
+    } else if (run && run.id) {
+      const lane = normalizeJobLane(run.requested_lane);
+      const fakeJob = {
+        id: run.id,
+        run_id: run.id,
+        indicator: run.requested_indicator || run.target_indicators?.[0] || 'OTHER',
+        source_lane: lane,
+        business_date: run.as_of_business_date || run.target_month || '',
+        state: run.status || 'RUNNING',
+        safety_state: run.safety_state || null,
+        started_at: run.started_at || null,
+        next_attempt_at: null,
+        last_error_signature: run.last_error_signature || null,
+      };
+      const realState = classifyJobRealState(fakeJob, run);
+      jobList.push({
+        ...fakeJob,
+        realState,
+        runId: run.id,
+        run,
+      });
+    }
+  }
+  return jobList;
+}
+
+export function computeJobCounts(jobs = []) {
+  const counts = {
+    running: { total: 0, HUE: 0, TCT: 0, OTHER: 0 },
+    queued: { total: 0, HUE: 0, TCT: 0, OTHER: 0 },
+    retryWait: { total: 0, HUE: 0, TCT: 0, OTHER: 0 },
+    waitingAuth: { total: 0, HUE: 0, TCT: 0, OTHER: 0 },
+    total: 0,
+  };
+
+  for (const job of (Array.isArray(jobs) ? jobs : [])) {
+    const lane = (job.source_lane in counts.running) ? job.source_lane : 'OTHER';
+    if (job.realState === 'WAITING_AUTH') {
+      counts.waitingAuth.total += 1;
+      counts.waitingAuth[lane] = (counts.waitingAuth[lane] || 0) + 1;
+    } else if (job.realState === 'RETRY_WAIT') {
+      counts.retryWait.total += 1;
+      counts.retryWait[lane] = (counts.retryWait[lane] || 0) + 1;
+    } else if (job.realState === 'RUNNING') {
+      counts.running.total += 1;
+      counts.running[lane] = (counts.running[lane] || 0) + 1;
+    } else {
+      counts.queued.total += 1;
+      counts.queued[lane] = (counts.queued[lane] || 0) + 1;
+    }
+  }
+
+  counts.total = counts.running.total + counts.queued.total + counts.retryWait.total + counts.waitingAuth.total;
+  return counts;
+}
+
+export function groupJobsByRealStatus(jobs = []) {
+  const runningJobs = [];
+  const attentionJobs = [];
+  const queuedJobs = [];
+
+  for (const job of (Array.isArray(jobs) ? jobs : [])) {
+    if (job.realState === 'RUNNING') {
+      runningJobs.push(job);
+    } else if (job.realState === 'WAITING_AUTH' || job.realState === 'RETRY_WAIT') {
+      attentionJobs.push(job);
+    } else {
+      queuedJobs.push(job);
+    }
+  }
+
+  return [
+    {
+      key: 'RUNNING',
+      label: 'Đang chạy',
+      defaultOpen: true,
+      jobs: runningJobs,
+      count: runningJobs.length,
+      dateRange: formatJobDateRange(runningJobs.map((j) => j.business_date)),
+    },
+    {
+      key: 'ATTENTION',
+      label: 'Chờ thử lại / Chờ đăng nhập',
+      defaultOpen: true,
+      jobs: attentionJobs,
+      count: attentionJobs.length,
+      dateRange: formatJobDateRange(attentionJobs.map((j) => j.business_date)),
+    },
+    {
+      key: 'QUEUED',
+      label: 'Đang chờ',
+      defaultOpen: false,
+      jobs: queuedJobs,
+      count: queuedJobs.length,
+      dateRange: formatJobDateRange(queuedJobs.map((j) => j.business_date)),
+    },
+  ];
 }
 
 export function formatRunDatesSummary(businessDates = [], run = {}) {
