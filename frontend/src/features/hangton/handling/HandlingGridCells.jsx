@@ -75,7 +75,7 @@ export default function HandlingGridCells({
     ? KINDS.filter((k) => errors[`${k}_code`] || errors[`${k}_text`]).map((k) => KIND_LABELS[k].toLowerCase()).concat(errors.due_date ? ['ngày'] : [])
     : [];
   // a content that settles the parcel locks the plan; "Chuyển hoàn" is always dated today
-  const lockedPlan = auto ? `${auto.plan_label}${auto.due_is_today ? ` ${formatDate(form.due_date || today)}` : ''}` : '';
+  const lockedPlan = auto ? (auto.due_is_today ? `${auto.plan_label} ${formatDate(form.due_date || today)}` : '—') : '';
 
   return (
     <>

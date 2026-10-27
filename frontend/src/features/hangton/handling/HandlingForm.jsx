@@ -34,7 +34,7 @@ export default function HandlingForm({
           // the result follows from the content; a settling content also locks the plan: nothing to choose
           const locked = kind === 'result'
             ? resultMeta(form.result_code)
-            : { label: `${auto.plan_label}${auto.due_is_today ? ` ${formatDate(form.due_date || today)}` : ''}`, className: 'border-slate-200 bg-slate-100 text-slate-500' };
+            : { label: auto.due_is_today ? `${auto.plan_label} ${formatDate(form.due_date || today)}` : '—', className: 'border-slate-200 bg-slate-100 text-slate-500' };
           return (
             <div key={kind}>
               <label className="mb-1 block text-xs font-bold uppercase tracking-wide text-slate-600">{KIND_LABELS[kind]}</label>

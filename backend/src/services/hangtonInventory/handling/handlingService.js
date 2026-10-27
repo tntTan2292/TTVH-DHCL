@@ -105,6 +105,8 @@ function presentEntry(row, grouping) {
         const code = row[`${kind}_code`];
         const group = catalog.groupOf(kind, code, row[`${kind}_text`], grouping.maps[kind]);
         entry[`${kind}_label`] = code === catalog.OTHER ? (row[`${kind}_text`] || 'Khác') : catalog.groupLabel(kind, code, grouping.custom[kind]);
+        // the detail of a content reads after its label: "Mất 27/10"
+        if (kind === 'cause' && code !== catalog.OTHER && catalog.optionOf('cause', code)?.askText && row.cause_text) entry.cause_label = `${entry.cause_label} ${row.cause_text}`;
         entry[`${kind}_group`] = group;
         entry[`${kind}_group_label`] = catalog.groupLabel(kind, group, grouping.custom[kind]);
     }

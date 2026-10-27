@@ -143,8 +143,11 @@ export function buildInput(form, catalog = null) {
 }
 
 /** The plan as written: "Phát lại ngày 29/10/2026", "Liên hệ Bưu cục gốc (BC Phú Bài)". */
+// Plans the system sets for the settling contents ("Phát thành công", "Mất", "Vô thừa nhận"): nothing the person wrote, shown blank.
+const SYSTEM_PLANS = Object.freeze(['DA_PHAT', 'DA_MAT', 'DA_VTN']);
+
 export function planSummary(entry) {
-  if (!entry) return '';
+  if (!entry || SYSTEM_PLANS.includes(entry.plan_code)) return '';
   let plan = entry.plan_label || '';
   const dated = Boolean(entry.due_date) && /ngày$/i.test(plan);
   if (dated) plan = `${plan} ${formatDate(entry.due_date)}`;
@@ -272,6 +275,8 @@ export function applyEdit(catalog, form, patch, today = localToday()) {
     } else if (autoOf(catalog, form)) {
       Object.assign(next, { plan_code: '', plan_text: '', due_date: '' });
     }
+    // the detail belongs to the content it was typed for
+    if (patch.cause_text === undefined) next.cause_text = '';
   }
   // "Chuyển hoàn" is always dated today, even when only the note of an older entry is edited
   if (auto?.due_is_today) next.due_date = today;

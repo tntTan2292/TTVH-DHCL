@@ -20,14 +20,15 @@ const NOT_DONE = 'CHUA_XU_LY';
 // auto: a content that settles the parcel by itself ("Phát thành công", "Chuyển hoàn", "Mất", "Vô thừa nhận"): the plan is set
 // to auto.plan_code (locked) and the result is "Đã xử lý". Any other content leaves the parcel "Chưa xử lý". The result is
 // never typed or chosen: the backend always derives it from the content (resultOf).
+// askText on a settling content: an optional detail that reads after the label ("Mất 27/10", "Phát thành công 27/10").
 // auto.dueIsToday: the date of the plan is today whatever was sent ("Chuyển hoàn" = returned today).
 const CATALOG = Object.freeze({
     cause: [
-        { code: 'PHAT_THANH_CONG', label: 'Phát thành công', selectable: true, auto: { plan_code: 'DA_PHAT', result_code: 'DA_XU_LY' }, keywords: ['phat thanh cong', 'phat hoan thanh cong', 'phat hoan tc', 'phat tc', 'ptc', 'da phat', 'phat duoc', 'da giao'] },
-        { code: 'CHUYEN_HOAN', label: 'Chuyển hoàn', selectable: true, auto: { plan_code: 'CHUYEN_HOAN', result_code: 'DA_XU_LY', dueIsToday: true }, keywords: ['chuyen hoan', 'hoan', 'hoan ve', 'tra ve', 'tra nguoi gui'] },
-        { code: 'MAT', label: 'Mất', selectable: true, auto: { plan_code: 'DA_MAT', result_code: 'DA_XU_LY' }, keywords: ['mat', 'mat hang', 'bi mat', 'that lac', 'da mat'] },
-        { code: 'VO_THUA_NHAN', label: 'Vô thừa nhận', selectable: true, auto: { plan_code: 'DA_VTN', result_code: 'DA_XU_LY' }, keywords: ['vo thua nhan', 'chuyen vo thua nhan', 'da chuyen vtn'] },
-        { code: 'CHO_HOAN', label: 'Chờ hoàn', selectable: true, keywords: ['cho hoan', 'cho chuyen hoan', 'cho tra ve'] },
+        { code: 'PHAT_THANH_CONG', label: 'Phát thành công', selectable: true, askText: true, auto: { plan_code: 'DA_PHAT', result_code: 'DA_XU_LY' }, keywords: ['phat thanh cong', 'phat hoan thanh cong', 'phat hoan tc', 'phat tc', 'ptc', 'da phat', 'phat duoc', 'da giao'] },
+        { code: 'CHUYEN_HOAN', label: 'Chuyển hoàn', selectable: true, askText: true, auto: { plan_code: 'CHUYEN_HOAN', result_code: 'DA_XU_LY', dueIsToday: true }, keywords: ['chuyen hoan', 'hoan', 'hoan ve', 'tra ve', 'tra nguoi gui'] },
+        { code: 'MAT', label: 'Mất', selectable: true, askText: true, auto: { plan_code: 'DA_MAT', result_code: 'DA_XU_LY' }, keywords: ['mat', 'mat hang', 'bi mat', 'that lac', 'da mat'] },
+        { code: 'VO_THUA_NHAN', label: 'Vô thừa nhận', selectable: true, askText: true, auto: { plan_code: 'DA_VTN', result_code: 'DA_XU_LY' }, keywords: ['vo thua nhan', 'chuyen vo thua nhan', 'da chuyen vtn'] },
+        { code: 'CHO_HOAN', label: 'Chờ hoàn', selectable: true, keywords: ['cho hoan', 'cho phat hoan', 'cho chuyen hoan', 'cho tra ve'] },
         { code: 'KH_HEN_PHAT_LAI', label: 'Khách hàng hẹn phát lại', selectable: true, keywords: ['hen phat lai', 'khach hen', 'hen lai', 'hen ngay', 'doi ngay'] },
         { code: 'THU_TCNH_LUU_7N', label: 'Thư TCNH có yêu cầu lưu 7 ngày', selectable: true, keywords: ['tcnh', 'luu 7 ngay', 'luu 7', 'yeu cau luu'] },
         { code: 'CHO_CHUYEN_VTN', label: 'Chờ chuyển VTN', selectable: true, keywords: ['vtn', 'cho chuyen vtn', 'cho chuyen'] },

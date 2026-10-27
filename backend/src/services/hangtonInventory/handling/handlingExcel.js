@@ -24,7 +24,7 @@ const HEADERS = Object.freeze({
     customer_class: 'Nhóm KH',
     postman_name: 'Bưu tá',
     cause: 'Nội dung xử lý *',
-    cause_text: 'Nội dung "Nguyên nhân khác"',
+    cause_text: 'Chi tiết nội dung xử lý',
     plan: 'Hướng xử lý *',
     due_date: 'Ngày phát lại / chuyển hoàn',
     plan_text: 'Chi tiết hướng xử lý',
@@ -51,7 +51,7 @@ const COLUMNS = Object.freeze([
 ]);
 
 // Titles of files made before (the first question was called "Nguyên nhân tồn"; the result had its own drop-down).
-const OLD_TITLES = Object.freeze({ 'Nguyên nhân tồn': 'cause', 'Nguyên nhân tồn *': 'cause', 'Kết quả xử lý': 'result', 'Kết quả xử lý *': 'result' });
+const OLD_TITLES = Object.freeze({ 'Nội dung "Nguyên nhân khác"': 'cause_text', 'Nguyên nhân tồn': 'cause', 'Nguyên nhân tồn *': 'cause', 'Kết quả xử lý': 'result', 'Kết quả xử lý *': 'result' });
 
 const FIRST_YEAR_DATE = new Date(Date.UTC(2020, 0, 1));
 const DATE_FORMAT = 'dd/mm/yyyy';
@@ -120,7 +120,7 @@ async function buildTemplate(rows) {
         `4. Ô nào còn phải điền thì tô ĐỎ, ô không cần điền thì tô XÁM. Cột "Kiểm tra (tự tính)" cuối dòng cho biết dòng đủ hay còn thiếu gì.`,
         `5. Chọn ${datePlans.map((option) => `"${option.label}"`).join(' hoặc ')} (ở Hướng xử lý) thì mới phải nhập cột "Ngày phát lại / chuyển hoàn" (dd/mm/yyyy, không trước hôm nay).`,
         '6. Chọn "Liên hệ Bưu cục gốc" hoặc "Chuyển cấp trên hỗ trợ" thì có thể ghi rõ liên hệ ai trong cột "Chi tiết hướng xử lý" (không bắt buộc).',
-        `7. Chọn "${causeOther}" thì bắt buộc gõ nội dung vào cột "Nội dung "Nguyên nhân khác""; chọn "${planOther}" thì bắt buộc gõ vào cột "Chi tiết hướng xử lý". Hệ thống tự gom các cách gõ giống nhau khi thống kê.`,
+        `7. Cột "Chi tiết nội dung xử lý": bắt buộc gõ khi chọn "${causeOther}"; với ${autoCauses.map((option) => `"${option.label}"`).join(', ')} có thể ghi thêm cho rõ (ví dụ "Mất" + "27/10"). Chọn "${planOther}" thì bắt buộc gõ vào cột "Chi tiết hướng xử lý". Hệ thống tự gom các cách gõ giống nhau khi thống kê.`,
         `8. Kết quả ${resultDone} tô xanh lá, ${resultPending} tô cam, dòng chưa rà soát tô hồng.`,
         '9. Dòng không điền gì, hoặc dòng giữ nguyên như file tải về, được bỏ qua. Không đổi tên cột, không xóa cột Mã bưu gửi. Lưu file rồi bấm "Nhập file đã điền" trên web.',
     ].forEach((line, index) => { guide.getCell(index + 1, 1).value = line; });
@@ -148,7 +148,7 @@ async function buildTemplate(rows) {
             customer_class: row.customer_class || '',
             postman_name: last?.postman_name || row.postman_name || '',
             cause: last ? labelOf('cause', last.cause_code, last.cause_text) : '',
-            cause_text: last && last.cause_code === catalog.OTHER ? (last.cause_text || '') : '',
+            cause_text: last ? (last.cause_text || '') : '',
             plan: last && !auto ? labelOf('plan', last.plan_code, last.plan_text) : '',
             due_date: last && !auto ? excelDate(last.due_date) : null,
             plan_text: last && last.plan_code && !auto ? (last.plan_text || '') : '',
@@ -187,9 +187,11 @@ async function buildTemplate(rows) {
 
     const rule = (formula, argb, stopIfTrue = true) => ({ type: 'expression', formulae: [formula], style: cfFill(argb), stopIfTrue });
     const range = (key) => `${col(key)}2:${col(key)}${lastRow}`;
+    // the detail is required with "Nguyên nhân khác", optional with the settling contents ("Mất 27/10"), not used by the others
+    const takesDetail = `OR(${causes.filter((option) => option.code === catalog.OTHER || option.askText).map((option) => `${F}=${quote(option.label)}`).join(',')})`;
     sheet.addConditionalFormatting({ ref: range('cause_text'), rules: [
         rule(`AND(${F}=${quote(causeOther)},${G}="")`, COLORS.needed),
-        rule(`AND(${F}<>"",${F}<>${quote(causeOther)})`, COLORS.notNeeded),
+        rule(`AND(${F}<>"",NOT(${takesDetail}))`, COLORS.notNeeded),
     ] });
     sheet.addConditionalFormatting({ ref: range('plan'), rules: [
         rule(isAuto, COLORS.notNeeded),

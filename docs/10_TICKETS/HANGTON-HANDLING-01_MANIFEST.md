@@ -138,6 +138,11 @@ Supersedes the result drop-down of 8/8b/8e. The user never chooses the result an
 4. Excel: header "Nội dung xử lý *"; "Kết quả xử lý (tự tính)" is a formula column (no drop-down); the date column is grey unless the plan asks for a date; files made before (titles "Nguyên nhân tồn", a result column) still load, the result column is ignored.
 5. Entries stored before this change keep their stored result (append-only); a re-save recomputes it.
 
+## 8j. Amendment 2026-10-27 (PO): detail of a settling content, nothing typed may be lost
+
+1. The four settling contents (Phát thành công, Chuyển hoàn, Mất, Vô thừa nhận) take an optional detail that reads after the label: "Mất 27/10", "Phát thành công 27/10" (Excel column "Chi tiết nội dung xử lý"). Their plan ("Hướng xử lý") is blank by design: it is set by the system and shown as "—" (Chuyển hoàn shows its date).
+2. Realigning the entries already typed (`backend/scripts/realign-handling-entries.js`, dry run first, `--apply` after the backend runs this code): same-day EDIT rows, author unchanged, approver "Điều chỉnh theo quy hoạch 27/10 (Claude Code)". Nothing the person wrote is dropped: a plan written "mất 27/10" with the wording "chậm giao" becomes content "Mất" + detail "27/10" + note "Chậm giao"; a plan written "27/10" under "ptc" becomes the detail "Phát thành công 27/10"; any plan with real content that has no place any more goes to the note. `--apply` first saves `exports/hangton_xu_ly_truoc_dieu_chinh_*.json` (copy of the four handling tables) and `exports/hangton_xu_ly_dieu_chinh_*.csv` (before / after of every parcel). Left as typed and listed: an entry marked Chưa xử lý whose wording says it is settled.
+
 ## 9. Not in Phase 1 (proposed Phases 2-3)
 
 Work queue and per-postman progress, due-date reminders and "tồn dai dẳng", cross-check of "đã phát" against the next mốc, assignment / escalation, effectiveness and cause analysis over time, end-of-day Viber summary.

@@ -172,6 +172,7 @@ test('catalog: smart grouping puts the many wordings of "Khác" into few groups'
     assert.equal(g('cause', 'Hoàn về gốc'), 'CHUYEN_HOAN');
     assert.equal(g('cause', 'chờ hoàn'), 'CHO_HOAN', 'the longer rule wins over "hoàn"');
     assert.equal(g('cause', 'chờ chuyển hoàn'), 'CHO_HOAN');
+    assert.equal(g('cause', 'chờ phát hoàn'), 'CHO_HOAN', 'waiting to be returned is not returned');
     assert.equal(g('cause', 'chờ chuyển VTN'), 'CHO_CHUYEN_VTN');
     assert.equal(g('cause', 'phát hoàn TC'), 'PHAT_THANH_CONG');
     assert.equal(g('cause', 'PTC'), 'PHAT_THANH_CONG');
