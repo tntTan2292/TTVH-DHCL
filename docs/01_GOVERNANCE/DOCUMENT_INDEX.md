@@ -1143,6 +1143,7 @@ Validation: 15 new backend tests (13 service unit + 2 real in-memory SQLite repo
 | `docs/10_TICKETS/UI-IMPORT-PROCESS-LOG-01_MANIFEST.md` | Ticket Manifest | UI-IMPORT-PROCESS-LOG-01: audit of the open-runs panel (50 of 548) and the missing complete import log; backend job-log API ready, screen assigned to Antigravity |
 | `docs/10_TICKETS/UI-IMPORT-PROCESS-LOG-01_ANTIGRAVITY_PROMPT.md` | Executor Prompt | UI-IMPORT-PROCESS-LOG-01: lean prompt for Antigravity (open-runs summary, complete import log) |
 | `docs/10_TICKETS/UI-IMPORT-BULK-ITEMS-01_ANTIGRAVITY_PROMPT.md` | Executor Prompt | UI-IMPORT-BULK-ITEMS-01: lean prompt for Antigravity (bulk Nhap moi / Nhap lai send one items request); after UI-IMPORT-PROCESS-LOG-01 |
+| `docs/10_TICKETS/UI-IMPORT-PROCESS-LOG-01_ANTIGRAVITY_CHECK_PROMPT.md` | Executor Prompt | UI-IMPORT-PROCESS-LOG-01 / BULK-ITEMS-01: progress check and completion prompt for Antigravity |
 | `docs/10_TICKETS/IMPORT-SESSION-01_MANIFEST.md` | Ticket Manifest | IMPORT-SESSION-01: always-visible Huế/TCT DKCL session strip on the Import page with sign-in and disconnect (status API, disconnect API, no-revival marker) |
 | `docs/10_TICKETS/IMPORT-DAILYLOG-01_MANIFEST.md` | Ticket Manifest | IMPORT-DAILYLOG-01: "Log ngày mới" tab - state of the day's 24 import jobs, needs-attention list, schedule and session state; GET /import/daily-log |
 | `docs/10_TICKETS/BF-PHAT-IMPORT-01_MANIFEST.md` | Ticket Manifest | BF-PHAT-IMPORT-01: daily delivery BatchFile (SanLuongChiTiet) from WinSCP into fact_bf_phat, N-1 scheduler, import log BF-PHAT |
