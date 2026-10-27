@@ -20,6 +20,7 @@ const STATEMENTS = Object.freeze([
         kept_row_count INTEGER NOT NULL DEFAULT 0,
         is_stale INTEGER NOT NULL DEFAULT 0,
         trigger TEXT NOT NULL DEFAULT 'SCHEDULE',
+        actor TEXT,
         UNIQUE (business_date, slot)
     )`,
     `CREATE TABLE IF NOT EXISTS hangton_snapshot_item (
@@ -60,6 +61,9 @@ async function applyHangtonInventory01Schema(dbPath) {
     });
     try {
         for (const sql of STATEMENTS) await exec(db, sql);
+        // additive: who took a manual / make-up snapshot (tables created before 2026-10-27 lack the column)
+        const columns = await new Promise((resolve, reject) => db.all('PRAGMA table_info(hangton_snapshot)', (e, rows) => (e ? reject(e) : resolve(rows))));
+        if (!columns.some((c) => c.name === 'actor')) await exec(db, 'ALTER TABLE hangton_snapshot ADD COLUMN actor TEXT');
     } finally {
         await new Promise((resolve, reject) => db.close((error) => error ? reject(error) : resolve()));
     }

@@ -6,7 +6,8 @@
 async function listSnapshots(db, { limit = 90 } = {}) {
     return db.all(
         `SELECT id, business_date, slot, captured_at, portal_timestamp, source_row_count, kept_row_count, is_stale, trigger
-           FROM hangton_snapshot ORDER BY business_date DESC, slot DESC LIMIT ?`, [limit]);
+           FROM hangton_snapshot ORDER BY business_date DESC,
+                CASE WHEN slot LIKE 'M%' THEN substr(slot, 2, 4) ELSE slot END DESC, slot DESC LIMIT ?`, [limit]);
 }
 
 async function getSnapshot(db, id) {
@@ -25,6 +26,12 @@ async function resolveSnapshot(db, { id, date, slot } = {}) {
 
 // Default base for a snapshot: the same slot on the closest earlier day that has it.
 async function resolveDefaultBase(db, snapshot, { baseDate, baseSlot } = {}) {
+    // A manual (extra) point is compared with the snapshot taken right before it (PO 2026-10-27: "what changed since 07:30").
+    if (!baseDate && !baseSlot && String(snapshot.slot).startsWith('M')) {
+        return db.get(
+            'SELECT * FROM hangton_snapshot WHERE captured_at < ? AND id <> ? ORDER BY captured_at DESC, id DESC LIMIT 1',
+            [snapshot.captured_at, snapshot.id]);
+    }
     const slot = baseSlot || snapshot.slot;
     if (baseDate) return db.get('SELECT * FROM hangton_snapshot WHERE business_date = ? AND slot = ?', [baseDate, slot]);
     return db.get(

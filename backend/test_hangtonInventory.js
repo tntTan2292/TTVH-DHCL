@@ -217,3 +217,174 @@ test('COD of the stock aged 5 days and more is reported apart from the total COD
     assert.equal(mixed.by_office.find((o) => o.office === 'BCVH Thuận Hóa').cod_ge5, 1000, 'office figures follow the selected groups');
     assert.equal(mixed.by_customer.length, 2, 'group cards stay complete');
 });
+
+// ---- Import Center: manual points, make-up, delete (PO 2026-10-27)
+const importService = require('./src/services/hangtonInventory/hangtonImportService');
+const scopeModule = require('./src/services/hangtonInventory/scope');
+const express = require('express');
+const createImportRouter = require('./src/routes/hangtonImportRoutes');
+
+const oneRow = (code, level = '≥3 ngày') => row(code, level, { 'Phân Loại KH': 'KH Mới' });
+const stock = (rows, ts = 'T') => async () => ({ rows, portalTimestamp: ts, count: rows.length });
+
+test('slot helpers: manual slots, clock text, validity', () => {
+    assert.equal(scopeModule.manualSlotFor(new Date(2026, 9, 27, 10, 45, 32)), 'M104532');
+    assert.equal(scopeModule.isManualSlot('M104532'), true);
+    assert.equal(scopeModule.isManualSlot('0730'), false);
+    assert.equal(scopeModule.isManualSlot('M1045'), false);
+    assert.equal(scopeModule.isValidSlot('1130'), true);
+    assert.equal(scopeModule.isValidSlot('M000000'), true);
+    assert.equal(scopeModule.isValidSlot('0900'), false);
+    assert.equal(scopeModule.slotClock('M104532'), '10:45');
+    assert.equal(scopeModule.slotClock('2100'), '21:00');
+});
+
+test('a manual point is an extra snapshot: it never replaces a scheduled slot, keeps the actor, and compares with the one right before it', async () => {
+    const db = await makeDb();
+    await takeSnapshot({ db, fetchStock: stock([oneRow('A'), oneRow('B')], 'T1'), slot: '0730', now: new Date(2026, 9, 27, 7, 30) });
+    const manual = await importService.runManualSnapshot({ db, fetchStock: stock([oneRow('B'), oneRow('C'), oneRow('D')], 'T2'), actor: 'admin1', now: new Date(2026, 9, 27, 10, 45, 32) });
+    assert.equal(manual.slot, 'M104532');
+    const all = await db.all('SELECT slot, trigger, actor FROM hangton_snapshot ORDER BY id');
+    assert.deepEqual(all.map((r) => [r.slot, r.trigger, r.actor]), [['0730', 'SCHEDULE', null], ['M104532', 'MANUAL', 'admin1']]);
+    assert.equal((await db.all("SELECT * FROM hangton_snapshot_item WHERE snapshot_id = (SELECT id FROM hangton_snapshot WHERE slot = '0730')")).length, 2, '07:30 data untouched');
+
+    const point = await inventory.resolveSnapshot(db, { id: manual.snapshotId });
+    const base = await inventory.resolveDefaultBase(db, point, {});
+    assert.equal(base.slot, '0730', 'the default base of a manual point is the snapshot right before it');
+    const diff = await inventory.compare(db, base.id, point.id, { detail: true });
+    assert.deepEqual(diff.summary, { resolved: 1, aged_up: 0, aged_down: 0, new: 2, unchanged: 1 });
+
+    const list = await inventory.listSnapshots(db, {});
+    assert.deepEqual(list.map((r) => r.slot), ['M104532', '0730'], 'listed by time of day, the manual point after the 07:30 slot');
+    // a scheduled slot still compares with the same slot of the day before
+    await takeSnapshot({ db, fetchStock: stock([oneRow('E')], 'T3'), slot: '0730', now: new Date(2026, 9, 28, 7, 30) });
+    const next = await inventory.resolveSnapshot(db, { date: '2026-10-28', slot: '0730' });
+    const nextBase = await inventory.resolveDefaultBase(db, next, {});
+    assert.deepEqual([nextBase.business_date, nextBase.slot], ['2026-10-27', '0730']);
+});
+
+test('make-up fills a missed slot of today once, only when due, never overwrites; the real capture time is kept', async () => {
+    const db = await makeDb();
+    const at = (h, m) => new Date(2026, 9, 27, h, m);
+    await assert.rejects(importService.runMakeupSnapshot({ db, fetchStock: stock([oneRow('A')]), slot: '1130', now: at(10, 0) }), /HANGTON_SLOT_NOT_DUE/);
+    await assert.rejects(importService.runMakeupSnapshot({ db, fetchStock: stock([oneRow('A')]), slot: '0900', now: at(10, 0) }), /HANGTON_BAD_SLOT/);
+    const made = await importService.runMakeupSnapshot({ db, fetchStock: stock([oneRow('A')]), slot: '0730', actor: 'admin1', now: at(9, 41) });
+    assert.equal(made.slot, '0730');
+    const stored = await db.get("SELECT * FROM hangton_snapshot WHERE slot = '0730'");
+    assert.equal(stored.trigger, 'MAKEUP');
+    assert.equal(stored.actor, 'admin1');
+    assert.equal(stored.captured_at, at(9, 41).toISOString(), 'the label is the slot, the real time stays in captured_at');
+    await assert.rejects(importService.runMakeupSnapshot({ db, fetchStock: stock([oneRow('B')]), slot: '0730', now: at(9, 50) }), /HANGTON_SLOT_EXISTS/);
+    assert.equal((await db.all('SELECT * FROM hangton_snapshot_item')).length, 1, 'the first make-up is intact');
+});
+
+test('only extra points and make-ups can be deleted', async () => {
+    const db = await makeDb();
+    const t = (h) => new Date(2026, 9, 27, h, 5);
+    await takeSnapshot({ db, fetchStock: stock([oneRow('A')]), slot: '0730', now: t(7), trigger: 'SCHEDULE' });
+    const manual = await importService.runManualSnapshot({ db, fetchStock: stock([oneRow('B')]), now: t(10) });
+    const makeup = await importService.runMakeupSnapshot({ db, fetchStock: stock([oneRow('C')]), slot: '1130', now: new Date(2026, 9, 27, 12, 0) });
+    const scheduled = (await db.get("SELECT id FROM hangton_snapshot WHERE slot = '0730'")).id;
+    await assert.rejects(importService.deleteExtraSnapshot(db, scheduled), /HANGTON_NOT_DELETABLE/);
+    await assert.rejects(importService.deleteExtraSnapshot(db, 99999), /HANGTON_NOT_FOUND/);
+    assert.deepEqual(await importService.deleteExtraSnapshot(db, manual.snapshotId), { id: manual.snapshotId, deleted: true });
+    await importService.deleteExtraSnapshot(db, makeup.snapshotId);
+    assert.equal((await db.all('SELECT * FROM hangton_snapshot')).length, 1);
+    assert.equal((await db.all('SELECT * FROM hangton_snapshot_item')).length, 1, 'items of the deleted snapshots are gone, the scheduled ones stay');
+});
+
+test('status: three slots with OK / MISSED / WAITING, extra points, last 7 days only', async () => {
+    const db = await makeDb();
+    const day = (d, h, m = 0, s = 0) => new Date(2026, 9, d, h, m, s);
+    await takeSnapshot({ db, fetchStock: stock([oneRow('OLD')]), slot: '0730', now: day(19, 7, 30) });
+    await takeSnapshot({ db, fetchStock: stock([oneRow('X')]), slot: '0730', now: day(27, 7, 31) });
+    await importService.runManualSnapshot({ db, fetchStock: stock([oneRow('Y')]), now: day(27, 9, 0, 0) });
+    const status = await importService.importStatus(db, day(27, 13, 0));
+    assert.equal(status.business_date, '2026-10-27');
+    assert.deepEqual(status.slots.map((s) => [s.clock, s.state]), [['07:30', 'OK'], ['11:30', 'MISSED'], ['21:00', 'WAITING']]);
+    assert.equal(status.slots[0].snapshot.kept_row_count, 1);
+    assert.equal(status.extra.length, 1);
+    assert.equal(status.extra[0].slot, 'M090000');
+    assert.deepEqual([...new Set(status.recent.map((r) => r.business_date))], ['2026-10-27'], '10/19 is older than 7 days');
+    assert.equal(status.busy, false);
+});
+
+test('one fetch at a time: a second caller gets HANGTON_BUSY, the lock is released afterwards, no interval or cap', async () => {
+    const db = await makeDb();
+    let release;
+    const slow = () => new Promise((resolve) => { release = () => resolve({ rows: [oneRow('A')], portalTimestamp: 'T', count: 1 }); });
+    const first = importService.runManualSnapshot({ db, fetchStock: slow, now: new Date(2026, 9, 27, 10, 0, 1) });
+    await new Promise((r) => setTimeout(r, 20));
+    assert.equal((await importService.importStatus(db, new Date(2026, 9, 27, 10, 0, 2))).busy, true);
+    await assert.rejects(importService.runManualSnapshot({ db, fetchStock: stock([oneRow('B')]), now: new Date(2026, 9, 27, 10, 0, 3) }), /HANGTON_BUSY/);
+    release();
+    await first;
+    const again = await importService.runManualSnapshot({ db, fetchStock: stock([oneRow('C')]), now: new Date(2026, 9, 27, 10, 0, 4) });
+    assert.equal(again.keptRows, 1, 'the next run is allowed right away');
+});
+
+test('import routes: status, manual point, make-up, delete, and readable errors', async () => {
+    const db = await makeDb();
+    const when = new Date(2026, 9, 27, 13, 0, 0);
+    const app = express();
+    app.use(express.json());
+    app.use((req, res, next) => { req.auth = { user: { username: 'admin1' } }; next(); });
+    app.use('/hangton', createImportRouter({ db, fetchStock: stock([oneRow('A'), oneRow('B')]), now: () => when }));
+    const server = await new Promise((resolve) => { const s = app.listen(0, () => resolve(s)); });
+    const base = `http://127.0.0.1:${server.address().port}/hangton`;
+    const call = async (p, method = 'GET', body) => {
+        const res = await fetch(base + p, { method, headers: { 'content-type': 'application/json' }, body: body ? JSON.stringify(body) : undefined });
+        return { status: res.status, json: await res.json() };
+    };
+    try {
+        let r = await call('/status');
+        assert.equal(r.status, 200);
+        assert.deepEqual(r.json.data.slots.map((s) => s.state), ['MISSED', 'MISSED', 'WAITING']);
+        r = await call('/snapshots', 'POST', { kind: 'MANUAL' });
+        assert.equal(r.status, 200);
+        assert.equal(r.json.data.keptRows, 2);
+        const manualId = r.json.data.snapshotId;
+        assert.equal((await db.get('SELECT actor FROM hangton_snapshot WHERE id = ?', [manualId])).actor, 'admin1', 'who pressed the button is recorded');
+        r = await call('/snapshots', 'POST', { kind: 'MAKEUP', slot: '0730' });
+        assert.equal(r.status, 200);
+        r = await call('/snapshots', 'POST', { kind: 'MAKEUP', slot: '0730' });
+        assert.equal(r.status, 409);
+        assert.match(r.json.error.message, /đã có snapshot/);
+        r = await call('/snapshots', 'POST', { kind: 'MAKEUP', slot: '2100' });
+        assert.equal(r.status, 409);
+        assert.match(r.json.error.message, /chưa đến/);
+        r = await call('/snapshots', 'POST', { kind: 'NOPE' });
+        assert.equal(r.status, 400);
+        r = await call('/snapshots/' + (await db.get("SELECT id FROM hangton_snapshot WHERE slot = '0730'")).id, 'DELETE');
+        assert.equal(r.status, 200, 'a make-up can be deleted');
+        r = await call('/snapshots/' + manualId, 'DELETE');
+        assert.equal(r.status, 200);
+        r = await call('/snapshots/12345', 'DELETE');
+        assert.equal(r.status, 404);
+        await takeSnapshot({ db, fetchStock: stock([oneRow('S')]), slot: '1130', now: new Date(2026, 9, 27, 11, 30) });
+        r = await call('/snapshots/' + (await db.get("SELECT id FROM hangton_snapshot WHERE slot = '1130'")).id, 'DELETE');
+        assert.equal(r.status, 403);
+        assert.match(r.json.error.message, /không xóa mốc của lịch/);
+    } finally {
+        await new Promise((resolve) => server.close(resolve));
+    }
+    const { describeError } = createImportRouter;
+    assert.equal(describeError(new Error('HANGTON_LOGIN_FAILED_401'))[0], 502);
+    assert.equal(describeError(new Error('HANGTON_CREDENTIALS_MISSING'))[0], 503);
+    assert.equal(describeError(new Error('HANGTON_BUSY'))[0], 409);
+});
+
+test('migration adds the actor column to a table made before it existed', async () => {
+    const file = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'hangton-old-')), 'old.sqlite');
+    const raw = new sqlite3.Database(file);
+    await new Promise((res, rej) => raw.exec("CREATE TABLE hangton_snapshot (id INTEGER PRIMARY KEY AUTOINCREMENT, business_date TEXT NOT NULL, slot TEXT NOT NULL, captured_at TEXT NOT NULL, portal_timestamp TEXT, source_row_count INTEGER NOT NULL DEFAULT 0, kept_row_count INTEGER NOT NULL DEFAULT 0, is_stale INTEGER NOT NULL DEFAULT 0, trigger TEXT NOT NULL DEFAULT 'SCHEDULE', UNIQUE (business_date, slot)); INSERT INTO hangton_snapshot (business_date, slot, captured_at) VALUES ('2026-10-17','0730','2026-10-17T00:30:00Z');", (e) => (e ? rej(e) : res())));
+    await new Promise((res) => raw.close(res));
+    await applyHangtonInventory01Schema(file);
+    await applyHangtonInventory01Schema(file);
+    const check = new sqlite3.Database(file);
+    const cols = await new Promise((res, rej) => check.all('PRAGMA table_info(hangton_snapshot)', (e, r) => (e ? rej(e) : res(r))));
+    const kept = await new Promise((res, rej) => check.get('SELECT COUNT(*) AS n FROM hangton_snapshot', (e, r) => (e ? rej(e) : res(r))));
+    await new Promise((res) => check.close(res));
+    assert.ok(cols.some((c) => c.name === 'actor'));
+    assert.equal(kept.n, 1, 'existing snapshots are kept');
+});

@@ -179,6 +179,10 @@ export function isGe5Level(level) {
  */
 export function formatSlot(slot) {
   const s = String(slot || '').trim();
+  // an extra (manual) point: "M" + HHMMSS -> "Thủ công 10:45"
+  if (/^M\d{6}$/.test(s)) {
+    return `Thủ công ${s.slice(1, 3)}:${s.slice(3, 5)}`;
+  }
   if (s.length === 4) {
     return `${s.slice(0, 2)}:${s.slice(2)}`;
   }

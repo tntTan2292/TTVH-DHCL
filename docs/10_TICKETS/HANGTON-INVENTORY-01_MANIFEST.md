@@ -259,3 +259,15 @@ Tests: hangton/navigation 49/49, backend `test_hangtonInventory.js` 9/9, lint cl
 2026-10-26 (PO screenshot): the level picker wrapped onto two lines. It is compact now: chips show short labels ("≥5", full name in the tooltip), smaller buttons, labels never wrap, notes cut to one short sentence, so the picker fits one line above the office table and the overview chart. Tests hangton/navigation 60/60, lint clean, build OK.
 
 2026-10-26 (PO status): PO checked the fit zoom (menu open / closed), the COD column, the compact level picker and the restored notes: OK. PO UI PASS for these presentation changes.
+
+## 19. Import Center: manual stock points (PO 2026-10-27, Claude Code/Sonnet 5.5) — READY FOR PO UI CHECK
+
+Why: the portal data changes after 07:30, so the PO needs to update the stock by hand when needed.
+
+PO decisions: D14 a manual run is an **extra point**, never replacing a scheduled slot; D15 a manual point is compared by default with the **snapshot right before it** ("what changed since 07:30"); D16 **no interval and no daily cap** between manual runs (only one fetch at a time, so a double click cannot start two logins); D17 the admin can **delete** a manual point; D18 a **make-up** of a missed scheduled slot is stored under that slot's label (07:30 / 11:30 / 21:00) whatever the real fetch time (kept in `captured_at`); it only fills an empty slot of today and never overwrites; make-ups can be deleted too, scheduled snapshots cannot.
+
+Built:
+- Screen: Trung tâm nạp dữ liệu → new tab **Hàng tồn** (admin): button "Lấy hàng tồn ngay"; today's three scheduled slots with state (đã lấy lúc … / đã lỡ with "Lấy bù" / chưa đến giờ); today's extra points; the last 7 days (time, source, who pressed, count); delete with confirmation; refreshes every 30 s; readable error messages (login refused, portal not answering, another fetch running, slot taken).
+- Hang ton screens: a manual point is labelled "Thủ công HH:MM" in the snapshot lists; its default base is the previous snapshot; scheduled slots still compare with the same slot of the previous day; lists are ordered by time of day.
+- Backend: `GET /api/import/hangton/status`, `POST /api/import/hangton/snapshots {kind:'MANUAL'|'MAKEUP', slot}`, `DELETE /api/import/hangton/snapshots/:id` (behind the Import admin guard); slot `M`+HHMMSS for extra points; column `actor` (additive migration, existing rows kept); one shared fetch lock (the scheduler skips its minute when a manual run holds it and tries again); `hangtonImportService.js`, `hangtonImportRoutes.js`.
+- Checks: real portal fetch into a throw-away database through the new service (3 864 parcels kept, 1.8 s); tests backend 17/17 (manual does not replace a slot, base rule, make-up rules, delete rules, status, lock, routes incl. error messages, migration of an old table); frontend full sweep 794/794, hangton suites 68/68, lint clean (two older warnings in `DataImportCenter.jsx` untouched), build OK. Backend restart needed (new routes, column).

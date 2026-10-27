@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { AlertTriangle, CalendarDays, CheckCircle2, ClipboardList, Clock, Database, FileSpreadsheet, HardDrive, Play, RefreshCw, RotateCcw, Search, Square, XCircle, Zap } from 'lucide-react';
+import { AlertTriangle, CalendarDays, CheckCircle2, ClipboardList, Clock, Database, FileSpreadsheet, HardDrive, PackageSearch, Play, RefreshCw, RotateCcw, Search, Square, XCircle, Zap } from 'lucide-react';
 import api from '../api/client';
 import UploadWidget from '../components/UploadWidget';
 import AutoBackfillOperatorPanel from '../components/AutoBackfillOperatorPanel';
 import DkclSessionStrip from '../components/DkclSessionStrip';
 import ImportDailyLogPanel from '../components/ImportDailyLogPanel';
+import HangtonImportPanel from '../features/hangton/import/HangtonImportPanel';
 import { countHigh } from '../components/importDailyLogModel';
 import { buildImportReconciliationContext } from './importDashboardReconciliation';
 import {
@@ -862,6 +863,19 @@ export default function DataImportCenter() {
           </button>
           <button
             type="button"
+            onClick={() => setImportMode('HANGTON')}
+            data-testid="tab-hangton"
+            className={`inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-bold transition-[color,background-color,box-shadow,transform] duration-150 active:scale-[0.98] shadow-2xs cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-rose-400/40 ${
+              importMode === 'HANGTON'
+                ? 'bg-gradient-to-r from-rose-600 to-red-600 text-white ring-2 ring-rose-400/40 shadow-rose-500/20'
+                : 'bg-slate-100/90 text-slate-700 hover:bg-slate-200/80 hover:text-slate-900 border border-slate-200/80'
+            }`}
+          >
+            <PackageSearch size={15} className={importMode === 'HANGTON' ? 'text-rose-100' : 'text-slate-400'} />
+            Hàng tồn
+          </button>
+          <button
+            type="button"
             onClick={() => setImportMode('REPORTS')}
             className={`inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-bold transition-[color,background-color,box-shadow,transform] duration-150 active:scale-[0.98] shadow-2xs cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-purple-400/40 ${
               importMode === 'REPORTS'
@@ -905,6 +919,9 @@ export default function DataImportCenter() {
       {importMode === 'DAILYLOG' && (
         <ImportDailyLogPanel onOpenTab={(target) => setImportMode(target === 'MANUAL' ? 'MANUAL' : 'PLATFORM')} />
       )}
+
+      {/* Tab: Hàng tồn - manual / make-up stock snapshots (HANGTON-INVENTORY-01) */}
+      {importMode === 'HANGTON' && <HangtonImportPanel />}
 
       {/* Tab 2: PO Reconciliation Reports ONLY */}
       {importMode === 'REPORTS' && (

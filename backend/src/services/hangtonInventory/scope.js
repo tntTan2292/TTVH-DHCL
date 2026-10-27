@@ -10,6 +10,30 @@ const SCOPE_STATUSES = Object.freeze([
 ]);
 const SCOPE_DK1 = 'LM';
 const SLOTS = Object.freeze(['0730', '1130', '2100']);
+// A manual point is an EXTRA snapshot (PO 2026-10-27): slot "M" + HHMMSS of the moment it was taken. It never takes the
+// place of one of the three scheduled slots.
+const MANUAL_SLOT_RE = /^M\d{6}$/;
+
+function isManualSlot(slot) { return MANUAL_SLOT_RE.test(String(slot || '')); }
+function isValidSlot(slot) { return SLOTS.includes(slot) || isManualSlot(slot); }
+
+function pad2(n) { return String(n).padStart(2, '0'); }
+
+function manualSlotFor(now = new Date()) {
+    return `M${pad2(now.getHours())}${pad2(now.getMinutes())}${pad2(now.getSeconds())}`;
+}
+
+// Wall-clock time a scheduled slot stands for today: slotTime(now, '0730') -> today 07:30 local.
+function slotTime(now, slot) {
+    return new Date(now.getFullYear(), now.getMonth(), now.getDate(), Number(slot.slice(0, 2)), Number(slot.slice(2)), 0, 0);
+}
+
+// "0730" -> "07:30", "M104532" -> "10:45"
+function slotClock(slot) {
+    const s = String(slot || '');
+    const digits = isManualSlot(s) ? s.slice(1, 5) : s.slice(0, 4);
+    return digits.length === 4 ? `${digits.slice(0, 2)}:${digits.slice(2)}` : s;
+}
 
 // "Loại Tồn" -> numeric rank so levels can be compared ("<1 ngày" = 0, "≥1.5 ngày" = 1.5, ...).
 function tonRank(level) {
@@ -57,4 +81,4 @@ function selectScope(rows) {
     return items;
 }
 
-module.exports = { SCOPE_STATUSES, SCOPE_DK1, SLOTS, tonRank, inScope, toItem, selectScope };
+module.exports = { SCOPE_STATUSES, SCOPE_DK1, SLOTS, MANUAL_SLOT_RE, isManualSlot, isValidSlot, manualSlotFor, slotTime, slotClock, tonRank, inScope, toItem, selectScope };

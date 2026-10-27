@@ -3,17 +3,14 @@
 // HANGTON-INVENTORY-01 phase 2: three fixed daily slots (07:30, 11:30, 21:00, local time).
 // A tick every minute runs a slot that is due (now >= slot time, within the 30-minute catch-up window) and not yet
 // stored for today; a failed attempt is retried after RETRY_MS. One run at a time.
-const { SLOTS } = require('./scope');
-const { takeSnapshot, localDate } = require('./snapshotService');
+const { SLOTS, slotTime } = require('./scope');
+const { takeSnapshot, localDate, withSnapshotLock } = require('./snapshotService');
 
 // A slot label means "data taken at that time": a missed slot is only caught up within 30 minutes, later it stays empty.
 const CATCH_UP_MS = 30 * 60 * 1000;
 const RETRY_MS = 10 * 60 * 1000;
 const TICK_MS = 60 * 1000;
 
-function slotTime(now, slot) {
-    return new Date(now.getFullYear(), now.getMonth(), now.getDate(), Number(slot.slice(0, 2)), Number(slot.slice(2)), 0, 0);
-}
 
 // Pure decision: which slot (if any) should run now.
 function dueSlot({ now, stored, lastAttempt = {} }) {
@@ -43,10 +40,12 @@ function createScheduler({ db, fetchStock, log = console }) {
         running = true;
         lastAttempt[`${localDate(now)}|${slot}`] = now.getTime();
         try {
-            const result = await takeSnapshot({ db, fetchStock, slot, now, trigger: 'SCHEDULE' });
+            // a manual run in progress holds the lock: this tick simply tries again at the next minute
+            const result = await withSnapshotLock(() => takeSnapshot({ db, fetchStock, slot, now, trigger: 'SCHEDULE' }));
             log.log(`[hangton] snapshot ${result.businessDate} ${slot}: kept ${result.keptRows}/${result.sourceRows}${result.isStale ? ' (portal data not refreshed)' : ''}`);
             return result;
         } catch (error) {
+            if (error.message === 'HANGTON_BUSY') { delete lastAttempt[`${localDate(now)}|${slot}`]; return null; }
             log.error(`[hangton] snapshot ${slot} failed: ${error.message}`);
             return null;
         } finally {
