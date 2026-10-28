@@ -9,6 +9,7 @@ const { DkclSessionPreflightService } = require('./dkclSessionPreflightService')
 const { F42HueAdapter, F42TctAdapter, F42HueSingleDateService, F42TctSingleDateService } = require('./f42SingleDateServices');
 const { F42_EXECUTOR_IDENTITIES } = require('./autoBackfillF42Contract');
 const { sessionPendingError, PENDING_PREFLIGHT_STATUSES } = require('./autoBackfillF13Executors');
+const { sweepLeftoverFiles } = require('./dkclLeftoverCleanup');
 
 function executorError(code, message, details = null) {
     const error = new Error(message);
@@ -60,6 +61,7 @@ class F42AutoBackfillExecutor {
                     portalClient,
                 });
             } finally {
+                await sweepLeftoverFiles(portalClient, { source });
                 if (entry?.activeOperation === operationId) entry.activeOperation = null;
             }
         });

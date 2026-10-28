@@ -4,6 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const { selectNewestGeneratedFile, generatedNameMatches } = require('./dkclHueF13SyncService');
 const processManager = require('./browserProcessManager');
+const { LEFTOVER_MIN_AGE_MS, LEFTOVER_MAX_FILES, LEFTOVER_TIME_BUDGET_MS, LEFTOVER_MAX_FAILURES, LEFTOVER_EXPORT_NAME } = require('./dkclLeftoverCleanup');
 
 const DETAIL_METRIC_HEADER = 'SL bưu gửi phát thành công/Nộp tiền/CH';
 const F41_REPORT_PATH = '/kpi/chat-luong-phat-thanh-cong-cua-buu-cuc';
@@ -1639,6 +1640,45 @@ class DkclHueF13PortalClient {
             throw portalError('Generated file row still appears after cleanup.', 'CLEANUP_ROW_STILL_PRESENT');
         }
         return { status: 'DELETED' };
+    }
+
+    // Deletes up to `maxFiles` of this application's own export files that are older than `minAgeMs` from the
+    // account's file list (see dkclLeftoverCleanup.js), oldest first, within a time budget. Called by the queue
+    // executors while they still own the source, so it never runs beside an import on the same page.
+    async deleteLeftoverGeneratedFiles({
+        now = new Date(),
+        minAgeMs = LEFTOVER_MIN_AGE_MS,
+        maxFiles = LEFTOVER_MAX_FILES,
+        budgetMs = LEFTOVER_TIME_BUDGET_MS,
+        namePattern = LEFTOVER_EXPORT_NAME,
+    } = {}) {
+        const outcome = { listed: 0, candidates: 0, deleted: 0, failed: 0, errors: [] };
+        const startedAt = Date.now();
+        await this.page.goto(`${this.baseUrl}/files`, { waitUntil: 'domcontentloaded', timeout: 60000 });
+        await this.page.locator('table tbody tr').first().waitFor({ timeout: 10000 }).catch(() => {});
+        const rows = await this.page.evaluate(() => Array.from(document.querySelectorAll('table tbody tr')).map((tr) => {
+            const cells = Array.from(tr.querySelectorAll('td')).map((td) => td.innerText.trim().replace(/\s+/g, ' '));
+            return { filename: cells[1], createdAtText: cells[3] };
+        }));
+        outcome.listed = rows.length;
+        const nowMs = (now instanceof Date ? now : new Date(now)).getTime();
+        const candidates = rows
+            .map((row) => ({ filename: row.filename, createdAtMs: new Date(this.parsePortalTimestamp(row.createdAtText)).getTime() }))
+            .filter((row) => row.filename && namePattern.test(row.filename))
+            .filter((row) => Number.isFinite(row.createdAtMs) && nowMs - row.createdAtMs >= minAgeMs)
+            .sort((a, b) => a.createdAtMs - b.createdAtMs);
+        outcome.candidates = candidates.length;
+        for (const file of candidates.slice(0, maxFiles)) {
+            if (Date.now() - startedAt > budgetMs || outcome.failed >= LEFTOVER_MAX_FAILURES) break;
+            try {
+                await this.deleteGeneratedFile({ filename: file.filename });
+                outcome.deleted += 1;
+            } catch (error) {
+                outcome.failed += 1;
+                outcome.errors.push(error.code || error.message);
+            }
+        }
+        return outcome;
     }
 
     async selectByValueOrLabel(selector, value) {

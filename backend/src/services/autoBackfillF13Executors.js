@@ -5,6 +5,7 @@ const { DkclSessionPreflightService } = require('./dkclSessionPreflightService')
 const { HueF13Adapter, TctF13Adapter } = require('./f13Adapters');
 const { TctF13BackfillService } = require('./tctF13BackfillService');
 const { F13_EXECUTOR_IDENTITIES } = require('./autoBackfillF13Contract');
+const { sweepLeftoverFiles } = require('./dkclLeftoverCleanup');
 
 const HUE_TERMINAL_STATUSES = new Set([
     'SUCCESS',
@@ -124,6 +125,8 @@ class F13AutoBackfillExecutor {
             });
             return source === 'HUE' ? this.awaitHueResult(result) : result;
         } finally {
+            // The HUE F1.3 run keeps working on this page after runOneDate returns (awaitHueResult), so only TCT is swept here.
+            if (source === 'TCT') await sweepLeftoverFiles(portalClient, { source });
             if (entry?.activeOperation === operationId) entry.activeOperation = null;
         }
     }

@@ -12,6 +12,7 @@ const { F41_EXECUTOR_IDENTITIES } = require('./autoBackfillF41Contract');
 // still produced a false "Cần đăng nhập thủ công" instead of the PENDING treatment F1.3 already
 // gets. Reusing the exact same classification, not a re-implementation.
 const { sessionPendingError, PENDING_PREFLIGHT_STATUSES } = require('./autoBackfillF13Executors');
+const { sweepLeftoverFiles } = require('./dkclLeftoverCleanup');
 
 function executorError(code, message, details = null) {
     const error = new Error(message);
@@ -66,6 +67,7 @@ class F41AutoBackfillExecutor {
                     portalClient,
                 });
             } finally {
+                await sweepLeftoverFiles(portalClient, { source });
                 if (entry?.activeOperation === operationId) entry.activeOperation = null;
             }
         });

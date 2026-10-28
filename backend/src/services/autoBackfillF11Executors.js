@@ -9,6 +9,7 @@ const { DkclSessionPreflightService } = require('./dkclSessionPreflightService')
 const { F11HueAdapter, F11TctAdapter, F11HueSingleDateService, F11TctSingleDateService } = require('./f11SingleDateServices');
 const { F11_EXECUTOR_IDENTITIES } = require('./autoBackfillF11Contract');
 const { sessionPendingError, PENDING_PREFLIGHT_STATUSES } = require('./autoBackfillF13Executors');
+const { sweepLeftoverFiles } = require('./dkclLeftoverCleanup');
 
 function executorError(code, message, details = null) {
     const error = new Error(message);
@@ -60,6 +61,7 @@ class F11AutoBackfillExecutor {
                     portalClient,
                 });
             } finally {
+                await sweepLeftoverFiles(portalClient, { source });
                 if (entry?.activeOperation === operationId) entry.activeOperation = null;
             }
         });
