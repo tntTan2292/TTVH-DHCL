@@ -56,8 +56,8 @@ test('the fit hook uses a callback ref (an effect on a ref object ran before the
 
 test('the parcel table with the handling columns is laid out wider and may shrink further', () => {
   const wide = { design: HANGTON_WIDE_DESIGN_WIDTH, min: HANGTON_WIDE_MIN_ZOOM };
-  assert.equal(computeFitZoom({ width: 1600, ...wide }), 1);
-  assert.equal(computeFitZoom({ width: 1200, ...wide }), 0.74, 'menu open on a laptop: smaller text, whole table in view');
+  assert.equal(computeFitZoom({ width: 1400, ...wide }), 1);
+  assert.equal(computeFitZoom({ width: 1200, ...wide }), 0.84, 'menu open on a laptop: smaller text, whole table in view');
   assert.equal(computeFitZoom({ width: 800, ...wide }), HANGTON_WIDE_MIN_ZOOM);
-  assert.ok(computeFitZoom({ width: 1200, ...wide }) < computeFitZoom({ width: 1200 }));
+  assert.ok(computeFitZoom({ width: 1150, ...wide }) >= 0.8, 'text stays readable (about 11 px) on a laptop with the menu open');
 });

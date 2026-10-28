@@ -104,7 +104,9 @@ export default function HangTonItemsTab({
   const fileInputRef = useRef(null);
   // With the handling columns the table is narrow: STT, Số hiệu, Bưu cục, Loại tồn, COD, Rà soát, 4 entry columns (+ tick and Lưu).
   const TH = canHandle ? 'py-2 px-2 whitespace-nowrap' : 'py-2.5 px-3';
-  const colCount = canHandle ? 10 + (canWrite ? 2 : 0) : 9;
+  // one office chosen: its name is already in the heading, so the column is left out (room for larger text)
+  const showOffice = !(canHandle && office);
+  const colCount = (canHandle ? 10 + (canWrite ? 2 : 0) : 9) - (showOffice ? 0 : 1);
   // Direct entry in the table: what was typed (by parcel code) waits here until it is confirmed.
   const [drafts, setDrafts] = useState({});
   const [flagged, setFlagged] = useState({}); // parcels whose save was tried while something was missing
@@ -564,7 +566,7 @@ export default function HangTonItemsTab({
       {pageBar}
 
       {/* Main Detail Table */}
-      <div className="overflow-x-auto border border-slate-200 rounded-xl shadow-2xs">
+      <div data-fit-table="true" className="overflow-x-auto border border-slate-200 rounded-xl shadow-2xs">
         <table className="w-full text-sm text-left border-collapse">
           <thead>
             <tr className={`bg-slate-50 border-b border-slate-200 text-slate-700 font-bold uppercase ${canHandle ? 'text-[12px] tracking-wide' : 'text-[13px] tracking-wider'}`}>
@@ -575,7 +577,7 @@ export default function HangTonItemsTab({
               ) : null}
               <th className={`${TH} `}>STT</th>
               <SortableTh field="item_code" sort={sort} onSort={handleSort} className={`${TH} `} activeClassName={TH_ACTIVE}>Số hiệu bưu gửi</SortableTh>
-              <SortableTh field="office" sort={sort} onSort={handleSort} className={`${TH} `} activeClassName={TH_ACTIVE}>Bưu cục phát</SortableTh>
+              {showOffice ? (<SortableTh field="office" sort={sort} onSort={handleSort} className={`${TH} `} activeClassName={TH_ACTIVE}>Bưu cục phát</SortableTh>) : null}
               {canHandle ? null : (<SortableTh field="customer" sort={sort} onSort={handleSort} className={`${TH} `} activeClassName={TH_ACTIVE}>Nhóm KH</SortableTh>)}
               {canHandle ? null : (<SortableTh field="status" sort={sort} onSort={handleSort} className={`${TH} `} activeClassName={TH_ACTIVE}>Trạng thái TMS</SortableTh>)}
               <SortableTh field="rank" sort={sort} onSort={handleSort} className={`${TH} `} activeClassName={TH_ACTIVE}>Loại tồn</SortableTh>
@@ -585,10 +587,10 @@ export default function HangTonItemsTab({
               {canHandle ? (
                 <>
                   <SortableTh field="review" sort={sort} onSort={handleSort} className={`${TH} `} activeClassName={TH_ACTIVE}>Rà soát</SortableTh>
-                  <SortableTh field="cause" sort={sort} onSort={handleSort} className={`${TH}  min-w-[11rem]`} activeClassName={TH_ACTIVE}>Nội dung xử lý</SortableTh>
-                  <SortableTh field="plan" sort={sort} onSort={handleSort} className={`${TH}  min-w-[11rem]`} activeClassName={TH_ACTIVE} title="Hướng xử lý (kèm ngày phát lại / chuyển hoàn). Bấm để sắp xếp.">Hướng xử lý</SortableTh>
-                  <SortableTh field="result" sort={sort} onSort={handleSort} className={`${TH}  min-w-[9rem]`} activeClassName={TH_ACTIVE} title="Tự động theo nội dung xử lý. Bấm để sắp xếp.">Kết quả xử lý</SortableTh>
-                  <SortableTh field="note" sort={sort} onSort={handleSort} className={`${TH}  min-w-[10rem]`} activeClassName={TH_ACTIVE}>Ghi chú</SortableTh>
+                  <SortableTh field="cause" sort={sort} onSort={handleSort} className={`${TH}  min-w-[9rem]`} activeClassName={TH_ACTIVE}>Nội dung xử lý</SortableTh>
+                  <SortableTh field="plan" sort={sort} onSort={handleSort} className={`${TH}  min-w-[9rem]`} activeClassName={TH_ACTIVE} title="Hướng xử lý (kèm ngày phát lại / chuyển hoàn). Bấm để sắp xếp.">Hướng xử lý</SortableTh>
+                  <SortableTh field="result" sort={sort} onSort={handleSort} className={`${TH}  min-w-[7rem]`} activeClassName={TH_ACTIVE} title="Tự động theo nội dung xử lý. Bấm để sắp xếp.">Kết quả xử lý</SortableTh>
+                  <SortableTh field="note" sort={sort} onSort={handleSort} className={`${TH}  min-w-[8rem]`} activeClassName={TH_ACTIVE}>Ghi chú</SortableTh>
                   {canWrite ? (<th className={`${TH} `} data-no-capture="true">Lưu</th>) : null}
                 </>
               ) : null}
@@ -621,6 +623,7 @@ export default function HangTonItemsTab({
                   rowNum={(page - 1) * pageSize + idx + 1}
                   canWrite={canWrite}
                   canHandle={canHandle}
+                  showOffice={showOffice}
                   catalog={handlingCatalog}
                   checked={selected.includes(row.item_code)}
                   draft={drafts[row.item_code]}

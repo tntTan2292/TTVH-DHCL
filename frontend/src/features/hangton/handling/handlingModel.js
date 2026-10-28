@@ -15,8 +15,7 @@ export const STATE_META = Object.freeze({
 // Still in stock although it was marked "Đã xử lý" on an earlier day: the cause has to be looked at again.
 export const RECHECK_META = Object.freeze({
   label: 'Đã xử lý nhưng còn tồn',
-  note: 'Trạng thái Đã xử lý chỉ đúng khi Chuyển hoàn vào ngày hiện tại',
-  hint: 'Bưu gửi từng được ghi "Đã xử lý" nhưng vẫn còn trong danh sách tồn. Kiểm tra lại nội dung xử lý và nhập lại. Trạng thái Đã xử lý chỉ đúng khi Chuyển hoàn vào ngày hiện tại.',
+  hint: 'Bưu gửi từng được ghi "Đã xử lý" nhưng vẫn còn trong danh sách tồn. Kiểm tra lại nội dung xử lý và nhập lại.',
   badgeClass: 'border-orange-400 bg-orange-100 text-orange-900',
 });
 

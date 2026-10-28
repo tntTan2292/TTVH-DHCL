@@ -12,8 +12,8 @@ export const HANGTON_MIN_ZOOM = 0.7;
 export const HANGTON_MAX_ZOOM = 1.5;
 // The parcel table with the stock-handling columns (cause, plan, result, note, save) needs more room to keep one parcel on
 // one line (PO 2026-10-27): that screen is laid out for a wider logical width and may shrink further.
-export const HANGTON_WIDE_DESIGN_WIDTH = 1600;
-export const HANGTON_WIDE_MIN_ZOOM = 0.6;
+export const HANGTON_WIDE_DESIGN_WIDTH = 1400;
+export const HANGTON_WIDE_MIN_ZOOM = 0.7;
 const STEP = 0.02; // zoom moves in steps, so a scrollbar appearing or disappearing cannot make it flicker
 
 /**
@@ -37,6 +37,8 @@ export function computeFitZoom({ width, design = HANGTON_DESIGN_WIDTH, min = HAN
 export function useFitZoom(options = {}) {
   const [element, fitRef] = useState(null);
   const [zoom, setZoom] = useState(1);
+  const [extraSteps, setExtraSteps] = useState(0);
+  const [tick, setTick] = useState(0);
   const optionsRef = useRef(options);
   optionsRef.current = options;
 
@@ -45,6 +47,7 @@ export function useFitZoom(options = {}) {
     const update = () => {
       const next = computeFitZoom({ width: element.clientWidth, ...optionsRef.current });
       setZoom((current) => (current === next ? current : next));
+      setExtraSteps(0);
     };
     update();
     if (typeof ResizeObserver === 'undefined') {
@@ -56,5 +59,28 @@ export function useFitZoom(options = {}) {
     return () => observer.disconnect();
   }, [element, options.design, options.min]);
 
-  return { fitRef, zoom };
+  // rows arrive after the wrapper mounted: look again whenever the content changes (once per frame at most)
+  useEffect(() => {
+    if (!element || typeof MutationObserver === 'undefined') return undefined;
+    let frame = 0;
+    const observer = new MutationObserver(() => {
+      if (frame) return;
+      frame = requestAnimationFrame(() => { frame = 0; setTick((n) => n + 1); });
+    });
+    observer.observe(element, { childList: true, subtree: true });
+    return () => { observer.disconnect(); if (frame) cancelAnimationFrame(frame); };
+  }, [element]);
+
+  // Safeguard: when the table inside still scrolls sideways at this zoom (the columns need more room than the design width
+  // assumed), shrink one more step at a time until the whole table is in view or the minimum is reached.
+  useEffect(() => {
+    if (!element) return;
+    const table = element.querySelector('[data-fit-table]');
+    const min = optionsRef.current.min ?? HANGTON_MIN_ZOOM;
+    if (table && table.scrollWidth > table.clientWidth + 1 && zoom - (extraSteps + 1) * STEP >= min - 1e-9) {
+      setExtraSteps(extraSteps + 1);
+    }
+  }, [element, zoom, extraSteps, tick]);
+
+  return { fitRef, zoom: Math.round((zoom - extraSteps * STEP) * 100) / 100 };
 }

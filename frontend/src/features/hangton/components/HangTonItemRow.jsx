@@ -7,7 +7,7 @@ import { getLevelConfig, formatCurrency } from '../hangtonLevels.js';
 // With the stock-handling columns (`canHandle`) the table is kept narrow: Nhóm KH, Trạng thái TMS, Bưu tá and Lý do
 // are left to the one-parcel panel and the Excel file.
 function HangTonItemRow({
-  row, rowNum, canWrite, canHandle, catalog, checked, draft, flagged, saving, today,
+  row, rowNum, canWrite, canHandle, showOffice = true, catalog, checked, draft, flagged, saving, today,
   onToggle, onOpen, onEdit, onSave, onDiscard,
 }) {
   // One parcel on one line: tight cells that do not wrap (the page scales to the width, see hangtonFit.js).
@@ -32,7 +32,7 @@ function HangTonItemRow({
           </button>
         ) : row.item_code}
       </td>
-      <td className={`${C} font-semibold text-slate-800`}>{row.office || '—'}</td>
+      {showOffice ? (<td className={`${C} font-semibold text-slate-800`}>{row.office || '—'}</td>) : null}
       {canHandle ? null : (<td className={`${C} text-slate-700`}>{row.customer_class || '—'}</td>)}
       {canHandle ? null : (<td className={`${C} text-slate-700`}>{row.status_name}</td>)}
       <td className={C}>
@@ -54,7 +54,6 @@ function HangTonItemRow({
           ) : recheck ? (
             <div title={RECHECK_META.hint}>
               <span className={`inline-block whitespace-nowrap rounded-md border px-2 py-0.5 text-[13px] font-bold ${RECHECK_META.badgeClass}`}>⚠ {RECHECK_META.label}</span>
-              <div className="mt-0.5 text-[10px] font-medium leading-tight text-orange-700">({RECHECK_META.note})</div>
             </div>
           ) : (
             <span className={`inline-block whitespace-nowrap rounded-md border px-2 py-0.5 text-[13px] font-semibold ${state.badgeClass}`}>{state.label}</span>
