@@ -9,6 +9,9 @@ const LEFTOVER_MIN_AGE_MS = 15 * 60 * 1000;
 const LEFTOVER_MAX_FILES = 10;
 const LEFTOVER_TIME_BUDGET_MS = 60 * 1000;
 const LEFTOVER_MAX_FAILURES = 3;
+// Idle sweeps (keep-alive, nobody waiting) may run longer than the one after a job.
+const IDLE_LEFTOVER_MAX_FILES = 30;
+const IDLE_LEFTOVER_TIME_BUDGET_MS = 3 * 60 * 1000;
 
 // <account>_DD-MM-YYYY_HH-mm-ss_<slug>[_chi_tiet]_NN.xlsx|csv, or the earlier <date>_<slug>[_chi_tiet](N).xlsx|csv
 const LEFTOVER_EXPORT_NAME = new RegExp(
@@ -25,12 +28,12 @@ const LEFTOVER_EXPORT_NAME = new RegExp(
 );
 
 // Never throws and never keeps the lane waiting past the budget: it runs inside the job's critical section.
-async function sweepLeftoverFiles(portalClient, { source = '', logger = console, budgetMs = LEFTOVER_TIME_BUDGET_MS + 15000 } = {}) {
+async function sweepLeftoverFiles(portalClient, { source = '', logger = console, limits = {}, budgetMs = (limits.budgetMs ?? LEFTOVER_TIME_BUDGET_MS) + 15000 } = {}) {
     if (typeof portalClient?.deleteLeftoverGeneratedFiles !== 'function') return null;
     let timer;
     try {
         const outcome = await Promise.race([
-            portalClient.deleteLeftoverGeneratedFiles(),
+            portalClient.deleteLeftoverGeneratedFiles(limits),
             new Promise((resolve) => { timer = setTimeout(() => resolve({ timedOut: true }), budgetMs); }),
         ]);
         if (outcome?.timedOut) {
@@ -60,7 +63,7 @@ async function sweepWhenIdle(sessionService, source, { logger = console } = {}) 
         const marker = `LEFTOVER_CLEANUP_${source}`;
         entry.activeOperation = marker;
         try {
-            return await sweepLeftoverFiles(client, { source, logger });
+            return await sweepLeftoverFiles(client, { source, logger, limits: { maxFiles: IDLE_LEFTOVER_MAX_FILES, budgetMs: IDLE_LEFTOVER_TIME_BUDGET_MS } });
         } finally {
             if (entry.activeOperation === marker) entry.activeOperation = null;
         }
@@ -72,6 +75,8 @@ module.exports = {
     LEFTOVER_MAX_FILES,
     LEFTOVER_TIME_BUDGET_MS,
     LEFTOVER_MAX_FAILURES,
+    IDLE_LEFTOVER_MAX_FILES,
+    IDLE_LEFTOVER_TIME_BUDGET_MS,
     LEFTOVER_EXPORT_NAME,
     sweepLeftoverFiles,
     sweepWhenIdle,

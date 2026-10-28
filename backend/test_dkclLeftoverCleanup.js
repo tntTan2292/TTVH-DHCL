@@ -9,6 +9,8 @@ const { DkclHueF13PortalClient } = require('./src/services/dkclHueF13PortalClien
 const {
     LEFTOVER_EXPORT_NAME,
     LEFTOVER_MAX_FILES,
+    IDLE_LEFTOVER_MAX_FILES,
+    IDLE_LEFTOVER_TIME_BUDGET_MS,
     sweepLeftoverFiles,
     sweepWhenIdle,
 } = require('./src/services/dkclLeftoverCleanup');
@@ -176,8 +178,9 @@ function idleService({ activeOperation = null, hasClient = true } = {}) {
     const entry = { activeOperation };
     const events = [];
     const client = {
-        async deleteLeftoverGeneratedFiles() {
+        async deleteLeftoverGeneratedFiles(limits) {
             events.push(`sweep while ${entry.activeOperation}`);
+            entry.seenLimits = limits;
             return { listed: 3, candidates: 2, deleted: 2, failed: 0, errors: [] };
         },
     };
@@ -198,6 +201,16 @@ test('an idle source is swept under the source lock with the marker set, and the
     assert.equal(outcome.deleted, 2);
     assert.deepEqual(events, ['lock TCT', 'sweep while LEFTOVER_CLEANUP_TCT']);
     assert.equal(entry.activeOperation, null);
+    assert.equal(IDLE_LEFTOVER_MAX_FILES, 30);
+    assert.equal(IDLE_LEFTOVER_TIME_BUDGET_MS, 180000);
+    assert.deepEqual(entry.seenLimits, { maxFiles: 30, budgetMs: 180000 }, 'an idle sweep runs longer than the one after a job');
+});
+
+test('the sweep after a job keeps the 10-file, 60-second limits', async () => {
+    const seen = [];
+    await sweepLeftoverFiles({ deleteLeftoverGeneratedFiles: async (limits) => { seen.push(limits); return { listed: 0, candidates: 0, deleted: 0, failed: 0, errors: [] }; } }, { source: 'TCT', logger: { log() {}, warn() {} } });
+    assert.deepEqual(seen, [{}], 'no override: the client method applies its own 10 files and 60 seconds');
+    assert.equal(LEFTOVER_MAX_FILES, 10);
 });
 
 test('a busy source or one without a live client is not swept', async () => {
