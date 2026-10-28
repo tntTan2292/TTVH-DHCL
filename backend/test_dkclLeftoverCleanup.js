@@ -10,7 +10,9 @@ const {
     LEFTOVER_EXPORT_NAME,
     LEFTOVER_MAX_FILES,
     sweepLeftoverFiles,
+    sweepWhenIdle,
 } = require('./src/services/dkclLeftoverCleanup');
+const { DkclSessionKeepAlive } = require('./src/services/dkclSessionKeepAlive');
 const { F42AutoBackfillExecutor } = require('./src/services/autoBackfillF42Executors');
 const { F42_EXECUTOR_IDENTITIES } = require('./src/services/autoBackfillF42Contract');
 
@@ -168,4 +170,70 @@ test('an F4.2 executor sweeps after the job while it still owns the source, and 
     await assert.rejects(executor.execute(request), (error) => error.code === 'EXPORT_TIMEOUT');
     assert.equal(seen.swept, 3, 'a failed job is swept too');
     assert.equal(entry.activeOperation, null);
+});
+
+function idleService({ activeOperation = null, hasClient = true } = {}) {
+    const entry = { activeOperation };
+    const events = [];
+    const client = {
+        async deleteLeftoverGeneratedFiles() {
+            events.push(`sweep while ${entry.activeOperation}`);
+            return { listed: 3, candidates: 2, deleted: 2, failed: 0, errors: [] };
+        },
+    };
+    return {
+        entry,
+        events,
+        service: {
+            getRegistryState: () => entry,
+            getInteractiveClient: () => (hasClient ? client : null),
+            async withSourceLock(source, fn) { events.push(`lock ${source}`); return fn(); },
+        },
+    };
+}
+
+test('an idle source is swept under the source lock with the marker set, and the marker is cleared afterwards', async () => {
+    const { entry, events, service } = idleService();
+    const outcome = await sweepWhenIdle(service, 'TCT', { logger: { log() {}, warn() {} } });
+    assert.equal(outcome.deleted, 2);
+    assert.deepEqual(events, ['lock TCT', 'sweep while LEFTOVER_CLEANUP_TCT']);
+    assert.equal(entry.activeOperation, null);
+});
+
+test('a busy source or one without a live client is not swept', async () => {
+    const busy = idleService({ activeOperation: 'AUTO_BACKFILL_F42_TCT' });
+    assert.equal(await sweepWhenIdle(busy.service, 'TCT'), null);
+    assert.deepEqual(busy.events, [], 'a busy source is not even locked');
+    assert.equal(busy.entry.activeOperation, 'AUTO_BACKFILL_F42_TCT', 'its marker is left alone');
+
+    const noClient = idleService({ hasClient: false });
+    assert.equal(await sweepWhenIdle(noClient.service, 'TCT'), null);
+    assert.equal(noClient.entry.activeOperation, null);
+
+    assert.equal(await sweepWhenIdle({}, 'TCT'), null, 'a session service without locking is skipped');
+});
+
+test('the keep-alive sweeps only a source whose session is valid, and a failing sweep never disturbs it', async () => {
+    const swept = [];
+    const live = { HUE: true, TCT: true };
+    const statuses = { HUE: 'SESSION_VALID', TCT: 'AUTHENTICATION_REQUIRED' };
+    const sessionService = {
+        getInteractiveClient: (source) => (live[source] ? {} : null),
+        async preflight(source) { return { status: statuses[source] }; },
+    };
+    const silent = { log() {}, warn() {} };
+    const logDir = require('node:fs').mkdtempSync(require('node:path').join(require('node:os').tmpdir(), 'keepalive-sweep-'));
+    try {
+        const keepAlive = new DkclSessionKeepAlive({
+            sessionService, logDir, logger: silent,
+            idleSweep: async (source) => { swept.push(source); throw new Error('sweep broke'); },
+        });
+        await keepAlive.tick();
+        assert.deepEqual(swept, ['HUE']);
+        const plain = new DkclSessionKeepAlive({ sessionService, logDir, logger: silent });
+        await plain.tick();
+        assert.deepEqual(swept, ['HUE'], 'without the hook nothing is swept');
+    } finally {
+        require('node:fs').rmSync(logDir, { recursive: true, force: true });
+    }
 });

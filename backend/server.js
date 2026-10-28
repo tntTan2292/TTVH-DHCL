@@ -211,6 +211,7 @@ function startAutoImportSchedule() {
         sessionService,
         // a source that becomes valid again (sign-in, re-attach, restart) wakes the queue lanes, which park themselves without a session
         // and resumes the runs that were waiting for a sign-in of that source (AUTO_BACKFILL_AUTO_RESUME=false keeps the manual button only)
+        idleSweep: (source) => require('./src/services/dkclLeftoverCleanup').sweepWhenIdle(sessionService, source),
         onSessionValid: async (source) => {
             const runtime = require('./src/services/autoBackfillQueueRuntime');
             const resumed = await runtime.getAutoBackfillQueueService().resumeAuthWaitForLane(source);

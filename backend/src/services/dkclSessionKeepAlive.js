@@ -41,6 +41,9 @@ class DkclSessionKeepAlive {
         // tried again quickly a few times before the long cooldown applies, so a restart does not need a manual sign-in.
         startupRetryMs = 2 * 60 * 1000,
         startupRetryLimit = 5,
+        // Called for a source whose session is valid after its check (server.js wires dkclLeftoverCleanup.sweepWhenIdle): the
+        // leftover export files on the portal are otherwise only swept after a queue job, i.e. never while the queue is idle.
+        idleSweep = null,
     } = {}) {
         this.sessionService = sessionService;
         this.env = env;
@@ -51,6 +54,7 @@ class DkclSessionKeepAlive {
         this.logDir = logDir || path.resolve(__dirname, '../../../Data DKCL/BrowserProfiles');
         this.logger = logger;
         this.onSessionValid = onSessionValid;
+        this.idleSweep = idleSweep;
         this.startupRetryMs = startupRetryMs;
         this.startupRetryLimit = startupRetryLimit;
         this.startupRetries = 0;
@@ -118,6 +122,9 @@ class DkclSessionKeepAlive {
                 }
                 const change = this.note(source, status);
                 if (change) changes.push(change);
+                if (status === 'SESSION_VALID' && this.idleSweep) {
+                    try { await this.idleSweep(source); } catch (_) { /* cleanup only: never disturb the keep-alive */ }
+                }
             }
         } finally {
             this.busy = false;

@@ -47,6 +47,26 @@ async function sweepLeftoverFiles(portalClient, { source = '', logger = console,
     }
 }
 
+// Used by the DKCL keep-alive when a source has a valid session: with the queue idle nothing else would ever sweep,
+// so the leftovers of earlier days would stay. Takes the source lock like a queue job; skips a source that is busy.
+async function sweepWhenIdle(sessionService, source, { logger = console } = {}) {
+    if (typeof sessionService?.withSourceLock !== 'function' || typeof sessionService?.getRegistryState !== 'function') return null;
+    if (sessionService.getRegistryState(source)?.activeOperation) return null;
+    return sessionService.withSourceLock(source, async () => {
+        const entry = sessionService.getRegistryState(source);
+        if (!entry || entry.activeOperation) return null;
+        const client = sessionService.getInteractiveClient(source) || null;
+        if (!client) return null;
+        const marker = `LEFTOVER_CLEANUP_${source}`;
+        entry.activeOperation = marker;
+        try {
+            return await sweepLeftoverFiles(client, { source, logger });
+        } finally {
+            if (entry.activeOperation === marker) entry.activeOperation = null;
+        }
+    });
+}
+
 module.exports = {
     LEFTOVER_MIN_AGE_MS,
     LEFTOVER_MAX_FILES,
@@ -54,4 +74,5 @@ module.exports = {
     LEFTOVER_MAX_FAILURES,
     LEFTOVER_EXPORT_NAME,
     sweepLeftoverFiles,
+    sweepWhenIdle,
 };
