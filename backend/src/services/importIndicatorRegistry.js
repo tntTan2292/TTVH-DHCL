@@ -100,10 +100,13 @@ function createLane({
     manualOnlyReason,
     portalAdapter = null,
     requiredValues = null,
+    trackingStartDate = null,
 }) {
     return {
         code,
         priority,
+        // Optional: the first day this source has data on the portal, when later than the indicator's own.
+        trackingStartDate,
         parser,
         targetTable,
         completionPolicy: createSqliteImportCompletionPolicy({
@@ -397,6 +400,8 @@ INDICATORS['F4.2'] = {
         HUE: createLane({
             code: 'HUE',
             priority: 10,
+            // PO 2026-10-28: the portal has no F4.2 data before 01/04/2026 (01/01-31/03 all fail the same way).
+            trackingStartDate: '2026-04-01',
             parser: (buffer, filename) => parseF42Hue(buffer, filename),
             targetTable: 'fact_f42',
             distinctColumn: ['ma_bg', 'ma_buu_ta', 'thoi_gian_gbt'],
@@ -409,6 +414,9 @@ INDICATORS['F4.2'] = {
         TCT: createLane({
             code: 'TCT',
             priority: 20,
+            // PO 2026-10-28: no real data on 01/05 and 10/06; kept from 11/06 because the days after the
+            // last empty one checked are not verified.
+            trackingStartDate: '2026-06-11',
             parser: (buffer, filename) => parseF42Tct(buffer, filename),
             targetTable: 'fact_f42_national',
             // One row per ranked delivering province; complete only when all 34 frozen codes are present.
@@ -479,6 +487,12 @@ function validateIndicatorRegistration(indicator, registryKey = indicator?.code)
             throw new Error(`${indicator.code}.${laneKey} is not a supported source lane.`);
         }
         if (!Number.isInteger(lane.priority)) throw new Error(`${indicator.code}.${laneKey}.priority must be an integer.`);
+        if (lane.trackingStartDate != null) {
+            assertIsoDate(lane.trackingStartDate, `${indicator.code}.${laneKey}.trackingStartDate`);
+            if (lane.trackingStartDate < indicator.trackingStartDate) {
+                throw new Error(`${indicator.code}.${laneKey}.trackingStartDate must not be before the indicator's.`);
+            }
+        }
         if (typeof lane.parser !== 'function') throw new Error(`${indicator.code}.${laneKey}.parser is required.`);
         assertSqlIdentifier(lane.targetTable, `${indicator.code}.${laneKey}.targetTable`);
         if (!lane.completionPolicy?.id || typeof lane.completionPolicy.evaluate !== 'function') {

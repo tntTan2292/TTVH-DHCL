@@ -264,6 +264,28 @@ test('AB-EXT-04 changes the F9.TEST coverage window by fixture start date only',
     assert.equal((await scan(second)).total_items, 2);
 });
 
+test('a lane with its own tracking start date is scanned from that date, the other lane from the indicator start', async () => {
+    const hue = { ...createLane({ completionPolicy: createMapPolicy() }), trackingStartDate: '2026-01-03' };
+    const tct = { ...createLane({ code: 'TCT', priority: 20, completionPolicy: createMapPolicy() }) };
+    const indicator = createIndicator({ startDate: '2026-01-01', lanes: { HUE: hue, TCT: tct } });
+    const coverage = await new AutoBackfillCoverageService({ db: {}, registryProvider: () => [indicator] })
+        .scan({ asOf: '2026-01-04', roles: ['admin'] });
+    const datesOf = (laneCode) => coverage.items.filter((item) => item.source_lane === laneCode).map((item) => item.business_date);
+
+    assert.deepEqual(datesOf('HUE'), ['2026-01-03']);
+    assert.deepEqual(datesOf('TCT'), ['2026-01-03', '2026-01-02', '2026-01-01']);
+    assert.equal(coverage.lanes.find((entry) => entry.source_lane === 'HUE').tracking_start_date, '2026-01-03');
+});
+
+test('F4.2 starts at 01/04 for HUE and 11/06 for TCT; a lane start before the indicator start is refused', () => {
+    const { INDICATORS, validateIndicatorRegistration } = require('./src/services/importIndicatorRegistry');
+    assert.equal(INDICATORS['F4.2'].lanes.HUE.trackingStartDate, '2026-04-01');
+    assert.equal(INDICATORS['F4.2'].lanes.TCT.trackingStartDate, '2026-06-11');
+    assert.equal(INDICATORS['F1.3'].lanes.HUE.trackingStartDate, null);
+    const early = { ...INDICATORS['F4.2'], lanes: { ...INDICATORS['F4.2'].lanes, HUE: { ...INDICATORS['F4.2'].lanes.HUE, trackingStartDate: '2025-12-31' } } };
+    assert.throws(() => validateIndicatorRegistration(early), /must not be before/);
+});
+
 test('AB-ISO-01 keeps same-date completion isolated across indicators and lanes', async () => {
     const fixture = await createIsolationFixture();
     try {

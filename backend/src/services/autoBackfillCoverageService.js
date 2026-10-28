@@ -248,7 +248,7 @@ class AutoBackfillCoverageService {
                 matchedBeforePermission += 1;
                 if (!laneCanBeRead(laneConfig, requesterRoles)) continue;
                 matchedAfterPermission += 1;
-                for (const businessDate of enumerateDatesDescending(indicatorConfig.trackingStartDate, toDate)) {
+                for (const businessDate of enumerateDatesDescending(laneConfig.trackingStartDate || indicatorConfig.trackingStartDate, toDate)) {
                     tuples.push({ indicator: indicatorConfig, lane: laneConfig, businessDate });
                 }
             }
@@ -368,7 +368,7 @@ class AutoBackfillCoverageService {
                     indicator_name: indicatorConfig.name,
                     indicator_status: indicatorConfig.status,
                     source_lane: laneConfig.code,
-                    tracking_start_date: indicatorConfig.trackingStartDate,
+                    tracking_start_date: laneConfig.trackingStartDate || indicatorConfig.trackingStartDate,
                     to_date: toDate,
                     automation_mode: laneConfig.automationMode,
                     manual_only_reason: laneConfig.manualOnlyReason || null,
