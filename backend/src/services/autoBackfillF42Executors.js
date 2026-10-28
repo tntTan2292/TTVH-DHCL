@@ -74,11 +74,10 @@ class F42AutoBackfillExecutor {
     }
 }
 
-// The F4.2 export covers every postman nationwide and takes up to ~1.6 minutes on a healthy
-// portal; past 2 minutes the portal has failed (PO decision 2026-10-27, was 15 minutes) and the
-// wasted wait blocks the whole lane. Only the queue's own service instances use it; the plain
-// service keeps its 15-minute default.
-const F42_BACKFILL_EXPORT_TIMEOUT_MS = 120000;
+// The F4.2 export covers every postman nationwide: successes take up to ~3.3 minutes in total (about 2.7 of waiting),
+// so 3 minutes of waiting (PO decision 2026-10-28; 15 minutes before, 2 briefly) separates a slow export from a failed
+// one. Only the queue's own service instances use it; the plain service keeps its 15-minute default.
+const F42_BACKFILL_EXPORT_TIMEOUT_MS = 180000;
 
 function createF42AutoBackfillExecutors(options = {}) {
     const sessionPreflightService = options.sessionPreflightService || new DkclSessionPreflightService();

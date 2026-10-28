@@ -1482,6 +1482,7 @@ class DkclHueF13PortalClient {
 
     async pollGeneratedFile({ requestedAt, timeoutMs, intervalMs, match }) {
         const timeoutAt = Date.now() + timeoutMs;
+        let lastSeen = null;
         while (Date.now() < timeoutAt) {
             await this.page.goto(`${this.baseUrl}/files`, { waitUntil: 'domcontentloaded', timeout: 60000 });
             
@@ -1518,11 +1519,31 @@ class DkclHueF13PortalClient {
                 ...file,
                 createdAt: this.parsePortalTimestamp(file.createdAtText)
             }));
+            lastSeen = normalized;
             const selected = selectNewestGeneratedFile(normalized, { requestedAt, match });
             if (selected?.href) return selected;
             await this.page.waitForTimeout(intervalMs);
         }
+        this.logGeneratedFileTimeout('pollGeneratedFile', lastSeen, { requestedAt, match });
         return null;
+    }
+
+    // Written once when a wait for a generated file ends without a match, so the next timeout shows
+    // what the portal's file list held (names, times as read, whether the name matched, whether a link was found).
+    logGeneratedFileTimeout(label, files, { requestedAt, match }) {
+        try {
+            const top = (files || []).slice(0, 5).map((file) => ({
+                filename: file.filename,
+                createdAtText: file.createdAtText,
+                createdAt: file.createdAt,
+                nameMatches: String(file.filename || '').includes(match),
+                hasLink: Boolean(file.href),
+            }));
+            const requested = requestedAt instanceof Date ? requestedAt.toISOString() : requestedAt;
+            console.warn(`[AUTO-IMPORT-013][PortalClient ${this.source}] ${label} timed out: requestedAt=${requested} match=${JSON.stringify(match)} rows=${files ? files.length : 'never read'} top=${JSON.stringify(top)}`);
+        } catch (error) {
+            console.warn(`[AUTO-IMPORT-013][PortalClient ${this.source}] ${label} timed out; the list could not be described: ${error.message}`);
+        }
     }
 
     async downloadXlsx({ file, targetDir }) {

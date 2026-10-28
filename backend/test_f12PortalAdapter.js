@@ -23,7 +23,7 @@ const { DkclHueF13PortalClient } = require('./src/services/dkclHueF13PortalClien
 const methods = require('./src/services/f12PortalClientMethods');
 const { F12_EXECUTOR_IDENTITIES } = require('./src/services/autoBackfillF12Contract');
 const { F12HueSingleDateService, F12TctSingleDateService, F12HueAdapter, standardizedFilename } = require('./src/services/f12SingleDateServices');
-const { F12AutoBackfillExecutor, createF12AutoBackfillExecutors } = require('./src/services/autoBackfillF12Executors');
+const { F12AutoBackfillExecutor, F12_BACKFILL_EXPORT_TIMEOUT_MS, createF12AutoBackfillExecutors } = require('./src/services/autoBackfillF12Executors');
 const { selectNewestGeneratedFile } = require('./src/services/dkclHueF13SyncService');
 const { f12TctBuffer, population } = require('./test/f12TctFixture');
 
@@ -498,6 +498,15 @@ test('executor: authentication required, pending manual login and an already-act
     harness = sessionHarness();
     harness.entry.activeOperation = 'SOMETHING_ELSE';
     await assert.rejects(make(harness).execute({ indicator: 'F1.2', sourceLane: 'TCT', businessDate: '2026-10-10' }), (error) => error.code === 'DKCL_SOURCE_OPERATION_ACTIVE');
+});
+
+test('the queue waits 3 minutes for an F1.2 export on both lanes, the plain service keeps 15 minutes', () => {
+    const executors = createF12AutoBackfillExecutors({ sessionPreflightService: sessionHarness().service });
+    assert.equal(F12_BACKFILL_EXPORT_TIMEOUT_MS, 180000);
+    for (const lane of ['HUE', 'TCT']) assert.equal(executors[lane].adapter.service.config.generationTimeoutMs, 180000);
+    const custom = createF12AutoBackfillExecutors({ sessionPreflightService: sessionHarness().service, serviceOptions: { generationTimeoutMs: 1000 } });
+    assert.equal(custom.TCT.adapter.service.config.generationTimeoutMs, 1000);
+    assert.equal(new F12TctSingleDateService().config.generationTimeoutMs, 900000);
 });
 
 test('executors are created for both lanes with the identities; the registry is ACTIVE / AUTOMATED with the verified adapter identities', () => {

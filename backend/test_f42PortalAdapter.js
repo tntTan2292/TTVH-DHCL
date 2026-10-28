@@ -560,11 +560,11 @@ test('executor refuses an expired session and a source already owned by another 
     await assert.rejects(busy.execute({ indicator: 'F4.2', sourceLane: 'TCT', businessDate: '2026-10-10' }), (error) => error.code === 'DKCL_SOURCE_OPERATION_ACTIVE');
 });
 
-test('the queue waits 2 minutes for an F4.2 export, the plain service keeps its 15-minute default', () => {
+test('the queue waits 3 minutes for an F4.2 export, the plain service keeps its 15-minute default', () => {
     const executors = createF42AutoBackfillExecutors({ sessionPreflightService: fakePreflight() });
-    assert.equal(F42_BACKFILL_EXPORT_TIMEOUT_MS, 120000);
+    assert.equal(F42_BACKFILL_EXPORT_TIMEOUT_MS, 180000);
     for (const lane of ['HUE', 'TCT']) {
-        assert.equal(executors[lane].adapter.service.config.generationTimeoutMs, 120000);
+        assert.equal(executors[lane].adapter.service.config.generationTimeoutMs, 180000);
     }
     const custom = createF42AutoBackfillExecutors({ sessionPreflightService: fakePreflight(), serviceOptions: { generationTimeoutMs: 1000 } });
     assert.equal(custom.TCT.adapter.service.config.generationTimeoutMs, 1000);

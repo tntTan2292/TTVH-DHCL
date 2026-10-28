@@ -22,7 +22,7 @@ const { DkclHueF13PortalClient } = require('./src/services/dkclHueF13PortalClien
 const methods = require('./src/services/f11PortalClientMethods');
 const { F11_EXECUTOR_IDENTITIES } = require('./src/services/autoBackfillF11Contract');
 const { F11HueSingleDateService, F11TctSingleDateService, F11HueAdapter, standardizedFilename } = require('./src/services/f11SingleDateServices');
-const { F11AutoBackfillExecutor, createF11AutoBackfillExecutors } = require('./src/services/autoBackfillF11Executors');
+const { F11AutoBackfillExecutor, F11_BACKFILL_EXPORT_TIMEOUT_MS, createF11AutoBackfillExecutors } = require('./src/services/autoBackfillF11Executors');
 const { selectNewestGeneratedFile } = require('./src/services/dkclHueF13SyncService');
 const { buildTctWorkbookBuffer, defaultSpecs } = require('./test/f11TctFixture');
 
@@ -419,6 +419,35 @@ test('executor: authentication required, pending manual login and an already-act
     harness = sessionHarness();
     harness.entry.activeOperation = 'SOMETHING_ELSE';
     await assert.rejects(make(harness).execute({ indicator: 'F1.1', sourceLane: 'TCT', businessDate: '2026-10-07' }), (error) => error.code === 'DKCL_SOURCE_OPERATION_ACTIVE');
+});
+
+test('a timed-out wait for a generated file is logged with what the portal list held', () => {
+    const { DkclHueF13PortalClient } = require('./src/services/dkclHueF13PortalClient');
+    const client = Object.create(DkclHueF13PortalClient.prototype);
+    client.source = 'TCT';
+    const lines = [];
+    const original = console.warn;
+    console.warn = (line) => lines.push(String(line));
+    try {
+        const files = [{ filename: 'F1.1_bao_cao.xlsx', createdAtText: '28/10/2026 - 07:31:40', createdAt: '2026-10-28T07:31:40+07:00', href: '/files-xlsx/1' }, { filename: 'other.xlsx', createdAtText: 'x', createdAt: 'x', href: null }];
+        client.logGeneratedFileTimeout('pollGeneratedFile', files, { requestedAt: new Date('2026-10-28T00:31:00Z'), match: 'F1.1' });
+        client.logGeneratedFileTimeout('pollGeneratedFile', null, { requestedAt: '2026-10-28T00:31:00Z', match: 'F1.1' });
+    } finally {
+        console.warn = original;
+    }
+    assert.match(lines[0], /PortalClient TCT\] pollGeneratedFile timed out: requestedAt=2026-10-28T00:31:00.000Z match="F1.1" rows=2/);
+    assert.match(lines[0], /"nameMatches":true,"hasLink":true/);
+    assert.match(lines[0], /"nameMatches":false,"hasLink":false/);
+    assert.match(lines[1], /rows=never read/);
+});
+
+test('the queue waits 3 minutes for an F1.1 export on both lanes, the plain service keeps 15 minutes', () => {
+    const executors = createF11AutoBackfillExecutors({ sessionPreflightService: sessionHarness().service });
+    assert.equal(F11_BACKFILL_EXPORT_TIMEOUT_MS, 180000);
+    for (const lane of ['HUE', 'TCT']) assert.equal(executors[lane].adapter.service.config.generationTimeoutMs, 180000);
+    const custom = createF11AutoBackfillExecutors({ sessionPreflightService: sessionHarness().service, serviceOptions: { generationTimeoutMs: 1000 } });
+    assert.equal(custom.TCT.adapter.service.config.generationTimeoutMs, 1000);
+    assert.equal(new F11TctSingleDateService().config.generationTimeoutMs, 900000);
 });
 
 test('executors are created for both lanes with the registered identities', () => {

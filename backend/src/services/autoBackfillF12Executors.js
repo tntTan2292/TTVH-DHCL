@@ -74,10 +74,16 @@ class F12AutoBackfillExecutor {
     }
 }
 
+// A healthy portal produces the F1.2 export in about 1 minute (longest seen 1.4); past 3 minutes the portal has not
+// delivered it (PO decision 2026-10-28, was 15 minutes) and the wait only blocks the lane. Queue instances only; the
+// plain service keeps its 15-minute default.
+const F12_BACKFILL_EXPORT_TIMEOUT_MS = 180000;
+
 function createF12AutoBackfillExecutors(options = {}) {
     const sessionPreflightService = options.sessionPreflightService || new DkclSessionPreflightService();
-    const hueService = options.hueService || new F12HueSingleDateService(options.hueServiceOptions || options.serviceOptions);
-    const tctService = options.tctService || new F12TctSingleDateService(options.tctServiceOptions || options.serviceOptions);
+    const serviceOptions = (laneOptions) => ({ generationTimeoutMs: F12_BACKFILL_EXPORT_TIMEOUT_MS, ...(laneOptions || options.serviceOptions) });
+    const hueService = options.hueService || new F12HueSingleDateService(serviceOptions(options.hueServiceOptions));
+    const tctService = options.tctService || new F12TctSingleDateService(serviceOptions(options.tctServiceOptions));
     return {
         HUE: new F12AutoBackfillExecutor({ identity: F12_EXECUTOR_IDENTITIES.HUE, adapter: options.hueAdapter || new F12HueAdapter({ service: hueService }), sessionPreflightService }),
         TCT: new F12AutoBackfillExecutor({ identity: F12_EXECUTOR_IDENTITIES.TCT, adapter: options.tctAdapter || new F12TctAdapter({ service: tctService }), sessionPreflightService }),
@@ -93,6 +99,7 @@ function registerF12AutoBackfillExecutors(executorRegistry, options = {}) {
 }
 
 module.exports = {
+    F12_BACKFILL_EXPORT_TIMEOUT_MS,
     F12_EXECUTOR_IDENTITIES,
     F12AutoBackfillExecutor,
     createF12AutoBackfillExecutors,

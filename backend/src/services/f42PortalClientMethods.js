@@ -371,6 +371,7 @@ const methods = {
     // `_02`...) is refused: the single-file contract was only observed for one chunk (6 466 rows).
     async pollF42GeneratedFile({ requestedAt, timeoutMs, intervalMs, match, format = 'xlsx' }) {
         const timeoutAt = Date.now() + timeoutMs;
+        let lastSeen = null;
         while (Date.now() < timeoutAt) {
             await this.page.goto(`${this.baseUrl}/files`, { waitUntil: 'domcontentloaded', timeout: 60000 });
             await this.page.locator('table tbody tr').first().waitFor({ timeout: 10000 }).catch(() => {});
@@ -388,6 +389,7 @@ const methods = {
                 createdAt: this.parsePortalTimestamp(file.createdAtText),
                 href: pickHref(file.links, format),
             }));
+            lastSeen = normalized;
             const selected = selectNewestGeneratedFile(normalized, { requestedAt, match });
             if (selected?.href) {
                 const key = chunkGroupKey(selected.filename);
@@ -401,6 +403,7 @@ const methods = {
             }
             await this.page.waitForTimeout(intervalMs);
         }
+        this.logGeneratedFileTimeout('pollF42GeneratedFile', lastSeen, { requestedAt, match });
         return null;
     },
 
