@@ -12,6 +12,10 @@
 // a PREFIX of the HUE detail slug (`..._lien_tinh(1).xlsx` vs `..._lien_tinh_chi_tiet(1).xlsx`), so the
 // TCT match keeps the `(1)` that follows the slug: it matches the summary file and can never match a
 // detail file. The HUE match keeps `_chi_tiet`, which a summary file does not contain.
+//
+// 2026-10-28: the portal now names TCT files `<account>_DD-MM-YYYY_HH-mm-ss_<slug>_01.xlsx` instead of `<slug>(1).xlsx` (the
+// summary and detail exports of one account used to differ only by `_chi_tiet`). So the TCT match is a RegExp that takes
+// either suffix after the slug and still never matches a `_chi_tiet` detail file. HUE matches are unchanged.
 
 const F12_EXECUTOR_IDENTITIES = Object.freeze({
     HUE: Object.freeze({
@@ -32,7 +36,7 @@ const F12_EXECUTOR_IDENTITIES = Object.freeze({
         reportIdentity: 'DKCL:/kpi/chat-luong-thu-gom-buu-lien-tinh|sp_TT_ThuGom_LienTinh_Tinh|GR=TINH|TINH_NHAN=ALL',
         resourceIdentity: 'sp_TT_ThuGom_LienTinh_Tinh',
         exportAction: '/export/sp_TT_ThuGom_LienTinh_Tinh/all',
-        generatedFileMatch: 'F1.2_CL_thu_gom_buu_giay_lien_tinh(1)',
+        generatedFileMatch: /F1\.2_CL_thu_gom_buu_giay_lien_tinh(?:\(\d+\)|_\d+)\./,
     }),
 });
 

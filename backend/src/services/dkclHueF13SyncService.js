@@ -84,10 +84,16 @@ function createRunId(clock = () => new Date()) {
     return `hue-f13-${crypto.createHash('sha1').update(seed).digest('hex').slice(0, 12)}`;
 }
 
+// `match` is a substring or, where one slug is the prefix of another, a RegExp.
+function generatedNameMatches(filename, match) {
+    const name = String(filename || '');
+    return match instanceof RegExp ? match.test(name) : name.includes(match);
+}
+
 function selectNewestGeneratedFile(files, { requestedAt, match }) {
     const requestedTime = requestedAt instanceof Date ? requestedAt.getTime() : new Date(requestedAt).getTime();
     const candidates = (files || [])
-        .filter((file) => String(file.filename || '').includes(match))
+        .filter((file) => generatedNameMatches(file.filename, match))
         .filter((file) => new Date(file.createdAt).getTime() > requestedTime)
         .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
@@ -615,5 +621,6 @@ module.exports = {
     STATUSES,
     standardizedFilename,
     safeErrorMessage,
-    selectNewestGeneratedFile
+    selectNewestGeneratedFile,
+    generatedNameMatches
 };

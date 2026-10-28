@@ -2,7 +2,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const { selectNewestGeneratedFile } = require('./dkclHueF13SyncService');
+const { selectNewestGeneratedFile, generatedNameMatches } = require('./dkclHueF13SyncService');
 const processManager = require('./browserProcessManager');
 
 const DETAIL_METRIC_HEADER = 'SL bưu gửi phát thành công/Nộp tiền/CH';
@@ -1536,7 +1536,7 @@ class DkclHueF13PortalClient {
                 filename: file.filename,
                 createdAtText: file.createdAtText,
                 createdAt: file.createdAt,
-                nameMatches: String(file.filename || '').includes(match),
+                nameMatches: generatedNameMatches(file.filename, match),
                 hasLink: Boolean(file.href),
             }));
             const requested = requestedAt instanceof Date ? requestedAt.toISOString() : requestedAt;

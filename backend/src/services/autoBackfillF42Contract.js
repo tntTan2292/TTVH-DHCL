@@ -13,6 +13,10 @@
 // generatedFileMatch is applied with String.includes() by selectNewestGeneratedFile(). The TCT slug is a
 // PREFIX of the HUE detail slug (`..._buu_ta(1).xlsx` vs `..._buu_ta_chi_tiet_01.csv`), so the TCT match
 // keeps the `(1)` that follows the slug and can never match a detail file; the HUE match keeps `_chi_tiet_`.
+//
+// 2026-10-28: the portal now names TCT files `<account>_DD-MM-YYYY_HH-mm-ss_<slug>_01.xlsx` instead of `<slug>(1).xlsx` (the
+// summary and detail exports of one account used to differ only by `_chi_tiet`). So the TCT match is a RegExp that takes
+// either suffix after the slug and still never matches a `_chi_tiet` detail file. HUE matches are unchanged.
 
 const F42_EXECUTOR_IDENTITIES = Object.freeze({
     HUE: Object.freeze({
@@ -34,7 +38,7 @@ const F42_EXECUTOR_IDENTITIES = Object.freeze({
         reportIdentity: 'DKCL:/kpi/chat-luong-phat-giao-buu-ta|sp_Phat_GBT_PTC_BuuTa_V2|GR=BT|TINH_PHAT=ALL',
         resourceIdentity: 'sp_Phat_GBT_PTC_BuuTa_V2',
         exportAction: '/export/sp_Phat_GBT_PTC_BuuTa_V2/all',
-        generatedFileMatch: 'F4.2_chat_luong_phat_giao_buu_ta(1)',
+        generatedFileMatch: /F4\.2_chat_luong_phat_giao_buu_ta(?:\(\d+\)|_\d+)\./,
         generatedFileFormat: 'xlsx',
     }),
 });

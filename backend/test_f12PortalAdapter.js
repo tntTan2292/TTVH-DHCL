@@ -65,6 +65,21 @@ test('builders reject an unsupported lane, a malformed date and a non-positive t
     assert.throws(() => methods.buildF12HueDetailQuery('2026-10-10', 'abc'), /positive summary total/);
 });
 
+test('the new 28/10 portal file names (account prefix, _01 suffix) are matched on TCT, and a TCT match never takes a HUE detail file', () => {
+    const summary = { filename: '25418_28-10-2026_07-46-56_F1.2_CL_thu_gom_buu_giay_lien_tinh_01.xlsx', createdAt: '2026-10-28T08:02:06+07:00' };
+    const detail = { filename: '25427_28-10-2026_07-32-15_F1.2_CL_thu_gom_buu_giay_lien_tinh_chi_tiet_01.xlsx', createdAt: '2026-10-28T08:02:09+07:00' };
+    const other = { filename: '25418_28-10-2026_07-31-13_F4.1_chat_luong_phat_thanh_cong_cua_buu_cuc_01.xlsx', createdAt: '2026-10-28T08:02:10+07:00' };
+    const requestedAt = new Date('2026-10-28T08:00:00+07:00');
+    const match = (lane, files) => selectNewestGeneratedFile(files, { requestedAt, match: F12_EXECUTOR_IDENTITIES[lane].generatedFileMatch });
+    assert.equal(match('TCT', [detail, summary, other]), summary);
+    assert.equal(match('TCT', [detail, other]), null);
+    assert.equal(match('HUE', [detail, summary]), detail);
+    assert.equal(match('HUE', [summary]), null);
+    // the old `(1)` form still matches
+    const old = { filename: summary.filename.replace(/^\d+_\d{2}-\d{2}-\d{4}_\d{2}-\d{2}-\d{2}_/, '28-10-2026_08-02-02_').replace('_01.', '(1).'), createdAt: '2026-10-28T08:02:06+07:00' };
+    assert.equal(match('TCT', [old]), old);
+});
+
 test('the generated-file match for TCT can never select a HUE detail file, and vice versa', () => {
     const detail = { filename: '11-10-2026_22-14-05_F1.2_CL_thu_gom_buu_giay_lien_tinh_chi_tiet(1).xlsx', createdAt: '2026-10-11T15:14:09Z' };
     const summary = { filename: '11-10-2026_22-18-45_F1.2_CL_thu_gom_buu_giay_lien_tinh(1).xlsx', createdAt: '2026-10-11T15:18:45Z' };

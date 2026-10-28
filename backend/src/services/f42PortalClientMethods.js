@@ -27,7 +27,7 @@ const {
     parseExportForms,
     parseCount,
 } = require('./f11PortalClientMethods');
-const { selectNewestGeneratedFile } = require('./dkclHueF13SyncService');
+const { selectNewestGeneratedFile, generatedNameMatches } = require('./dkclHueF13SyncService');
 
 const F42_REPORT_PATH = '/kpi/chat-luong-phat-giao-buu-ta';
 const F42_DETAIL_PATH = '/kpi/chat-luong-phat-giao-buu-ta-chi-tiet';
@@ -394,7 +394,7 @@ const methods = {
             if (selected?.href) {
                 const key = chunkGroupKey(selected.filename);
                 const siblings = normalized.filter((file) => file.filename !== selected.filename
-                    && String(file.filename || '').includes(match)
+                    && generatedNameMatches(file.filename, match)
                     && chunkGroupKey(file.filename) === key);
                 if (siblings.length > 0) {
                     throw portalError(`F4.2 export was delivered in ${siblings.length + 1} chunks (${selected.filename} and ${siblings.map((f) => f.filename).join(', ')}); chunked exports are not supported.`, 'F42_EXPORT_CHUNKED');
