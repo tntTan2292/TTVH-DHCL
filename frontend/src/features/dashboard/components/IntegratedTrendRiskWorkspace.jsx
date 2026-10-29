@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import api from '../../../api/client';
 import BlockCaptureButton from '../../../components/common/BlockCaptureButton';
+import { Filter } from 'lucide-react';
 import {
   Bar,
   CartesianGrid,
@@ -544,6 +545,8 @@ export default function IntegratedTrendRiskWorkspace({
   toDate,
   latestDate,
   maBcvh,
+  onBcvhChange,
+  bcvhOptions = [],
   kpiData,
   mode = '30-days',
   onModeChange,
@@ -620,6 +623,23 @@ export default function IntegratedTrendRiskWorkspace({
 
   const action = (
     <div className="flex flex-wrap items-center gap-2">
+      {bcvhOptions && bcvhOptions.length > 0 ? (
+        <div className="flex items-center gap-1.5 rounded-xl border border-slate-200/90 bg-white px-2.5 py-1.5 shadow-2xs">
+          <Filter size={14} className="text-slate-400 shrink-0" />
+          <select
+            value={maBcvh || 'all'}
+            onChange={(e) => onBcvhChange?.(e.target.value)}
+            className="border-none bg-transparent text-xs font-semibold text-slate-800 focus:outline-none cursor-pointer"
+            aria-label={indicator.unitLabel === 'Đơn vị chấp nhận' ? 'Bộ lọc đơn vị chấp nhận' : 'Bộ lọc BCVH'}
+          >
+            {bcvhOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </div>
+      ) : null}
       <div className="flex flex-wrap items-center gap-1 rounded-xl bg-slate-100/90 p-1 border border-slate-200/80 shadow-2xs" role="tablist" aria-label="Chọn chế độ xu hướng">
         {TREND_MODES.map((item) => (
           <button

@@ -401,3 +401,13 @@ test('dashboard renders one integrated trend workspace instead of duplicate tren
   assert.doesNotMatch(dashboardSource, /SamePeriodComparisonTrendlineAdapter/);
   assert.doesNotMatch(dashboardSource, /QualityTimelineAdapter/);
 });
+test('IntegratedTrendRiskWorkspace exposes BCVH filter wired to dashboard state', () => {
+  const dashboardSource = read('../DashboardPage.jsx');
+  const workspaceSource = read('./IntegratedTrendRiskWorkspace.jsx');
+
+  assert.match(dashboardSource, /<IntegratedTrendRiskWorkspace[\s\S]*?onBcvhChange=\{updateBcvhParam\}/);
+  assert.match(dashboardSource, /<IntegratedTrendRiskWorkspace[\s\S]*?bcvhOptions=\{metadataState\.bcvhOptions\}/);
+  assert.match(workspaceSource, /onBcvhChange/);
+  assert.match(workspaceSource, /bcvhOptions/);
+  assert.match(workspaceSource, /aria-label=\{indicator\.unitLabel === 'Đơn vị chấp nhận' \? 'Bộ lọc đơn vị chấp nhận' : 'Bộ lọc BCVH'\}/);
+});

@@ -381,6 +381,8 @@ export default function DashboardPage() {
           toDate={toDate}
           latestDate={latestDate}
           maBcvh={maBcvh}
+          onBcvhChange={updateBcvhParam}
+          bcvhOptions={metadataState.bcvhOptions}
           kpiData={kpiState.data}
           mode={trendMode}
           onModeChange={setTrendMode}
