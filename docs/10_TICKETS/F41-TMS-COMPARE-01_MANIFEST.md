@@ -1,6 +1,6 @@
 # F41-TMS-COMPARE-01 - "Không đo TMS" rate and "chưa có đánh giá Có TMS" share beside the F4.1 rate
 
-Status: BACKEND IMPLEMENTED (2026-10-29); UI (Antigravity) NOT STARTED
+Status: BACKEND IMPLEMENTED AND LIVE (2026-10-29); UI (Antigravity) NOT STARTED
 Owner: Claude Code (Sonnet) backend; Antigravity (Gemini) UI. Does not change the Current Ticket.
 
 ## 1. PO request and decisions (2026-10-29)
@@ -52,10 +52,11 @@ Required Reading: this manifest, `report_block_ui_standard.md`, `measurement.md`
 - Real data on a copy of `fact_f41` (2026-09-01..2026-10-28, 297,206 rows): migration, `agg_tool build` + `verify` OK (58 days, 420 keys); ranking and overview answers identical from the detail table and from the aggregate; 2026-10-28 per BCVH equals an independent SQL count (e.g. Hương Thủy 461 Đạt / 151 blank of 788; total 71.5 % Không đo TMS, 8.3 % blank).
 - Failures seen and not caused by this change: `DashboardController.recovery.test.js` (F1.3, 12 !== 3 calls) and `test_f41RankingReconciliation.js` sections 4-5 (compares the live database with figures locked when only July-September existed; the database now holds January onward and a re-imported 2026-09-05). Neither touches the F4.1 queries changed here. Not re-run on the previous commit to prove they were already failing.
 
-## 7. Operation steps (PO restarts, Claude Code runs the rest)
+## 7. Operation steps (done 2026-10-29)
 
-1. Backend restart (pauses the backfill; PO presses Tiếp tục Run afterwards if it was running). Startup adds the column; until step 2 the F4.1 read stays on the detail table, so nothing shows a wrong zero.
-2. `node scripts/agg_tool.js build --indicator F4.1` then `verify` (days rebuilt one by one, safe beside imports).
+- No backfill job was queued or running; backend restarted at 08:49 (the supervisor started the new process, PID 4688). Startup added `n_dat_khong_tms` and emptied the F4.1 signatures, so reads stayed on the detail table meanwhile.
+- `node scripts/agg_tool.js build --indicator F4.1`: 295 days, 2,185 agg rows, 3.6 s. `verify`: OK (1,418,173 detail rows = aggregate, 295/295 days).
+- Live check through the services (read only): ranking and overview identical from the detail table and from the aggregate for 2026-10-28; Không đo TMS / chưa có đánh giá Có TMS match Section 6 (e.g. Hương Thủy 58.5 % / 19.2 %). The endpoints were not called with a login (RBAC).
 
 ## 8. Residuals
 
