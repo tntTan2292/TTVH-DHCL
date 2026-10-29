@@ -29,6 +29,14 @@ export default function F42PostmanTableBlock({
   totalRow = null,
   period = 'day',
   onPeriodChange = null,
+  selectedDay = '',
+  onSelectDay = null,
+  selectedWeek = '',
+  onSelectWeek = null,
+  selectedMonth = '',
+  onSelectMonth = null,
+  weekOptions = [],
+  monthOptions = [],
   periodLabel = '',
   loading = false,
   hasData = true,
@@ -174,6 +182,53 @@ export default function F42PostmanTableBlock({
                 Tháng
               </button>
             </div>
+          )}
+
+          {/* Dynamic Period Filter: Day, Week, or Month */}
+          {period === 'day' && onSelectDay && (
+            <label className="flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-2 py-1 text-xs font-semibold text-slate-700 shadow-2xs">
+              <span className="text-[11px] font-bold text-slate-500">Ngày:</span>
+              <input
+                type="date"
+                value={selectedDay || ''}
+                onChange={(e) => onSelectDay(e.target.value)}
+                className="bg-transparent text-xs font-bold text-slate-700 outline-none cursor-pointer"
+              />
+            </label>
+          )}
+
+          {period === 'week' && onSelectWeek && (
+            <label className="flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-2 py-1 text-xs font-semibold text-slate-700 shadow-2xs">
+              <span className="text-[11px] font-bold text-slate-500">Tuần:</span>
+              <select
+                value={selectedWeek || weekOptions?.[0]?.value || ''}
+                onChange={(e) => onSelectWeek(e.target.value)}
+                className="bg-transparent text-xs font-bold text-slate-700 outline-none cursor-pointer"
+              >
+                {(weekOptions || []).map((w) => (
+                  <option key={w.value} value={w.value}>
+                    {w.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+
+          {period === 'month' && onSelectMonth && (
+            <label className="flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-2 py-1 text-xs font-semibold text-slate-700 shadow-2xs">
+              <span className="text-[11px] font-bold text-slate-500">Tháng:</span>
+              <select
+                value={selectedMonth || monthOptions?.[0]?.value || ''}
+                onChange={(e) => onSelectMonth(e.target.value)}
+                className="bg-transparent text-xs font-bold text-slate-700 outline-none cursor-pointer"
+              >
+                {(monthOptions || []).map((m) => (
+                  <option key={m.value} value={m.value}>
+                    {m.label}
+                  </option>
+                ))}
+              </select>
+            </label>
           )}
 
           {/* Top-N camera capture selector */}

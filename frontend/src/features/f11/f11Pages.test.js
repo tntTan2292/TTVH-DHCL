@@ -189,3 +189,16 @@ test('F1.1 ranking mapping produces F1.1-aware labels and suppresses route and l
   // 95.11% is green in F1.1 (>= 70)
   assert.equal(f11Row.current_day.signal.id, 'green');
 });
+
+test('F11PairTableBlock integrates dynamic date, week, and month period filters', () => {
+  const pairSource = fs.readFileSync(new URL('./components/F11PairTableBlock.jsx', import.meta.url), 'utf8');
+  assert.match(pairSource, /generateRecentWeeks/);
+  assert.match(pairSource, /generateRecentMonths/);
+  assert.match(pairSource, /period === 'day'/);
+  assert.match(pairSource, /period === 'week'/);
+  assert.match(pairSource, /period === 'month'/);
+  assert.match(pairSource, /input\s+type="date"/);
+  assert.match(pairSource, /weekOptions\.map/);
+  assert.match(pairSource, /monthOptions\.map/);
+  assert.match(pairSource, /data-no-capture="true"/);
+});

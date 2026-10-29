@@ -13,6 +13,7 @@ import { describePairSort, orderPairColumns, pairRowValue } from './f11PairTable
 import BlockCaptureButton from '../../../components/common/BlockCaptureButton.jsx';
 import { waitForNextPaint } from '../../../components/common/blockCaptureHelper.js';
 import SortableTh from '../../../components/common/SortableTh.jsx';
+import { generateRecentWeeks, generateRecentMonths } from '../../../components/common/periodFilterHelpers.js';
 
 function MiniSort({ field, label, sort, onSort, activeClassName }) {
   const active = sort?.field === field;
@@ -69,6 +70,26 @@ export default function F11PairTableBlock({ anchorDate, toDate }) {
   const effectiveAnchor = anchorDate || toDate;
 
   const [period, setPeriod] = useState('day');
+  const [selectedDay, setSelectedDay] = useState(effectiveAnchor || '');
+  const [selectedWeek, setSelectedWeek] = useState('');
+  const [selectedMonth, setSelectedMonth] = useState('');
+
+  useEffect(() => {
+    if (effectiveAnchor) {
+      setSelectedDay(effectiveAnchor);
+    }
+  }, [effectiveAnchor]);
+
+  const weekOptions = useMemo(() => generateRecentWeeks(effectiveAnchor, 12), [effectiveAnchor]);
+  const monthOptions = useMemo(() => generateRecentMonths(effectiveAnchor, 12), [effectiveAnchor]);
+
+  const activeAnchorDate = useMemo(() => {
+    if (period === 'day') return selectedDay || effectiveAnchor;
+    if (period === 'week') return selectedWeek || weekOptions[0]?.value || effectiveAnchor;
+    if (period === 'month') return selectedMonth || monthOptions[0]?.value || effectiveAnchor;
+    return effectiveAnchor;
+  }, [period, selectedDay, selectedWeek, selectedMonth, weekOptions, monthOptions, effectiveAnchor]);
+
   const [searchTerm, setSearchTerm] = useState('');
   const [sort, setSort] = useState({ field: 'total:volume', direction: 'desc' });
   const [colOrder, setColOrder] = useState(null); // null = the server's column order
@@ -91,7 +112,7 @@ export default function F11PairTableBlock({ anchorDate, toDate }) {
   });
 
   useEffect(() => {
-    if (!effectiveAnchor) return undefined;
+    if (!activeAnchorDate) return undefined;
 
     let active = true;
     queueMicrotask(() => {
@@ -101,7 +122,7 @@ export default function F11PairTableBlock({ anchorDate, toDate }) {
     });
 
     api.get('/f11/dashboard/pair-table', {
-      params: { period, anchor_date: effectiveAnchor },
+      params: { period, anchor_date: activeAnchorDate },
     })
       .then((res) => {
         if (!active) return;
@@ -131,7 +152,7 @@ export default function F11PairTableBlock({ anchorDate, toDate }) {
     return () => {
       active = false;
     };
-  }, [api, effectiveAnchor, period]);
+  }, [api, activeAnchorDate, period]);
 
   const rows = state.data?.rows;
   const columns = useMemo(() => state.data?.columns || [], [state.data]);
@@ -170,10 +191,10 @@ export default function F11PairTableBlock({ anchorDate, toDate }) {
   };
 
   const periodLabel = period === 'day'
-    ? `Ngày ${meta.from_date || effectiveAnchor}`
+    ? `Ngày ${meta.from_date || activeAnchorDate}`
     : period === 'week'
-      ? `Tuần T5–T4 (${meta.from_date} đến ${meta.to_date})`
-      : `Tháng (${meta.from_date} đến ${meta.to_date})`;
+      ? `Tuần T5–T4 (${meta.from_date || ''} đến ${meta.to_date || ''})`
+      : `Tháng (${meta.from_date || ''} đến ${meta.to_date || ''})`;
 
   const sectionRef = useRef(null);
 
@@ -238,6 +259,55 @@ export default function F11PairTableBlock({ anchorDate, toDate }) {
             </button>
           </div>
 
+          {/* Dynamic Period Filter: Day, Week, or Month */}
+          <div data-no-capture="true" className="flex items-center">
+            {period === 'day' && (
+              <label className="flex items-center gap-1.5 rounded-xl border border-slate-300 bg-white px-2.5 py-1 text-xs font-semibold text-slate-700 shadow-2xs">
+                <span className="text-[11px] font-bold text-slate-500">Ngày:</span>
+                <input
+                  type="date"
+                  value={selectedDay || effectiveAnchor || ''}
+                  onChange={(e) => setSelectedDay(e.target.value)}
+                  className="bg-transparent text-xs font-bold text-slate-700 outline-none cursor-pointer"
+                />
+              </label>
+            )}
+
+            {period === 'week' && (
+              <label className="flex items-center gap-1.5 rounded-xl border border-slate-300 bg-white px-2.5 py-1 text-xs font-semibold text-slate-700 shadow-2xs">
+                <span className="text-[11px] font-bold text-slate-500">Tuần:</span>
+                <select
+                  value={selectedWeek || weekOptions[0]?.value || ''}
+                  onChange={(e) => setSelectedWeek(e.target.value)}
+                  className="bg-transparent text-xs font-bold text-slate-700 outline-none cursor-pointer"
+                >
+                  {weekOptions.map((w) => (
+                    <option key={w.value} value={w.value}>
+                      {w.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
+
+            {period === 'month' && (
+              <label className="flex items-center gap-1.5 rounded-xl border border-slate-300 bg-white px-2.5 py-1 text-xs font-semibold text-slate-700 shadow-2xs">
+                <span className="text-[11px] font-bold text-slate-500">Tháng:</span>
+                <select
+                  value={selectedMonth || monthOptions[0]?.value || ''}
+                  onChange={(e) => setSelectedMonth(e.target.value)}
+                  className="bg-transparent text-xs font-bold text-slate-700 outline-none cursor-pointer"
+                >
+                  {monthOptions.map((m) => (
+                    <option key={m.value} value={m.value}>
+                      {m.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
+          </div>
+
           <div data-no-capture="true" className="flex items-center gap-1.5">
             <label className="flex items-center gap-1 text-[11px] font-semibold text-slate-600">
               <span>Ảnh chụp lấy</span>
@@ -256,7 +326,7 @@ export default function F11PairTableBlock({ anchorDate, toDate }) {
             <BlockCaptureButton
               targetRef={sectionRef}
               blockTitle="Bưu cục chấp nhận × BCVH phát"
-              dateOrPeriod={effectiveAnchor}
+              dateOrPeriod={activeAnchorDate}
               beforeCapture={async () => { setCapturing(true); await waitForNextPaint(); }}
               afterCapture={() => setCapturing(false)}
               captionFontSize={17}

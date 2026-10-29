@@ -123,4 +123,21 @@ test('F42PostmanTableBlock and F42PostmanAttentionBlock trigger onSelectPostman 
   assert.match(blocksSource, /<F42PostmanTrendModal/);
 });
 
+test('F42PostmanDashboardBlocks and F42PostmanTableBlock integrate dynamic date, week, and month period filters', () => {
+  const blocksSource = readSource('./components/F42PostmanDashboardBlocks.jsx');
+  const tableSource = readSource('./components/F42PostmanTableBlock.jsx');
+
+  assert.match(blocksSource, /generateRecentWeeks/);
+  assert.match(blocksSource, /generateRecentMonths/);
+  assert.match(blocksSource, /activeAnchor/);
+
+  assert.match(tableSource, /period === 'day'/);
+  assert.match(tableSource, /period === 'week'/);
+  assert.match(tableSource, /period === 'month'/);
+  assert.match(tableSource, /input\s+type="date"/);
+  assert.match(tableSource, /weekOptions/);
+  assert.match(tableSource, /monthOptions/);
+});
+
+
 
