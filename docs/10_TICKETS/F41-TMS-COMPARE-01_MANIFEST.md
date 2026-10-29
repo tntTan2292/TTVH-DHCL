@@ -79,6 +79,10 @@ Validation: 67/67 tests (operation-table data incl. a mixed-data case, ranking-t
 
 PO saw the Home block and asked to remove two columns there as redundant: "% chưa ĐG TMS" and "Không đạt", for F4.1 only. Home F4.1 now shows: BCVH, Tỷ lệ, Không đo TMS, Sản lượng. The other indicators' Home blocks keep "Không đạt". The "% chưa có đánh giá Có TMS" column stays on the F4.1 Dashboard operation table and the BCVH Ranking day table (Section 5); the Home API still sends `rate_blank_tms` (unused there). Section 4/5 above are read with this exception.
 
+## 7e. PO amendment: no "% chưa có đánh giá Có TMS" column anywhere (2026-10-29)
+
+The PO asked to drop the "% chưa có đánh giá Có TMS" column from the tables too (it takes too much room). The F4.1 Dashboard operation table now has one extra column per group ("Tỷ lệ đạt (không đo TMS)" in Lũy kế tháng and in Điều hành ngày; colgroup 12 / 14 columns) and the BCVH Ranking day table one extra column in the current-day group. Together with 7d, the only new figure on screen is the Không đo TMS rate. The backend still computes `blank_tms` / `rate_blank_tms` (kept, no screen reads them) and the data mappers still carry them.
+
 ## 8. Residuals
 
 - PO UI check pending (Section 7c).

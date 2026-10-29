@@ -140,31 +140,31 @@ test('F41-TMS-COMPARE-01: ActionUnitsBlock, BcvhOperationTable, and UnifiedBcvhA
   // 2. BcvhOperationTable has the two columns in both MTD and Daily groups guarded by isF41
   assert.match(opTableSource, /isF41\s*=\s*indicator\?\.id\s*===\s*'f41'/);
   assert.match(opTableSource, /mtd_rate_no_tms/);
-  assert.match(opTableSource, /mtd_rate_blank_tms/);
+  // PO 2026-10-29: the "% chưa có đánh giá Có TMS" column is not shown in any table
+  assert.doesNotMatch(opTableSource, /rate_blank_tms/);
   assert.match(opTableSource, /daily_rate_no_tms/);
-  assert.match(opTableSource, /daily_rate_blank_tms/);
 
   // 3. UnifiedBcvhAnalysisTable has the two columns in current_day guarded by isF41
   assert.match(rankingTableSource, /isF41\s*=\s*indicator\.id\s*===\s*'f41'/);
   assert.match(rankingTableSource, /current_day\.rate_no_tms/);
-  assert.match(rankingTableSource, /current_day\.rate_blank_tms/);
+  assert.doesNotMatch(rankingTableSource, /rate_blank_tms/);
   assert.match(rankingTableSource, /Tỷ lệ đạt \(không đo TMS\)/);
-  assert.match(rankingTableSource, /% chưa có đánh giá Có TMS/);
+  assert.doesNotMatch(rankingTableSource, /% chưa có đánh giá/);
 });
 
 test('F41-TMS-COMPARE-01: the F4.1 operation table has its own colgroup and Home uses short labels with the full wording in the tooltip', () => {
   const opTableSource = fs.readFileSync(new URL('../../components/f13/BcvhOperationTable.jsx', import.meta.url), 'utf8');
   const homeBlockSource = fs.readFileSync(new URL('../home/components/ActionUnitsBlock.jsx', import.meta.url), 'utf8');
 
-  // table-fixed reads widths from the colgroup only: F4.1 (14 / 16 columns) must not fall back to equal widths
+  // table-fixed reads widths from the colgroup only: F4.1 (12 / 14 columns) must not fall back to equal widths
   assert.match(opTableSource, /\{isF41 && \(\s*<colgroup>\s*\{f41ColumnWidths\(showPrevMonth\)/);
   const widths = (showPrev) => {
     const match = opTableSource.match(/function f41ColumnWidths[\s\S]*?\r?\n\}\r?\n/)[0];
     const arrays = [...match.matchAll(/\[([\d., ]+)\]/g)].map((m) => m[1].split(',').map(Number));
     return showPrev ? arrays[0] : arrays[1];
   };
-  assert.equal(widths(true).length, 16);
-  assert.equal(widths(false).length, 14);
+  assert.equal(widths(true).length, 14);
+  assert.equal(widths(false).length, 12);
 
   // Home (PO 2026-10-27): short labels, full wording as tooltip
   assert.match(homeBlockSource, /title="Tỷ lệ đạt \(không đo TMS\)[^"]*"[^>]*>\s*Không đo TMS\s*</);
