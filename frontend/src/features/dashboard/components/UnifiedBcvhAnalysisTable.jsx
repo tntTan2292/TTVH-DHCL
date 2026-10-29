@@ -159,12 +159,12 @@ function signalToneToBadge(tone) {
 function DoughnutCell({ routeDistribution, size = 'small' }) {
   const total = routeDistribution.segments.reduce((sum, segment) => sum + segment.value, 0);
   if (!total) {
-    return <span className="text-[11px] text-[var(--color-text-muted)]">{UNAVAILABLE_TEXT}</span>;
+    return <span className="text-[11px] text-slate-400 font-medium">{DASH}</span>;
   }
 
-  const boxClass = size === 'large' ? 'h-28 w-28' : 'h-16 w-16';
-  const innerRadius = size === 'large' ? 28 : 18;
-  const outerRadius = size === 'large' ? 42 : 28;
+  const boxClass = size === 'large' ? 'h-24 w-24' : 'h-8 w-8 mx-auto';
+  const innerRadius = size === 'large' ? 24 : 10;
+  const outerRadius = size === 'large' ? 38 : 15;
 
   return (
     <div className={boxClass} aria-label={buildDoughnutAriaLabel(routeDistribution)}>
@@ -239,8 +239,16 @@ function ColumnOptions({ columns, setColumns }) {
   );
 }
 
+const BADGE_STYLES = {
+  neutral: 'bg-slate-100 text-slate-700 border-slate-200',
+  success: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+  warning: 'bg-amber-50 text-amber-700 border-amber-200',
+  danger: 'bg-rose-50 text-rose-700 border-rose-200',
+  info: 'bg-blue-50 text-blue-700 border-blue-200',
+};
+
 function HeaderGroup({ label, colSpan, className = '' }) {
-  return <th colSpan={colSpan} className={`px-3 py-3 text-center text-[11px] font-bold uppercase tracking-wide ${className}`}>{label}</th>;
+  return <th colSpan={colSpan} className={`px-2 py-1.5 text-center text-[11px] font-bold uppercase tracking-wider ${className}`}>{label}</th>;
 }
 
 // Column value for click-to-order: 'a.b.c' reads row.a.b.c; the identity columns are plain fields.
@@ -272,18 +280,26 @@ function UnifiedHeader({ columns, sort, onSort, hasRank = true }) {
       </tr>
       <tr className="border-b border-[var(--color-surface-200)]">
         {hasRank ? (
-          <SortableTh field="rank" sort={sort} onSort={onSort} activeClassName={theme.sortActive} className={`${STICKY_RANK} ${GROUP_STYLES.identity.cell} ${GROUP_STYLES.identity.divider} px-3 py-3 text-right`}>{TEXT.rank}</SortableTh>
+          <SortableTh field="rank" sort={sort} onSort={onSort} activeClassName={theme.sortActive} className={`${STICKY_RANK} ${GROUP_STYLES.identity.cell} ${GROUP_STYLES.identity.divider} w-[68px] min-w-[68px] max-w-[68px] px-2 py-1.5 text-right`}>{TEXT.rank}</SortableTh>
         ) : null}
-        <SortableTh field="ma_bcvh" sort={sort} onSort={onSort} activeClassName={theme.sortActive} className={`${stickyCode} ${GROUP_STYLES.identity.cell} ${GROUP_STYLES.identity.divider} px-3 py-3 text-left`}>{rankingTable ? rankingTable.codeHeader : TEXT.code}</SortableTh>
-        <SortableTh field="ten_bcvh" sort={sort} onSort={onSort} activeClassName={theme.sortActive} className={`${stickyName} ${GROUP_STYLES.identity.cell} ${GROUP_STYLES.currentDay.divider} px-3 py-3 text-left`}>{rankingTable ? rankingTable.nameHeader : TEXT.name}</SortableTh>
+        <SortableTh field="ma_bcvh" sort={sort} onSort={onSort} activeClassName={theme.sortActive} className={`${stickyCode} ${GROUP_STYLES.identity.cell} ${GROUP_STYLES.identity.divider} w-[108px] min-w-[108px] max-w-[108px] px-2 py-1.5 text-center`}>
+          <span className="block max-w-[100px] leading-tight break-words text-center">
+            {rankingTable ? rankingTable.codeHeader : TEXT.code}
+          </span>
+        </SortableTh>
+        <SortableTh field="ten_bcvh" sort={sort} onSort={onSort} activeClassName={theme.sortActive} className={`${stickyName} ${GROUP_STYLES.identity.cell} ${GROUP_STYLES.currentDay.divider} min-w-[140px] max-w-[200px] px-2 py-1.5 text-left`}>
+          <span className="block min-w-[130px] max-w-[190px] leading-tight break-words">
+            {rankingTable ? rankingTable.nameHeader : TEXT.name}
+          </span>
+        </SortableTh>
 
-        <SortableTh field="current_day.volume" sort={sort} onSort={onSort} activeClassName={theme.sortActive} className={`${GROUP_STYLES.currentDay.cell} px-3 py-3 text-right`}>{TEXT.volume}</SortableTh>
-        <SortableTh field="current_day.pass_count" sort={sort} onSort={onSort} activeClassName={theme.sortActive} className={`${GROUP_STYLES.currentDay.cell} px-3 py-3 text-right`}>{TEXT.pass}</SortableTh>
-        <SortableTh field="current_day.fail_count" sort={sort} onSort={onSort} activeClassName={theme.sortActive} className={`${GROUP_STYLES.currentDay.cell} px-3 py-3 text-right`}>{TEXT.fail}</SortableTh>
-        <SortableTh field="current_day.rate" sort={sort} onSort={onSort} activeClassName={theme.sortActive} className={`${GROUP_STYLES.currentDay.cell} ${isF41 ? '' : GROUP_STYLES.lateCash.divider} px-3 py-3 text-center`}>{TEXT.rate}</SortableTh>
+        <SortableTh field="current_day.volume" sort={sort} onSort={onSort} activeClassName={theme.sortActive} className={`${GROUP_STYLES.currentDay.cell} px-2 py-1.5 text-right`}>{TEXT.volume}</SortableTh>
+        <SortableTh field="current_day.pass_count" sort={sort} onSort={onSort} activeClassName={theme.sortActive} className={`${GROUP_STYLES.currentDay.cell} px-2 py-1.5 text-right`}>{TEXT.pass}</SortableTh>
+        <SortableTh field="current_day.fail_count" sort={sort} onSort={onSort} activeClassName={theme.sortActive} className={`${GROUP_STYLES.currentDay.cell} px-2 py-1.5 text-right`}>{TEXT.fail}</SortableTh>
+        <SortableTh field="current_day.rate" sort={sort} onSort={onSort} activeClassName={theme.sortActive} className={`${GROUP_STYLES.currentDay.cell} ${isF41 ? '' : GROUP_STYLES.lateCash.divider} px-2 py-1.5 text-center`}>{TEXT.rate}</SortableTh>
         {isF41 ? (
           <>
-            <SortableTh field="current_day.rate_no_tms" sort={sort} onSort={onSort} activeClassName={theme.sortActive} className={`${GROUP_STYLES.currentDay.cell} ${GROUP_STYLES.lateCash.divider} px-3 py-3 text-center`}>
+            <SortableTh field="current_day.rate_no_tms" sort={sort} onSort={onSort} activeClassName={theme.sortActive} className={`${GROUP_STYLES.currentDay.cell} ${GROUP_STYLES.lateCash.divider} px-2 py-1.5 text-center`}>
               Tỷ lệ đạt (không đo TMS)
             </SortableTh>
           </>
@@ -291,31 +307,31 @@ function UnifiedHeader({ columns, sort, onSort, hasRank = true }) {
 
         {features.lateCash ? (
           <>
-            <SortableTh field="late_cash.count" sort={sort} onSort={onSort} activeClassName={theme.sortActive} className={`${GROUP_STYLES.lateCash.cell} px-3 py-3 text-right`}>{TEXT.lateCashCount}</SortableTh>
-            <SortableTh field="late_cash.rate" sort={sort} onSort={onSort} activeClassName={theme.sortActive} className={`${GROUP_STYLES.lateCash.cell} ${GROUP_STYLES.d1.divider} px-3 py-3 text-center`}>{TEXT.lateCashRate}</SortableTh>
+            <SortableTh field="late_cash.count" sort={sort} onSort={onSort} activeClassName={theme.sortActive} className={`${GROUP_STYLES.lateCash.cell} px-2 py-1.5 text-right`}>{TEXT.lateCashCount}</SortableTh>
+            <SortableTh field="late_cash.rate" sort={sort} onSort={onSort} activeClassName={theme.sortActive} className={`${GROUP_STYLES.lateCash.cell} ${GROUP_STYLES.d1.divider} px-2 py-1.5 text-center`}>{TEXT.lateCashRate}</SortableTh>
           </>
         ) : null}
 
-        {columns.d1Volume ? <SortableTh field="comparisons.d1.volume" sort={sort} onSort={onSort} activeClassName={theme.sortActive} className={`${GROUP_STYLES.d1.cell} px-3 py-3 text-right`}>{TEXT.volume}</SortableTh> : null}
-        {columns.d1Rate ? <SortableTh field="comparisons.d1.rate" sort={sort} onSort={onSort} activeClassName={theme.sortActive} className={`${GROUP_STYLES.d1.cell} px-3 py-3 text-center`}>{TEXT.rate}</SortableTh> : null}
-        <SortableTh field="comparisons.d1.volume_delta" sort={sort} onSort={onSort} activeClassName={theme.sortActive} className={`${GROUP_STYLES.d1.cell} px-3 py-3 text-right`}>{TEXT.volumeDelta}</SortableTh>
-        <SortableTh field="comparisons.d1.rate_delta" sort={sort} onSort={onSort} activeClassName={theme.sortActive} className={`${GROUP_STYLES.d1.cell} ${GROUP_STYLES.d1.divider} px-3 py-3 text-center`}>{TEXT.rateDelta}</SortableTh>
+        {columns.d1Volume ? <SortableTh field="comparisons.d1.volume" sort={sort} onSort={onSort} activeClassName={theme.sortActive} className={`${GROUP_STYLES.d1.cell} px-2 py-1.5 text-right`}>{TEXT.volume}</SortableTh> : null}
+        {columns.d1Rate ? <SortableTh field="comparisons.d1.rate" sort={sort} onSort={onSort} activeClassName={theme.sortActive} className={`${GROUP_STYLES.d1.cell} px-2 py-1.5 text-center`}>{TEXT.rate}</SortableTh> : null}
+        <SortableTh field="comparisons.d1.volume_delta" sort={sort} onSort={onSort} activeClassName={theme.sortActive} className={`${GROUP_STYLES.d1.cell} px-2 py-1.5 text-right`}>{TEXT.volumeDelta}</SortableTh>
+        <SortableTh field="comparisons.d1.rate_delta" sort={sort} onSort={onSort} activeClassName={theme.sortActive} className={`${GROUP_STYLES.d1.cell} ${GROUP_STYLES.d1.divider} px-2 py-1.5 text-center`}>{TEXT.rateDelta}</SortableTh>
 
-        {columns.d7Volume ? <SortableTh field="comparisons.d7.volume" sort={sort} onSort={onSort} activeClassName={theme.sortActive} className={`${GROUP_STYLES.d7.cell} px-3 py-3 text-right`}>{TEXT.volume}</SortableTh> : null}
-        {columns.d7Rate ? <SortableTh field="comparisons.d7.rate" sort={sort} onSort={onSort} activeClassName={theme.sortActive} className={`${GROUP_STYLES.d7.cell} px-3 py-3 text-center`}>{TEXT.rate}</SortableTh> : null}
-        <SortableTh field="comparisons.d7.volume_delta" sort={sort} onSort={onSort} activeClassName={theme.sortActive} className={`${GROUP_STYLES.d7.cell} px-3 py-3 text-right`}>{TEXT.volumeDelta}</SortableTh>
-        <SortableTh field="comparisons.d7.rate_delta" sort={sort} onSort={onSort} activeClassName={theme.sortActive} className={`${GROUP_STYLES.d7.cell} ${GROUP_STYLES.d7.divider} px-3 py-3 text-center`}>{TEXT.rateDelta}</SortableTh>
+        {columns.d7Volume ? <SortableTh field="comparisons.d7.volume" sort={sort} onSort={onSort} activeClassName={theme.sortActive} className={`${GROUP_STYLES.d7.cell} px-2 py-1.5 text-right`}>{TEXT.volume}</SortableTh> : null}
+        {columns.d7Rate ? <SortableTh field="comparisons.d7.rate" sort={sort} onSort={onSort} activeClassName={theme.sortActive} className={`${GROUP_STYLES.d7.cell} px-2 py-1.5 text-center`}>{TEXT.rate}</SortableTh> : null}
+        <SortableTh field="comparisons.d7.volume_delta" sort={sort} onSort={onSort} activeClassName={theme.sortActive} className={`${GROUP_STYLES.d7.cell} px-2 py-1.5 text-right`}>{TEXT.volumeDelta}</SortableTh>
+        <SortableTh field="comparisons.d7.rate_delta" sort={sort} onSort={onSort} activeClassName={theme.sortActive} className={`${GROUP_STYLES.d7.cell} ${GROUP_STYLES.d7.divider} px-2 py-1.5 text-center`}>{TEXT.rateDelta}</SortableTh>
 
         {features.routes ? (
           <>
-            <th className={`${GROUP_STYLES.route.cell} px-3 py-3 text-right`}>{TEXT.routeCount}</th>
-            <th className={`${GROUP_STYLES.route.cell} px-3 py-3 text-right`}>{TEXT.routeGreen}</th>
-            <th className={`${GROUP_STYLES.route.cell} px-3 py-3 text-right`}>{TEXT.routePink}</th>
-            <th className={`${GROUP_STYLES.route.cell} px-3 py-3 text-right`}>{TEXT.routeYellow}</th>
-            <th className={`${GROUP_STYLES.route.cell} px-3 py-3 text-right`}>{TEXT.routeRed}</th>
-            <th className={`${GROUP_STYLES.route.cell} ${GROUP_STYLES.route.divider} px-3 py-3 text-center`}>{TEXT.doughnut}</th>
+            <th className={`${GROUP_STYLES.route.cell} px-2 py-1.5 text-right`}>{TEXT.routeCount}</th>
+            <th className={`${GROUP_STYLES.route.cell} px-2 py-1.5 text-right`}>{TEXT.routeGreen}</th>
+            <th className={`${GROUP_STYLES.route.cell} px-2 py-1.5 text-right`}>{TEXT.routePink}</th>
+            <th className={`${GROUP_STYLES.route.cell} px-2 py-1.5 text-right`}>{TEXT.routeYellow}</th>
+            <th className={`${GROUP_STYLES.route.cell} px-2 py-1.5 text-right`}>{TEXT.routeRed}</th>
+            <th className={`${GROUP_STYLES.route.cell} ${GROUP_STYLES.route.divider} px-2 py-1.5 text-center`}>{TEXT.doughnut}</th>
 
-            <th className={`${GROUP_STYLES.action.cell} px-3 py-3 text-center`}>{TEXT.action}</th>
+            <th className={`${GROUP_STYLES.action.cell} px-2 py-1.5 text-center`}>{TEXT.action}</th>
           </>
         ) : null}
       </tr>
@@ -423,24 +439,32 @@ function Row({ row, columns, expandedRowId, onToggleAnalysis, onOpenDetail, hasR
         onClick={isTotal ? undefined : () => onToggleAnalysis(row.id)}
       >
         {hasRank ? (
-          <td className={`${STICKY_RANK} ${stickyBg} border-r border-slate-200 px-3 py-3 text-right ${isTotal ? 'text-[12px] font-bold text-[var(--color-primary-800)] shadow-[1px_0_0_0_var(--color-primary-200)]' : 'shadow-[1px_0_0_0_var(--color-surface-200)]'}`}>{row.rank ?? DASH}</td>
+          <td className={`${STICKY_RANK} ${stickyBg} border-r border-slate-200 w-[68px] min-w-[68px] max-w-[68px] px-2 py-1.5 text-right ${isTotal ? 'text-[12px] font-bold text-[var(--color-primary-800)] shadow-[1px_0_0_0_var(--color-primary-200)]' : 'shadow-[1px_0_0_0_var(--color-surface-200)]'}`}>{row.rank ?? DASH}</td>
         ) : null}
-        <td className={`${stickyCode} ${stickyBg} border-r border-slate-200 px-3 py-3 font-mono text-[11px] ${isTotal ? 'text-[var(--color-text-muted)] shadow-[1px_0_0_0_var(--color-primary-200)]' : 'text-[var(--color-text-muted)] shadow-[1px_0_0_0_var(--color-surface-200)]'}`}>{row.ma_bcvh || DASH}</td>
-        <td className={`${stickyName} ${stickyBg} border-r border-sky-200 px-3 py-3 ${isTotal ? 'text-[15px] font-black uppercase tracking-wide text-[var(--color-primary-900)] shadow-[8px_0_12px_-12px_rgba(59,130,246,0.25)]' : 'text-[14px] font-semibold text-[var(--color-text-main)] shadow-[8px_0_12px_-12px_rgba(15,23,42,0.35)]'}`}>{row.ten_bcvh}</td>
+        <td className={`${stickyCode} ${stickyBg} border-r border-slate-200 w-[108px] min-w-[108px] max-w-[108px] px-2 py-1.5 font-mono text-[11px] text-center ${isTotal ? 'text-[var(--color-text-muted)] shadow-[1px_0_0_0_var(--color-primary-200)]' : 'text-[var(--color-text-muted)] shadow-[1px_0_0_0_var(--color-surface-200)]'}`}>{row.ma_bcvh || DASH}</td>
+        <td className={`${stickyName} ${stickyBg} border-r border-sky-200 min-w-[140px] max-w-[200px] px-2 py-1.5 ${isTotal ? 'text-[13px] font-black uppercase tracking-wide text-[var(--color-primary-900)] shadow-[8px_0_12px_-12px_rgba(59,130,246,0.25)]' : 'text-xs font-semibold text-[var(--color-text-main)] shadow-[8px_0_12px_-12px_rgba(15,23,42,0.35)]'}`}>
+          <span className="block min-w-[130px] max-w-[190px] whitespace-normal break-words leading-tight" title={row.ten_bcvh}>
+            {row.ten_bcvh}
+          </span>
+        </td>
 
-        <td className="px-3 py-3 text-right">{formatNumber(row.current_day.volume, isTotal)}</td>
-        <td className="px-3 py-3 text-right">{formatNumber(row.current_day.pass_count, isTotal)}</td>
-        <td className="px-3 py-3 text-right">{formatNumber(row.current_day.fail_count, isTotal)}</td>
-        <td className={`${isF41 ? '' : 'border-r border-amber-200'} px-3 py-3 text-center`}>
-          <div className="flex flex-col items-center gap-1">
-            <span className={`font-semibold ${isTotal ? 'text-[15px]' : ''}`}>{formatRate(row.current_day.rate, isTotal)}</span>
-            <StatusBadge label={row.current_day.signal.label} tone={signalToneToBadge(row.current_day.signal.tone)} />
+        <td className="px-2 py-1.5 text-right">{formatNumber(row.current_day.volume, isTotal)}</td>
+        <td className="px-2 py-1.5 text-right">{formatNumber(row.current_day.pass_count, isTotal)}</td>
+        <td className="px-2 py-1.5 text-right">{formatNumber(row.current_day.fail_count, isTotal)}</td>
+        <td className={`${isF41 ? '' : 'border-r border-amber-200'} px-2 py-1.5 text-center whitespace-nowrap`}>
+          <div className="inline-flex items-center justify-center gap-1.5">
+            <span className={`font-bold tabular-nums ${isTotal ? 'text-[13px] text-blue-950' : 'text-xs text-slate-800'}`}>{formatRate(row.current_day.rate, isTotal)}</span>
+            {!isTotal && row.current_day.signal.label !== DASH && (
+              <span className={`inline-flex items-center rounded px-1.5 py-0.2 text-[10px] font-bold border leading-tight ${BADGE_STYLES[signalToneToBadge(row.current_day.signal.tone)] || BADGE_STYLES.neutral}`}>
+                {row.current_day.signal.label}
+              </span>
+            )}
           </div>
         </td>
         {isF41 ? (
           <>
-            <td className="border-r border-amber-200 px-3 py-3 text-center">
-              <span className={`font-semibold text-slate-700 ${isTotal ? 'text-[15px]' : ''}`}>
+            <td className="border-r border-amber-200 px-2 py-1.5 text-center whitespace-nowrap">
+              <span className={`font-semibold text-slate-700 ${isTotal ? 'text-[13px]' : 'text-xs'}`}>
                 {formatRate(row.current_day.rate_no_tms, true)}
               </span>
             </td>
@@ -449,31 +473,31 @@ function Row({ row, columns, expandedRowId, onToggleAnalysis, onOpenDetail, hasR
 
         {features.lateCash ? (
           <>
-            <td className="px-3 py-3 text-right">{formatNumber(row.late_cash.count, isTotal)}</td>
-            <td className="border-r border-emerald-200 px-3 py-3 text-center">{formatRate(row.late_cash.rate, isTotal)}</td>
+            <td className="px-2 py-1.5 text-right">{formatNumber(row.late_cash.count, isTotal)}</td>
+            <td className="border-r border-emerald-200 px-2 py-1.5 text-center">{formatRate(row.late_cash.rate, isTotal)}</td>
           </>
         ) : null}
 
-        {columns.d1Volume ? <td className="px-3 py-3 text-right">{formatNumber(row.comparisons.d1.volume, isTotal)}</td> : null}
-        {columns.d1Rate ? <td className="px-3 py-3 text-center">{formatRate(row.comparisons.d1.rate, isTotal)}</td> : null}
-        <td className="px-3 py-3 text-right">{formatVolumeDelta(row.comparisons.d1.volume_delta, isTotal)}</td>
-        <td className="border-r border-emerald-200 px-3 py-3 text-center">{formatSignedDelta(row.comparisons.d1.rate_delta, '%', isTotal)}</td>
+        {columns.d1Volume ? <td className="px-2 py-1.5 text-right">{formatNumber(row.comparisons.d1.volume, isTotal)}</td> : null}
+        {columns.d1Rate ? <td className="px-2 py-1.5 text-center">{formatRate(row.comparisons.d1.rate, isTotal)}</td> : null}
+        <td className="px-2 py-1.5 text-right">{formatVolumeDelta(row.comparisons.d1.volume_delta, isTotal)}</td>
+        <td className="border-r border-emerald-200 px-2 py-1.5 text-center">{formatSignedDelta(row.comparisons.d1.rate_delta, '%', isTotal)}</td>
 
-        {columns.d7Volume ? <td className="px-3 py-3 text-right">{formatNumber(row.comparisons.d7.volume, isTotal)}</td> : null}
-        {columns.d7Rate ? <td className="px-3 py-3 text-center">{formatRate(row.comparisons.d7.rate, isTotal)}</td> : null}
-        <td className="px-3 py-3 text-right">{formatVolumeDelta(row.comparisons.d7.volume_delta, isTotal)}</td>
-        <td className="border-r border-violet-200 px-3 py-3 text-center">{formatSignedDelta(row.comparisons.d7.rate_delta, '%', isTotal)}</td>
+        {columns.d7Volume ? <td className="px-2 py-1.5 text-right">{formatNumber(row.comparisons.d7.volume, isTotal)}</td> : null}
+        {columns.d7Rate ? <td className="px-2 py-1.5 text-center">{formatRate(row.comparisons.d7.rate, isTotal)}</td> : null}
+        <td className="px-2 py-1.5 text-right">{formatVolumeDelta(row.comparisons.d7.volume_delta, isTotal)}</td>
+        <td className="border-r border-violet-200 px-2 py-1.5 text-center">{formatSignedDelta(row.comparisons.d7.rate_delta, '%', isTotal)}</td>
 
         {features.routes ? (
           <>
-        <td className="px-3 py-3 text-right">{formatNumber(row.route_distribution.participating_postman_route_count, isTotal)}</td>
-        <td className="px-3 py-3 text-right">{formatNumber(row.route_distribution.counts.green, isTotal)}</td>
-        <td className="px-3 py-3 text-right">{formatNumber(row.route_distribution.counts.pink, isTotal)}</td>
-        <td className="px-3 py-3 text-right">{formatNumber(row.route_distribution.counts.yellow, isTotal)}</td>
-        <td className="px-3 py-3 text-right">{formatNumber(row.route_distribution.counts.red, isTotal)}</td>
-        <td className="border-r border-rose-200 px-3 py-3 text-center"><DoughnutCell routeDistribution={row.route_distribution} /></td>
+        <td className="px-2 py-1.5 text-right">{formatNumber(row.route_distribution.participating_postman_route_count, isTotal)}</td>
+        <td className="px-2 py-1.5 text-right">{formatNumber(row.route_distribution.counts.green, isTotal)}</td>
+        <td className="px-2 py-1.5 text-right">{formatNumber(row.route_distribution.counts.pink, isTotal)}</td>
+        <td className="px-2 py-1.5 text-right">{formatNumber(row.route_distribution.counts.yellow, isTotal)}</td>
+        <td className="px-2 py-1.5 text-right">{formatNumber(row.route_distribution.counts.red, isTotal)}</td>
+        <td className="border-r border-rose-200 px-2 py-1.5 text-center"><DoughnutCell routeDistribution={row.route_distribution} /></td>
 
-        <td className="bg-slate-50 px-3 py-3 text-center">
+        <td className="bg-slate-50 px-2 py-1.5 text-center">
           {!isTotal ? (
             <button
               type="button"
@@ -660,7 +684,7 @@ export default function UnifiedBcvhAnalysisTable({
         </div>
       </div>
       <div className="overflow-x-auto">
-        <table className="min-w-[2200px] table-auto text-xs">
+        <table className={`w-full ${indicator.features.routes ? 'min-w-[1480px]' : (indicator.id === 'f41' ? 'min-w-[1140px]' : 'min-w-[1020px]')} lg:min-w-full table-auto text-xs border-collapse`}>
           <UnifiedHeader columns={columns} sort={headerSort} onSort={handleSort} hasRank={hasRank} />
           <tbody>
             {state.data?.total_row ? (

@@ -232,26 +232,26 @@ export function mapBcvhRankingResponse(responseData = {}, context = {}) {
 
 export function formatNumber(value, nonApplicable = false) {
   const numeric = toNumberOrNull(value);
-  if (numeric === null) return nonApplicable ? DASH : UNAVAILABLE_TEXT;
+  if (numeric === null) return nonApplicable ? DASH : '0';
   return numeric.toLocaleString('vi-VN');
 }
 
 export function formatRate(value, nonApplicable = false) {
   const numeric = toNumberOrNull(value);
-  if (numeric === null) return nonApplicable ? DASH : UNAVAILABLE_TEXT;
+  if (numeric === null) return nonApplicable ? DASH : '0';
   return `${numeric.toLocaleString('vi-VN', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`;
 }
 
 export function formatSignedDelta(value, unit = '', nonApplicable = false) {
   const numeric = toNumberOrNull(value);
-  if (numeric === null) return nonApplicable ? DASH : UNAVAILABLE_TEXT;
+  if (numeric === null) return nonApplicable ? DASH : '0';
   const sign = numeric > 0 ? '+' : '';
   return `${sign}${numeric.toLocaleString('vi-VN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}${unit === '%' ? '%' : unit ? ` ${unit}` : ''}`;
 }
 
 export function formatVolumeDelta(value, nonApplicable = false) {
   const numeric = toNumberOrNull(value);
-  if (numeric === null) return nonApplicable ? DASH : UNAVAILABLE_TEXT;
+  if (numeric === null) return nonApplicable ? DASH : '0';
   const sign = numeric > 0 ? '+' : '';
   return `${sign}${numeric.toLocaleString('vi-VN')}`;
 }

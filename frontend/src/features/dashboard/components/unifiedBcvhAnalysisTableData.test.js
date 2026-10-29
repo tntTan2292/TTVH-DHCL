@@ -153,16 +153,16 @@ test('renders unsupported total-row fields as dash and unavailable row fields as
     },
   });
 
-  assert.equal(formatNumber(null), UNAVAILABLE_TEXT);
-  assert.equal(formatRate(null), UNAVAILABLE_TEXT);
-  assert.equal(formatSignedDelta(null, '%'), UNAVAILABLE_TEXT);
-  assert.equal(formatVolumeDelta(null), UNAVAILABLE_TEXT);
+  assert.equal(formatNumber(null), '0');
+  assert.equal(formatRate(null), '0');
+  assert.equal(formatSignedDelta(null, '%'), '0');
+  assert.equal(formatVolumeDelta(null), '0');
   assert.equal(formatNumber(null, true), DASH);
   assert.equal(formatRate(null, true), DASH);
   assert.equal(formatSignedDelta(null, '%', true), DASH);
   assert.equal(formatVolumeDelta(null, true), DASH);
   assert.equal(row.comparisons.d1.rank_movement.signal.label, DASH);
-  assert.match(row.analysis, /Chưa có dữ liệu/);
+  assert.match(row.analysis, /KPI ngày 0/);
 });
 
 test('keeps KPI 2026 SSOT labels separate from route-distribution labels', () => {
