@@ -7,6 +7,8 @@ import { classifyF13HeatmapRate, F13_HEATMAP_BANDS, getApprovedWeekdayBand } fro
 import { mapBcvhRankingResponse } from '../dashboard/components/unifiedBcvhAnalysisTableData.js';
 import { IndicatorProvider, useIndicator } from './IndicatorContext.js';
 import {
+  F11_INDICATOR,
+  F12_INDICATOR,
   F13_INDICATOR,
   F41_INDICATOR,
   F42_INDICATOR,
@@ -183,8 +185,12 @@ test('IndicatorProvider only carries a value: it holds no state, so a discarded 
   );
 });
 
-test('only F4.2 uses the compact operation table (one screen at 90 % zoom); the other indicators keep their size', () => {
+test('all indicators use the compact operation table (one screen at 90 % zoom) and F1.2 keeps its office-level operationTable config', () => {
+  assert.equal(F13_INDICATOR.compactOperationTable, true);
+  assert.equal(F41_INDICATOR.compactOperationTable, true);
+  assert.equal(F11_INDICATOR.compactOperationTable, true);
+  assert.equal(F12_INDICATOR.compactOperationTable, true);
   assert.equal(F42_INDICATOR.compactOperationTable, true);
-  assert.equal(F13_INDICATOR.compactOperationTable, undefined);
-  assert.equal(F41_INDICATOR.compactOperationTable, undefined);
+  assert.equal(F12_INDICATOR.operationTable.groupTitle, 'BƯU CỤC CHẤP NHẬN');
+  assert.deepEqual(F12_INDICATOR.operationTable.captureTops, [15, 20, 25, 30]);
 });
