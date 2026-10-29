@@ -2512,3 +2512,7 @@ PO passed the F4.2 screens: Operation Dashboard, BCVH Ranking, six-BCVH strip, p
 ## 2026-10-29 - F41-TMS-COMPARE-01 backend delivered (UI pending)
 
 PO approved showing the F4.1 "Không đo TMS" rate and the "chưa có đánh giá Có TMS" share beside the main rate (Home block, F4.1 Dashboard operation table, F4.1 BCVH Ranking day table; denominator = total rows). Backend done by Claude Code: new agg counter n_dat_khong_tms, four new fields on the F4.1 ranking, overview and Home rows, tests green, checked on a copy of the real data. Next: PO restarts the backend, Claude Code runs agg_tool build for F4.1, then Antigravity builds the columns from the manifest.
+
+## 2026-10-29 - F41-TMS-COMPARE-01 closed (PO PASS)
+
+PO passed the F4.1 "Không đo TMS" rate on the Home block, the Dashboard operation table, the BCVH Ranking day table and the weekly / monthly comparison table (Antigravity UI, Opus review, fixes by Claude Code; two columns dropped on PO request). Backend restarted, agg_f41_day rebuilt and verified. No open residual.

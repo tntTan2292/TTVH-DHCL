@@ -1,6 +1,6 @@
 # F41-TMS-COMPARE-01 - "Không đo TMS" rate and "chưa có đánh giá Có TMS" share beside the F4.1 rate
 
-Status: BACKEND LIVE; UI IMPLEMENTED AND OPUS-REVIEWED (2026-10-29); READY FOR PO CHECK
+Status: IMPLEMENTED / PO UI PASS / CLOSED (2026-10-29)
 Owner: Claude Code (Sonnet) backend; Antigravity (Gemini) UI. Does not change the Current Ticket.
 
 ## 1. PO request and decisions (2026-10-29)
@@ -95,7 +95,11 @@ Antigravity added "Tỷ lệ đạt (không đo TMS)" to both period groups of `
 
 PO check: F4.1 BCVH Ranking, block "Bảng tổng hợp so sánh chất lượng F4.1 theo tuần": one extra column after "Tỷ lệ đạt F4.1" in "Tuần kỳ này" and in "Tuần so sánh"; the unit name column stays readable; total row filled; click the new titles to order; in month mode the same two columns; the picture includes them.
 
+## 7h. PO UI PASS (2026-10-29)
+
+The PO checked all four places (Home block, F4.1 Dashboard operation table, F4.1 BCVH Ranking day table, weekly / monthly comparison table) and confirmed PO PASS. Ticket closed.
+
 ## 8. Residuals
 
-- PO UI check pending (Section 7c).
+- None open. The backend still sends `blank_tms` / `rate_blank_tms` (no screen reads them since 7d/7e).
 - Weekly/monthly comparison blocks and the Home cards do not carry the new figures (phase 2 on request).
