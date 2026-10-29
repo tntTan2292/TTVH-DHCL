@@ -485,3 +485,33 @@ test('compareRollingWindow: the national rank stays null when no rank service is
     assert.deepEqual(result.national_rank, { current: null, compare: null });
     assert.equal(result.summary.current.rate, null);
 });
+
+test('F41-TMS-COMPARE-01: the Không đo TMS pass count and rate of each period appear only when the repository supplies them', async () => {
+    const weeksRows = [
+        { week_start: '2026-09-03', first_date: '2026-09-03', last_date: '2026-09-09', days_with_data: 7 },
+        { week_start: '2026-09-10', first_date: '2026-09-10', last_date: '2026-09-16', days_with_data: 7 },
+    ];
+    const rowsWith = CODES.map((code, index) => ({
+        ma_bcvh: code, ten_bcvh: `U${index}`,
+        volume_a: 100, passed_a: 70, passed_no_tms_a: 60,
+        volume_b: 200, passed_b: 120, passed_no_tms_b: 110,
+    }));
+    const withFields = new BcvhWeeklyComparisonService({ repository: buildRepository({ weeksRows, comparisonRows: rowsWith }) });
+    const a = await withFields.compareWeeks('2026-W37', '2026-W36');
+    assert.equal(a.rows[0].current.passed_no_tms, 60);
+    assert.equal(a.rows[0].current.rate_no_tms, 60);
+    assert.equal(a.rows[0].compare.rate_no_tms, 55);
+    assert.equal(a.total_row.current.passed_no_tms, 60 * CODES.length);
+    assert.equal(a.total_row.current.rate_no_tms, 60); // summed counts over summed volume
+    assert.equal(a.total_row.compare.rate_no_tms, 55);
+    assert.equal(a.rows[0].current.rate, 70); // main rate untouched
+
+    // F1.3 and the others: not one extra key
+    const plainRows = rowsWith.map(({ passed_no_tms_a, passed_no_tms_b, ...rest }) => rest);
+    const plain = new BcvhWeeklyComparisonService({ repository: buildRepository({ weeksRows, comparisonRows: plainRows }) });
+    const b = await plain.compareWeeks('2026-W37', '2026-W36');
+    for (const part of [b.rows[0].current, b.rows[0].compare, b.total_row.current, b.total_row.compare]) {
+        assert.equal('passed_no_tms' in part, false);
+        assert.equal('rate_no_tms' in part, false);
+    }
+});

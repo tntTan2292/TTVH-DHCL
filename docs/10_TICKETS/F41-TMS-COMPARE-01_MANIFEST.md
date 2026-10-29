@@ -83,6 +83,12 @@ PO saw the Home block and asked to remove two columns there as redundant: "% ch�
 
 The PO asked to drop the "% chưa có đánh giá Có TMS" column from the tables too (it takes too much room). The F4.1 Dashboard operation table now has one extra column per group ("Tỷ lệ đạt (không đo TMS)" in Lũy kế tháng and in Điều hành ngày; colgroup 12 / 14 columns) and the BCVH Ranking day table one extra column in the current-day group. Together with 7d, the only new figure on screen is the Không đo TMS rate. The backend still computes `blank_tms` / `rate_blank_tms` (kept, no screen reads them) and the data mappers still carry them.
 
+## 7f. Phase 2 requested by the PO: weekly comparison block (2026-10-29)
+
+The PO saw that "Bảng tổng hợp so sánh chất lượng F4.1 theo tuần tại các BCVH" (BCVH Ranking, `BcvhWeeklyComparisonBlock.jsx`) has no Không đo TMS rate. Backend done: `GET /f41/ranking/bcvh/weekly-comparison` (and the month comparison and the 7-day window, same builder) now return, inside `rows[].current`, `rows[].compare`, `total_row.current` and `total_row.compare`, two extra keys: `passed_no_tms` (count) and `rate_no_tms` (percent, 4 decimals, over the period's total rows). The total is the summed count over the summed volume; a unit with no row in the period counts 0. F1.1, F1.2, F1.3, F4.2 payloads have no extra keys. Tests: `bcvhWeeklyComparisonService.test.js`, `F41RankingService.test.js` (week and month), parity from detail and aggregate on a copy of the real data (week 42 vs 41: Hương Thủy 39.2 % vs 48.0 % Không đo TMS).
+
+UI scope (Antigravity): one column "Tỷ lệ đạt (không đo TMS)" in each of the two period groups ("Tuần kỳ này", "Tuần so sánh"; the same block also serves the month comparison), only when `indicator.id === 'f41'`, right after "Tỷ lệ đạt F4.1"; neutral colour, no band colouring, no target line; no new delta column; sortable, in the picture; give the 12-column table (14 with the extra two) its widths explicitly (the block is `table-fixed`, see 7b).
+
 ## 8. Residuals
 
 - PO UI check pending (Section 7c).

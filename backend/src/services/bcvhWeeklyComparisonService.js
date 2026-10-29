@@ -392,9 +392,19 @@ class BcvhWeeklyComparisonService {
         };
     }
 
+    // F41-TMS-COMPARE-01: F4.1 rows also carry the "Không đo TMS" pass count of each period (passed_no_tms_a / _b);
+    // the other indicators' repositories do not, and their output must stay exactly as it was.
+    // `supplied`: the repository returned the figure for at least one unit; a unit with no row then counts 0.
+    _noTmsPart(row, key, volume, supplied) {
+        if (!supplied) return {};
+        const passedNoTms = Number(row[`passed_no_tms_${key}`] || 0);
+        return { passed_no_tms: passedNoTms, rate_no_tms: nullableRate(passedNoTms, volume) };
+    }
+
     async _buildComparison(boundsA, boundsB) {
         const rows = await this.repository.getBcvhWeeklyComparisonAggregate(boundsA, boundsB, this.codes);
         const rowByBcvh = new Map(rows.map((row) => [row.ma_bcvh, row]));
+        const noTmsSupplied = rows.some((row) => row.passed_no_tms_a !== undefined);
 
         const units = this.units.map((unit) => {
             const row = rowByBcvh.get(unit.ma_bcvh) || {};
@@ -407,8 +417,8 @@ class BcvhWeeklyComparisonService {
             return {
                 ma_bcvh: unit.ma_bcvh,
                 ten_bcvh: unit.ten_bcvh,
-                current: { volume: volumeA, passed: passedA, failed: volumeA - passedA, rate: rateA },
-                compare: { volume: volumeB, passed: passedB, failed: volumeB - passedB, rate: rateB },
+                current: { volume: volumeA, passed: passedA, failed: volumeA - passedA, rate: rateA, ...this._noTmsPart(row, 'a', volumeA, noTmsSupplied) },
+                compare: { volume: volumeB, passed: passedB, failed: volumeB - passedB, rate: rateB, ...this._noTmsPart(row, 'b', volumeB, noTmsSupplied) },
                 // Absolute percentage-point delta, matching every other comparison column in this
                 // module (BcvhMtdSummaryBlock's "so cùng kỳ tháng trước", Operation Dashboard's D-1/D-7).
                 rate_delta: (rateA !== null && rateB !== null) ? Number((rateA - rateB).toFixed(4)) : null,
@@ -422,13 +432,20 @@ class BcvhWeeklyComparisonService {
         const totalPassedB = units.reduce((sum, u) => sum + u.compare.passed, 0);
         const totalRateA = nullableRate(totalPassedA, totalVolumeA);
         const totalRateB = nullableRate(totalPassedB, totalVolumeB);
+        // total of the Không đo TMS figures: only when every unit carries them (never a partial sum over a full denominator)
+        const withNoTms = units.length > 0 && units.every((u) => u.current.passed_no_tms !== undefined);
+        const totalNoTms = (key, volume) => {
+            if (!withNoTms) return {};
+            const passedNoTms = units.reduce((sum, u) => sum + u[key].passed_no_tms, 0);
+            return { passed_no_tms: passedNoTms, rate_no_tms: nullableRate(passedNoTms, volume) };
+        };
 
         return {
             rows: units,
             total_row: {
                 ten_bcvh: 'TỔNG CỘNG',
-                current: { volume: totalVolumeA, passed: totalPassedA, failed: totalVolumeA - totalPassedA, rate: totalRateA },
-                compare: { volume: totalVolumeB, passed: totalPassedB, failed: totalVolumeB - totalPassedB, rate: totalRateB },
+                current: { volume: totalVolumeA, passed: totalPassedA, failed: totalVolumeA - totalPassedA, rate: totalRateA, ...totalNoTms('current', totalVolumeA) },
+                compare: { volume: totalVolumeB, passed: totalPassedB, failed: totalVolumeB - totalPassedB, rate: totalRateB, ...totalNoTms('compare', totalVolumeB) },
                 rate_delta: (totalRateA !== null && totalRateB !== null) ? Number((totalRateA - totalRateB).toFixed(4)) : null,
                 volume_delta: totalVolumeA - totalVolumeB,
             },

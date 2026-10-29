@@ -14,7 +14,7 @@
  *   strictFailed  evaluated 'Không đạt'
  *   blank         evaluation NULL or empty
  *   nopTien       payment time present (F1.3 only; needs aggregate column n_nop_tien)
- *   altPassed     rows 'Đạt' on the second evaluation column (F4.1 "Không đo TMS"; needs n_dat_khong_tms)
+ *   altPassed(cond) rows 'Đạt' on the second evaluation column (F4.1 "Không đo TMS"; needs n_dat_khong_tms)
  *   name()        MAX(name column)
  *
  * options:
@@ -51,9 +51,9 @@ function makeSources({ factTable, aggTable, evaluationColumn, nameColumn, countN
             : `SUM(CASE WHEN ${passedCond} THEN 0 ELSE 1 END)`),
         blank: () => `SUM(CASE WHEN ${evaluationColumn} IS NULL OR TRIM(${evaluationColumn}) = '' THEN 1 ELSE 0 END)`,
         nopTien: () => "SUM(CASE WHEN thoi_gian_nop_tien IS NOT NULL AND TRIM(thoi_gian_nop_tien) != '' THEN 1 ELSE 0 END)",
-        altPassed: () => {
+        altPassed: (cond) => {
             if (!altEvaluationColumn) throw new Error('altPassed needs altEvaluationColumn');
-            return `SUM(CASE WHEN ${altEvaluationColumn} = 'Đạt' THEN 1 ELSE 0 END)`;
+            return `SUM(CASE WHEN ${andAll(cond, `${altEvaluationColumn} = 'Đạt'`)} THEN 1 ELSE 0 END)`;
         },
         name: () => `MAX(${nameColumn})`,
     };
@@ -75,9 +75,9 @@ function makeSources({ factTable, aggTable, evaluationColumn, nameColumn, countN
         failed: () => (failedMode === 'strict' ? 'SUM(n_khong_dat)' : 'SUM(n_rows) - SUM(n_dat)'),
         blank: () => 'SUM(n_blank)',
         nopTien: () => 'SUM(n_nop_tien)',
-        altPassed: () => {
+        altPassed: (cond) => {
             if (!altEvaluationColumn) throw new Error('altPassed needs altEvaluationColumn');
-            return 'SUM(n_dat_khong_tms)';
+            return cond ? `SUM(CASE WHEN ${cond} THEN n_dat_khong_tms ELSE 0 END)` : 'SUM(n_dat_khong_tms)';
         },
         name: () => `MAX(${nameColumn})`,
     };

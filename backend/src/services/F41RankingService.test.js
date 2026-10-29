@@ -362,3 +362,24 @@ test('summary degrades to a null national rank when the rank query fails (T8-F41
         assert.equal(summary.national_rank, null);
     });
 });
+
+test('F41-TMS-COMPARE-01: weekly and monthly comparison rows carry the Không đo TMS count and rate of each period', async () => {
+    await withStack(async ({ service }) => {
+        const weeks = await service.listWeeks();
+        const w1 = weeks.find((week) => week.week_start === '2026-07-30');
+        const w2 = weeks.find((week) => week.week_start === '2026-08-06');
+        const weekly = await service.compareWeeks(w2.week_id, w1.week_id);
+        // week of 08-06: only 08-11 carries Không đo TMS values (8 + 2 Đạt) over 25 rows; the earlier week has none
+        assert.equal(weekly.total_row.current.volume, 25);
+        assert.equal(weekly.total_row.current.passed_no_tms, 10);
+        assert.equal(weekly.total_row.current.rate_no_tms, 40);
+        assert.equal(weekly.total_row.compare.passed_no_tms, 0);
+        const hue = weekly.rows.find((row) => row.ma_bcvh === '533140');
+        assert.equal(hue.current.passed_no_tms, 8);
+        assert.equal(hue.current.rate, Number(((3 + 7) / 16 * 100).toFixed(4)));
+
+        const months = await service.listMonths();
+        const monthly = await service.compareMonths(months[1].month_id, months[0].month_id);
+        assert.equal(monthly.total_row.current.passed_no_tms, 10);
+    });
+});

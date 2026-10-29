@@ -492,8 +492,10 @@ class FactF41Repository {
                 ${src.name()} AS ten_bcvh,
                 ${src.count('ngay_do_kiem BETWEEN ? AND ?')} AS volume_a,
                 ${src.passed('ngay_do_kiem BETWEEN ? AND ?')} AS passed_a,
+                ${src.altPassed('ngay_do_kiem BETWEEN ? AND ?')} AS passed_no_tms_a,
                 ${src.count('ngay_do_kiem BETWEEN ? AND ?')} AS volume_b,
-                ${src.passed('ngay_do_kiem BETWEEN ? AND ?')} AS passed_b
+                ${src.passed('ngay_do_kiem BETWEEN ? AND ?')} AS passed_b,
+                ${src.altPassed('ngay_do_kiem BETWEEN ? AND ?')} AS passed_no_tms_b
             FROM ${src.table}
             WHERE ma_bc_phat IN (${placeholders})
               AND (ngay_do_kiem BETWEEN ? AND ? OR ngay_do_kiem BETWEEN ? AND ?)
@@ -501,6 +503,8 @@ class FactF41Repository {
         `, [
             weekABounds.from, weekABounds.to,
             weekABounds.from, weekABounds.to,
+            weekABounds.from, weekABounds.to,
+            weekBBounds.from, weekBBounds.to,
             weekBBounds.from, weekBBounds.to,
             weekBBounds.from, weekBBounds.to,
             ...canonicalCodes,
