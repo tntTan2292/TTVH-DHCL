@@ -352,7 +352,7 @@ export default function F11PairTableBlock({ anchorDate, toDate }) {
           </div>
         ) : (
           <div className="overflow-hidden rounded-xl border border-slate-200 shadow-2xs">
-            <div className="max-h-[560px] overflow-x-auto overflow-y-auto">
+            <div className="max-h-[660px] overflow-x-auto overflow-y-auto">
               <table className="pair-table w-full border-collapse text-left text-xs text-slate-700">
                 <thead className="sticky top-0 z-20 bg-slate-100 text-[11px] font-bold uppercase tracking-wider text-slate-700 shadow-2xs">
                   <tr>
@@ -361,7 +361,7 @@ export default function F11PairTableBlock({ anchorDate, toDate }) {
                       sort={sort}
                       onSort={handleSort}
                       activeClassName={theme.sortActive}
-                      className="pair-th-first sticky left-0 z-30 bg-slate-100 px-3.5 py-3 border-r border-b border-slate-200 min-w-[200px] text-left"
+                      className="pair-th-first sticky left-0 z-30 bg-slate-100 px-3 py-2 border-r border-b border-slate-200 min-w-[200px] text-left"
                     >
                       Bưu cục chấp nhận
                     </SortableTh>
@@ -373,7 +373,7 @@ export default function F11PairTableBlock({ anchorDate, toDate }) {
                           scope="col"
                           onClick={() => toggleColumnHighlight(col.ma_bcvh)}
                           title="Bấm để làm nổi bật cột này"
-                          className={`cursor-pointer px-3 py-2.5 text-center border-b border-r border-slate-200 min-w-[110px] transition-colors select-none ${
+                          className={`cursor-pointer px-2 py-1.5 text-center border-b border-r border-slate-200 min-w-[105px] transition-colors select-none ${
                             isHighlighted
                               ? `${theme.sortActive} font-black ring-2 ring-inset ${theme.ring}`
                               : 'hover:bg-slate-200/70'
@@ -383,7 +383,7 @@ export default function F11PairTableBlock({ anchorDate, toDate }) {
                           {col.ma_bcvh !== 'OTHER' ? (
                             <div className="pair-th-code text-[10px] font-normal opacity-75">{col.ma_bcvh}</div>
                           ) : null}
-                          <div data-no-capture="true" className="mt-1 flex items-center justify-center gap-1">
+                          <div data-no-capture="true" className="mt-0.5 flex items-center justify-center gap-1">
                             <MiniSort field={`${col.ma_bcvh}:volume`} label="SL" sort={sort} onSort={handleSort} activeClassName={theme.sortActive} />
                             <MiniSort field={`${col.ma_bcvh}:rate`} label="TL" sort={sort} onSort={handleSort} activeClassName={theme.sortActive} />
                           </div>
@@ -392,7 +392,7 @@ export default function F11PairTableBlock({ anchorDate, toDate }) {
                     })}
                     <th
                       scope="col"
-                      className="px-3.5 py-3 text-center border-b border-slate-200 min-w-[110px] bg-slate-200/80 font-black text-slate-900"
+                      className="px-2 py-1.5 text-center border-b border-slate-200 min-w-[105px] bg-slate-200/80 font-black text-slate-900"
                     >
                       <div className="pair-th-total">Tổng cộng</div>
                       <div data-no-capture="true" className="mt-1 flex items-center justify-center gap-1">
@@ -408,11 +408,13 @@ export default function F11PairTableBlock({ anchorDate, toDate }) {
                       key={row.ma_chap_nhan || row.ten_chap_nhan}
                       className="hover:bg-slate-50/80 transition-colors"
                     >
-                      <td className="sticky left-0 z-10 bg-white px-3.5 py-2.5 font-medium border-r border-slate-200 whitespace-nowrap shadow-xs">
-                        <div className="pair-name text-slate-900 font-semibold">{row.ten_chap_nhan}</div>
-                        {row.ma_chap_nhan ? (
-                          <div className="pair-code text-[10px] text-slate-400">{row.ma_chap_nhan}</div>
-                        ) : null}
+                      <td className="sticky left-0 z-10 bg-white px-2.5 py-1 font-medium border-r border-slate-200 whitespace-nowrap shadow-xs">
+                        <div className="flex items-center gap-1.5 leading-tight">
+                          <span className="pair-name text-slate-900 font-semibold text-xs">{row.ten_chap_nhan}</span>
+                          {row.ma_chap_nhan ? (
+                            <span className="pair-code text-[10px] text-slate-400 font-mono">({row.ma_chap_nhan})</span>
+                          ) : null}
+                        </div>
                       </td>
 
                       {orderedColumns.map((col) => {
@@ -425,19 +427,19 @@ export default function F11PairTableBlock({ anchorDate, toDate }) {
                         return (
                           <td
                             key={col.ma_bcvh}
-                            className={`px-2.5 py-2 text-center border-r border-slate-200/80 whitespace-nowrap ${
+                            className={`px-2 py-1 text-center border-r border-slate-200/80 whitespace-nowrap ${
                               isHighlighted ? theme.soft : ''
                             }`}
                           >
                             {hasVolume ? (
                               <div
                                 title={`Đạt ${cellData.passed}/${cellData.volume} (${cellData.rate}%)${cellData.blank ? ` · Trống: ${cellData.blank}` : ''}`}
-                                className="pair-cell flex flex-col items-center"
+                                className="pair-cell flex items-center justify-center gap-1.5 leading-none"
                               >
                                 <span className={`pair-rate inline-block rounded border px-1.5 py-0.5 text-xs font-bold tabular-nums ${toneClass}`}>
                                   {cellData.rate !== null ? `${Number(cellData.rate).toFixed(1)}%` : '—'}
                                 </span>
-                                <span className="pair-vol mt-0.5 text-[10px] font-medium text-slate-500 tabular-nums">
+                                <span className="pair-vol text-[10px] font-medium text-slate-500 tabular-nums">
                                   {Number(cellData.volume).toLocaleString('vi-VN')} BG
                                 </span>
                               </div>
@@ -449,17 +451,17 @@ export default function F11PairTableBlock({ anchorDate, toDate }) {
                       })}
 
                       {/* Row Total */}
-                      <td className="px-2.5 py-2 text-center bg-slate-50/60 font-semibold whitespace-nowrap">
+                      <td className="px-2 py-1 text-center bg-slate-50/60 font-semibold whitespace-nowrap">
                         {row.total && row.total.volume > 0 ? (
                           (() => {
                             const totalBand = classifyF13HeatmapRate(row.total.rate, indicator.heatmapBands);
                             const totalToneClass = F13_HEATMAP_TONE_CLASS[totalBand.tone] || F13_HEATMAP_TONE_CLASS.unavailable;
                             return (
-                              <div className="pair-cell flex flex-col items-center">
+                              <div className="pair-cell flex items-center justify-center gap-1.5 leading-none">
                                 <span className={`pair-rate inline-block rounded border px-1.5 py-0.5 text-xs font-black tabular-nums ${totalToneClass}`}>
                                   {row.total.rate !== null ? `${Number(row.total.rate).toFixed(1)}%` : '—'}
                                 </span>
-                                <span className="pair-vol mt-0.5 text-[10px] font-bold text-slate-700 tabular-nums">
+                                <span className="pair-vol text-[10px] font-bold text-slate-700 tabular-nums">
                                   {Number(row.total.volume).toLocaleString('vi-VN')} BG
                                 </span>
                               </div>
@@ -477,7 +479,7 @@ export default function F11PairTableBlock({ anchorDate, toDate }) {
                 {totalRow ? (
                   <tfoot className="sticky bottom-0 z-20 border-t-2 border-slate-300 bg-slate-100 font-bold shadow-md">
                     <tr>
-                      <td className="sticky left-0 z-30 bg-slate-100 px-3.5 py-3 border-r border-slate-300 text-slate-900 font-black whitespace-nowrap shadow-xs">
+                      <td className="sticky left-0 z-30 bg-slate-100 px-2.5 py-1.5 border-r border-slate-300 text-slate-900 font-black whitespace-nowrap shadow-xs">
                         {totalRow.ten_chap_nhan || 'TỔNG CỘNG'}
                       </td>
 
@@ -491,19 +493,19 @@ export default function F11PairTableBlock({ anchorDate, toDate }) {
                         return (
                           <td
                             key={col.ma_bcvh}
-                            className={`px-2.5 py-2.5 text-center border-r border-slate-300 whitespace-nowrap ${
+                            className={`px-2 py-1.5 text-center border-r border-slate-300 whitespace-nowrap ${
                               isHighlighted ? theme.headerBg : 'bg-slate-100'
                             }`}
                           >
                             {hasVolume ? (
                               <div
                                 title={`Tổng cột: Đạt ${cellData.passed}/${cellData.volume} (${cellData.rate}%)`}
-                                className="pair-cell flex flex-col items-center"
+                                className="pair-cell flex items-center justify-center gap-1.5 leading-none"
                               >
                                 <span className={`pair-rate inline-block rounded border px-2 py-0.5 text-xs font-black tabular-nums ${toneClass}`}>
                                   {cellData.rate !== null ? `${Number(cellData.rate).toFixed(1)}%` : '—'}
                                 </span>
-                                <span className="pair-vol mt-0.5 text-[10px] font-black text-slate-800 tabular-nums">
+                                <span className="pair-vol text-[10px] font-black text-slate-800 tabular-nums">
                                   {Number(cellData.volume).toLocaleString('vi-VN')} BG
                                 </span>
                               </div>
@@ -515,17 +517,17 @@ export default function F11PairTableBlock({ anchorDate, toDate }) {
                       })}
 
                       {/* Grand Total */}
-                      <td className="px-2.5 py-2.5 text-center bg-slate-200 font-black whitespace-nowrap">
+                      <td className="px-2 py-1.5 text-center bg-slate-200 font-black whitespace-nowrap">
                         {totalRow.total && totalRow.total.volume > 0 ? (
                           (() => {
                             const grandBand = classifyF13HeatmapRate(totalRow.total.rate, indicator.heatmapBands);
                             const grandToneClass = F13_HEATMAP_TONE_CLASS[grandBand.tone] || F13_HEATMAP_TONE_CLASS.unavailable;
                             return (
-                              <div className="pair-cell flex flex-col items-center">
+                              <div className="pair-cell flex items-center justify-center gap-1.5 leading-none">
                                 <span className={`pair-rate inline-block rounded border px-2 py-0.5 text-xs font-black tabular-nums ${grandToneClass}`}>
                                   {totalRow.total.rate !== null ? `${Number(totalRow.total.rate).toFixed(1)}%` : '—'}
                                 </span>
-                                <span className="pair-vol mt-0.5 text-[10px] font-black text-slate-900 tabular-nums">
+                                <span className="pair-vol text-[10px] font-black text-slate-900 tabular-nums">
                                   {Number(totalRow.total.volume).toLocaleString('vi-VN')} BG
                                 </span>
                               </div>
