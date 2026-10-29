@@ -75,8 +75,8 @@ const DEFAULT_COLUMNS = {
 };
 
 const STICKY_RANK = 'sticky left-0 z-20';
-const STICKY_CODE = 'sticky left-[68px] z-20';
-const STICKY_NAME = 'sticky left-[176px] z-20';
+const STICKY_CODE = 'sticky left-[48px] z-20';
+const STICKY_NAME = 'sticky left-[120px] z-20';
 
 const GROUP_STYLES = {
   identity: {
@@ -265,7 +265,7 @@ function UnifiedHeader({ columns, sort, onSort, hasRank = true }) {
   const d1Span = 2 + (columns.d1Volume ? 1 : 0) + (columns.d1Rate ? 1 : 0);
   const d7Span = 2 + (columns.d7Volume ? 1 : 0) + (columns.d7Rate ? 1 : 0);
   const stickyCode = hasRank ? STICKY_CODE : 'sticky left-0 z-20';
-  const stickyName = hasRank ? STICKY_NAME : 'sticky left-[108px] z-20';
+  const stickyName = hasRank ? STICKY_NAME : 'sticky left-[72px] z-20';
 
   return (
     <thead className="sticky top-0 z-10 bg-white text-[11px] uppercase text-[var(--color-text-muted)]">
@@ -280,15 +280,15 @@ function UnifiedHeader({ columns, sort, onSort, hasRank = true }) {
       </tr>
       <tr className="border-b border-[var(--color-surface-200)]">
         {hasRank ? (
-          <SortableTh field="rank" sort={sort} onSort={onSort} activeClassName={theme.sortActive} className={`${STICKY_RANK} ${GROUP_STYLES.identity.cell} ${GROUP_STYLES.identity.divider} w-[68px] min-w-[68px] max-w-[68px] px-2 py-1.5 text-right`}>{TEXT.rank}</SortableTh>
+          <SortableTh field="rank" sort={sort} onSort={onSort} activeClassName={theme.sortActive} className={`${STICKY_RANK} ${GROUP_STYLES.identity.cell} ${GROUP_STYLES.identity.divider} w-[48px] min-w-[48px] max-w-[48px] px-1.5 py-1.5 text-center`}>{TEXT.rank}</SortableTh>
         ) : null}
-        <SortableTh field="ma_bcvh" sort={sort} onSort={onSort} activeClassName={theme.sortActive} className={`${stickyCode} ${GROUP_STYLES.identity.cell} ${GROUP_STYLES.identity.divider} w-[108px] min-w-[108px] max-w-[108px] px-2 py-1.5 text-center`}>
-          <span className="block max-w-[100px] leading-tight break-words text-center">
+        <SortableTh field="ma_bcvh" sort={sort} onSort={onSort} activeClassName={theme.sortActive} className={`${stickyCode} ${GROUP_STYLES.identity.cell} ${GROUP_STYLES.identity.divider} w-[72px] min-w-[72px] max-w-[72px] px-1.5 py-1.5 text-center`}>
+          <span className="block max-w-[68px] leading-tight break-words text-center">
             {rankingTable ? rankingTable.codeHeader : TEXT.code}
           </span>
         </SortableTh>
-        <SortableTh field="ten_bcvh" sort={sort} onSort={onSort} activeClassName={theme.sortActive} className={`${stickyName} ${GROUP_STYLES.identity.cell} ${GROUP_STYLES.currentDay.divider} min-w-[140px] max-w-[200px] px-2 py-1.5 text-left`}>
-          <span className="block min-w-[130px] max-w-[190px] leading-tight break-words">
+        <SortableTh field="ten_bcvh" sort={sort} onSort={onSort} activeClassName={theme.sortActive} className={`${stickyName} ${GROUP_STYLES.identity.cell} ${GROUP_STYLES.currentDay.divider} w-[125px] min-w-[120px] max-w-[145px] px-2 py-1.5 text-left`}>
+          <span className="block min-w-[115px] max-w-[140px] leading-tight break-words">
             {rankingTable ? rankingTable.nameHeader : TEXT.name}
           </span>
         </SortableTh>
@@ -300,7 +300,7 @@ function UnifiedHeader({ columns, sort, onSort, hasRank = true }) {
         {isF41 ? (
           <>
             <SortableTh field="current_day.rate_no_tms" sort={sort} onSort={onSort} activeClassName={theme.sortActive} className={`${GROUP_STYLES.currentDay.cell} ${GROUP_STYLES.lateCash.divider} px-2 py-1.5 text-center`}>
-              Tỷ lệ đạt (không đo TMS)
+              <span className="block max-w-[85px] leading-tight text-center">Tỷ lệ đạt (không đo TMS)</span>
             </SortableTh>
           </>
         ) : null}
@@ -430,7 +430,7 @@ function Row({ row, columns, expandedRowId, onToggleAnalysis, onOpenDetail, hasR
   const isExpanded = expandedRowId === row.id;
   const colSpan = 18 + (hasRank ? 0 : -1) + (columns.d1Volume ? 1 : 0) + (columns.d1Rate ? 1 : 0) + (columns.d7Volume ? 1 : 0) + (columns.d7Rate ? 1 : 0) - (features.lateCash ? 0 : 2) - (features.routes ? 0 : 7) + (isF41 ? 1 : 0);
   const stickyCode = hasRank ? STICKY_CODE : 'sticky left-0 z-20';
-  const stickyName = hasRank ? STICKY_NAME : 'sticky left-[108px] z-20';
+  const stickyName = hasRank ? STICKY_NAME : 'sticky left-[72px] z-20';
 
   return (
     <>
@@ -439,11 +439,11 @@ function Row({ row, columns, expandedRowId, onToggleAnalysis, onOpenDetail, hasR
         onClick={isTotal ? undefined : () => onToggleAnalysis(row.id)}
       >
         {hasRank ? (
-          <td className={`${STICKY_RANK} ${stickyBg} border-r border-slate-200 w-[68px] min-w-[68px] max-w-[68px] px-2 py-1.5 text-right ${isTotal ? 'text-[12px] font-bold text-[var(--color-primary-800)] shadow-[1px_0_0_0_var(--color-primary-200)]' : 'shadow-[1px_0_0_0_var(--color-surface-200)]'}`}>{row.rank ?? DASH}</td>
+          <td className={`${STICKY_RANK} ${stickyBg} border-r border-slate-200 w-[48px] min-w-[48px] max-w-[48px] px-1.5 py-1.5 text-center ${isTotal ? 'text-[12px] font-bold text-[var(--color-primary-800)] shadow-[1px_0_0_0_var(--color-primary-200)]' : 'shadow-[1px_0_0_0_var(--color-surface-200)]'}`}>{row.rank ?? DASH}</td>
         ) : null}
-        <td className={`${stickyCode} ${stickyBg} border-r border-slate-200 w-[108px] min-w-[108px] max-w-[108px] px-2 py-1.5 font-mono text-[11px] text-center ${isTotal ? 'text-[var(--color-text-muted)] shadow-[1px_0_0_0_var(--color-primary-200)]' : 'text-[var(--color-text-muted)] shadow-[1px_0_0_0_var(--color-surface-200)]'}`}>{row.ma_bcvh || DASH}</td>
-        <td className={`${stickyName} ${stickyBg} border-r border-sky-200 min-w-[140px] max-w-[200px] px-2 py-1.5 ${isTotal ? 'text-[13px] font-black uppercase tracking-wide text-[var(--color-primary-900)] shadow-[8px_0_12px_-12px_rgba(59,130,246,0.25)]' : 'text-xs font-semibold text-[var(--color-text-main)] shadow-[8px_0_12px_-12px_rgba(15,23,42,0.35)]'}`}>
-          <span className="block min-w-[130px] max-w-[190px] whitespace-normal break-words leading-tight" title={row.ten_bcvh}>
+        <td className={`${stickyCode} ${stickyBg} border-r border-slate-200 w-[72px] min-w-[72px] max-w-[72px] px-1.5 py-1.5 font-mono text-[11px] text-center ${isTotal ? 'text-[var(--color-text-muted)] shadow-[1px_0_0_0_var(--color-primary-200)]' : 'text-[var(--color-text-muted)] shadow-[1px_0_0_0_var(--color-surface-200)]'}`}>{row.ma_bcvh || DASH}</td>
+        <td className={`${stickyName} ${stickyBg} border-r border-sky-200 w-[125px] min-w-[120px] max-w-[145px] px-2 py-1.5 ${isTotal ? 'text-[13px] font-black uppercase tracking-wide text-[var(--color-primary-900)] shadow-[8px_0_12px_-12px_rgba(59,130,246,0.25)]' : 'text-xs font-semibold text-[var(--color-text-main)] shadow-[8px_0_12px_-12px_rgba(15,23,42,0.35)]'}`}>
+          <span className="block min-w-[115px] max-w-[140px] whitespace-normal break-words leading-tight" title={row.ten_bcvh}>
             {row.ten_bcvh}
           </span>
         </td>
@@ -684,7 +684,7 @@ export default function UnifiedBcvhAnalysisTable({
         </div>
       </div>
       <div className="overflow-x-auto">
-        <table className={`w-full ${indicator.features.routes ? 'min-w-[1480px]' : (indicator.id === 'f41' ? 'min-w-[1140px]' : 'min-w-[1020px]')} lg:min-w-full table-auto text-xs border-collapse`}>
+        <table className={`w-full ${indicator.features.routes ? 'min-w-[1480px]' : (indicator.id === 'f41' ? 'min-w-[980px]' : 'min-w-[960px]')} lg:min-w-full table-auto text-xs border-collapse`}>
           <UnifiedHeader columns={columns} sort={headerSort} onSort={handleSort} hasRank={hasRank} />
           <tbody>
             {state.data?.total_row ? (

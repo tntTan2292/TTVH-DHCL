@@ -236,8 +236,8 @@ test('component sources preserve four-column comparison order and dashboard isol
   assert.match(componentSource, /bg-rose-100 text-rose-800/);
   assert.match(componentSource, /hideableColumns: 'Chỉ 4 cột raw D-1 \/ D-7 được phép ẩn'/);
   assert.match(componentSource, /sticky left-0/);
-  assert.match(componentSource, /sticky left-\[68px\]/);
-  assert.match(componentSource, /sticky left-\[176px\]/);
+  assert.match(componentSource, /sticky left-\[48px\]/);
+  assert.match(componentSource, /sticky left-\[120px\]/);
   assert.match(componentSource, /font-black uppercase tracking-wide/);
 
   assert.match(pageSource, /Phân tích chất lượng BCVH/);
