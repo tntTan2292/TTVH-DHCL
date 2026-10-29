@@ -154,18 +154,16 @@ export default function ActionUnitsBlock({
                     Tỷ lệ
                   </SortableTh>
                   {isF41 && (
-                    <>
-                      <SortableTh field="rate_no_tms" sort={sort} onSort={handleSort} title="Tỷ lệ đạt (không đo TMS) - bấm để sắp xếp theo cột này" className="px-2.5 py-2 text-right">
-                        Không đo TMS
-                      </SortableTh>
-                      <SortableTh field="rate_blank_tms" sort={sort} onSort={handleSort} title="% chưa có đánh giá Có TMS - bấm để sắp xếp theo cột này" className="px-2.5 py-2 text-right">
-                        % chưa ĐG TMS
-                      </SortableTh>
-                    </>
+                    <SortableTh field="rate_no_tms" sort={sort} onSort={handleSort} title="Tỷ lệ đạt (không đo TMS) - bấm để sắp xếp theo cột này" className="px-2.5 py-2 text-right">
+                      Không đo TMS
+                    </SortableTh>
                   )}
-                  <SortableTh field="failed" sort={sort} onSort={handleSort} className="px-2.5 py-2 text-right">
-                    Không đạt
-                  </SortableTh>
+                  {/* PO 2026-10-29: the F4.1 Home block drops "Không đạt" (redundant beside the rates) */}
+                  {!isF41 && (
+                    <SortableTh field="failed" sort={sort} onSort={handleSort} className="px-2.5 py-2 text-right">
+                      Không đạt
+                    </SortableTh>
+                  )}
                   <SortableTh field="volume" sort={sort} onSort={handleSort} className="px-2.5 py-2 text-right">
                     Sản lượng
                   </SortableTh>
@@ -196,22 +194,17 @@ export default function ActionUnitsBlock({
                         </span>
                       </td>
                       {isF41 && (
-                        <>
-                          <td className="px-2.5 py-2 text-right tabular-nums font-semibold text-slate-700">
-                            {u.rate_no_tms !== null && u.rate_no_tms !== undefined && Number.isFinite(Number(u.rate_no_tms))
-                              ? `${Number(u.rate_no_tms).toFixed(1)}%`
-                              : '—'}
-                          </td>
-                          <td className="px-2.5 py-2 text-right tabular-nums font-semibold text-slate-700">
-                            {u.rate_blank_tms !== null && u.rate_blank_tms !== undefined && Number.isFinite(Number(u.rate_blank_tms))
-                              ? `${Number(u.rate_blank_tms).toFixed(1)}%`
-                              : '—'}
-                          </td>
-                        </>
+                        <td className="px-2.5 py-2 text-right tabular-nums font-semibold text-slate-700">
+                          {u.rate_no_tms !== null && u.rate_no_tms !== undefined && Number.isFinite(Number(u.rate_no_tms))
+                            ? `${Number(u.rate_no_tms).toFixed(1)}%`
+                            : '—'}
+                        </td>
                       )}
-                      <td className="px-2.5 py-2 text-right font-black tabular-nums text-rose-600">
-                        {Number(u.failed || 0).toLocaleString('vi-VN')}
-                      </td>
+                      {!isF41 && (
+                        <td className="px-2.5 py-2 text-right font-black tabular-nums text-rose-600">
+                          {Number(u.failed || 0).toLocaleString('vi-VN')}
+                        </td>
+                      )}
                       <td className="px-2.5 py-2 text-right font-semibold tabular-nums text-slate-700">
                         {Number(u.volume || 0).toLocaleString('vi-VN')}
                       </td>

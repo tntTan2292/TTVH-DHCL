@@ -75,6 +75,10 @@ Validation: 67/67 tests (operation-table data incl. a mixed-data case, ranking-t
 3. F4.1 BCVH Ranking day table: two extra columns after "Tỷ lệ" in the current-day group; total row filled; the camera picture includes them.
 4. F1.1, F1.2, F1.3, F4.2 tables look as before.
 
+## 7d. PO amendment after the first look (2026-10-29)
+
+PO saw the Home block and asked to remove two columns there as redundant: "% chưa ĐG TMS" and "Không đạt", for F4.1 only. Home F4.1 now shows: BCVH, Tỷ lệ, Không đo TMS, Sản lượng. The other indicators' Home blocks keep "Không đạt". The "% chưa có đánh giá Có TMS" column stays on the F4.1 Dashboard operation table and the BCVH Ranking day table (Section 5); the Home API still sends `rate_blank_tms` (unused there). Section 4/5 above are read with this exception.
+
 ## 8. Residuals
 
 - PO UI check pending (Section 7c).

@@ -131,10 +131,11 @@ test('F41-TMS-COMPARE-01: ActionUnitsBlock, BcvhOperationTable, and UnifiedBcvhA
   const opTableSource = fs.readFileSync(new URL('../../components/f13/BcvhOperationTable.jsx', import.meta.url), 'utf8');
   const rankingTableSource = fs.readFileSync(new URL('../dashboard/components/UnifiedBcvhAnalysisTable.jsx', import.meta.url), 'utf8');
 
-  // 1. Home ActionUnitsBlock has the two columns guarded by isF41
+  // 1. Home ActionUnitsBlock has the Không đo TMS column guarded by isF41 (PO 2026-10-29: no "% chưa đánh giá" and no "Không đạt" there)
   assert.match(homeBlockSource, /isF41\s*=\s*selectedIndicator\s*===\s*'f41'\s*\|\|\s*indicatorData\?\.id\s*===\s*'f41'/);
   assert.match(homeBlockSource, /Tỷ lệ đạt \(không đo TMS\)/);
-  assert.match(homeBlockSource, /% chưa có đánh giá Có TMS/);
+  assert.doesNotMatch(homeBlockSource, /rate_blank_tms|% chưa/);
+  assert.match(homeBlockSource, /\{!isF41 && \(\s*<SortableTh field="failed"/);
 
   // 2. BcvhOperationTable has the two columns in both MTD and Daily groups guarded by isF41
   assert.match(opTableSource, /isF41\s*=\s*indicator\?\.id\s*===\s*'f41'/);
@@ -167,5 +168,4 @@ test('F41-TMS-COMPARE-01: the F4.1 operation table has its own colgroup and Home
 
   // Home (PO 2026-10-27): short labels, full wording as tooltip
   assert.match(homeBlockSource, /title="Tỷ lệ đạt \(không đo TMS\)[^"]*"[^>]*>\s*Không đo TMS\s*</);
-  assert.match(homeBlockSource, /title="% chưa có đánh giá Có TMS[^"]*"[^>]*>\s*% chưa ĐG TMS\s*</);
 });
