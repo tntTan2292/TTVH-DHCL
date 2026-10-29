@@ -587,3 +587,86 @@ test('PO 2026-10-07: cùng kỳ vs cả tháng trước toggles the month-to-dat
   assert.equal(legacy.rows[0].mtd_delta_rate, null);
   assert.equal(legacy.totalRow.prev_month_volume, null);
 });
+
+test('F4.1: processBcvhOperationTableData maps MTD and Daily no-tms metrics and aggregates totalRow', () => {
+  const data = {
+    mtd: [
+      {
+        ma_bcvh: '535790',
+        volume: 100,
+        passed: 80,
+        rate: 80,
+        passed_no_tms: 85,
+        rate_no_tms: 85,
+        blank_tms: 5,
+        rate_blank_tms: 5,
+      },
+      {
+        ma_bcvh: '536250',
+        volume: 200,
+        passed: 160,
+        rate: 80,
+        passed_no_tms: 175,
+        rate_no_tms: 87.5,
+        blank_tms: 10,
+        rate_blank_tms: 5,
+      },
+    ],
+    daily: [
+      {
+        date: '2026-10-06',
+        ma_bcvh: '535790',
+        volume: 50,
+        passed: 40,
+        rate: 80,
+        passed_no_tms: 45,
+        rate_no_tms: 90,
+        blank_tms: 2,
+        rate_blank_tms: 4,
+      },
+    ],
+    meta: {
+      anchor_date: '2026-10-06',
+    },
+  };
+
+  const result = processBcvhOperationTableData(data);
+  const row535790 = result.rows.find((r) => r.ma_bcvh === '535790');
+  assert.equal(row535790.mtd_rate_no_tms, 85);
+  assert.equal(row535790.mtd_rate_blank_tms, 5);
+  assert.equal(row535790.daily_rate_no_tms, 90);
+  assert.equal(row535790.daily_rate_blank_tms, 4);
+
+  // totalRow aggregates
+  // MTD volume = 300, passed_no_tms = 85 + 175 = 260 => rate_no_tms = (260/300)*100
+  assert.ok(Math.abs(result.totalRow.mtd_rate_no_tms - (260 / 300) * 100) < 0.001);
+  // MTD blank_tms = 5 + 10 = 15 => rate_blank_tms = (15/300)*100 = 5%
+  assert.equal(result.totalRow.mtd_rate_blank_tms, 5);
+
+  // Daily volume = 50, passed_no_tms = 45 => rate = 90%
+  assert.equal(result.totalRow.daily_rate_no_tms, 90);
+  assert.equal(result.totalRow.daily_rate_blank_tms, 4);
+});
+
+test('F4.1: a unit without the no-TMS figures is left out of the total rates instead of lowering them', () => {
+  const data = {
+    mtd: [
+      { ma_bcvh: '535790', volume: 100, passed: 80, rate: 80, passed_no_tms: 50, blank_tms: 10 },
+      { ma_bcvh: '536250', volume: 300, passed: 240, rate: 80 }, // no figures for this unit
+    ],
+    daily: [
+      { date: '2026-10-06', ma_bcvh: '535790', volume: 50, passed: 40, rate: 80, passed_no_tms: 25, blank_tms: 5 },
+      { date: '2026-10-06', ma_bcvh: '536250', volume: 150, passed: 120, rate: 80 },
+    ],
+    meta: { anchor_date: '2026-10-06' },
+  };
+  const { rows, totalRow } = processBcvhOperationTableData(data);
+  assert.equal(rows.find((r) => r.ma_bcvh === '536250').mtd_rate_no_tms, null);
+  // only the unit that has the figures counts in numerator and denominator: 50/100, 10/100, 25/50, 5/50
+  assert.equal(totalRow.mtd_rate_no_tms, 50);
+  assert.equal(totalRow.mtd_rate_blank_tms, 10);
+  assert.equal(totalRow.daily_rate_no_tms, 50);
+  assert.equal(totalRow.daily_rate_blank_tms, 10);
+  // the main rate keeps its own denominator
+  assert.equal(totalRow.mtd_volume, 400);
+});

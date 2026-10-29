@@ -1,6 +1,6 @@
 # F41-TMS-COMPARE-01 - "Không đo TMS" rate and "chưa có đánh giá Có TMS" share beside the F4.1 rate
 
-Status: BACKEND IMPLEMENTED AND LIVE (2026-10-29); UI (Antigravity) NOT STARTED
+Status: BACKEND LIVE; UI IMPLEMENTED AND OPUS-REVIEWED (2026-10-29); READY FOR PO CHECK
 Owner: Claude Code (Sonnet) backend; Antigravity (Gemini) UI. Does not change the Current Ticket.
 
 ## 1. PO request and decisions (2026-10-29)
@@ -58,7 +58,24 @@ Required Reading: this manifest, `report_block_ui_standard.md`, `measurement.md`
 - `node scripts/agg_tool.js build --indicator F4.1`: 295 days, 2,185 agg rows, 3.6 s. `verify`: OK (1,418,173 detail rows = aggregate, 295/295 days).
 - Live check through the services (read only): ranking and overview identical from the detail table and from the aggregate for 2026-10-28; Không đo TMS / chưa có đánh giá Có TMS match Section 6 (e.g. Hương Thủy 58.5 % / 19.2 %). The endpoints were not called with a login (RBAC).
 
+## 7b. UI delivered, Opus review and fixes (2026-10-29)
+
+Antigravity added the columns in `ActionUnitsBlock.jsx`, `BcvhOperationTable.jsx` (+ `bcvhOperationTableData.js`) and `UnifiedBcvhAnalysisTable.jsx` (+ `unifiedBcvhAnalysisTableData.js`). Opus review (review only) found, and Claude Code fixed:
+
+- HIGH: the F4.1 operation table lost its `colgroup` (`table-fixed` then splits 14 / 16 columns equally, "Tên bưu cục" squeezed to about 95 px). Fixed: its own `colgroup` for F4.1 (`f41ColumnWidths`, weights turned into exact percentages), placed after the unchanged original one.
+- MEDIUM: the Home block would scroll sideways with the long uppercase headers. Fixed by the PO's standing Home rule (report_block_ui_standard.md, "Home page exception"): short labels "Không đo TMS" and "% chưa ĐG TMS" on Home, the full wording ("Tỷ lệ đạt (không đo TMS)", "% chưa có đánh giá Có TMS") in the tooltip. The Dashboard and Ranking tables keep the full headers of Section 5.
+- LOW: the operation-table total took its numerator from the units that carry the figures but its denominator from all units. Fixed: the denominator is the volume of those units only (a unit without the figures is left out, never lowers the rate).
+
+Validation: 67/67 tests (operation-table data incl. a mixed-data case, ranking-table data, `f41Pages.test.js` incl. colgroup and Home label checks, Home, report-block standard, home sort), `vite build` OK, `oxlint -D no-undef` only the known browser globals. Not seen in a browser (layout of the colgroup comes from table-fixed rules, not a screenshot).
+
+## 7c. PO UI check
+
+1. Home, F4.1 tab: block "Chất lượng các BCVH" shows "Không đo TMS" and "% chưa ĐG TMS" (hover shows the full wording); click each title to order; no sideways scroll.
+2. F4.1 Dashboard operation table: two extra columns in "Lũy kế tháng" and two in "Điều hành ngày", the unit name column still readable, total row filled; also with "Hiện số tháng trước" on.
+3. F4.1 BCVH Ranking day table: two extra columns after "Tỷ lệ" in the current-day group; total row filled; the camera picture includes them.
+4. F1.1, F1.2, F1.3, F4.2 tables look as before.
+
 ## 8. Residuals
 
-- UI not built yet; the new fields are not shown anywhere until the Antigravity step.
+- PO UI check pending (Section 7c).
 - Weekly/monthly comparison blocks and the Home cards do not carry the new figures (phase 2 on request).

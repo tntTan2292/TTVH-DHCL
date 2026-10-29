@@ -249,3 +249,51 @@ test('component sources preserve four-column comparison order and dashboard isol
   assert.doesNotMatch(dashboardAdapterSource, /<UnifiedBcvhAnalysisTable/);
   assert.doesNotMatch(dashboardSource, /Phân tích BCVH|Xem chi tiết tuyến|Doughnut|So sánh D-1|So sánh D-7/);
 });
+
+test('F4.1: mapBcvhRankingResponse maps no_tms metrics for current_day and total_row', () => {
+  const payload = {
+    success: true,
+    data: [
+      {
+        ma_bcvh: '533140',
+        ten_bcvh: 'BCVH Thuận Hóa',
+        rank: 1,
+        sl_bg_ptc: 100,
+        dat_kpi_2026: 80,
+        khong_dat_kpi_2026: 20,
+        kpi_2026: 80,
+        passed_no_tms: 85,
+        rate_no_tms: 85,
+        blank_tms: 5,
+        rate_blank_tms: 5,
+      },
+    ],
+    meta: {
+      total_row: {
+        sl_bg_ptc: 100,
+        dat_kpi_2026: 80,
+        khong_dat_kpi_2026: 20,
+        kpi_2026: 80,
+        passed_no_tms: 85,
+        rate_no_tms: 85,
+        blank_tms: 5,
+        rate_blank_tms: 5,
+      },
+    },
+  };
+
+  const result = mapBcvhRankingResponse(payload, { indicator: { id: 'f41' } });
+  assert.equal(result.rows[0].current_day.rate_no_tms, 85);
+  assert.equal(result.rows[0].current_day.rate_blank_tms, 5);
+  assert.equal(result.rows[0].current_day.passed_no_tms, 85);
+  assert.equal(result.rows[0].current_day.blank_tms, 5);
+
+  // total_row aggregates
+  assert.equal(result.total_row.current_day.volume, 100);
+  assert.equal(result.total_row.current_day.passed_no_tms, 85);
+  assert.equal(result.total_row.current_day.rate_no_tms, 85);
+  assert.equal(result.total_row.current_day.blank_tms, 5);
+  assert.equal(result.total_row.current_day.rate_blank_tms, 5);
+});
+
+

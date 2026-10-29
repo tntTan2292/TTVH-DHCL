@@ -45,8 +45,12 @@ function renderRateBadgeWithBands(rate, bands) {
 
 const SORT_LABELS = {
   daily_rate: 'tỷ lệ đạt ngày',
+  daily_rate_no_tms: 'tỷ lệ đạt không đo TMS ngày',
+  daily_rate_blank_tms: '% chưa có đánh giá có TMS ngày',
   daily_volume: 'sản lượng ngày',
   mtd_rate: 'tỷ lệ đạt lũy kế tháng',
+  mtd_rate_no_tms: 'tỷ lệ đạt không đo TMS lũy kế tháng',
+  mtd_rate_blank_tms: '% chưa có đánh giá có TMS lũy kế tháng',
   mtd_volume: 'sản lượng lũy kế tháng',
   daily_delta_rate: 'tăng/giảm so với ngày trước',
   daily_week_delta_rate: 'tăng/giảm so với tuần trước',
@@ -55,8 +59,35 @@ const SORT_LABELS = {
   ma_bcvh: 'mã bưu cục',
 };
 
+// F41-TMS-COMPARE-01: the F4.1 table has 4 extra columns (Không đo TMS and chưa có đánh giá Có TMS, in the month-to-date
+// and day groups). The table is `table-fixed`, which reads widths from the colgroup only, so F4.1 gets its own colgroup:
+// relative weights (unit columns, then month-to-date, then day), turned into exact percentages.
+function f41ColumnWidths(showPrevMonth) {
+  const weights = showPrevMonth
+    ? [4, 7, 14, 6, 6.5, 7.5, 7.5, 6, 6.5, 7, 6, 6.5, 7.5, 7.5, 7, 7]
+    : [4, 7, 14, 6, 6.5, 7.5, 7.5, 7, 6, 6.5, 7.5, 7.5, 7, 7];
+  const total = weights.reduce((sum, weight) => sum + weight, 0);
+  return weights.map((weight) => `${((weight / total) * 100).toFixed(2)}%`);
+}
+
+function renderNeutralRate(rate) {
+  if (rate === null || rate === undefined || rate === '') {
+    return <span className="text-slate-400 font-medium">{DASH}</span>;
+  }
+  const num = Number(rate);
+  if (!Number.isFinite(num)) {
+    return <span className="text-slate-400 font-medium">{DASH}</span>;
+  }
+  return (
+    <span className="font-bold tabular-nums text-slate-700">
+      {formatRate(num)}
+    </span>
+  );
+}
+
 export default function BcvhOperationTable({ globalFilter, anchorDate } = {}) {
   const indicator = useIndicator();
+  const isF41 = indicator?.id === 'f41';
   const officeLevel = indicator.operationTable || null;
   // Picture of a long table (F1.2 offices): the top N rows in the order the user chose, plus the total row.
   const [captureTop, setCaptureTop] = useState(officeLevel?.captureTopDefault || 20);
@@ -300,7 +331,7 @@ export default function BcvhOperationTable({ globalFilter, anchorDate } = {}) {
           }
         >
           <table ref={tableRef} className="w-full text-left border-collapse table-fixed min-w-[960px] lg:min-w-full">
-          {/* 10-column locked colgroup (PO amendment 2026-09-22): Đơn vị (30%), Lũy kế tháng (30% = 3 * 10%), Điều hành ngày (40% = 4 * 10%) */}
+          {!isF41 && (
           <colgroup>
             {showPrevMonth ? (
               <>
@@ -330,6 +361,14 @@ export default function BcvhOperationTable({ globalFilter, anchorDate } = {}) {
               </>
             )}
           </colgroup>
+          )}
+          {isF41 && (
+          <colgroup>
+            {f41ColumnWidths(showPrevMonth).map((width, i) => (
+              <col key={i} style={{ width }} />
+            ))}
+          </colgroup>
+          )}
 
           {/* Level 1: Grouped Headers */}
           <thead className={officeLevel ? 'sticky top-0 z-20 bg-white shadow-2xs' : undefined}>
@@ -348,7 +387,7 @@ export default function BcvhOperationTable({ globalFilter, anchorDate } = {}) {
                 )}
               </th>
               <th
-                colSpan={showPrevMonth ? 5 : 3}
+                colSpan={(showPrevMonth ? 5 : 3) + (isF41 ? 2 : 0)}
                 className={`${theme.headerBg} ${theme.headerText} font-black uppercase tracking-wider text-center align-middle py-2.5 px-2 border-r ${theme.headerBorder} text-sm md:text-base whitespace-nowrap`}
               >
                 <div>LŨY KẾ THÁNG</div>
@@ -357,7 +396,7 @@ export default function BcvhOperationTable({ globalFilter, anchorDate } = {}) {
                 </div>
               </th>
               <th
-                colSpan={4}
+                colSpan={4 + (isF41 ? 2 : 0)}
                 className={`${theme.header2Bg} ${theme.header2Text} font-black uppercase tracking-wider text-center align-middle py-2.5 px-2 text-sm md:text-base whitespace-nowrap`}
               >
                 <div>ĐIỀU HÀNH NGÀY</div>
@@ -379,6 +418,18 @@ export default function BcvhOperationTable({ globalFilter, anchorDate } = {}) {
               {/* Lũy kế tháng (30% = 3 * 10%) */}
               <SortableTh field="mtd_volume" sort={headerSort} onSort={handleSort} activeClassName={theme.sortActive} className={`${headPy} px-1 text-center align-middle w-[10%] border-r border-slate-200 leading-snug`}>Sản lượng đo kiểm</SortableTh>
               <SortableTh field="mtd_rate" sort={headerSort} onSort={handleSort} activeClassName={theme.sortActive} className={`${headPy} px-1 text-center align-middle w-[10%] border-r border-slate-200 leading-snug`}>{indicator.id === 'f13' ? 'Tỷ lệ đạt KPI 2026' : `Tỷ lệ đạt ${indicator.moduleLabel}`}</SortableTh>
+              {isF41 ? (
+                <>
+                  <SortableTh field="mtd_rate_no_tms" sort={headerSort} onSort={handleSort} activeClassName={theme.sortActive} className={`${headPy} px-1 text-center align-middle border-r border-slate-200 leading-snug`}>
+                    <span className="block">Tỷ lệ đạt</span>
+                    <span className="block">(không đo TMS)</span>
+                  </SortableTh>
+                  <SortableTh field="mtd_rate_blank_tms" sort={headerSort} onSort={handleSort} activeClassName={theme.sortActive} className={`${headPy} px-1 text-center align-middle border-r border-slate-200 leading-snug`}>
+                    <span className="block">% chưa có đánh giá</span>
+                    <span className="block">Có TMS</span>
+                  </SortableTh>
+                </>
+              ) : null}
               {showPrevMonth ? (
                 <>
                   <SortableTh field="prev_month_volume" sort={headerSort} onSort={handleSort} activeClassName={theme.sortActive} className={`${headPy} px-1 text-center align-middle border-r border-slate-200 leading-snug`}>
@@ -399,6 +450,18 @@ export default function BcvhOperationTable({ globalFilter, anchorDate } = {}) {
               {/* Điều hành ngày (40% = 4 * 10%) */}
               <SortableTh field="daily_volume" sort={headerSort} onSort={handleSort} activeClassName={theme.sortActive} className={`${headPy} px-1 text-center align-middle w-[10%] border-r border-slate-200 leading-snug`}>Sản lượng đo kiểm</SortableTh>
               <SortableTh field="daily_rate" sort={headerSort} onSort={handleSort} activeClassName={theme.sortActive} className={`${headPy} px-1 text-center align-middle w-[10%] border-r border-slate-200 leading-snug`}>{indicator.id === 'f13' ? 'Tỷ lệ đạt KPI 2026' : `Tỷ lệ đạt ${indicator.moduleLabel}`}</SortableTh>
+              {isF41 ? (
+                <>
+                  <SortableTh field="daily_rate_no_tms" sort={headerSort} onSort={handleSort} activeClassName={theme.sortActive} className={`${headPy} px-1 text-center align-middle border-r border-slate-200 leading-snug`}>
+                    <span className="block">Tỷ lệ đạt</span>
+                    <span className="block">(không đo TMS)</span>
+                  </SortableTh>
+                  <SortableTh field="daily_rate_blank_tms" sort={headerSort} onSort={handleSort} activeClassName={theme.sortActive} className={`${headPy} px-1 text-center align-middle border-r border-slate-200 leading-snug`}>
+                    <span className="block">% chưa có đánh giá</span>
+                    <span className="block">Có TMS</span>
+                  </SortableTh>
+                </>
+              ) : null}
               <SortableTh field="daily_delta_rate" sort={headerSort} onSort={handleSort} activeClassName={theme.sortActive} className={`${headPy} px-1 text-center align-middle w-[10%] border-r border-slate-200 leading-snug`}>
                 <span className="block">Tăng/Giảm so với</span>
                 <span className="block">ngày trước</span>
@@ -430,6 +493,16 @@ export default function BcvhOperationTable({ globalFilter, anchorDate } = {}) {
               <td className={`${cellPy} px-1 sm:px-2 text-center tabular-nums border-r border-blue-200 whitespace-nowrap`}>
                 {renderRateBadge(totalRow.mtd_rate)}
               </td>
+              {isF41 ? (
+                <>
+                  <td className={`${cellPy} px-1 sm:px-2 text-center tabular-nums border-r border-blue-200 whitespace-nowrap`}>
+                    {renderNeutralRate(totalRow.mtd_rate_no_tms)}
+                  </td>
+                  <td className={`${cellPy} px-1 sm:px-2 text-center tabular-nums border-r border-blue-200 whitespace-nowrap`}>
+                    {renderNeutralRate(totalRow.mtd_rate_blank_tms)}
+                  </td>
+                </>
+              ) : null}
               {showPrevMonth ? (
                 <>
                   <td className={`${cellPy} px-2 text-right font-black tabular-nums border-r border-blue-200 whitespace-nowrap`}>
@@ -451,6 +524,16 @@ export default function BcvhOperationTable({ globalFilter, anchorDate } = {}) {
               <td className={`${cellPy} px-1 sm:px-2 text-center tabular-nums border-r border-emerald-200 whitespace-nowrap`}>
                 {renderRateBadge(totalRow.daily_rate)}
               </td>
+              {isF41 ? (
+                <>
+                  <td className={`${cellPy} px-1 sm:px-2 text-center tabular-nums border-r border-emerald-200 whitespace-nowrap`}>
+                    {renderNeutralRate(totalRow.daily_rate_no_tms)}
+                  </td>
+                  <td className={`${cellPy} px-1 sm:px-2 text-center tabular-nums border-r border-emerald-200 whitespace-nowrap`}>
+                    {renderNeutralRate(totalRow.daily_rate_blank_tms)}
+                  </td>
+                </>
+              ) : null}
               <td className={`${cellPy} px-2 text-right tabular-nums border-r border-emerald-200 whitespace-nowrap`}>
                 {renderDeltaBadge(totalRow.daily_delta_rate)}
               </td>
@@ -479,6 +562,16 @@ export default function BcvhOperationTable({ globalFilter, anchorDate } = {}) {
                 <td className={`${cellPy} px-1 sm:px-2 text-center tabular-nums border-r border-slate-200 whitespace-nowrap`}>
                   {renderRateBadge(row.mtd_rate)}
                 </td>
+                {isF41 ? (
+                  <>
+                    <td className={`${cellPy} px-1 sm:px-2 text-center tabular-nums border-r border-slate-200 whitespace-nowrap`}>
+                      {renderNeutralRate(row.mtd_rate_no_tms)}
+                    </td>
+                    <td className={`${cellPy} px-1 sm:px-2 text-center tabular-nums border-r border-slate-200 whitespace-nowrap`}>
+                      {renderNeutralRate(row.mtd_rate_blank_tms)}
+                    </td>
+                  </>
+                ) : null}
                 {showPrevMonth ? (
                   <>
                     <td className={`${cellPy} px-2 text-right font-bold text-slate-800 tabular-nums border-r border-slate-200 whitespace-nowrap`}>
@@ -500,6 +593,16 @@ export default function BcvhOperationTable({ globalFilter, anchorDate } = {}) {
                 <td className={`${cellPy} px-1 sm:px-2 text-center tabular-nums border-r border-slate-200 whitespace-nowrap`}>
                   {renderRateBadge(row.daily_rate)}
                 </td>
+                {isF41 ? (
+                  <>
+                    <td className={`${cellPy} px-1 sm:px-2 text-center tabular-nums border-r border-slate-200 whitespace-nowrap`}>
+                      {renderNeutralRate(row.daily_rate_no_tms)}
+                    </td>
+                    <td className={`${cellPy} px-1 sm:px-2 text-center tabular-nums border-r border-slate-200 whitespace-nowrap`}>
+                      {renderNeutralRate(row.daily_rate_blank_tms)}
+                    </td>
+                  </>
+                ) : null}
                 <td className={`${cellPy} px-2 text-right tabular-nums border-r border-slate-200 whitespace-nowrap`}>
                   {renderDeltaBadge(row.daily_delta_rate)}
                 </td>

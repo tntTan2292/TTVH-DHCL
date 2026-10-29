@@ -218,12 +218,20 @@ export function processBcvhOperationTableData(data = {}, { prevMonthMode = 'same
   // Build the 6 canonical rows
   let totalMtdVolume = 0;
   let totalMtdPassed = 0;
+  let totalMtdPassedNoTms = 0;
+  let totalMtdBlankTms = 0;
+  let hasMtdNoTms = false;
+  let totalMtdNoTmsVolume = 0; // volume of the units that carry the figures: the total's denominator
   let totalPrevMtdVolume = 0;
   let totalPrevMtdPassed = 0;
   let hasValidPrevMtd = false;
 
   let totalDailyVolume = 0;
   let totalDailyPassed = 0;
+  let totalDailyPassedNoTms = 0;
+  let totalDailyBlankTms = 0;
+  let hasDailyNoTms = false;
+  let totalDailyNoTmsVolume = 0;
   let totalPrevDailyVolume = 0;
   let totalPrevDailyPassed = 0;
   let hasValidDaily = false;
@@ -251,6 +259,23 @@ export function processBcvhOperationTableData(data = {}, { prevMonthMode = 'same
     const mtdPassed = mtdItem?.passed !== undefined && mtdItem?.passed !== null ? Number(mtdItem.passed) : 0;
     const mtdRate = mtdItem?.rate !== undefined && mtdItem?.rate !== null ? Number(mtdItem.rate) : calculateRate(mtdPassed, mtdVolume);
 
+    // F41-TMS-COMPARE-01: MTD Không đo TMS & Có TMS blank share
+    const mtdPassedNoTms = mtdItem?.passed_no_tms !== undefined && mtdItem?.passed_no_tms !== null ? Number(mtdItem.passed_no_tms) : null;
+    const mtdBlankTms = mtdItem?.blank_tms !== undefined && mtdItem?.blank_tms !== null ? Number(mtdItem.blank_tms) : null;
+    const mtdRateNoTms = mtdItem?.rate_no_tms !== undefined && mtdItem?.rate_no_tms !== null
+      ? Number(mtdItem.rate_no_tms)
+      : (mtdPassedNoTms !== null ? calculateRate(mtdPassedNoTms, mtdVolume) : null);
+    const mtdRateBlankTms = mtdItem?.rate_blank_tms !== undefined && mtdItem?.rate_blank_tms !== null
+      ? Number(mtdItem.rate_blank_tms)
+      : (mtdBlankTms !== null ? calculateRate(mtdBlankTms, mtdVolume) : null);
+
+    if (mtdPassedNoTms !== null || mtdBlankTms !== null) {
+      hasMtdNoTms = true;
+      totalMtdNoTmsVolume += mtdVolume;
+      totalMtdPassedNoTms += Number(mtdPassedNoTms || 0);
+      totalMtdBlankTms += Number(mtdBlankTms || 0);
+    }
+
     const prevMtd = useFullPrevMonth ? mtdItem?.previous_full_month : mtdItem?.previous_month_to_date;
     const prevMtdVolume = prevMtd?.volume !== undefined && prevMtd?.volume !== null ? Number(prevMtd.volume) : null;
     const prevMtdPassed = prevMtd?.passed !== undefined && prevMtd?.passed !== null ? Number(prevMtd.passed) : null;
@@ -272,10 +297,26 @@ export function processBcvhOperationTableData(data = {}, { prevMonthMode = 'same
     const dailyPassed = dailyItem?.passed !== undefined && dailyItem?.passed !== null ? Number(dailyItem.passed) : 0;
     const dailyRate = dailyItem?.rate !== undefined && dailyItem?.rate !== null ? Number(dailyItem.rate) : calculateRate(dailyPassed, dailyVolume);
 
+    // F41-TMS-COMPARE-01: Daily Không đo TMS & Có TMS blank share
+    const dailyPassedNoTms = dailyItem?.passed_no_tms !== undefined && dailyItem?.passed_no_tms !== null ? Number(dailyItem.passed_no_tms) : null;
+    const dailyBlankTms = dailyItem?.blank_tms !== undefined && dailyItem?.blank_tms !== null ? Number(dailyItem.blank_tms) : null;
+    const dailyRateNoTms = dailyItem?.rate_no_tms !== undefined && dailyItem?.rate_no_tms !== null
+      ? Number(dailyItem.rate_no_tms)
+      : (dailyPassedNoTms !== null ? calculateRate(dailyPassedNoTms, dailyVolume) : null);
+    const dailyRateBlankTms = dailyItem?.rate_blank_tms !== undefined && dailyItem?.rate_blank_tms !== null
+      ? Number(dailyItem.rate_blank_tms)
+      : (dailyBlankTms !== null ? calculateRate(dailyBlankTms, dailyVolume) : null);
+
     if (dailyItem) {
       totalDailyVolume += dailyVolume;
       totalDailyPassed += dailyPassed;
       hasValidDaily = true;
+      if (dailyPassedNoTms !== null || dailyBlankTms !== null) {
+        hasDailyNoTms = true;
+        totalDailyNoTmsVolume += dailyVolume;
+        totalDailyPassedNoTms += Number(dailyPassedNoTms || 0);
+        totalDailyBlankTms += Number(dailyBlankTms || 0);
+      }
     }
 
     // Daily Metrics at prevFactDate
@@ -310,11 +351,19 @@ export function processBcvhOperationTableData(data = {}, { prevMonthMode = 'same
       ten_bcvh: unit.ten_bcvh,
       mtd_volume: mtdVolume,
       mtd_rate: mtdRate,
+      mtd_passed_no_tms: mtdPassedNoTms,
+      mtd_rate_no_tms: mtdRateNoTms,
+      mtd_blank_tms: mtdBlankTms,
+      mtd_rate_blank_tms: mtdRateBlankTms,
       mtd_delta_rate: mtdDeltaRate,
       prev_month_volume: prevMtdVolume,
       prev_month_rate: prevMtdRate,
       daily_volume: dailyVolume,
       daily_rate: dailyRate,
+      daily_passed_no_tms: dailyPassedNoTms,
+      daily_rate_no_tms: dailyRateNoTms,
+      daily_blank_tms: dailyBlankTms,
+      daily_rate_blank_tms: dailyRateBlankTms,
       daily_delta_rate: dailyDeltaRate,
       daily_week_delta_rate: dailyWeekDeltaRate,
     };
@@ -371,11 +420,19 @@ export function processBcvhOperationTableData(data = {}, { prevMonthMode = 'same
     ten_bcvh: 'TỔNG CỘNG',
     mtd_volume: totalMtdVolume,
     mtd_rate: totalMtdRate,
+    mtd_passed_no_tms: hasMtdNoTms ? totalMtdPassedNoTms : null,
+    mtd_rate_no_tms: hasMtdNoTms && totalMtdNoTmsVolume > 0 ? calculateRate(totalMtdPassedNoTms, totalMtdNoTmsVolume) : null,
+    mtd_blank_tms: hasMtdNoTms ? totalMtdBlankTms : null,
+    mtd_rate_blank_tms: hasMtdNoTms && totalMtdNoTmsVolume > 0 ? calculateRate(totalMtdBlankTms, totalMtdNoTmsVolume) : null,
     mtd_delta_rate: totalMtdDeltaRate,
     prev_month_volume: hasValidPrevMtd ? totalPrevMtdVolume : null,
     prev_month_rate: totalPrevMtdRate,
     daily_volume: hasValidDaily ? totalDailyVolume : 0,
     daily_rate: totalDailyRate,
+    daily_passed_no_tms: hasDailyNoTms ? totalDailyPassedNoTms : null,
+    daily_rate_no_tms: hasDailyNoTms && totalDailyNoTmsVolume > 0 ? calculateRate(totalDailyPassedNoTms, totalDailyNoTmsVolume) : null,
+    daily_blank_tms: hasDailyNoTms ? totalDailyBlankTms : null,
+    daily_rate_blank_tms: hasDailyNoTms && totalDailyNoTmsVolume > 0 ? calculateRate(totalDailyBlankTms, totalDailyNoTmsVolume) : null,
     daily_delta_rate: totalDailyDeltaRate,
     daily_week_delta_rate: totalDailyWeekDeltaRate,
     is_total: true,

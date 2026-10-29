@@ -250,6 +250,7 @@ function sortValue(row, field) {
 
 function UnifiedHeader({ columns, sort, onSort, hasRank = true }) {
   const indicator = useIndicator();
+  const isF41 = indicator.id === 'f41';
   const { features } = indicator;
   const theme = indicatorTheme(indicator);
   const rankingTable = indicator.rankingTable || null;
@@ -262,7 +263,7 @@ function UnifiedHeader({ columns, sort, onSort, hasRank = true }) {
     <thead className="sticky top-0 z-10 bg-white text-[11px] uppercase text-[var(--color-text-muted)]">
       <tr className="border-b border-[var(--color-surface-200)]">
         <HeaderGroup label={TEXT.identity} colSpan={hasRank ? 3 : 2} className={GROUP_STYLES.identity.header} />
-        <HeaderGroup label={TEXT.currentDay} colSpan={4} className={GROUP_STYLES.currentDay.header} />
+        <HeaderGroup label={TEXT.currentDay} colSpan={4 + (isF41 ? 2 : 0)} className={GROUP_STYLES.currentDay.header} />
         {features.lateCash ? <HeaderGroup label={TEXT.lateCash} colSpan={2} className={GROUP_STYLES.lateCash.header} /> : null}
         <HeaderGroup label={TEXT.comparisonD1} colSpan={d1Span} className={GROUP_STYLES.d1.header} />
         <HeaderGroup label={TEXT.comparisonD7} colSpan={d7Span} className={GROUP_STYLES.d7.header} />
@@ -279,7 +280,17 @@ function UnifiedHeader({ columns, sort, onSort, hasRank = true }) {
         <SortableTh field="current_day.volume" sort={sort} onSort={onSort} activeClassName={theme.sortActive} className={`${GROUP_STYLES.currentDay.cell} px-3 py-3 text-right`}>{TEXT.volume}</SortableTh>
         <SortableTh field="current_day.pass_count" sort={sort} onSort={onSort} activeClassName={theme.sortActive} className={`${GROUP_STYLES.currentDay.cell} px-3 py-3 text-right`}>{TEXT.pass}</SortableTh>
         <SortableTh field="current_day.fail_count" sort={sort} onSort={onSort} activeClassName={theme.sortActive} className={`${GROUP_STYLES.currentDay.cell} px-3 py-3 text-right`}>{TEXT.fail}</SortableTh>
-        <SortableTh field="current_day.rate" sort={sort} onSort={onSort} activeClassName={theme.sortActive} className={`${GROUP_STYLES.currentDay.cell} ${GROUP_STYLES.lateCash.divider} px-3 py-3 text-center`}>{TEXT.rate}</SortableTh>
+        <SortableTh field="current_day.rate" sort={sort} onSort={onSort} activeClassName={theme.sortActive} className={`${GROUP_STYLES.currentDay.cell} ${isF41 ? '' : GROUP_STYLES.lateCash.divider} px-3 py-3 text-center`}>{TEXT.rate}</SortableTh>
+        {isF41 ? (
+          <>
+            <SortableTh field="current_day.rate_no_tms" sort={sort} onSort={onSort} activeClassName={theme.sortActive} className={`${GROUP_STYLES.currentDay.cell} px-3 py-3 text-center`}>
+              Tỷ lệ đạt (không đo TMS)
+            </SortableTh>
+            <SortableTh field="current_day.rate_blank_tms" sort={sort} onSort={onSort} activeClassName={theme.sortActive} className={`${GROUP_STYLES.currentDay.cell} ${GROUP_STYLES.lateCash.divider} px-3 py-3 text-center`}>
+              % chưa có đánh giá Có TMS
+            </SortableTh>
+          </>
+        ) : null}
 
         {features.lateCash ? (
           <>
@@ -398,11 +409,13 @@ function AnalysisPanel({ row, onOpenDetail }) {
 }
 
 function Row({ row, columns, expandedRowId, onToggleAnalysis, onOpenDetail, hasRank = true }) {
-  const { features } = useIndicator();
+  const indicator = useIndicator();
+  const { features } = indicator;
+  const isF41 = indicator.id === 'f41';
   const isTotal = row.is_total;
   const stickyBg = isTotal ? 'bg-[var(--color-primary-50)]' : GROUP_STYLES.identity.cell;
   const isExpanded = expandedRowId === row.id;
-  const colSpan = 18 + (hasRank ? 0 : -1) + (columns.d1Volume ? 1 : 0) + (columns.d1Rate ? 1 : 0) + (columns.d7Volume ? 1 : 0) + (columns.d7Rate ? 1 : 0) - (features.lateCash ? 0 : 2) - (features.routes ? 0 : 7);
+  const colSpan = 18 + (hasRank ? 0 : -1) + (columns.d1Volume ? 1 : 0) + (columns.d1Rate ? 1 : 0) + (columns.d7Volume ? 1 : 0) + (columns.d7Rate ? 1 : 0) - (features.lateCash ? 0 : 2) - (features.routes ? 0 : 7) + (isF41 ? 2 : 0);
   const stickyCode = hasRank ? STICKY_CODE : 'sticky left-0 z-20';
   const stickyName = hasRank ? STICKY_NAME : 'sticky left-[108px] z-20';
 
@@ -421,12 +434,26 @@ function Row({ row, columns, expandedRowId, onToggleAnalysis, onOpenDetail, hasR
         <td className="px-3 py-3 text-right">{formatNumber(row.current_day.volume, isTotal)}</td>
         <td className="px-3 py-3 text-right">{formatNumber(row.current_day.pass_count, isTotal)}</td>
         <td className="px-3 py-3 text-right">{formatNumber(row.current_day.fail_count, isTotal)}</td>
-        <td className="border-r border-amber-200 px-3 py-3 text-center">
+        <td className={`${isF41 ? '' : 'border-r border-amber-200'} px-3 py-3 text-center`}>
           <div className="flex flex-col items-center gap-1">
             <span className={`font-semibold ${isTotal ? 'text-[15px]' : ''}`}>{formatRate(row.current_day.rate, isTotal)}</span>
             <StatusBadge label={row.current_day.signal.label} tone={signalToneToBadge(row.current_day.signal.tone)} />
           </div>
         </td>
+        {isF41 ? (
+          <>
+            <td className="px-3 py-3 text-center">
+              <span className={`font-semibold text-slate-700 ${isTotal ? 'text-[15px]' : ''}`}>
+                {formatRate(row.current_day.rate_no_tms, true)}
+              </span>
+            </td>
+            <td className="border-r border-amber-200 px-3 py-3 text-center">
+              <span className={`font-semibold text-slate-700 ${isTotal ? 'text-[15px]' : ''}`}>
+                {formatRate(row.current_day.rate_blank_tms, true)}
+              </span>
+            </td>
+          </>
+        ) : null}
 
         {features.lateCash ? (
           <>

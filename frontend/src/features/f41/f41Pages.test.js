@@ -125,3 +125,47 @@ test('BcvhRankingPage gates "Xem chi tiết tuyến" badge with features.routes'
   const rankingPageSource = fs.readFileSync(new URL('../ranking/BcvhRankingPage.jsx', import.meta.url), 'utf8');
   assert.match(rankingPageSource, /\{features\.routes \? <StatusBadge label="Xem chi tiết tuyến" tone="info" \/> : null\}/);
 });
+
+test('F41-TMS-COMPARE-01: ActionUnitsBlock, BcvhOperationTable, and UnifiedBcvhAnalysisTable render F4.1-only columns', () => {
+  const homeBlockSource = fs.readFileSync(new URL('../home/components/ActionUnitsBlock.jsx', import.meta.url), 'utf8');
+  const opTableSource = fs.readFileSync(new URL('../../components/f13/BcvhOperationTable.jsx', import.meta.url), 'utf8');
+  const rankingTableSource = fs.readFileSync(new URL('../dashboard/components/UnifiedBcvhAnalysisTable.jsx', import.meta.url), 'utf8');
+
+  // 1. Home ActionUnitsBlock has the two columns guarded by isF41
+  assert.match(homeBlockSource, /isF41\s*=\s*selectedIndicator\s*===\s*'f41'\s*\|\|\s*indicatorData\?\.id\s*===\s*'f41'/);
+  assert.match(homeBlockSource, /Tỷ lệ đạt \(không đo TMS\)/);
+  assert.match(homeBlockSource, /% chưa có đánh giá Có TMS/);
+
+  // 2. BcvhOperationTable has the two columns in both MTD and Daily groups guarded by isF41
+  assert.match(opTableSource, /isF41\s*=\s*indicator\?\.id\s*===\s*'f41'/);
+  assert.match(opTableSource, /mtd_rate_no_tms/);
+  assert.match(opTableSource, /mtd_rate_blank_tms/);
+  assert.match(opTableSource, /daily_rate_no_tms/);
+  assert.match(opTableSource, /daily_rate_blank_tms/);
+
+  // 3. UnifiedBcvhAnalysisTable has the two columns in current_day guarded by isF41
+  assert.match(rankingTableSource, /isF41\s*=\s*indicator\.id\s*===\s*'f41'/);
+  assert.match(rankingTableSource, /current_day\.rate_no_tms/);
+  assert.match(rankingTableSource, /current_day\.rate_blank_tms/);
+  assert.match(rankingTableSource, /Tỷ lệ đạt \(không đo TMS\)/);
+  assert.match(rankingTableSource, /% chưa có đánh giá Có TMS/);
+});
+
+test('F41-TMS-COMPARE-01: the F4.1 operation table has its own colgroup and Home uses short labels with the full wording in the tooltip', () => {
+  const opTableSource = fs.readFileSync(new URL('../../components/f13/BcvhOperationTable.jsx', import.meta.url), 'utf8');
+  const homeBlockSource = fs.readFileSync(new URL('../home/components/ActionUnitsBlock.jsx', import.meta.url), 'utf8');
+
+  // table-fixed reads widths from the colgroup only: F4.1 (14 / 16 columns) must not fall back to equal widths
+  assert.match(opTableSource, /\{isF41 && \(\s*<colgroup>\s*\{f41ColumnWidths\(showPrevMonth\)/);
+  const widths = (showPrev) => {
+    const match = opTableSource.match(/function f41ColumnWidths[\s\S]*?\r?\n\}\r?\n/)[0];
+    const arrays = [...match.matchAll(/\[([\d., ]+)\]/g)].map((m) => m[1].split(',').map(Number));
+    return showPrev ? arrays[0] : arrays[1];
+  };
+  assert.equal(widths(true).length, 16);
+  assert.equal(widths(false).length, 14);
+
+  // Home (PO 2026-10-27): short labels, full wording as tooltip
+  assert.match(homeBlockSource, /title="Tỷ lệ đạt \(không đo TMS\)[^"]*"[^>]*>\s*Không đo TMS\s*</);
+  assert.match(homeBlockSource, /title="% chưa có đánh giá Có TMS[^"]*"[^>]*>\s*% chưa ĐG TMS\s*</);
+});

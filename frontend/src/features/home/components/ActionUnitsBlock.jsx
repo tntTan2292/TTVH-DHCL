@@ -51,6 +51,7 @@ export default function ActionUnitsBlock({
   const spec = KINDS[kind];
   const threshold = focus?.threshold;
   const target = Number(indicatorData?.target_rate ?? indConfig.targetRate);
+  const isF41 = selectedIndicator === 'f41' || indicatorData?.id === 'f41';
 
   // The chosen order is kept per indicator, so switching tabs shows each block in its own default order.
   const [sorts, setSorts] = useState({});
@@ -152,6 +153,16 @@ export default function ActionUnitsBlock({
                   <SortableTh field="rate" sort={sort} onSort={handleSort} className="px-2.5 py-2 text-right">
                     Tỷ lệ
                   </SortableTh>
+                  {isF41 && (
+                    <>
+                      <SortableTh field="rate_no_tms" sort={sort} onSort={handleSort} title="Tỷ lệ đạt (không đo TMS) - bấm để sắp xếp theo cột này" className="px-2.5 py-2 text-right">
+                        Không đo TMS
+                      </SortableTh>
+                      <SortableTh field="rate_blank_tms" sort={sort} onSort={handleSort} title="% chưa có đánh giá Có TMS - bấm để sắp xếp theo cột này" className="px-2.5 py-2 text-right">
+                        % chưa ĐG TMS
+                      </SortableTh>
+                    </>
+                  )}
                   <SortableTh field="failed" sort={sort} onSort={handleSort} className="px-2.5 py-2 text-right">
                     Không đạt
                   </SortableTh>
@@ -184,6 +195,20 @@ export default function ActionUnitsBlock({
                           {Number(u.rate).toFixed(1)}%
                         </span>
                       </td>
+                      {isF41 && (
+                        <>
+                          <td className="px-2.5 py-2 text-right tabular-nums font-semibold text-slate-700">
+                            {u.rate_no_tms !== null && u.rate_no_tms !== undefined && Number.isFinite(Number(u.rate_no_tms))
+                              ? `${Number(u.rate_no_tms).toFixed(1)}%`
+                              : '—'}
+                          </td>
+                          <td className="px-2.5 py-2 text-right tabular-nums font-semibold text-slate-700">
+                            {u.rate_blank_tms !== null && u.rate_blank_tms !== undefined && Number.isFinite(Number(u.rate_blank_tms))
+                              ? `${Number(u.rate_blank_tms).toFixed(1)}%`
+                              : '—'}
+                          </td>
+                        </>
+                      )}
                       <td className="px-2.5 py-2 text-right font-black tabular-nums text-rose-600">
                         {Number(u.failed || 0).toLocaleString('vi-VN')}
                       </td>
