@@ -157,7 +157,7 @@ export default function F42PostmanTableBlock({
                     : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
                 }`}
               >
-                Ngày
+                Theo ngày
               </button>
               <button
                 type="button"
@@ -168,7 +168,7 @@ export default function F42PostmanTableBlock({
                     : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
                 }`}
               >
-                Tuần
+                Theo tuần
               </button>
               <button
                 type="button"
@@ -179,7 +179,7 @@ export default function F42PostmanTableBlock({
                     : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
                 }`}
               >
-                Tháng
+                Theo tháng
               </button>
             </div>
           )}

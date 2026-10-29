@@ -56,3 +56,4 @@ export function generateRecentMonths(anchorDate, count = 12) {
   }
   return months;
 }
+

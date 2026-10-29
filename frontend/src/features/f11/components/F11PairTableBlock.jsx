@@ -193,7 +193,7 @@ export default function F11PairTableBlock({ anchorDate, toDate }) {
   const periodLabel = period === 'day'
     ? `Ngày ${meta.from_date || activeAnchorDate}`
     : period === 'week'
-      ? `Tuần T5–T4 (${meta.from_date || ''} đến ${meta.to_date || ''})`
+      ? `Tuần (${meta.from_date || ''} đến ${meta.to_date || ''})`
       : `Tháng (${meta.from_date || ''} đến ${meta.to_date || ''})`;
 
   const sectionRef = useRef(null);
@@ -244,7 +244,7 @@ export default function F11PairTableBlock({ anchorDate, toDate }) {
                   : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
               }`}
             >
-              Tuần (T5–T4)
+              Theo tuần
             </button>
             <button
               type="button"

@@ -27,3 +27,4 @@ test('generateRecentMonths returns valid recent calendar months', () => {
   assert.equal(months[2].monthStr, '2026-08');
   assert.equal(months[2].label, 'Tháng 08/2026');
 });
+
