@@ -11,6 +11,7 @@ const SOURCES = makeSources({
     factTable: 'fact_f41',
     aggTable: 'agg_f41_day',
     evaluationColumn: 'danh_gia_co_tms_ptc_8h',
+    altEvaluationColumn: 'danh_gia_khong_tms_ptc_8h',
     nameColumn: 'ten_bc_phat',
 });
 
@@ -345,6 +346,8 @@ class FactF41Repository {
                        ${src.count()} AS volume,
                        ${src.passed()} AS passed,
                        ${src.failed()} AS failed,
+                       ${src.altPassed()} AS passed_no_tms,
+                       ${src.blank()} AS blank_tms,
                        bounds.anchor_date,
                        prev_bounds.prev_anchor_date,
                        week_bounds.week_ago_date
@@ -378,7 +381,9 @@ class FactF41Repository {
                            ${src.name()} AS ten_bcvh,
                            ${src.count()} AS volume,
                            ${src.passed()} AS passed,
-                           ${src.failed()} AS failed
+                           ${src.failed()} AS failed,
+                           ${src.altPassed()} AS passed_no_tms,
+                           ${src.blank()} AS blank_tms
                     FROM ${src.table}, periods
                     WHERE ngay_do_kiem BETWEEN periods.previous_start AND periods.anchor_date
                       AND ma_bc_phat IN (${placeholders})
@@ -388,7 +393,9 @@ class FactF41Repository {
                     SELECT ma_bcvh, MAX(ten_bcvh) AS ten_bcvh,
                            SUM(volume) AS volume,
                            SUM(passed) AS passed,
-                           SUM(failed) AS failed
+                           SUM(failed) AS failed,
+                           SUM(passed_no_tms) AS passed_no_tms,
+                           SUM(blank_tms) AS blank_tms
                     FROM day_bcvh, periods
                     WHERE ngay_do_kiem BETWEEN periods.current_start AND periods.anchor_date
                     GROUP BY ma_bcvh
@@ -514,7 +521,9 @@ class FactF41Repository {
                 ${src.name()} AS ten_bcvh,
                 ${src.count()} AS sl_bg_ptc,
                 ${src.passed()} AS dat_kpi_2026,
-                ${src.failed()} AS khong_dat_kpi_2026
+                ${src.failed()} AS khong_dat_kpi_2026,
+                ${src.altPassed()} AS dat_khong_tms,
+                ${src.blank()} AS trong_co_tms
             FROM ${src.table}
             WHERE ngay_do_kiem BETWEEN ? AND ?
               AND ma_bc_phat IN (${placeholders})

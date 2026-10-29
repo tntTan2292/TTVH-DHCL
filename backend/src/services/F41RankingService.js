@@ -150,8 +150,25 @@ function sumRows(rows) {
         acc.sl_bg_ptc += Number(row.sl_bg_ptc || 0);
         acc.dat_kpi_2026 += Number(row.dat_kpi_2026 || 0);
         acc.khong_dat_kpi_2026 += Number(row.khong_dat_kpi_2026 || 0);
+        acc.dat_khong_tms += Number(row.dat_khong_tms || 0);
+        acc.trong_co_tms += Number(row.trong_co_tms || 0);
         return acc;
-    }, { sl_bg_ptc: 0, dat_kpi_2026: 0, khong_dat_kpi_2026: 0 });
+    }, { sl_bg_ptc: 0, dat_kpi_2026: 0, khong_dat_kpi_2026: 0, dat_khong_tms: 0, trong_co_tms: 0 });
+}
+
+// F41-TMS-COMPARE-01: the "Không đo TMS" pass count and the Có TMS blank count, each over the same total-rows
+// denominator as the main rate (PO-2). Rows of a repository without them (F1.1 / F1.2 / F4.2 reuse this service)
+// get no extra keys, so their output is unchanged.
+function noTmsFields(row, volume) {
+    if (!row || row.dat_khong_tms === undefined) return {};
+    const passedNoTms = Number(row.dat_khong_tms || 0);
+    const blankTms = Number(row.trong_co_tms || 0);
+    return {
+        passed_no_tms: passedNoTms,
+        rate_no_tms: rate1(passedNoTms, volume),
+        blank_tms: blankTms,
+        rate_blank_tms: rate1(blankTms, volume),
+    };
 }
 
 class F41RankingService {
@@ -339,6 +356,7 @@ class F41RankingService {
                 dat_kpi_2026: passed,
                 khong_dat_kpi_2026: failed,
                 kpi_2026: rate1(passed, volume),
+                ...noTmsFields(row, volume),
                 kpi_2026_dod: nullableDelta(passed, volume, yesterdayMap[row.ma_bcvh]?.dat_kpi_2026 ?? 0, yesterdayMap[row.ma_bcvh]?.sl_bg_ptc ?? 0),
                 kpi_2026_swc: nullableDelta(passed, volume, weekAgoMap[row.ma_bcvh]?.dat_kpi_2026 ?? 0, weekAgoMap[row.ma_bcvh]?.sl_bg_ptc ?? 0),
                 month_to_date_sl_bg_ptc: mtd?.sl_bg_ptc ?? null,
@@ -375,6 +393,9 @@ class F41RankingService {
             dat_kpi_2026: totalCurrent.dat_kpi_2026,
             khong_dat_kpi_2026: totalCurrent.khong_dat_kpi_2026,
             kpi_2026: rate1(totalCurrent.dat_kpi_2026, totalCurrent.sl_bg_ptc),
+            ...(current.some((row) => row.dat_khong_tms !== undefined)
+                ? noTmsFields({ dat_khong_tms: totalCurrent.dat_khong_tms, trong_co_tms: totalCurrent.trong_co_tms }, totalCurrent.sl_bg_ptc)
+                : {}),
             month_to_date_sl_bg_ptc: hasData ? totalMtd.sl_bg_ptc : null,
             month_to_date_dat_kpi_2026: hasData ? totalMtd.dat_kpi_2026 : null,
             month_to_date_khong_dat_kpi_2026: hasData ? totalMtd.khong_dat_kpi_2026 : null,

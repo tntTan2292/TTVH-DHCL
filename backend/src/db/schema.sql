@@ -1034,7 +1034,8 @@ CREATE TABLE IF NOT EXISTS agg_f41_day (
     n_rows INTEGER NOT NULL,
     n_dat INTEGER NOT NULL,
     n_khong_dat INTEGER NOT NULL,
-    n_blank INTEGER NOT NULL
+    n_blank INTEGER NOT NULL,
+    n_dat_khong_tms INTEGER NOT NULL DEFAULT 0
 );
 CREATE UNIQUE INDEX IF NOT EXISTS uq_agg_f41_day ON agg_f41_day(ngay_do_kiem, IFNULL(ma_bc_phat, char(1)));
 CREATE INDEX IF NOT EXISTS idx_agg_f41_day_unit ON agg_f41_day(ma_bc_phat, ngay_do_kiem);

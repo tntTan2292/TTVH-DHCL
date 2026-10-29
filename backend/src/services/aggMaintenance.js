@@ -42,8 +42,11 @@ const AGG_DEFINITIONS = {
         aggTable: 'agg_f41_day',
         keyColumns: ['ma_bc_phat'],
         nameColumns: ['ten_bc_phat'],
-        counterSql: evaluationCounters('danh_gia_co_tms_ptc_8h'),
-        counterColumns: ['n_rows', 'n_dat', 'n_khong_dat', 'n_blank'],
+        // F41-TMS-COMPARE-01: n_dat_khong_tms = rows rated 'Đạt' on the "Không đo TMS PTC 8 giờ" column,
+        // shown beside the main (Có TMS) rate. n_blank stays the Có TMS blank count.
+        counterSql: `${evaluationCounters('danh_gia_co_tms_ptc_8h')},
+        SUM(CASE WHEN danh_gia_khong_tms_ptc_8h = 'Đạt' THEN 1 ELSE 0 END)           AS n_dat_khong_tms`,
+        counterColumns: ['n_rows', 'n_dat', 'n_khong_dat', 'n_blank', 'n_dat_khong_tms'],
     },
     'F1.1': {
         factTable: 'fact_f11',

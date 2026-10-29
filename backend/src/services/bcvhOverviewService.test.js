@@ -393,3 +393,23 @@ test('PO Section 12.1: national rank queries use 01->anchor for MTD and anchor->
     ]);
     assert.deepEqual(result.meta.national_rank.monthly['2026-09'], { rank: 25, total: 34 });
 });
+
+test('F41-TMS-COMPARE-01: no-TMS fields appear only when the repository supplies them', async () => {
+    const withFields = fixtureRows();
+    withFields.daily = withFields.daily.map((row) => ({ ...row, passed_no_tms: 4, blank_tms: 2 }));
+    withFields.mtd = withFields.mtd.map((row) => ({ ...row, passed_no_tms: 50, blank_tms: 10 }));
+    const a = await new BcvhOverviewService({ repository: buildRepository(withFields), now: () => new Date('2026-08-28T05:00:00Z') }).getOverview('2026-08-27');
+    const day = a.daily.find((row) => row.date === '2026-08-27' && row.ma_bcvh === CODES[1]);
+    assert.equal(day.passed_no_tms, 4);
+    assert.equal(day.rate_no_tms, Number(((4 / day.volume) * 100).toFixed(4)));
+    assert.equal(day.blank_tms, 2);
+    const mtd = a.mtd.find((row) => row.ma_bcvh === CODES[1]);
+    assert.equal(mtd.passed_no_tms, 50);
+    assert.equal(mtd.rate_blank_tms, Number(((10 / mtd.volume) * 100).toFixed(4)));
+
+    // F1.3 and the others: not one extra key
+    const b = await new BcvhOverviewService({ repository: buildRepository(fixtureRows()), now: () => new Date('2026-08-28T05:00:00Z') }).getOverview('2026-08-27');
+    for (const row of [...b.daily, ...b.mtd]) {
+        for (const key of ['passed_no_tms', 'rate_no_tms', 'blank_tms', 'rate_blank_tms']) assert.equal(key in row, false, key);
+    }
+});

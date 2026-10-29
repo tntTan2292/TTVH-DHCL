@@ -36,12 +36,14 @@ function runSql(db, sql, params = []) {
 }
 
 // n rows for one BCVH/day: `passed` Đạt, `failed` Không đạt, remainder blank.
-function rows(code, name, { total, passed, failed = 0 }, prefix) {
+// noTmsPassed (optional): rows rated Đạt on the "Không đo TMS" column, the rest Không đạt.
+function rows(code, name, { total, passed, failed = 0, noTmsPassed = null }, prefix) {
     return Array.from({ length: total }, (_, i) => ({
         ma_bg: `${prefix}-${code}-${i}`,
         ma_bc_phat: code,
         ten_bc_phat: name,
         danh_gia_co_tms_ptc_8h: i < passed ? 'Đạt' : (i < passed + failed ? 'Không đạt' : null),
+        danh_gia_khong_tms_ptc_8h: noTmsPassed === null ? null : (i < noTmsPassed ? 'Đạt' : 'Không đạt'),
     }));
 }
 
@@ -63,9 +65,9 @@ async function seedFixture(db, repository) {
             ['537220', 'BCVH Phú Lộc', { total: 5, passed: 1, failed: 4 }],
         ],
         '2026-08-11': [
-            ['533140', 'BCVH Thuận Hóa', { total: 10, passed: 7, failed: 2 }],
-            ['537220', 'BCVH Phú Lộc', { total: 4, passed: 0, failed: 3 }],
-            ['531120', 'Khách hàng lớn', { total: 1, passed: 1 }],
+            ['533140', 'BCVH Thuận Hóa', { total: 10, passed: 7, failed: 2, noTmsPassed: 8 }],
+            ['537220', 'BCVH Phú Lộc', { total: 4, passed: 0, failed: 3, noTmsPassed: 2 }],
+            ['531120', 'Khách hàng lớn', { total: 1, passed: 1, noTmsPassed: 1 }],
         ],
     };
     for (const [date, units] of Object.entries(days)) {
@@ -223,6 +225,48 @@ test('single-day ranking: six-unit total differs from module KPI exactly by non-
         assert.equal(ranking.data[0].comparisons.d7.volume, 8); // 2026-08-04
         // month-to-date
         assert.equal(ranking.data[0].month_to_date_sl_bg_ptc, 34);
+    });
+});
+
+test('F41-TMS-COMPARE-01: ranking rows carry the Không đo TMS rate and the Có TMS blank share over the same total rows', async () => {
+    await withStack(async ({ service }) => {
+        const ranking = await service.getBcvhRanking('2026-08-11', '2026-08-11');
+        const [hue, phuLoc] = ranking.data;
+        // 533140: 10 rows, 8 Đạt on Không đo TMS, 1 blank on Có TMS
+        assert.deepEqual(
+            { n: hue.passed_no_tms, r: hue.rate_no_tms, b: hue.blank_tms, rb: hue.rate_blank_tms },
+            { n: 8, r: 80, b: 1, rb: 10 }
+        );
+        // 537220: 4 rows, 2 Đạt on Không đo TMS, 1 blank on Có TMS
+        assert.deepEqual(
+            { n: phuLoc.passed_no_tms, r: phuLoc.rate_no_tms, b: phuLoc.blank_tms, rb: phuLoc.rate_blank_tms },
+            { n: 2, r: 50, b: 1, rb: 25 }
+        );
+        // the main rate and ranking order are untouched
+        assert.equal(hue.kpi_2026, 70);
+        // six-unit total: the non-canonical 531120 row is outside it
+        const total = ranking.meta.total_row;
+        assert.deepEqual(
+            { n: total.passed_no_tms, r: total.rate_no_tms, b: total.blank_tms, rb: total.rate_blank_tms },
+            { n: 10, r: 71.4, b: 2, rb: 14.3 }
+        );
+    });
+});
+
+test('F41-TMS-COMPARE-01: overview day and month-to-date rows carry the same two counts and rates', async () => {
+    await withStack(async ({ service }) => {
+        const overview = await service.getOverview();
+        const day = overview.daily.find((row) => row.date === '2026-08-11' && row.ma_bcvh === '533140');
+        assert.deepEqual(
+            { n: day.passed_no_tms, r: day.rate_no_tms, b: day.blank_tms, rb: day.rate_blank_tms },
+            { n: 8, r: 80, b: 1, rb: 10 }
+        );
+        const mtd = overview.mtd.find((row) => row.ma_bcvh === '533140');
+        // other days of the fixture have no Không đo TMS value: only 2026-08-11 contributes a pass; blanks: 1 + 1 + 1 + 1
+        assert.equal(mtd.volume, 34);
+        assert.equal(mtd.passed_no_tms, 8);
+        assert.equal(mtd.blank_tms, 4);
+        assert.equal(mtd.rate, Number(((20 / 34) * 100).toFixed(4))); // main rate unchanged
     });
 });
 

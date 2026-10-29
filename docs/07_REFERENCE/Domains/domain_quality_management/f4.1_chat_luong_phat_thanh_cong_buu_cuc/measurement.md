@@ -78,3 +78,14 @@ All `251` remain in the `F4_001` denominator (§1). Their composition, exhaustiv
 ## 7. Comparative/Period Measures — Not Yet Defined
 
 F1.3 supports day-over-day (`D1`), same-weekday-comparison (`D7`), and month-to-date comparisons (`F13DashboardService._shiftDate`, `_getMonthStart`, `_getPreviousMonthComparablePeriod`). Only one F4.1 HUE day (`2026-08-01`) exists at the time this package was written, so **no period-comparison formula for F4.1 can be validated yet**. Building the multi-day capability itself is not blocked — only the *acceptance* of any comparison output waits until a second HUE day exists. Do not invent a comparison baseline from one day of data.
+
+## 8. Informational Comparison Columns (F41-TMS-COMPARE-01, PO 2026-10-29)
+
+Two figures are shown beside the module KPI to read TMS scan compliance at a glance. They are informational: they never change `F4_001`/`F4_002`, the ranking order, the colour bands or the 90 % target.
+
+```
+F4_004 = COUNT(danh_gia_khong_tms_ptc_8h = 'Đạt') / COUNT(*)        -- "Tỷ lệ đạt (không đo TMS)"
+F4_005 = COUNT(danh_gia_co_tms_ptc_8h IS NULL OR blank) / COUNT(*)   -- "% chưa có đánh giá Có TMS"
+```
+
+Same denominator as `F4_001` (total rows, PO-2), so the three rates compare directly. Observed on `2026-10-28`: a row has no `Có TMS` evaluation exactly when it has no TMS scan time (211 of 211 checked rows with a `Không đo TMS` evaluation); the 25 other scan-less rows have no PTC either, so `F4_005` also counts parcels not yet delivered. Not a defect and not a target: label it "chưa có đánh giá Có TMS", never "không quét TMS". Stored as the counter `agg_f41_day.n_dat_khong_tms` (the blank count reuses `n_blank`).

@@ -79,14 +79,35 @@ test('migration creates the agg tables and is idempotent', async () => {
     assert.deepEqual(second, first);
 });
 
+test('migration adds n_dat_khong_tms to an older agg_f41_day and opens the F4.1 read fuse until the rebuild', async () => {
+    await importF41ParsedData({ ngay_do_kiem: D1, filename: 'a.xlsx', parsedData: [f41({ ma_bg: 'A1', ma_bc_phat: 'U1', danh_gia_co_tms_ptc_8h: 'Đạt', danh_gia_khong_tms_ptc_8h: 'Đạt' })] });
+    await importF11ParsedData({ ngay_do_kiem: D1, filename: 'f11.xlsx', parsedData: [f11({ ma_bg: 'P1', ma_bc_chap_nhan: 'C1', ma_bc_phat: 'D1', danh_gia_2026: 'Đạt' })] });
+    // an older database: the column does not exist yet
+    await run('ALTER TABLE agg_f41_day DROP COLUMN n_dat_khong_tms');
+    assert.equal((await all('PRAGMA table_info(agg_f41_day)')).some((c) => c.name === 'n_dat_khong_tms'), false);
+    assert.ok((await get(`SELECT COUNT(*) AS n FROM agg_day_sig WHERE indicator = 'F4.1'`)).n > 0);
+
+    await applyPerfLoad01AggSchema(sandbox.dbPath);
+    assert.equal((await all('PRAGMA table_info(agg_f41_day)')).some((c) => c.name === 'n_dat_khong_tms'), true);
+    assert.equal((await get(`SELECT COUNT(*) AS n FROM agg_day_sig WHERE indicator = 'F4.1'`)).n, 0, 'F4.1 signatures dropped: aggregate not trusted');
+    assert.ok((await get(`SELECT COUNT(*) AS n FROM agg_day_sig WHERE indicator = 'F1.1'`)).n > 0, 'other indicators untouched');
+
+    // second run changes nothing, and a rebuild of the day restores the true count and its signature
+    await applyPerfLoad01AggSchema(sandbox.dbPath);
+    const { rebuildAggForDate } = require('./src/services/aggMaintenance');
+    await rebuildAggForDate((sql, params = []) => run(sql, params), (sql, params = []) => get(sql, params), 'F4.1', D1);
+    assert.equal((await get(`SELECT n_dat_khong_tms AS n FROM agg_f41_day WHERE ma_bc_phat = 'U1'`)).n, 1);
+    assert.equal((await get(`SELECT COUNT(*) AS n FROM agg_day_sig WHERE indicator = 'F4.1'`)).n, 1);
+});
+
 test('F4.1 import stores the raw counters per day and unit', async () => {
     await importF41ParsedData({
         ngay_do_kiem: D1, filename: 'F4.1-2000.02.01.xlsx',
         parsedData: [
-            f41({ ma_bg: 'A1', ma_bc_phat: 'U1', ten_bc_phat: 'Unit 1', danh_gia_co_tms_ptc_8h: 'Đạt' }),
-            f41({ ma_bg: 'A2', ma_bc_phat: 'U1', ten_bc_phat: 'Unit 1', danh_gia_co_tms_ptc_8h: 'Không đạt' }),
-            f41({ ma_bg: 'A3', ma_bc_phat: 'U1', ten_bc_phat: 'Unit 1', danh_gia_co_tms_ptc_8h: null }),
-            f41({ ma_bg: 'A4', ma_bc_phat: 'U1', ten_bc_phat: 'Unit 1', danh_gia_co_tms_ptc_8h: '  ' }),
+            f41({ ma_bg: 'A1', ma_bc_phat: 'U1', ten_bc_phat: 'Unit 1', danh_gia_co_tms_ptc_8h: 'Đạt', danh_gia_khong_tms_ptc_8h: 'Không đạt' }),
+            f41({ ma_bg: 'A2', ma_bc_phat: 'U1', ten_bc_phat: 'Unit 1', danh_gia_co_tms_ptc_8h: 'Không đạt', danh_gia_khong_tms_ptc_8h: 'Đạt' }),
+            f41({ ma_bg: 'A3', ma_bc_phat: 'U1', ten_bc_phat: 'Unit 1', danh_gia_co_tms_ptc_8h: null, danh_gia_khong_tms_ptc_8h: 'Đạt' }),
+            f41({ ma_bg: 'A4', ma_bc_phat: 'U1', ten_bc_phat: 'Unit 1', danh_gia_co_tms_ptc_8h: '  ', danh_gia_khong_tms_ptc_8h: null }),
             f41({ ma_bg: 'B1', ma_bc_phat: 'U2', ten_bc_phat: 'Unit 2', danh_gia_co_tms_ptc_8h: 'Đạt' }),
             f41({ ma_bg: 'C1', ma_bc_phat: null, ten_bc_phat: null, danh_gia_co_tms_ptc_8h: 'Đạt' }),
         ],
@@ -95,8 +116,8 @@ test('F4.1 import stores the raw counters per day and unit', async () => {
     assert.equal(rows.length, 3);
     const u1 = rows.find((r) => r.ma_bc_phat === 'U1');
     assert.deepEqual(
-        { rows: u1.n_rows, dat: u1.n_dat, kd: u1.n_khong_dat, blank: u1.n_blank, name: u1.ten_bc_phat },
-        { rows: 4, dat: 1, kd: 1, blank: 2, name: 'Unit 1' }
+        { rows: u1.n_rows, dat: u1.n_dat, kd: u1.n_khong_dat, blank: u1.n_blank, noTms: u1.n_dat_khong_tms, name: u1.ten_bc_phat },
+        { rows: 4, dat: 1, kd: 1, blank: 2, noTms: 2, name: 'Unit 1' }
     );
     assert.ok(rows.some((r) => r.ma_bc_phat === null && r.n_rows === 1), 'a NULL unit keeps its own row');
     await assertAggEqualsFact('F4.1');

@@ -30,6 +30,8 @@ const { compareIndicator, addDays } = require('./scripts/agg_compare');
 const repo = new FactF41Repository(db);
 const UNITS = ['U1', 'U2', 'U3', 'U4', 'U5', 'U6'];
 const EVALS = ['Đạt', 'Đạt', 'Đạt', 'Không đạt', null, '  '];
+// "Không đo TMS" column (F41-TMS-COMPARE-01): a different mix, so the new counter is told apart from n_dat
+const NO_TMS_EVALS = ['Đạt', 'Không đạt', 'Đạt', null, 'Đạt', '  ', 'Không đạt'];
 const START = '2000-01-20';
 const DAYS = 80; // spans four calendar months, several Thursday-Wednesday weeks
 
@@ -58,19 +60,20 @@ test.before(async () => {
                     ma_bc_phat: UNITS[u],
                     ten_bc_phat: `Unit ${u}${d % 17 === 0 ? ' (renamed)' : ''}`,
                     danh_gia_co_tms_ptc_8h: EVALS[(d + u + k) % EVALS.length],
+                    danh_gia_khong_tms_ptc_8h: NO_TMS_EVALS[(d * 3 + u + k * 2) % NO_TMS_EVALS.length],
                 }));
             }
         }
         // rows with no unit, a non-canonical unit and an empty-string unit
-        rows.push(row({ ma_bg: `${date}-n0`, ma_bc_phat: null, ten_bc_phat: null, danh_gia_co_tms_ptc_8h: 'Đạt' }));
-        rows.push(row({ ma_bg: `${date}-x0`, ma_bc_phat: 'OTHER', ten_bc_phat: 'Other', danh_gia_co_tms_ptc_8h: 'Không đạt' }));
+        rows.push(row({ ma_bg: `${date}-n0`, ma_bc_phat: null, ten_bc_phat: null, danh_gia_co_tms_ptc_8h: 'Đạt', danh_gia_khong_tms_ptc_8h: 'Đạt' }));
+        rows.push(row({ ma_bg: `${date}-x0`, ma_bc_phat: 'OTHER', ten_bc_phat: 'Other', danh_gia_co_tms_ptc_8h: 'Không đạt', danh_gia_khong_tms_ptc_8h: 'Đạt' }));
         rows.push(row({ ma_bg: `${date}-e0`, ma_bc_phat: '', ten_bc_phat: '', danh_gia_co_tms_ptc_8h: 'Đạt' }));
         await importF41ParsedData({ ngay_do_kiem: date, filename: `F4.1-${date}.xlsx`, parsedData: rows });
         // a supplementary partial import on some days (INSERT OR IGNORE path)
         if (d % 9 === 0) {
             await importF41ParsedData({
                 ngay_do_kiem: date, filename: `F4.1-${date}-b.xlsx`,
-                parsedData: [row({ ma_bg: `${date}-late`, ma_bc_phat: 'U1', ten_bc_phat: 'Unit 1', danh_gia_co_tms_ptc_8h: 'Không đạt' })],
+                parsedData: [row({ ma_bg: `${date}-late`, ma_bc_phat: 'U1', ten_bc_phat: 'Unit 1', danh_gia_co_tms_ptc_8h: 'Không đạt', danh_gia_khong_tms_ptc_8h: 'Đạt' })],
             });
         }
     }
@@ -91,6 +94,27 @@ test('every F4.1 aggregate read method returns identical results from detail and
     const report = await compareIndicator(repo, 'F4.1', { dates, codes: UNITS, unitFor: 'U3' }, { heavy: 14, light: 20 });
     assert.ok(report.compared > 500, `expected a broad matrix, got ${report.compared}`);
     assert.deepEqual(report.mismatches, []);
+});
+
+test('the "Không đo TMS" pass count and the Có TMS blank count are exact from detail and from aggregate', async () => {
+    const expected = await all(
+        `SELECT ma_bc_phat AS ma_bcvh,
+                SUM(CASE WHEN danh_gia_khong_tms_ptc_8h = 'Đạt' THEN 1 ELSE 0 END) AS dat_khong_tms,
+                SUM(CASE WHEN danh_gia_co_tms_ptc_8h IS NULL OR TRIM(danh_gia_co_tms_ptc_8h) = '' THEN 1 ELSE 0 END) AS trong_co_tms
+         FROM fact_f41 WHERE ngay_do_kiem BETWEEN ? AND ? AND ma_bc_phat IN (${UNITS.map(() => '?').join(', ')})
+         GROUP BY ma_bc_phat ORDER BY ma_bc_phat`,
+        [dates[0], dates[40], ...UNITS]
+    );
+    assert.ok(expected.some((r) => r.dat_khong_tms > 0), 'fixture has Không đo TMS passes');
+    for (const mode of ['off', 'on']) {
+        process.env.QIS_AGG_READ_F41 = mode;
+        policy.resetForTests();
+        const rows = await repo.getBcvhOperationMetricsBetween(dates[0], dates[40], UNITS);
+        const actual = rows
+            .map((r) => ({ ma_bcvh: r.ma_bcvh, dat_khong_tms: r.dat_khong_tms, trong_co_tms: r.trong_co_tms }))
+            .sort((a, b) => a.ma_bcvh.localeCompare(b.ma_bcvh));
+        assert.deepEqual(actual, expected, `mode ${mode}`);
+    }
 });
 
 test('the aggregate really answers in mode on (not a silent fall back to the detail table)', async () => {

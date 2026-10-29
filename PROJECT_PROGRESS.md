@@ -2508,3 +2508,7 @@ PO confirmed the Home page does not filter any indicator card by the user's scop
 ## 2026-10-27 - F42-DASHBOARD-UI-01 and F42-POSTMAN-API-01 closed (PO PASS)
 
 PO passed the F4.2 screens: Operation Dashboard, BCVH Ranking, six-BCVH strip, postman table and "cần chú ý" list, one-postman trend, Home fifth card, compact operation table, Home with one camera and short labels. Phases A-D delivered (Antigravity UI, Claude Code backend and Home card, Opus reviews of A+B twice and D). Open outside this ticket: re-import six HUE days (14/5, 21/5, 17/7, 22/8, 31/8, 15/10), PO to press Tiếp tục Run if the backfill is paused.
+
+## 2026-10-29 - F41-TMS-COMPARE-01 backend delivered (UI pending)
+
+PO approved showing the F4.1 "Không đo TMS" rate and the "chưa có đánh giá Có TMS" share beside the main rate (Home block, F4.1 Dashboard operation table, F4.1 BCVH Ranking day table; denominator = total rows). Backend done by Claude Code: new agg counter n_dat_khong_tms, four new fields on the F4.1 ranking, overview and Home rows, tests green, checked on a copy of the real data. Next: PO restarts the backend, Claude Code runs agg_tool build for F4.1, then Antigravity builds the columns from the manifest.

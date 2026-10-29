@@ -14,6 +14,7 @@
  *   strictFailed  evaluated 'Không đạt'
  *   blank         evaluation NULL or empty
  *   nopTien       payment time present (F1.3 only; needs aggregate column n_nop_tien)
+ *   altPassed     rows 'Đạt' on the second evaluation column (F4.1 "Không đo TMS"; needs n_dat_khong_tms)
  *   name()        MAX(name column)
  *
  * options:
@@ -24,7 +25,7 @@
  * NB: an ungrouped SUM over zero rows is NULL on both sides, a COUNT is 0 on both sides (hence COALESCE).
  */
 
-function makeSources({ factTable, aggTable, evaluationColumn, nameColumn, countNotNullColumn = null, failedMode = 'notPassed', volumeMode = 'rows' }) {
+function makeSources({ factTable, aggTable, evaluationColumn, nameColumn, countNotNullColumn = null, failedMode = 'notPassed', volumeMode = 'rows', altEvaluationColumn = null }) {
     const passedCond = `${evaluationColumn} = 'Đạt'`;
     const strictCond = `${evaluationColumn} = 'Không đạt'`;
     const notNull = countNotNullColumn ? `${countNotNullColumn} IS NOT NULL` : null;
@@ -50,6 +51,10 @@ function makeSources({ factTable, aggTable, evaluationColumn, nameColumn, countN
             : `SUM(CASE WHEN ${passedCond} THEN 0 ELSE 1 END)`),
         blank: () => `SUM(CASE WHEN ${evaluationColumn} IS NULL OR TRIM(${evaluationColumn}) = '' THEN 1 ELSE 0 END)`,
         nopTien: () => "SUM(CASE WHEN thoi_gian_nop_tien IS NOT NULL AND TRIM(thoi_gian_nop_tien) != '' THEN 1 ELSE 0 END)",
+        altPassed: () => {
+            if (!altEvaluationColumn) throw new Error('altPassed needs altEvaluationColumn');
+            return `SUM(CASE WHEN ${altEvaluationColumn} = 'Đạt' THEN 1 ELSE 0 END)`;
+        },
         name: () => `MAX(${nameColumn})`,
     };
 
@@ -70,6 +75,10 @@ function makeSources({ factTable, aggTable, evaluationColumn, nameColumn, countN
         failed: () => (failedMode === 'strict' ? 'SUM(n_khong_dat)' : 'SUM(n_rows) - SUM(n_dat)'),
         blank: () => 'SUM(n_blank)',
         nopTien: () => 'SUM(n_nop_tien)',
+        altPassed: () => {
+            if (!altEvaluationColumn) throw new Error('altPassed needs altEvaluationColumn');
+            return 'SUM(n_dat_khong_tms)';
+        },
         name: () => `MAX(${nameColumn})`,
     };
 

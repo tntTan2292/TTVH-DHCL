@@ -132,6 +132,23 @@ test('F1.3 / F4.1 list every BCVH, lowest rate first, with gap to target and fai
     }
 });
 
+test('F41-TMS-COMPARE-01: F4.1 BCVH list carries the Không đo TMS rate and the Có TMS blank share, other indicators do not', async () => {
+    const rows = [99, 50].map((r, i) => ({
+        ma_bcvh: CANONICAL_CODES[i], ten_bcvh: `Unit ${i}`, total_bg: 10, passed_rate: r, total_failed: 1,
+        rate_no_tms: 60 + i, rate_blank_tms: 5 + i,
+    }));
+    const plain = rows.map(({ rate_no_tms, rate_blank_tms, ...rest }) => rest);
+    const out = await service({ f11: adapter(), f12: adapter(), f13: adapter({ rows: plain }), f41: adapter({ rows }), f42: adapter({ rows: plain }) }).getExecutive();
+    const f41 = out.indicators.find((i) => i.id === 'f41').focus_units.items;
+    assert.deepEqual(f41.map((u) => [u.rate, u.rate_no_tms, u.rate_blank_tms]), [[50, 61, 6], [99, 60, 5]]);
+    for (const id of ['f13', 'f42']) {
+        for (const item of out.indicators.find((i) => i.id === id).focus_units.items) {
+            assert.equal('rate_no_tms' in item, false);
+            assert.equal('rate_blank_tms' in item, false);
+        }
+    }
+});
+
 test('F1.1 lists the accepting-office x delivering-BCVH pairs with the largest volume below 85 %', async () => {
     const cell = (volume, rate) => ({ volume, passed: Math.round(volume * rate / 100), failed: volume - Math.round(volume * rate / 100), blank: 0, rate });
     const a = adapter();

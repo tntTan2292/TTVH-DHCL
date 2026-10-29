@@ -517,6 +517,8 @@ class HomeExecutiveService {
                     gap_to_target: gap(row.passed_rate),
                     failed: Number(row.total_failed ?? row.khong_dat_kpi_2026 ?? 0),
                     volume: Number(row.total_bg ?? row.sl_bg_ptc ?? 0),
+                    // F41-TMS-COMPARE-01: only the F4.1 ranking rows carry these (other indicators: no extra keys)
+                    ...(row.rate_no_tms !== undefined ? { rate_no_tms: row.rate_no_tms, rate_blank_tms: row.rate_blank_tms } : {}),
                 }));
             return { kind, threshold, items };
         } catch {

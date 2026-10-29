@@ -46,6 +46,20 @@ function nullableRate(passed, volume) {
     return Number(((Number(passed || 0) / denominator) * 100).toFixed(4));
 }
 
+// F41-TMS-COMPARE-01: F4.1 rows also carry the "Không đo TMS" pass count and the Có TMS blank count; the
+// other indicators' repositories do not, and their output must stay exactly as it was.
+function noTmsFields(row, volume) {
+    if (!row || row.passed_no_tms === undefined) return {};
+    const passedNoTms = Number(row.passed_no_tms || 0);
+    const blankTms = Number(row.blank_tms || 0);
+    return {
+        passed_no_tms: passedNoTms,
+        rate_no_tms: nullableRate(passedNoTms, volume),
+        blank_tms: blankTms,
+        rate_blank_tms: nullableRate(blankTms, volume),
+    };
+}
+
 function rankMtd(rows) {
     const ranked = rows
         .filter((row) => row.rate !== null)
@@ -156,6 +170,7 @@ class BcvhOverviewService {
                 passed,
                 failed: Number(row?.failed || 0),
                 rate: nullableRate(passed, volume),
+                ...noTmsFields(row, volume),
             };
         }));
 
@@ -175,6 +190,7 @@ class BcvhOverviewService {
                 passed,
                 failed: Number(row?.failed || 0),
                 rate: nullableRate(passed, volume),
+                ...noTmsFields(row, volume),
                 rank: null,
                 previous_month_to_date: {
                     volume: previousVolume,
