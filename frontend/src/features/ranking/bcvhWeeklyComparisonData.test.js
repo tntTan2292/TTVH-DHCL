@@ -262,3 +262,32 @@ test('sortBcvhWeeklyRows: supports sorting by ten_bcvh, volume, and rate_delta',
   const sortedByDelta = sortBcvhWeeklyRows(rows, { sortField: 'rate_delta', direction: 'desc' });
   assert.equal(sortedByDelta[0].ten_bcvh, 'BCVH Hương Thủy', '+10.8% is highest delta');
 });
+
+test('F41-TMS-COMPARE-01: sortBcvhWeeklyRows supports sorting by current_rate_no_tms and compare_rate_no_tms', () => {
+  const rows = [
+    { ma_bcvh: '535790', ten_bcvh: 'BCVH A Lưới', current: { volume: 393, rate_no_tms: 70.2 }, compare: { volume: 350, rate_no_tms: 68.0 } },
+    { ma_bcvh: '536250', ten_bcvh: 'BCVH Hương Thủy', current: { volume: 1859, rate_no_tms: 48.4 }, compare: { volume: 1800, rate_no_tms: 55.0 } },
+    { ma_bcvh: '535470', ten_bcvh: 'BCVH Hương Trà', current: { volume: 2003, rate_no_tms: 59.7 }, compare: { volume: 1900, rate_no_tms: null } },
+    { ma_bcvh: '535170', ten_bcvh: 'BCVH Phong Điền', current: { volume: 1200, rate_no_tms: null }, compare: { volume: 1100, rate_no_tms: 80.5 } },
+  ];
+
+  // Current rate_no_tms desc: null at bottom, highest first
+  const sortedCurrentDesc = sortBcvhWeeklyRows(rows, { sortField: 'current_rate_no_tms', direction: 'desc' });
+  assert.equal(sortedCurrentDesc[0].ma_bcvh, '535790', '70.2% is highest');
+  assert.equal(sortedCurrentDesc[1].ma_bcvh, '535470', '59.7% is second');
+  assert.equal(sortedCurrentDesc[2].ma_bcvh, '536250', '48.4% is third');
+  assert.equal(sortedCurrentDesc[3].ma_bcvh, '535170', 'null goes to bottom');
+
+  // Compare rate_no_tms desc
+  const sortedCompareDesc = sortBcvhWeeklyRows(rows, { sortField: 'compare_rate_no_tms', direction: 'desc' });
+  assert.equal(sortedCompareDesc[0].ma_bcvh, '535170', '80.5% is highest compare');
+  assert.equal(sortedCompareDesc[1].ma_bcvh, '535790', '68.0% is second');
+  assert.equal(sortedCompareDesc[2].ma_bcvh, '536250', '55.0% is third');
+  assert.equal(sortedCompareDesc[3].ma_bcvh, '535470', 'null goes to bottom');
+
+  // Ascending
+  const sortedCurrentAsc = sortBcvhWeeklyRows(rows, { sortField: 'current_rate_no_tms', direction: 'asc' });
+  assert.equal(sortedCurrentAsc[0].ma_bcvh, '536250', '48.4% is lowest');
+  assert.equal(sortedCurrentAsc[3].ma_bcvh, '535170', 'null remains at bottom');
+});
+

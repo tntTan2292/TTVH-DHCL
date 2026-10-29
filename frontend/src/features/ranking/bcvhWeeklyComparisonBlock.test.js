@@ -157,3 +157,28 @@ test('Chế độ Tháng: công tắc Tuần/Tháng, tháng dương lịch, tick
   // Month mode stays independent of URL params / the global filter
   assert.doesNotMatch(blockSource, /useSearchParams/);
 });
+
+test('F41-TMS-COMPARE-01 (phase 2): BcvhWeeklyComparisonBlock renders Không đo TMS column when indicator is F4.1', () => {
+  const blockSource = read('./BcvhWeeklyComparisonBlock.jsx');
+
+  // Guarded by isF41
+  assert.match(blockSource, /isF41\s*=\s*indicator\?\.id\s*===\s*'f41'/);
+
+  // Dedicated F4.1 colgroup with explicit weights
+  assert.match(blockSource, /f41WeeklyColumnWidths/);
+  assert.match(blockSource, /\{isF41 && \([\s\S]*?<colgroup>[\s\S]*?f41WeeklyColumnWidths/);
+
+  // Header colSpan expansion
+  assert.match(blockSource, /colSpan=\{3 \+ \(isF41 \? 1 : 0\)\}/);
+
+  // Level 2 header rendered conditionally
+  assert.match(blockSource, /renderSortableTh\('current_rate_no_tms',\s*'Tỷ lệ đạt \(không đo TMS\)'/);
+  assert.match(blockSource, /renderSortableTh\('compare_rate_no_tms',\s*'Tỷ lệ đạt \(không đo TMS\)'/);
+
+  // Data cells reading current.rate_no_tms and compare.rate_no_tms
+  assert.match(blockSource, /renderNeutralRate\(totalRow\.current\.rate_no_tms\)/);
+  assert.match(blockSource, /renderNeutralRate\(totalRow\.compare\.rate_no_tms\)/);
+  assert.match(blockSource, /renderNeutralRate\(row\.current\.rate_no_tms\)/);
+  assert.match(blockSource, /renderNeutralRate\(row\.compare\.rate_no_tms\)/);
+});
+

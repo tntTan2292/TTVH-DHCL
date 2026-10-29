@@ -350,6 +350,9 @@ export function sortBcvhWeeklyRows(rows, { sortField = 'current_rate', direction
         } else if (sortField === 'current_rate') {
           valA = a.current?.rate !== undefined && a.current?.rate !== null ? Number(a.current.rate) : null;
           valB = b.current?.rate !== undefined && b.current?.rate !== null ? Number(b.current.rate) : null;
+        } else if (sortField === 'current_rate_no_tms') {
+          valA = a.current?.rate_no_tms !== undefined && a.current?.rate_no_tms !== null ? Number(a.current.rate_no_tms) : null;
+          valB = b.current?.rate_no_tms !== undefined && b.current?.rate_no_tms !== null ? Number(b.current.rate_no_tms) : null;
         } else if (sortField === 'compare_volume') {
           valA = a.compare?.volume !== undefined && a.compare?.volume !== null ? Number(a.compare.volume) : null;
           valB = b.compare?.volume !== undefined && b.compare?.volume !== null ? Number(b.compare.volume) : null;
@@ -359,6 +362,9 @@ export function sortBcvhWeeklyRows(rows, { sortField = 'current_rate', direction
         } else if (sortField === 'compare_rate') {
           valA = a.compare?.rate !== undefined && a.compare?.rate !== null ? Number(a.compare.rate) : null;
           valB = b.compare?.rate !== undefined && b.compare?.rate !== null ? Number(b.compare.rate) : null;
+        } else if (sortField === 'compare_rate_no_tms') {
+          valA = a.compare?.rate_no_tms !== undefined && a.compare?.rate_no_tms !== null ? Number(a.compare.rate_no_tms) : null;
+          valB = b.compare?.rate_no_tms !== undefined && b.compare?.rate_no_tms !== null ? Number(b.compare.rate_no_tms) : null;
         } else if (sortField === 'rate_delta') {
           valA = a.rate_delta !== undefined && a.rate_delta !== null ? Number(a.rate_delta) : null;
           valB = b.rate_delta !== undefined && b.rate_delta !== null ? Number(b.rate_delta) : null;

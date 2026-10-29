@@ -75,6 +75,34 @@ function renderRateBadge(rate, bands) {
   );
 }
 
+// F41-TMS-COMPARE-01 (phase 2): the F4.1 weekly comparison table has 2 extra columns (Không đo TMS, in Tuần kỳ này and Tuần so sánh groups).
+// The table is `table-fixed`, which reads widths from the colgroup only, so F4.1 gets its own colgroup with exact percentages.
+function f41WeeklyColumnWidths() {
+  const weights = [
+    4, 7, 14,       // STT (4%), ma_bcvh (7%), ten_bcvh (14%)
+    7, 6.5, 7.5, 8, // current_volume, current_passed, current_rate, current_rate_no_tms
+    7, 6.5, 7.5, 8, // compare_volume, compare_passed, compare_rate, compare_rate_no_tms
+    8, 7,           // rate_delta, volume_delta
+  ];
+  const total = weights.reduce((sum, weight) => sum + weight, 0);
+  return weights.map((weight) => `${((weight / total) * 100).toFixed(2)}%`);
+}
+
+function renderNeutralRate(rate) {
+  if (rate === null || rate === undefined || rate === '') {
+    return <span className="text-slate-400 font-medium">{DASH}</span>;
+  }
+  const num = Number(rate);
+  if (!Number.isFinite(num)) {
+    return <span className="text-slate-400 font-medium">{DASH}</span>;
+  }
+  return (
+    <span className="font-bold tabular-nums text-slate-700">
+      {formatRate(num)}
+    </span>
+  );
+}
+
 function WeekSelect({ label, value, options, onChange, disabled, emptyText = 'Chưa có dữ liệu tuần' }) {
   return (
     <label className="flex flex-col gap-1 text-xs font-bold text-slate-700">
@@ -112,6 +140,7 @@ function WeekNoteBadge({ week }) {
 
 export default function BcvhWeeklyComparisonBlock() {
   const indicator = useIndicator();
+  const isF41 = indicator?.id === 'f41';
   const unitsInfo = useBcvhUnits();
   const theme = indicatorTheme(indicator);
   const api = useIndicatorApi();
@@ -336,7 +365,7 @@ export default function BcvhWeeklyComparisonBlock() {
 
   const handleToggleCurrentRateSort = () => handleSort('current_rate');
 
-  const renderSortableTh = (field, label, { widthClass, borderClass = 'border-r border-slate-200', hoverClass = 'hover:bg-slate-200/80', nowrap = false } = {}) => {
+  const renderSortableTh = (field, label, { widthClass = '', borderClass = 'border-r border-slate-200', hoverClass = 'hover:bg-slate-200/80', nowrap = false } = {}) => {
     const isActive = sortConfig.field === field;
     return (
       <th
@@ -696,24 +725,33 @@ export default function BcvhWeeklyComparisonBlock() {
               }
             >
               <table ref={tableRef} className="w-full text-left border-collapse table-fixed min-w-[1020px] lg:min-w-full">
-                {/* Locked 11-column proportions */}
-                <colgroup>
-                  {/* ĐƠN VỊ (28%) */}
-                  <col style={{ width: '5%' }} className="w-[5%]" />
-                  <col style={{ width: '8%' }} className="w-[8%]" />
-                  <col style={{ width: '15%' }} className="w-[15%]" />
-                  {/* TUẦN KỲ NÀY (28%) */}
-                  <col style={{ width: '9%' }} className="w-[9%]" />
-                  <col style={{ width: '8%' }} className="w-[8%]" />
-                  <col style={{ width: '11%' }} className="w-[11%]" />
-                  {/* TUẦN SO SÁNH (28%) */}
-                  <col style={{ width: '9%' }} className="w-[9%]" />
-                  <col style={{ width: '8%' }} className="w-[8%]" />
-                  <col style={{ width: '11%' }} className="w-[11%]" />
-                  {/* SO SÁNH (16%) */}
-                  <col style={{ width: '9%' }} className="w-[9%]" />
-                  <col style={{ width: '7%' }} className="w-[7%]" />
-                </colgroup>
+                {/* Locked column proportions */}
+                {!isF41 && (
+                  <colgroup>
+                    {/* ĐƠN VỊ (28%) */}
+                    <col style={{ width: '5%' }} className="w-[5%]" />
+                    <col style={{ width: '8%' }} className="w-[8%]" />
+                    <col style={{ width: '15%' }} className="w-[15%]" />
+                    {/* TUẦN KỲ NÀY (28%) */}
+                    <col style={{ width: '9%' }} className="w-[9%]" />
+                    <col style={{ width: '8%' }} className="w-[8%]" />
+                    <col style={{ width: '11%' }} className="w-[11%]" />
+                    {/* TUẦN SO SÁNH (28%) */}
+                    <col style={{ width: '9%' }} className="w-[9%]" />
+                    <col style={{ width: '8%' }} className="w-[8%]" />
+                    <col style={{ width: '11%' }} className="w-[11%]" />
+                    {/* SO SÁNH (16%) */}
+                    <col style={{ width: '9%' }} className="w-[9%]" />
+                    <col style={{ width: '7%' }} className="w-[7%]" />
+                  </colgroup>
+                )}
+                {isF41 && (
+                  <colgroup>
+                    {f41WeeklyColumnWidths().map((width, i) => (
+                      <col key={i} style={{ width }} />
+                    ))}
+                  </colgroup>
+                )}
 
                 {/* Level 1: Grouped Headers with clean, non-overflowing typography */}
                 <thead>
@@ -732,7 +770,7 @@ export default function BcvhWeeklyComparisonBlock() {
 
                     {/* Tuần kỳ này group header */}
                     <th
-                      colSpan={3}
+                      colSpan={3 + (isF41 ? 1 : 0)}
                       className={`${theme.headerBg} ${theme.headerText} font-black uppercase tracking-wider text-center align-middle py-2 px-2 border-r ${theme.headerBorder} text-xs sm:text-sm md:text-base`}
                     >
                       <div className="leading-snug">{isMonth ? 'THÁNG KỲ NÀY' : 'TUẦN KỲ NÀY'} ({headCurrent.name || 'KỲ NÀY'})</div>
@@ -753,7 +791,7 @@ export default function BcvhWeeklyComparisonBlock() {
 
                     {/* Tuần so sánh group header */}
                     <th
-                      colSpan={3}
+                      colSpan={3 + (isF41 ? 1 : 0)}
                       className={`${theme.header2Bg} ${theme.header2Text} font-black uppercase tracking-wider text-center align-middle py-2 px-2 border-r border-slate-300 text-xs sm:text-sm md:text-base`}
                     >
                       <div className="leading-snug">{isMonth ? 'THÁNG SO SÁNH' : 'TUẦN SO SÁNH'} ({headCompare.name || 'SO SÁNH'})</div>
@@ -787,25 +825,27 @@ export default function BcvhWeeklyComparisonBlock() {
                 {/* Level 2: Exact Column Headers without text overflow */}
                 <tr className="border-b-2 border-slate-300 bg-slate-50/95 text-slate-800 text-[11px] sm:text-xs md:text-sm font-extrabold">
                   {/* Identity (28%) */}
-                  <th className="py-2 px-1 text-center align-middle w-[5%] border-r border-slate-200 whitespace-nowrap">
+                  <th className={`py-2 px-1 text-center align-middle ${isF41 ? '' : 'w-[5%]'} border-r border-slate-200 whitespace-nowrap`}>
                     STT
                   </th>
-                  {renderSortableTh('ma_bcvh', unitsInfo.dynamic ? 'Mã đơn vị' : 'Mã bưu cục', { widthClass: 'w-[8%]', borderClass: 'border-r border-slate-200', hoverClass: 'hover:bg-slate-200/80', nowrap: true })}
-                  {renderSortableTh('ten_bcvh', unitsInfo.dynamic ? 'Tên đơn vị' : 'Tên bưu cục', { widthClass: 'w-[15%]', borderClass: 'border-r border-slate-300', hoverClass: 'hover:bg-slate-200/80', nowrap: true })}
+                  {renderSortableTh('ma_bcvh', unitsInfo.dynamic ? 'Mã đơn vị' : 'Mã bưu cục', { widthClass: isF41 ? '' : 'w-[8%]', borderClass: 'border-r border-slate-200', hoverClass: 'hover:bg-slate-200/80', nowrap: true })}
+                  {renderSortableTh('ten_bcvh', unitsInfo.dynamic ? 'Tên đơn vị' : 'Tên bưu cục', { widthClass: isF41 ? '' : 'w-[15%]', borderClass: 'border-r border-slate-300', hoverClass: 'hover:bg-slate-200/80', nowrap: true })}
 
-                  {/* Tuần kỳ này (28%) */}
-                  {renderSortableTh('current_volume', 'Sản lượng đo kiểm', { widthClass: 'w-[9%]', borderClass: 'border-r border-slate-200', hoverClass: 'hover:bg-blue-100/90' })}
-                  {renderSortableTh('current_passed', 'Đạt', { widthClass: 'w-[8%]', borderClass: 'border-r border-slate-200', hoverClass: 'hover:bg-blue-100/90' })}
-                  {renderSortableTh('current_rate', indicator.id === 'f13' ? 'Tỷ lệ đạt KPI 2026' : `Tỷ lệ đạt ${indicator.moduleLabel}`, { widthClass: 'w-[11%]', borderClass: 'border-r border-blue-300', hoverClass: 'hover:bg-blue-100/90' })}
+                  {/* Tuần kỳ này */}
+                  {renderSortableTh('current_volume', 'Sản lượng đo kiểm', { widthClass: isF41 ? '' : 'w-[9%]', borderClass: 'border-r border-slate-200', hoverClass: 'hover:bg-blue-100/90' })}
+                  {renderSortableTh('current_passed', 'Đạt', { widthClass: isF41 ? '' : 'w-[8%]', borderClass: 'border-r border-slate-200', hoverClass: 'hover:bg-blue-100/90' })}
+                  {renderSortableTh('current_rate', indicator.id === 'f13' ? 'Tỷ lệ đạt KPI 2026' : `Tỷ lệ đạt ${indicator.moduleLabel}`, { widthClass: isF41 ? '' : 'w-[11%]', borderClass: isF41 ? 'border-r border-slate-200' : 'border-r border-blue-300', hoverClass: 'hover:bg-blue-100/90' })}
+                  {isF41 ? renderSortableTh('current_rate_no_tms', 'Tỷ lệ đạt (không đo TMS)', { borderClass: 'border-r border-blue-300', hoverClass: 'hover:bg-blue-100/90' }) : null}
 
-                  {/* Tuần so sánh (28%) */}
-                  {renderSortableTh('compare_volume', 'Sản lượng đo kiểm', { widthClass: 'w-[9%]', borderClass: 'border-r border-slate-200', hoverClass: 'hover:bg-emerald-100/90' })}
-                  {renderSortableTh('compare_passed', 'Đạt', { widthClass: 'w-[8%]', borderClass: 'border-r border-slate-200', hoverClass: 'hover:bg-emerald-100/90' })}
-                  {renderSortableTh('compare_rate', indicator.id === 'f13' ? 'Tỷ lệ đạt KPI 2026' : `Tỷ lệ đạt ${indicator.moduleLabel}`, { widthClass: 'w-[11%]', borderClass: 'border-r border-emerald-300', hoverClass: 'hover:bg-emerald-100/90' })}
+                  {/* Tuần so sánh */}
+                  {renderSortableTh('compare_volume', 'Sản lượng đo kiểm', { widthClass: isF41 ? '' : 'w-[9%]', borderClass: 'border-r border-slate-200', hoverClass: 'hover:bg-emerald-100/90' })}
+                  {renderSortableTh('compare_passed', 'Đạt', { widthClass: isF41 ? '' : 'w-[8%]', borderClass: 'border-r border-slate-200', hoverClass: 'hover:bg-emerald-100/90' })}
+                  {renderSortableTh('compare_rate', indicator.id === 'f13' ? 'Tỷ lệ đạt KPI 2026' : `Tỷ lệ đạt ${indicator.moduleLabel}`, { widthClass: isF41 ? '' : 'w-[11%]', borderClass: isF41 ? 'border-r border-slate-200' : 'border-r border-emerald-300', hoverClass: 'hover:bg-emerald-100/90' })}
+                  {isF41 ? renderSortableTh('compare_rate_no_tms', 'Tỷ lệ đạt (không đo TMS)', { borderClass: 'border-r border-emerald-300', hoverClass: 'hover:bg-emerald-100/90' }) : null}
 
                   {/* So sánh (16%) */}
-                  {renderSortableTh('rate_delta', 'Tăng/giảm tỷ lệ', { widthClass: 'w-[9%]', borderClass: 'border-r border-slate-200', hoverClass: 'hover:bg-amber-100/90' })}
-                  {renderSortableTh('volume_delta', 'Chênh lệch SL', { widthClass: 'w-[7%]', borderClass: '', hoverClass: 'hover:bg-amber-100/90' })}
+                  {renderSortableTh('rate_delta', 'Tăng/giảm tỷ lệ', { widthClass: isF41 ? '' : 'w-[9%]', borderClass: 'border-r border-slate-200', hoverClass: 'hover:bg-amber-100/90' })}
+                  {renderSortableTh('volume_delta', 'Chênh lệch SL', { widthClass: isF41 ? '' : 'w-[7%]', borderClass: '', hoverClass: 'hover:bg-amber-100/90' })}
                 </tr>
               </thead>
 
@@ -830,9 +870,14 @@ export default function BcvhWeeklyComparisonBlock() {
                     <td className="py-2 px-2 text-right font-bold text-emerald-700 tabular-nums border-r border-blue-200 whitespace-nowrap">
                       {formatVolume(totalRow.current.passed)}
                     </td>
-                    <td className="py-2 px-1 text-center tabular-nums border-r border-blue-300 whitespace-nowrap">
+                    <td className={`py-2 px-1 text-center tabular-nums ${isF41 ? 'border-r border-blue-200' : 'border-r border-blue-300'} whitespace-nowrap`}>
                       {renderRateBadge(totalRow.current.rate, indicator.heatmapBands)}
                     </td>
+                    {isF41 ? (
+                      <td className="py-2 px-1 text-center tabular-nums border-r border-blue-300 whitespace-nowrap">
+                        {renderNeutralRate(totalRow.current.rate_no_tms)}
+                      </td>
+                    ) : null}
 
                     {/* Tuần so sánh */}
                     <td className="py-2 px-2 text-right font-black tabular-nums border-r border-emerald-200 whitespace-nowrap">
@@ -841,9 +886,14 @@ export default function BcvhWeeklyComparisonBlock() {
                     <td className="py-2 px-2 text-right font-bold text-emerald-700 tabular-nums border-r border-emerald-200 whitespace-nowrap">
                       {formatVolume(totalRow.compare.passed)}
                     </td>
-                    <td className="py-2 px-1 text-center tabular-nums border-r border-emerald-300 whitespace-nowrap">
+                    <td className={`py-2 px-1 text-center tabular-nums ${isF41 ? 'border-r border-emerald-200' : 'border-r border-emerald-300'} whitespace-nowrap`}>
                       {renderRateBadge(totalRow.compare.rate, indicator.heatmapBands)}
                     </td>
+                    {isF41 ? (
+                      <td className="py-2 px-1 text-center tabular-nums border-r border-emerald-300 whitespace-nowrap">
+                        {renderNeutralRate(totalRow.compare.rate_no_tms)}
+                      </td>
+                    ) : null}
 
                     {/* Chênh lệch */}
                     <td className="py-2 px-2 text-right tabular-nums border-r border-slate-200 whitespace-nowrap">
@@ -880,9 +930,14 @@ export default function BcvhWeeklyComparisonBlock() {
                       <td className="py-2 px-2 text-right font-medium text-emerald-600 tabular-nums border-r border-slate-200 whitespace-nowrap">
                         {formatVolume(row.current.passed)}
                       </td>
-                      <td className="py-2 px-1 text-center tabular-nums border-r border-blue-300 whitespace-nowrap">
+                      <td className={`py-2 px-1 text-center tabular-nums ${isF41 ? 'border-r border-slate-200' : 'border-r border-blue-300'} whitespace-nowrap`}>
                         {renderRateBadge(row.current.rate, indicator.heatmapBands)}
                       </td>
+                      {isF41 ? (
+                        <td className="py-2 px-1 text-center tabular-nums border-r border-blue-300 whitespace-nowrap">
+                          {renderNeutralRate(row.current.rate_no_tms)}
+                        </td>
+                      ) : null}
 
                       {/* Tuần so sánh */}
                       <td className="py-2 px-2 text-right font-bold text-slate-800 tabular-nums border-r border-slate-200 whitespace-nowrap">
@@ -891,9 +946,14 @@ export default function BcvhWeeklyComparisonBlock() {
                       <td className="py-2 px-2 text-right font-medium text-emerald-600 tabular-nums border-r border-slate-200 whitespace-nowrap">
                         {formatVolume(row.compare.passed)}
                       </td>
-                      <td className="py-2 px-1 text-center tabular-nums border-r border-emerald-300 whitespace-nowrap">
+                      <td className={`py-2 px-1 text-center tabular-nums ${isF41 ? 'border-r border-slate-200' : 'border-r border-emerald-300'} whitespace-nowrap`}>
                         {renderRateBadge(row.compare.rate, indicator.heatmapBands)}
                       </td>
+                      {isF41 ? (
+                        <td className="py-2 px-1 text-center tabular-nums border-r border-emerald-300 whitespace-nowrap">
+                          {renderNeutralRate(row.compare.rate_no_tms)}
+                        </td>
+                      ) : null}
 
                       {/* Chênh lệch */}
                       <td className="py-2 px-2 text-right tabular-nums border-r border-slate-200 whitespace-nowrap">

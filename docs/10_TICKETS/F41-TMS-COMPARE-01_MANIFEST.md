@@ -89,6 +89,12 @@ The PO saw that "Bảng tổng hợp so sánh chất lượng F4.1 theo tuần t
 
 UI scope (Antigravity): one column "Tỷ lệ đạt (không đo TMS)" in each of the two period groups ("Tuần kỳ này", "Tuần so sánh"; the same block also serves the month comparison), only when `indicator.id === 'f41'`, right after "Tỷ lệ đạt F4.1"; neutral colour, no band colouring, no target line; no new delta column; sortable, in the picture; give the 12-column table (14 with the extra two) its widths explicitly (the block is `table-fixed`, see 7b).
 
+## 7g. Weekly comparison UI delivered and checked (2026-10-29)
+
+Antigravity added "Tỷ lệ đạt (không đo TMS)" to both period groups of `BcvhWeeklyComparisonBlock.jsx` (F4.1 only, own colgroup of 13 columns, colSpan +1 per group, neutral rate, sortable by `current_rate_no_tms` / `compare_rate_no_tms` in `bcvhWeeklyComparisonData.js`, total row included). Checked by Claude Code: gating, field names, "—" for missing, widths and colSpans are right; one small fix (`renderSortableTh` default `widthClass = ''`, otherwise the new headers got the class "undefined"). 47/47 tests, `vite build` OK, `oxlint -D no-undef` clean. The month comparison uses the same table and gets the column too. Not seen in a browser.
+
+PO check: F4.1 BCVH Ranking, block "Bảng tổng hợp so sánh chất lượng F4.1 theo tuần": one extra column after "Tỷ lệ đạt F4.1" in "Tuần kỳ này" and in "Tuần so sánh"; the unit name column stays readable; total row filled; click the new titles to order; in month mode the same two columns; the picture includes them.
+
 ## 8. Residuals
 
 - PO UI check pending (Section 7c).
