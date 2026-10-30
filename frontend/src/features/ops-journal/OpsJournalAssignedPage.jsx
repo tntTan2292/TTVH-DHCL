@@ -295,13 +295,19 @@ export default function OpsJournalAssignedPage({ initialDate = getVietnamToday()
                       <span className="min-w-0 flex-1 basis-56 truncate text-sm font-extrabold text-slate-900">{item.title}</span>
 
                       <span className="flex flex-wrap items-center gap-1.5 text-[11px] font-bold">
+                        <span
+                          className={`inline-flex items-center gap-1 rounded-md border px-2 py-0.5 ${sum.enough ? 'border-emerald-300 bg-emerald-50 text-emerald-800' : 'border-slate-300 bg-white text-slate-700'}`}
+                          title={`Cần ${sum.needed} báo cáo trong ${sum.total} dòng để coi là hoàn thành nhiệm vụ`}
+                        >
+                          <CheckCircle2 size={11} />{sum.reportedCount}/{sum.total} báo cáo{sum.enough ? ' - đủ' : ` (cần ${sum.needed})`}
+                        </span>
                         {sum.done > 0 && (
-                          <span className="inline-flex items-center gap-1 rounded-md border border-emerald-300 bg-emerald-50 px-2 py-0.5 text-emerald-800"><CheckCircle2 size={11} />{sum.done}/{sum.total} hoàn thành</span>
+                          <span className="inline-flex items-center gap-1 rounded-md border border-emerald-300 bg-emerald-50 px-2 py-0.5 text-emerald-800">{sum.done} đã xác nhận</span>
                         )}
                         {sum.reported > 0 && (
                           <span className="inline-flex items-center gap-1 rounded-md border border-amber-300 bg-amber-50 px-2 py-0.5 text-amber-800"><MessageSquareText size={11} />{sum.reported} chờ xác nhận</span>
                         )}
-                        {sum.open > 0 && (
+                        {sum.open > 0 && !sum.enough && (
                           <span className="inline-flex items-center gap-1 rounded-md border border-slate-300 bg-slate-100 px-2 py-0.5 text-slate-700"><Clock size={11} />{sum.open} chưa báo cáo</span>
                         )}
                         {item.fileCount > 0 && (

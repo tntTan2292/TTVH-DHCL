@@ -123,6 +123,16 @@ async function attachmentsByAction(db, actionIds) {
     return map;
 }
 
+/** id -> display name of the people who reported on these rows (a report must say by whom). */
+async function reporterNames(db, rows) {
+    const ids = [...new Set(rows.map((r) => r.reported_by).filter((v) => v !== null && v !== undefined))];
+    const map = new Map();
+    if (!ids.length) return map;
+    const users = await db.all(`SELECT id, COALESCE(NULLIF(display_name, ''), username) AS name FROM qis_user WHERE id IN (${ids.map(() => '?').join(',')})`, ids);
+    for (const u of users) map.set(u.id, u.name);
+    return map;
+}
+
 async function assigneesByAction(db, actionIds) {
     const map = new Map();
     if (!actionIds.length) return map;
@@ -139,6 +149,7 @@ async function managerSpot(db, spotRow) {
     const actions = await db.all('SELECT * FROM ops_journal_action WHERE spot_id = ? ORDER BY seq', [spotRow.id]);
     const assignees = await assigneesByAction(db, actions.map((a) => a.id));
     const files = await attachmentsByAction(db, actions.map((a) => a.id));
+    const reporters = await reporterNames(db, actions);
     // protected = the spot holds a report (an assignee answered), so it can never be dropped, even as a DRAFT again after a reopen
     // (the screens lock and count it); a reopened spot nobody reported on is removable
     const flags = await db.get(
@@ -150,7 +161,7 @@ async function managerSpot(db, spotRow) {
         protected: Boolean(flags.protected),
         finalizedByName: flags.finalized_by_name || null,
         finalizedAt: spotRow.finalized_at,
-        actions: actions.map((a) => ({ ...presentRow(a), assignedAt: a.assigned_at, assigneeUserIds: assignees.get(a.id) || [], attachments: files.get(a.id) || [] })),
+        actions: actions.map((a) => ({ ...presentRow(a), assignedAt: a.assigned_at, assigneeUserIds: assignees.get(a.id) || [], attachments: files.get(a.id) || [], reportedByName: reporters.get(a.reported_by) || null })),
         closing: presentClosing(await db.get('SELECT * FROM ops_journal_closing WHERE spot_id = ?', [spotRow.id])),
         // what the system proposes for sections 3-4 until the manager saves his own (the screens prefill it, the export falls back to it)
         closingDraft: draftClosing({ day: spotRow.day, indicator: spotRow.indicator, scopeType: spotRow.scope_type, metrics: spotRow.metrics_json ? JSON.parse(spotRow.metrics_json) : null }),
@@ -192,7 +203,8 @@ async function getSpot(db, { access, userId }, idValue) {
     if (!rows.length) throw new NotFoundError();
     const spotRow = await db.get('SELECT * FROM ops_journal_spot WHERE id = ?', [id]);
     const files = await attachmentsByAction(db, rows.map((r) => r.id));
-    return { ...presentSpotForAssignee(spotRow), myRows: rows.map((r) => ({ ...presentRowForAssignee(r), attachments: files.get(r.id) || [] })) };
+    const reporters = await reporterNames(db, rows);
+    return { ...presentSpotForAssignee(spotRow), myRows: rows.map((r) => ({ ...presentRowForAssignee(r), attachments: files.get(r.id) || [], reportedByName: reporters.get(r.reported_by) || null })) };
 }
 
 /** GET /my-tasks -- one task per finalized spot that has rows assigned to the user; [] when none (the menu entry stays hidden). */
@@ -212,6 +224,7 @@ async function listMyTasks(db, { userId }) {
     }
     const tasks = [];
     const files = await attachmentsByAction(db, rows.map((r) => r.id));
+    const reporters = await reporterNames(db, rows);
     for (const [spotId, spotRows] of bySpot) {
         const spot = presentSpotForAssignee(await db.get('SELECT * FROM ops_journal_spot WHERE id = ?', [spotId]));
         tasks.push({
@@ -222,13 +235,15 @@ async function listMyTasks(db, { userId }) {
             headline: spot.headline,
             metrics: spot.metrics,
             status: spotRows.every((r) => r.status === 'DONE') ? 'DONE' : (spotRows.some((r) => r.status === 'REPORTED') ? 'REPORTED' : spotRows[0].status),
-            myRows: spotRows.map((r) => ({ ...presentRowForAssignee(r), attachments: files.get(r.id) || [] })),
+            myRows: spotRows.map((r) => ({ ...presentRowForAssignee(r), attachments: files.get(r.id) || [], reportedByName: reporters.get(r.reported_by) || null })),
         });
     }
     return { tasks };
 }
 
 const MAX_RANGE_DAYS = 62;
+// PO 2026-10-30: a spot keeps its 4 rows and 4 reports, but 2 of them are enough to count the task as done
+const REPORTS_NEEDED = 2;
 
 /** Who still owes a report: [{ name, seqs: [1, 2] }] over the rows nobody has reported on yet (not REPORTED, not DONE). */
 function pendingOf(spotRows, rowPeople) {
@@ -273,6 +288,9 @@ async function listAssigned(db, { access }, fromValue, toValue) {
     const items = spots.map((spot) => {
         const own = rows.filter((r) => r.spot_id === spot.id);
         const count = (status) => own.filter((r) => r.status === status).length;
+        const reportedCount = count('REPORTED') + count('DONE');
+        const reportsNeeded = Math.min(REPORTS_NEEDED, own.length);
+        const enough = own.length > 0 && reportedCount >= reportsNeeded;
         return {
             id: spot.id, day: spot.day, indicator: spot.indicator, title: spot.title, status: spot.status, officeCode: spot.office_code,
             rowCount: own.length,
@@ -280,7 +298,8 @@ async function listAssigned(db, { access }, fromValue, toValue) {
             fileCount: files.find((f) => f.spot_id === spot.id)?.n || 0,
             lastReportedAt: own.reduce((max, r) => Math.max(max, r.reported_at || 0), 0) || null,
             assignees: people.filter((p) => p.spot_id === spot.id).map((p) => p.name),
-            pending: pendingOf(own, rowPeople),
+            reportedCount, reportsNeeded, enough,
+            pending: enough ? [] : pendingOf(own, rowPeople), // nobody "owes" a report once enough have come in
         };
     });
     const days = [...new Set(items.map((i) => i.day))].map((day) => ({ day, status: dayRows.find((d) => d.day === day)?.status || 'ASSIGNED' }));

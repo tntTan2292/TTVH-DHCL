@@ -152,6 +152,12 @@ export default function SpotActionReadOnlyTable({
                             <span>{row.reportText}</span>
                           </div>
                         )}
+                        {row.reportedByName && (
+                          <div>
+                            <span className="font-semibold text-amber-800">Người báo cáo: </span>
+                            <span>{row.reportedByName}</span>
+                          </div>
+                        )}
                         {row.reportedAt && (
                           <div className="text-[10px] text-amber-700">
                             Thời điểm: {new Date(row.reportedAt).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })}

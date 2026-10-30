@@ -312,10 +312,14 @@ export function summarizeAssigned(item) {
   const done = c.done || 0;
   const reported = c.reported || 0;
   const open = (c.assigned || 0) + (c.inProgress || 0);
+  // 2 of the 4 reports are enough to count the task as done (PO 2026-10-30)
+  const needed = Number(item?.reportsNeeded) || Math.min(2, total);
+  const reportedCount = reported + done;
+  const enough = total > 0 && reportedCount >= needed;
   let state = 'open';
-  if (total > 0 && done === total) state = 'done';
-  else if (reported > 0) state = 'waiting';
-  return { total, done, reported, open, state };
+  if (reported > 0) state = 'waiting'; // something is waiting for the manager to accept
+  else if (enough) state = 'done';
+  return { total, done, reported, open, state, reportedCount, needed, enough };
 }
 
 export function filterAssigned(items = [], filter = 'all') {

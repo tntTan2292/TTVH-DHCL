@@ -497,7 +497,14 @@ test('the assigned list: summary state, filters and day arithmetic', () => {
   assert.equal(summarizeAssigned(mk({ done: 4 })).state, 'done');
   assert.equal(summarizeAssigned(mk({ done: 1, reported: 1, assigned: 2 })).state, 'waiting', 'a report waiting for the manager comes first');
   assert.equal(summarizeAssigned(mk({ assigned: 3, inProgress: 1 })).state, 'open');
-  assert.deepEqual(summarizeAssigned(mk({ done: 1, reported: 1, assigned: 1, inProgress: 1 })), { total: 4, done: 1, reported: 1, open: 2, state: 'waiting' });
+  assert.deepEqual(summarizeAssigned(mk({ done: 1, reported: 1, assigned: 1, inProgress: 1 })),
+    { total: 4, done: 1, reported: 1, open: 2, state: 'waiting', reportedCount: 2, needed: 2, enough: true });
+  // 2 of the 4 reports are enough: the task counts as done once those two are accepted, the other two rows no longer owe anything
+  const two = summarizeAssigned(mk({ done: 2, assigned: 2 }));
+  assert.equal(two.enough, true);
+  assert.equal(two.state, 'done');
+  assert.equal(summarizeAssigned(mk({ done: 1, assigned: 3 })).enough, false, 'one report of two needed');
+  assert.equal(summarizeAssigned(mk({ done: 1, assigned: 0 }, 1)).enough, true, 'a spot with one row needs that one');
   const items = [mk({ done: 4 }), mk({ reported: 1 }), mk({ assigned: 4 })];
   assert.equal(filterAssigned(items, 'all').length, 3);
   assert.deepEqual(filterAssigned(items, 'waiting'), [items[1]]);

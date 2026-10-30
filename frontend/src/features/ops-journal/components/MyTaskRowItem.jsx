@@ -155,7 +155,7 @@ export default function MyTaskRowItem({
             Báo cáo cập nhật lúc:{' '}
             <strong>{new Date(row.reportedAt).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })}</strong>
           </span>
-          {row.whoText && <span className="italic">Nhóm thực hiện: {row.whoText}</span>}
+          {row.reportedByName ? <span className="italic">Người báo cáo: {row.reportedByName}</span> : (row.whoText && <span className="italic">Nhóm thực hiện: {row.whoText}</span>)}
         </div>
       )}
 
