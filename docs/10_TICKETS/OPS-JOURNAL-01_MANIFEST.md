@@ -58,25 +58,33 @@ Verdict: **do not hand the whole feature to Antigravity.** Doing so would put pe
 - A3 as built (2026-10-30): `services/opsJournal/journalService.js` + routes in `opsJournalRoutes.js`; tests `opsJournalWorkflow.test.js` (10). Manager-only (gate runs before the body is read, strangers get the usual 404): `PUT /days/:date/spots` (5-10 enforced counting finalized spots; candidates re-derived on the server, figures snapshotted; finalized spots cannot be dropped), `PUT /spots/:id/actions` (DRAFT only; row n updates row n in place so reports survive a correction; a reported row cannot be dropped; assignees must be active accounts), `POST /days/:date/assign` (= chốt, all-or-nothing, every row needs "Làm gì" + an assignee), `POST /spots/:id/reopen` (reason required, reports kept, assignees lose sight until re-finalized), `PUT /spots/:id/closing`, `POST /actions/:id/done`, `POST /days/:date/close` (every spot finalized; then day + spots CLOSED, read-only), `GET /assignable-users?officeCode&indicator&all`. Assignee: `POST /actions/:id/report` (IN_PROGRESS | REPORTED, own row of a FINALIZED spot, else 404). Errors are 400/409 JSON codes (OUT_OF_RANGE, UNKNOWN_CANDIDATE, LOCKED, DAY_CLOSED, SPOT_INCOMPLETE, ROW_HAS_REPORT, ...). Every step appends to `ops_journal_action_log` with the actor. Write transactions queue on the shared import write lock (one sqlite connection). Not yet: export (A4), notification to assignees (none planned in Phase 1; they open "Nhiệm vụ của tôi").
 - Metrics are **snapshotted** at selection time (the journal must not change when the data is re-imported).
 
-## 6. API contract (all under `/api/ops-journal`, session auth)
+## 6. API contract (AS BUILT 2026-10-30 - backend A1-A3 done; all under `/api/ops-journal`, session header `x-session-id`)
 
-Leader (`journal.manage`):
+Envelope: `{ success: true, data }` or `{ success: false, error: { code, message } }`. A user who may not see something gets `404 NOT_FOUND` (never 403). Business refusals are `400` / `409` with a `code`: `OUT_OF_RANGE` (not 5-10 spots), `UNKNOWN_CANDIDATE` (reload the list), `BAD_MANUAL`, `BAD_ROW`, `TOO_LONG`, `UNKNOWN_ASSIGNEE`, `SPOT_INCOMPLETE`, `LOCKED` (finalized: reopen first), `ROW_HAS_REPORT`, `REASON_REQUIRED`, `NOT_REOPENABLE`, `DAY_NOT_READY`, `DAY_CLOSED`, `BAD_STATUS`, `REPORT_REQUIRED`, `NOT_REPORTED`. Show `error.message` (Vietnamese) to the user.
 
-- `GET /candidates?date=YYYY-MM-DD` -> `{ asOfDate, compareDate, items: [{ candidateId, indicator, scopeType, scopeKey, officeCode, officeName, title, headline, metrics: { rate, total, fail, notEvaluated, compareRate, compareTotal, delta, mtdRate, stockGe5, stockGe7, stockGe14, cod }, score, preselected }] }`
-- `GET /days/:date` -> `{ date, status, spots: [{ id, indicator, ...fields above, actions: [...], closing }] }`
-- `PUT /days/:date/spots` body `{ candidateIds: [], manual: [{ indicator, officeCode, title, headline }] }` (5-10 enforced) -> day.
-- `PUT /spots/:id/actions` body `{ actions: [{ seq, whoText, assigneeUserIds, what, where, due, how, expectedResult }] }`.
-- `POST /days/:date/assign` body `{ spotIds: [] }` -> finalizes (chốt) the given spots, status ASSIGNED, `assigned_at` set; content is locked afterwards.
-- `PUT /spots/:id/closing`, `POST /days/:date/close`.
-- `GET /spots/:id/export?format=docx|pdf` -> file stream, one PL06 per spot, only after the spot is finalized.
-- `GET /assignable-users?officeCode=` -> users who hold a Giám đốc / Chuyên quản position for that office or indicator (from RBAC scope).
+Shapes:
 
-Assignee (any signed-in user; rows filtered server-side):
+- candidate: `{ candidateId, indicator ('F1.1'|'F1.2'|'F1.3'|'F4.1'|'HANGTON'), scopeType ('BCVH'|'PAIR'), scopeKey, officeCode, officeName, title, headline, metrics: { rate, total, fail, notEvaluated, compareRate, compareTotal, delta, mtdRate, stockGe5, stockGe7, stockGe14, cod, score, rankScore } (unused ones null), score, rankScore, preselected }`
+- spot (manager): `{ id, day, indicator, scopeType, scopeKey, officeCode, title, headline, metrics, source ('SYSTEM'|'MANUAL'), status ('DRAFT'|'FINALIZED'|'CLOSED'), detectedAt, channel, sort, finalizedAt, actions: [{ id, seq, whoText, what, where, due, how, expectedResult, status ('DRAFT'|'ASSIGNED'|'IN_PROGRESS'|'REPORTED'|'DONE'), reportCause, reportText, reportedAt, assignedAt, assigneeUserIds: [] }], closing: { resolved, recovered, handlingTimeText, lesson, processUpdate, doneTime } | null }`
+- day: `{ date, status ('DRAFT'|'ASSIGNED'|'CLOSED'), spots: [spot] }`
 
-- `GET /my-tasks` -> `{ tasks: [{ actionId, spotId, day, indicator, title, headline, metrics, myRows: [...], status }] }` (empty array = the menu entry stays hidden).
-- `POST /actions/:id/report` body `{ status: IN_PROGRESS|REPORTED, causeText, reportText }`.
+Manager (capability `journal.manage`):
 
-Frontend gate (cosmetic, backend is the real one): "Nhật ký điều hành" menu entry when `access.capabilities` has `journal.manage`; "Nhiệm vụ của tôi" entry when `my-tasks` is non-empty.
+- `GET /candidates?date=YYYY-MM-DD` -> `{ asOfDate, compareDate, asOfByIndicator, unavailable: [{ indicator, message }], items: [candidate] }` (up to 20, ranked, `preselected` = top 8, max 3 per indicator; show `unavailable` as a warning).
+- `GET /days/:date` -> day (an unopened day = `{ status: 'DRAFT', spots: [] }`).
+- `PUT /days/:date/spots` body `{ candidateIds: [], manual: [{ indicator, officeCode, title, headline }] }` (the whole list of the day; 5-10 in all, finalized spots count and stay) -> day.
+- `PUT /spots/:id/actions` body `{ actions: [{ whoText, what, where, due, how, expectedResult, assigneeUserIds: [] }] }` (the whole list, max 12, DRAFT spot only) -> day.
+- `POST /days/:date/assign` body `{ spotIds: [] }` (= chốt / giao việc, all-or-nothing) -> day.
+- `POST /spots/:id/reopen` body `{ reason }` -> day. `PUT /spots/:id/closing` body `{ resolved, recovered, handlingTimeText, lesson, processUpdate, doneTime }` -> day. `POST /actions/:id/done` -> `{ id, status }`. `POST /days/:date/close` -> day.
+- `GET /assignable-users?officeCode=&indicator=&all=1` -> `[{ id, username, name, position, positionLabel }]`.
+- `GET /spots/:id/export?format=docx|pdf` -> file stream (A4, not built yet: mock it as a download of a small file).
+
+Assignee (any signed-in user; the server filters):
+
+- `GET /my-tasks` -> `{ tasks: [{ spotId, day, indicator, title, headline, metrics, status, myRows: [{ id, whoText, what, where, due, how, expectedResult, status, reportCause, reportText, reportedAt }] }] }` (empty = hide the menu entry). `GET /spots/:id` for an assignee -> the spot fields (id, day, indicator, scopeType, scopeKey, officeCode, title, headline, metrics, detectedAt, channel) + `myRows`; no other rows, assignees or closing. Rows of one spot shared with colleagues show their reports too.
+- `POST /actions/:id/report` body `{ status: 'IN_PROGRESS'|'REPORTED', causeText, reportText }` (REPORTED needs `reportText`) -> `{ id, status, reportCause, reportText, reportedAt }`.
+
+Frontend gate (cosmetic, the backend is the real one): "Nhật ký điều hành" menu entry when `access.capabilities` has `journal.manage`; "Nhiệm vụ của tôi" entry when `my-tasks` is non-empty.
 
 ## 7. Phases
 
