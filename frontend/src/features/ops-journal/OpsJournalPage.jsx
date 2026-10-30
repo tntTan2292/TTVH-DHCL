@@ -4,6 +4,7 @@ import { CheckSquare, Edit3, ListChecks } from 'lucide-react';
 import { getVietnamToday } from './opsJournalHelpers.js';
 import OpsJournalCandidatesPage from './OpsJournalCandidatesPage.jsx';
 import OpsJournalComposerPage from './OpsJournalComposerPage.jsx';
+import OpsJournalAssignedPage from './OpsJournalAssignedPage.jsx';
 
 export default function OpsJournalPage() {
   const location = useLocation();
@@ -113,7 +114,6 @@ export default function OpsJournalPage() {
         ) : activeTab === 'composer' ? (
           <OpsJournalComposerPage
             key="compose"
-            mode="compose"
             initialDate={sharedDate}
             onNavigateToCandidates={handleNavigateToCandidates}
             onNavigateToTab={handleSwitchTab}
@@ -121,13 +121,11 @@ export default function OpsJournalPage() {
             onDirtyStateChange={setHasComposerDirty}
           />
         ) : (
-          <OpsJournalComposerPage
+          <OpsJournalAssignedPage
             key="assigned"
-            mode="assigned"
             initialDate={sharedDate}
             flash={flash}
             onNavigateToTab={handleSwitchTab}
-            onDirtyStateChange={setHasComposerDirty}
           />
         )}
       </div>

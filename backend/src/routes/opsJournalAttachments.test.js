@@ -195,3 +195,22 @@ test('reading: only your own notifications can be marked read', async () => {
     assert.equal((await notes(U401)).unread, 0);
     assert.equal((await notes(U401)).hasAny, true);
 });
+
+test('the assigned list: one light line per finalized spot, manager only, bounded range', async () => {
+    const answer = await call(GD, 'GET', `/assigned?from=2026-10-20&to=${DAY}`);
+    assert.equal(answer.status, 200, JSON.stringify(answer.body));
+    const [item] = answer.body.data.items;
+    assert.equal(item.id, spotId);
+    assert.equal(item.day, DAY);
+    assert.equal(item.rowCount, 4);
+    assert.deepEqual(item.counts, { assigned: 3, inProgress: 0, reported: 0, done: 1 });
+    assert.equal(item.fileCount, 1);
+    assert.ok(item.lastReportedAt > 0);
+    assert.deepEqual(item.assignees, ['cq-thuan-hoa', 'gd-thuan-hoa']);
+    assert.equal(JSON.stringify(item).includes('reportText'), false, 'no report text in the list');
+    assert.deepEqual(answer.body.data.days, [{ day: DAY, status: 'ASSIGNED' }]);
+    assert.deepEqual((await call(GD, 'GET', '/assigned?from=2026-10-31&to=2026-10-31')).body.data.items, [], 'a day with nothing finalized is empty');
+    assert.equal((await call(GD, 'GET', '/assigned?from=2026-01-01&to=2026-10-30')).status, 404, 'a range over 62 days is refused');
+    assert.equal((await call(GD, 'GET', '/assigned?from=nope&to=2026-10-30')).status, 404);
+    for (const who of [U401, U402, U403]) assert.equal((await call(who, 'GET', '/assigned')).status, 404, 'only the manager');
+});

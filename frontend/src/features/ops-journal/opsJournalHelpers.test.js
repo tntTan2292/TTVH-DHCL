@@ -10,6 +10,9 @@ import {
   getSpotReasons,
   formatFileSize,
   timeAgoText,
+  summarizeAssigned,
+  filterAssigned,
+  shiftDay,
   normalizeIndicator,
   validateSpotCount,
   validateSpotsSelection,
@@ -487,4 +490,20 @@ test('formatFileSize and timeAgoText read well for attachments and notifications
   assert.equal(timeAgoText(now - 20 * 1000, now), 'vừa xong');
   assert.equal(timeAgoText(now - 5 * 60000, now), '5 phút trước');
   assert.equal(timeAgoText(now - 3 * 3600000, now), '3 giờ trước');
+});
+
+test('the assigned list: summary state, filters and day arithmetic', () => {
+  const mk = (counts, rowCount = 4) => ({ rowCount, counts: { assigned: 0, inProgress: 0, reported: 0, done: 0, ...counts } });
+  assert.equal(summarizeAssigned(mk({ done: 4 })).state, 'done');
+  assert.equal(summarizeAssigned(mk({ done: 1, reported: 1, assigned: 2 })).state, 'waiting', 'a report waiting for the manager comes first');
+  assert.equal(summarizeAssigned(mk({ assigned: 3, inProgress: 1 })).state, 'open');
+  assert.deepEqual(summarizeAssigned(mk({ done: 1, reported: 1, assigned: 1, inProgress: 1 })), { total: 4, done: 1, reported: 1, open: 2, state: 'waiting' });
+  const items = [mk({ done: 4 }), mk({ reported: 1 }), mk({ assigned: 4 })];
+  assert.equal(filterAssigned(items, 'all').length, 3);
+  assert.deepEqual(filterAssigned(items, 'waiting'), [items[1]]);
+  assert.deepEqual(filterAssigned(items, 'open'), [items[2]]);
+  assert.deepEqual(filterAssigned(items, 'done'), [items[0]]);
+  assert.equal(shiftDay('2026-10-30', -13), '2026-10-17');
+  assert.equal(shiftDay('2026-11-01', -1), '2026-10-31');
+  assert.equal(shiftDay('2026-12-31', 1), '2027-01-01');
 });

@@ -352,6 +352,23 @@ export const opsJournalMockAdapter = {
     return { success: true, data: JSON.parse(JSON.stringify(day)) };
   },
 
+  async getAssigned(from, to) {
+    const items = [];
+    for (const day of mockDaysStore.values()) {
+      for (const spot of day.spots || []) {
+        if (spot.status === 'DRAFT' || day.date < from || day.date > to) continue;
+        const rows = spot.actions || [];
+        const count = (st) => rows.filter((r) => r.status === st).length;
+        items.push({
+          id: spot.id, day: day.date, indicator: spot.indicator, title: spot.title, status: spot.status, officeCode: spot.officeCode,
+          rowCount: rows.length, counts: { assigned: count('ASSIGNED'), inProgress: count('IN_PROGRESS'), reported: count('REPORTED'), done: count('DONE') },
+          fileCount: 0, lastReportedAt: null, assignees: [],
+        });
+      }
+    }
+    const days = [...new Set(items.map((i) => i.day))].map((d) => ({ day: d, status: 'ASSIGNED' }));
+    return { success: true, data: { from, to, days, items } };
+  },
   async uploadAttachment(actionId, file) {
     await sleep(60);
     return { success: true, data: { id: Date.now(), name: file?.name || 'tep', size: file?.size || 0, uploadedAt: Date.now() } };

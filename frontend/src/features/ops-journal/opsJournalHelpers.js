@@ -295,6 +295,34 @@ export function timeAgoText(timestamp, now = Date.now()) {
 export const ATTACHMENT_ACCEPT = '.xlsx,.xls,.csv,.pdf,.doc,.docx,.jpg,.jpeg,.png';
 export const ATTACHMENT_MAX_BYTES = 15 * 1024 * 1024;
 
+/** Add days to a YYYY-MM-DD string (UTC arithmetic, no time-zone drift). */
+export function shiftDay(day, delta) {
+  const date = new Date(`${day}T00:00:00Z`);
+  date.setUTCDate(date.getUTCDate() + delta);
+  return date.toISOString().slice(0, 10);
+}
+
+/**
+ * One line of the assigned list: how the spot stands, from the row counters of GET /assigned.
+ * waiting = someone reported and the manager has not accepted yet (needs the manager); open = nothing reported yet.
+ */
+export function summarizeAssigned(item) {
+  const c = item?.counts || {};
+  const total = Number(item?.rowCount) || 0;
+  const done = c.done || 0;
+  const reported = c.reported || 0;
+  const open = (c.assigned || 0) + (c.inProgress || 0);
+  let state = 'open';
+  if (total > 0 && done === total) state = 'done';
+  else if (reported > 0) state = 'waiting';
+  return { total, done, reported, open, state };
+}
+
+export function filterAssigned(items = [], filter = 'all') {
+  if (filter === 'all') return items;
+  return items.filter((item) => summarizeAssigned(item).state === filter);
+}
+
 export const MAX_ACTIONS_PER_SPOT = 12;
 export const DEFAULT_DUE_TEXT = 'Trong ngày';
 

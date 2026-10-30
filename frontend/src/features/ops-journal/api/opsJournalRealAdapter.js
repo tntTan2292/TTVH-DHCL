@@ -238,6 +238,18 @@ export const opsJournalRealAdapter = {
   },
 
   /**
+   * GET /assigned?from=&to= (manager): one light line per finalized spot, no rows
+   */
+  async getAssigned(from, to) {
+    try {
+      const res = await api.get(`${BASE_URL}/assigned`, { params: { from, to } });
+      return res.data;
+    } catch (err) {
+      return handleApiError(err, 'Không thể tải danh sách giao việc');
+    }
+  },
+
+  /**
    * GET /spots/:id (assignee view)
    */
   async getSpotForAssignee(spotId) {

@@ -131,6 +131,13 @@ function createOpsJournalRouter({ db = require('../config/db'), adapters = null 
         res.json({ success: true, data: await visibility.getSpot(db, who(req), req.params.id) });
     }));
 
+    router.get('/assigned', wrap(async (req, res) => {
+        const today = new Date(Date.now() + 7 * 3600 * 1000);
+        const toDefault = today.toISOString().slice(0, 10);
+        const fromDefault = new Date(today.getTime() - 13 * 86400000).toISOString().slice(0, 10);
+        res.json({ success: true, data: await visibility.listAssigned(db, who(req), req.query.from || fromDefault, req.query.to || toDefault) });
+    }));
+
     router.get('/my-tasks', wrap(async (req, res) => {
         res.json({ success: true, data: await visibility.listMyTasks(db, who(req)) });
     }));

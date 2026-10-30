@@ -228,9 +228,51 @@ async function listMyTasks(db, { userId }) {
     return { tasks };
 }
 
+const MAX_RANGE_DAYS = 62;
+
+/**
+ * GET /assigned?from=&to= -- manager only. One light line per finalized or closed spot of the range (no rows, no report text): how many
+ * rows, how they stand (not reported / reported and waiting / done), how many evidence files, the last report time and who the work is
+ * with. The screen lists these and opens one spot on demand (GET /spots/:id), so ten days of work stay readable.
+ */
+async function listAssigned(db, { access }, fromValue, toValue) {
+    if (!isManager(access)) throw new NotFoundError();
+    const to = asDay(toValue);
+    const from = asDay(fromValue);
+    if (from > to) throw new NotFoundError();
+    const span = (new Date(`${to}T00:00:00Z`) - new Date(`${from}T00:00:00Z`)) / 86400000;
+    if (span > MAX_RANGE_DAYS) throw new NotFoundError();
+    const spots = await db.all(
+        `SELECT * FROM ops_journal_spot WHERE day BETWEEN ? AND ? AND status IN ('FINALIZED', 'CLOSED') ORDER BY day DESC, sort, id LIMIT 500`, [from, to]);
+    if (!spots.length) return { from, to, days: [], items: [] };
+    const marks = spots.map(() => '?').join(',');
+    const ids = spots.map((s) => s.id);
+    const rows = await db.all(`SELECT spot_id, status, reported_at FROM ops_journal_action WHERE spot_id IN (${marks})`, ids);
+    const files = await db.all(`SELECT spot_id, COUNT(*) AS n FROM ops_journal_attachment WHERE spot_id IN (${marks}) GROUP BY spot_id`, ids);
+    const people = await db.all(
+        `SELECT DISTINCT a.spot_id, COALESCE(NULLIF(u.display_name, ''), u.username) AS name
+           FROM ops_journal_action a JOIN ops_journal_action_assignee x ON x.action_id = a.id JOIN qis_user u ON u.id = x.user_id
+          WHERE a.spot_id IN (${marks}) ORDER BY name`, ids);
+    const dayRows = await db.all('SELECT day, status FROM ops_journal_day WHERE day BETWEEN ? AND ?', [from, to]);
+    const items = spots.map((spot) => {
+        const own = rows.filter((r) => r.spot_id === spot.id);
+        const count = (status) => own.filter((r) => r.status === status).length;
+        return {
+            id: spot.id, day: spot.day, indicator: spot.indicator, title: spot.title, status: spot.status, officeCode: spot.office_code,
+            rowCount: own.length,
+            counts: { assigned: count('ASSIGNED') + count('DRAFT'), inProgress: count('IN_PROGRESS'), reported: count('REPORTED'), done: count('DONE') },
+            fileCount: files.find((f) => f.spot_id === spot.id)?.n || 0,
+            lastReportedAt: own.reduce((max, r) => Math.max(max, r.reported_at || 0), 0) || null,
+            assignees: people.filter((p) => p.spot_id === spot.id).map((p) => p.name),
+        };
+    });
+    const days = [...new Set(items.map((i) => i.day))].map((day) => ({ day, status: dayRows.find((d) => d.day === day)?.status || 'ASSIGNED' }));
+    return { from, to, days, items };
+}
+
 /** Manager-only gate for the routes that have no row-level rule (candidates ...): everyone else gets the usual NOT_FOUND. */
 function assertManager({ access }) {
     if (!isManager(access)) throw new NotFoundError();
 }
 
-module.exports = { NotFoundError, isManager, assertManager, asDay, asSpotId, getDay, getSpot, listMyTasks };
+module.exports = { NotFoundError, isManager, assertManager, asDay, asSpotId, getDay, getSpot, listMyTasks, listAssigned };
