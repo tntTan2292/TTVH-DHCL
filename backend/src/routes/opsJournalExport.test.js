@@ -121,7 +121,7 @@ test('Word file: opens, is well-formed, carries every row with the PL06 headings
     }
     assert.ok(plain.includes('Tuyến <A> & "B"  xuống dòng\nthứ hai'.replace('  ', ' ')) || plain.includes('Tuyến <A> & "B" '), 'hostile text survives as text');
     assert.ok(!xml.includes('\u0001'), 'control characters are dropped');
-    assert.equal((xml.match(/<w:tr>/g) || []).length, 5, 'table 1: header + 1 row; table 2: header + 2 rows');
+    assert.equal((xml.match(/<w:tr>/g) || []).length, 15, 'info 1 + 4 headings + section 1 (2) + 6 rõ (header + 2) + section 3 (1) + section 4 (3) + signature (1)');
     assert.match(await zip.file('word/footer1.xml').async('string'), /PAGE[\s\S]*NUMPAGES/);
     assert.match(await zip.file('word/header1.xml').async('string'), /NHẬT KÝ ĐIỀU HÀNH HÀNG NGÀY/);
     // the print view for the PDF draws the same model
@@ -154,7 +154,8 @@ test('download: manager only, finalized spots only, right type and headers, ever
     assert.match(docx.headers.get('content-disposition'), /^attachment; filename="PL06 - Nhat ky dieu hanh 23\.10\.2026 - F4\.1 BCVH Phu Loc\.docx"; filename\*=UTF-8''/);
     const zip = await JSZip.loadAsync(docx.buffer);
     const xml = await zip.file('word/document.xml').async('string');
-    assert.ok(xml.includes('Theo dõi hằng ngày') && xml.includes('Người ghi nhận: Mai Văn Mười (Giám đốc TTVH)'), 'the finalizer signs, not whoever downloads');
+    const text = xml.replace(/<[^>]+>/g, '');
+    assert.ok(text.includes('Theo dõi hằng ngày') && text.includes('Người ghi nhận: Mai Văn Mười (Giám đốc TTVH)'), 'the finalizer signs, not whoever downloads');
     assert.ok(xml.includes('☐ Rồi   ☒ Chưa'), 'the saved closing is printed');
     const closed = await download(GD, `/spots/${ids.closed}/export?format=docx`);
     assert.equal(closed.status, 200, 'a closed spot can still be printed');

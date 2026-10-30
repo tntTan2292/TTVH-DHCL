@@ -5,55 +5,92 @@
 const JSZip = require('jszip');
 
 const NAVY = '1F3864';
+const ORANGE = 'C55A11';
 const GREY = '595959';
 const PAGE = { w: 11906, h: 16838, left: 753, right: 753, top: 700, bottom: 700 };
 const TABLE_W = 10400;
 
 const esc = (value) => String(value ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
     // control characters are not valid in XML 1.0
-    .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\uFFFE\uFFFF]/g, '');
+    .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F￾￿]/g, '');
 
-function run(text, { bold = false, size = 18, color = null } = {}) {
+function run(text, { bold = false, italic = false, size = 16, color = null } = {}) {
     const parts = String(text ?? '').split(/\r?\n/);
     const body = parts.map((part, i) => `${i ? '<w:br/>' : ''}<w:t xml:space="preserve">${esc(part)}</w:t>`).join('');
-    return `<w:r><w:rPr>${bold ? '<w:b/><w:bCs/>' : ''}${color ? `<w:color w:val="${color}"/>` : ''}<w:sz w:val="${size}"/><w:szCs w:val="${size}"/></w:rPr>${body}</w:r>`;
+    return `<w:r><w:rPr>${bold ? '<w:b/><w:bCs/>' : ''}${italic ? '<w:i/><w:iCs/>' : ''}${color ? `<w:color w:val="${color}"/>` : ''}<w:sz w:val="${size}"/><w:szCs w:val="${size}"/></w:rPr>${body}</w:r>`;
 }
 
 function para(runs, { align = null, before = 20, after = 20, keepNext = false } = {}) {
     return `<w:p><w:pPr>${keepNext ? '<w:keepNext/>' : ''}<w:spacing w:before="${before}" w:after="${after}"/>${align ? `<w:jc w:val="${align}"/>` : ''}</w:pPr>${runs}</w:p>`;
 }
 
-function cell(width, paragraphs, { fill = null } = {}) {
-    return `<w:tc><w:tcPr><w:tcW w:w="${width}" w:type="dxa"/>${fill ? `<w:shd w:val="clear" w:color="auto" w:fill="${fill}"/>` : ''}<w:tcMar><w:top w:w="40" w:type="dxa"/><w:left w:w="80" w:type="dxa"/><w:bottom w:w="40" w:type="dxa"/><w:right w:w="80" w:type="dxa"/></w:tcMar></w:tcPr>${paragraphs}</w:tc>`;
+// Word merges two tables with nothing between them, so a hairline paragraph separates them
+const gap = (twips = 60) => `<w:p><w:pPr><w:spacing w:before="0" w:after="0" w:line="${twips}" w:lineRule="exact"/></w:pPr></w:p>`;
+
+function cell(width, paragraphs, { fill = null, vAlign = null } = {}) {
+    return `<w:tc><w:tcPr><w:tcW w:w="${width}" w:type="dxa"/>${fill ? `<w:shd w:val="clear" w:color="auto" w:fill="${fill}"/>` : ''}<w:tcMar><w:top w:w="20" w:type="dxa"/><w:left w:w="80" w:type="dxa"/><w:bottom w:w="20" w:type="dxa"/><w:right w:w="80" w:type="dxa"/></w:tcMar>${vAlign ? `<w:vAlign w:val="${vAlign}"/>` : ''}</w:tcPr>${paragraphs}</w:tc>`;
 }
 
-function table(block) {
-    const borders = ['top', 'left', 'bottom', 'right', 'insideH', 'insideV'].map((side) => `<w:${side} w:val="single" w:sz="4" w:space="0" w:color="808080"/>`).join('');
-    const grid = block.widths.map((w) => `<w:gridCol w:w="${w}"/>`).join('');
-    const head = `<w:tr><w:trPr><w:cantSplit/><w:tblHeader/></w:trPr>${block.header.map((h, i) => cell(block.widths[i],
-        para(run(h.text, { bold: true, size: 16, color: NAVY }), { align: 'center' }) + (h.hint ? para(run(h.hint, { size: 14, color: GREY }), { align: 'center', before: 0 }) : ''), { fill: block.headerFill })).join('')}</w:tr>`;
-    const rows = block.rows.map((row) => `<w:tr><w:trPr><w:cantSplit/></w:trPr>${row.map((c, i) => cell(block.widths[i],
-        para(run(c.text, { size: 16 }), { align: block.centerFirst && i === 0 ? 'center' : null }))).join('')}</w:tr>`).join('');
-    return `<w:tbl><w:tblPr><w:tblW w:w="${TABLE_W}" w:type="dxa"/><w:tblBorders>${borders}</w:tblBorders><w:tblLayout w:type="fixed"/></w:tblPr><w:tblGrid>${grid}</w:tblGrid>${head}${rows}</w:tbl>`;
+function tbl(widths, rowsXml, { borders = true } = {}) {
+    const edge = (side) => (borders ? `<w:${side} w:val="single" w:sz="4" w:space="0" w:color="000000"/>` : `<w:${side} w:val="none" w:sz="0" w:space="0" w:color="FFFFFF"/>`);
+    const b = ['top', 'left', 'bottom', 'right', 'insideH', 'insideV'].map(edge).join('');
+    return `<w:tbl><w:tblPr><w:tblW w:w="${TABLE_W}" w:type="dxa"/><w:tblBorders>${b}</w:tblBorders><w:tblLayout w:type="fixed"/></w:tblPr><w:tblGrid>${widths.map((w) => `<w:gridCol w:w="${w}"/>`).join('')}</w:tblGrid>${rowsXml}</w:tbl>${gap()}`;
+}
+const tr = (cells, { header = false } = {}) => `<w:tr><w:trPr><w:cantSplit/>${header ? '<w:tblHeader/>' : ''}</w:trPr>${cells}</w:tr>`;
+const labelled = (text) => { // "Ngày: 30/10/2026" -> bold label, plain value
+    const i = String(text).indexOf(': ');
+    return i < 0 ? run(text, { bold: true }) : run(text.slice(0, i + 2), { bold: true }) + run(text.slice(i + 2));
+};
+
+function dataTable(item) {
+    const centre = item.centerFirst ? 'center' : null;
+    const head = tr(item.header.map((h, i) => cell(item.widths[i],
+        para(run(h.text, { bold: true, color: 'FFFFFF' }), { align: centre })
+        + (h.hint ? para(run(h.hint, { size: 13, color: 'FFFFFF' }), { align: centre, before: 0 }) : ''), { fill: item.headerFill, vAlign: 'center' })).join(''), { header: true });
+    const rows = item.rows.map((row) => tr(row.map((c, i) => cell(item.widths[i],
+        para(run(c.text), { align: item.centerFirst && i === 0 ? 'center' : null }), { vAlign: item.centerFirst && i === 0 ? 'center' : null })).join(''))).join('');
+    return tbl(item.widths, head + rows);
 }
 
-function block(item) {
-    if (item.kind === 'table') return table(item) + para('', { before: 0, after: 0 });
-    if (item.kind === 'note') return para(run(item.text, { size: 16, color: GREY }), { before: 20, after: 60 });
-    return para(run(item.text, { bold: Boolean(item.bold), size: 18 }), { before: 40, after: 40 });
+function heading(section) {
+    const widths = [8500, 1900];
+    const left = cell(widths[0], para(run(section.heading, { bold: true, size: 24, color: NAVY }), { before: 100, after: 20, keepNext: true }));
+    const right = cell(widths[1], para(run(`⏱ ${section.minutes}`, { bold: true, size: 16, color: ORANGE }), { align: 'right', before: 100, after: 20 }), { fill: 'FBE5D6', vAlign: 'center' });
+    return tbl(widths, tr(left + right), { borders: false });
+}
+
+function sectionBody(section) {
+    if (section.layout === 'cells') { // section 3: one ruled row, one cell per line
+        const lines = section.blocks.filter((x) => x.kind === 'line');
+        const w = [3400, 3600, 3400];
+        return tbl(w, tr(lines.map((l, i) => cell(w[i], para(labelled(l.text)), { vAlign: 'center' })).join('')));
+    }
+    if (section.layout === 'shaded') { // section 4: question / answer / question
+        const [ask, answer, process] = section.blocks.filter((x) => x.kind === 'line');
+        return tbl([TABLE_W],
+            tr(cell(TABLE_W, para(run(ask.text, { bold: true })), { fill: 'DCE6F1' }))
+            + tr(cell(TABLE_W, para(run(answer.text)) + para('', { before: 0, after: 0 })))
+            + tr(cell(TABLE_W, para(run(process.text, { bold: true })), { fill: 'DCE6F1' })));
+    }
+    return section.blocks.map((item) => {
+        if (item.kind === 'table') return dataTable(item);
+        if (item.kind === 'note') return para(run(item.text, { size: 15, italic: true, color: GREY }), { before: 0, after: 40 });
+        return para(run(item.text), { before: 40, after: 40 });
+    }).join('');
 }
 
 function documentXml(model) {
+    const infoW = [2900, 4500, 3000];
+    const info = tbl(infoW, tr(model.info.map((line, i) => cell(infoW[i], para(labelled(line.text)), { fill: 'F2F2F2', vAlign: 'center' })).join('')));
+    const signW = [5200, 5200];
+    const sign = tbl(signW, tr(model.signature.map((line, i) => cell(signW[i], para(labelled(line.text)), { vAlign: 'center' })).join('')));
     const body = [
-        para(run(model.title, { bold: true, size: 36, color: NAVY }), { align: 'center', before: 60 }),
-        para(run(model.subtitle, { size: 18, color: GREY }), { align: 'center', after: 80 }),
-        ...model.info.map((line) => para(run(line.text, { bold: true, size: 18 }))),
-        ...model.sections.flatMap((section) => [
-            para(run(section.heading, { bold: true, size: 24, color: NAVY }) + run(`     ⏱ ${section.minutes}`, { size: 16, color: GREY }), { before: 160, after: 40, keepNext: true }),
-            ...section.blocks.map(block),
-        ]),
-        para('', { before: 120, after: 0 }),
-        ...model.signature.map((line) => para(run(line.text, { bold: true, size: 18 }), { before: 60 })),
+        para(run(model.title, { bold: true, size: 36, color: NAVY }), { align: 'center', before: 0, after: 0 }),
+        para(run(model.subtitle, { italic: true, size: 16, color: GREY }), { align: 'center', before: 0, after: 60 }),
+        info,
+        ...model.sections.flatMap((section) => [heading(section), sectionBody(section)]),
+        gap(120),
+        sign,
     ].join('');
     const sect = `<w:sectPr><w:headerReference w:type="default" r:id="rIdH"/><w:footerReference w:type="default" r:id="rIdF"/><w:pgSz w:w="${PAGE.w}" w:h="${PAGE.h}"/><w:pgMar w:top="${PAGE.top}" w:right="${PAGE.right}" w:bottom="${PAGE.bottom}" w:left="${PAGE.left}" w:header="400" w:footer="400" w:gutter="0"/></w:sectPr>`;
     return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><w:body>${body}${sect}</w:body></w:document>`;
@@ -61,10 +98,10 @@ function documentXml(model) {
 
 const NS = 'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"';
 const field = (code) => `<w:r><w:fldChar w:fldCharType="begin"/></w:r><w:r><w:instrText xml:space="preserve"> ${code} </w:instrText></w:r><w:r><w:fldChar w:fldCharType="separate"/></w:r><w:r><w:t>1</w:t></w:r><w:r><w:fldChar w:fldCharType="end"/></w:r>`;
-const tabbed = (left, rightRuns) => `<w:p><w:pPr><w:pBdr><w:bottom w:val="single" w:sz="4" w:space="1" w:color="808080"/></w:pBdr><w:tabs><w:tab w:val="right" w:pos="${TABLE_W}"/></w:tabs></w:pPr>${run(left, { size: 14, color: GREY })}<w:r><w:tab/></w:r>${rightRuns}</w:p>`;
+const tabbed = (left, rightRuns, leftOpts = { size: 14, color: GREY }) => `<w:p><w:pPr><w:tabs><w:tab w:val="right" w:pos="${TABLE_W}"/></w:tabs></w:pPr>${run(left, leftOpts)}<w:r><w:tab/></w:r>${rightRuns}</w:p>`;
 
 function headerXml(model) {
-    return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:hdr ${NS}>${tabbed(model.title, run(model.headerRight, { size: 14, color: GREY }))}</w:hdr>`;
+    return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:hdr ${NS}>${tabbed(model.title, run(model.headerRight, { size: 14, color: GREY }), { size: 14, bold: true, color: NAVY })}</w:hdr>`;
 }
 
 function footerXml(model) {

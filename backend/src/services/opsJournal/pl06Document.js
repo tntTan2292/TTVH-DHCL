@@ -48,7 +48,7 @@ function buildPl06(spot, signer) {
     const channel = spot.channel || '';
 
     const sixClear = {
-        kind: 'table', widths: SIX_CLEAR.map((c) => c.width), headerFill: 'DCE6F1',
+        kind: 'table', widths: SIX_CLEAR.map((c) => c.width), headerFill: 'C55A11',
         header: SIX_CLEAR.map((c) => ({ text: c.title, hint: c.hint })),
         rows: spot.actions.map((a, i) => [String(i + 1), a.whoText, a.what, a.where, a.due, a.how, a.expectedResult].map((text) => ({ text: text || '' }))),
         centerFirst: true,
@@ -58,7 +58,7 @@ function buildPl06(spot, signer) {
         {
             heading: '1.  ĐIỂM NGHẼN HÔM NAY', minutes: '2 phút',
             blocks: [{
-                kind: 'table', widths: [5200, 2400, 2800], headerFill: 'FBE5D6',
+                kind: 'table', widths: [5200, 2400, 2800], headerFill: '1F3864',
                 header: [{ text: 'Nghẽn ở đâu?' }, { text: 'Phát hiện lúc mấy giờ?' }, { text: 'Qua kênh nào?' }],
                 rows: [[
                     { text: spot.headline || spot.title },
@@ -75,7 +75,7 @@ function buildPl06(spot, signer) {
             ],
         },
         {
-            heading: '3.  KẾT QUẢ THỰC TẾ CUỐI NGÀY', minutes: '2 phút',
+            heading: '3.  KẾT QUẢ THỰC TẾ CUỐI NGÀY', minutes: '2 phút', layout: 'cells',
             blocks: [
                 { kind: 'line', text: `Sự cố đã giải quyết?  ${box(closing?.resolved === true)} Rồi   ${box(closing?.resolved === false)} Chưa` },
                 { kind: 'line', text: `Thời gian xử lý: ${closing?.handlingTimeText || ''}` },
@@ -83,7 +83,7 @@ function buildPl06(spot, signer) {
             ],
         },
         {
-            heading: '4.  BÀI HỌC RÚT RA', minutes: '1 phút',
+            heading: '4.  BÀI HỌC RÚT RA', minutes: '1 phút', layout: 'shaded',
             blocks: [
                 { kind: 'line', text: 'Lần sau xử lý tốt hơn thế nào?', bold: true },
                 { kind: 'line', text: closing?.lesson || '' },
@@ -100,7 +100,7 @@ function buildPl06(spot, signer) {
     return {
         fileBase: fileBaseName(spot),
         title: 'NHẬT KÝ ĐIỀU HÀNH HÀNG NGÀY',
-        subtitle: 'Giám đốc Trung tâm Vận hành – Bưu điện thành phố Huế',
+        subtitle: 'Giám đốc Trung tâm Vận hành – Bưu điện thành phố Huế  —  Mẫu thực chiến, hoàn thành trong 10 phút',
         headerRight: 'GĐ TTVH',
         footerLeft: 'Tài liệu nội bộ',
         info: [

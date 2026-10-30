@@ -26,21 +26,21 @@ function buildHtml(model) {
 body { font-family: Arial, "Liberation Sans", sans-serif; font-size: 9pt; color: #000; margin: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 h1 { text-align: center; color: #1F3864; font-size: 18pt; margin: 2mm 0 1mm; }
 .sub { text-align: center; color: #595959; margin: 0 0 3mm; }
-.info p { margin: 1mm 0; font-weight: bold; }
-h2 { color: #1F3864; font-size: 12pt; margin: 5mm 0 1.5mm; break-after: avoid; }
-h2 span { color: #595959; font-size: 8pt; font-weight: normal; margin-left: 4mm; }
+.info p { margin: 0.5mm 0; font-weight: bold; }
+h2 { color: #1F3864; font-size: 12pt; margin: 3mm 0 1mm; break-after: avoid; }
+h2 span { color: #C55A11; font-size: 8pt; font-weight: normal; margin-left: 4mm; }
 table { width: 100%; border-collapse: collapse; table-layout: fixed; margin-bottom: 1mm; }
-th, td { border: 1px solid #808080; padding: 1.5mm 2mm; vertical-align: top; font-size: 8pt; overflow-wrap: anywhere; }
-th { color: #1F3864; text-align: center; }
-th small { display: block; color: #595959; font-weight: normal; font-size: 7pt; }
+th, td { border: 1px solid #000; padding: 0.8mm 1.6mm; vertical-align: top; font-size: 8pt; overflow-wrap: anywhere; }
+th { color: #fff; text-align: center; }
+th small { display: block; color: #fff; font-weight: normal; font-size: 7pt; }
 td.c { text-align: center; }
 tr { break-inside: avoid; }
 thead { display: table-header-group; }
 .note { color: #595959; font-size: 8pt; margin: 1mm 0 2mm; }
-.line { margin: 1.5mm 0; }
+.line { margin: 1mm 0; }
 .b { font-weight: bold; }
-.sign p { font-weight: bold; margin: 2mm 0; }
-.sign { margin-top: 6mm; }
+.sign p { font-weight: bold; margin: 1mm 0; }
+.sign { margin-top: 3mm; }
 </style></head><body>
 <h1>${esc(model.title)}</h1><p class="sub">${esc(model.subtitle)}</p>
 <div class="info">${model.info.map((l) => `<p>${esc(l.text)}</p>`).join('')}</div>
