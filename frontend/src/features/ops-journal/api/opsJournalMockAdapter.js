@@ -164,13 +164,13 @@ export const opsJournalMockAdapter = {
 
     const totalSelected = candidateIds.length + manual.length + unselectedLockedSpots.length;
 
-    // Rule: spots must be between 5 and 10
-    if (totalSelected < 5 || totalSelected > 10) {
+    // Rule: at least one spot
+    if (totalSelected < 1 || totalSelected > 50) {
       return {
         success: false,
         error: {
           code: 'OUT_OF_RANGE',
-          message: `Số lượng điểm đen phải từ 5 đến 10 (hiện tại: ${totalSelected}).`,
+          message: 'Cần chọn ít nhất 1 điểm đen.',
         },
       };
     }

@@ -25,21 +25,21 @@ import {
   buildPl06PrintModel,
 } from './opsJournalHelpers.js';
 
-test('spot count constants and boundaries follow ticket requirement (5-10)', () => {
-  assert.equal(MIN_SELECTED_SPOTS, 5);
-  assert.equal(MAX_SELECTED_SPOTS, 10);
+test('spot count constants and boundaries follow the PO rule (at least 1, manager decides)', () => {
+  assert.equal(MIN_SELECTED_SPOTS, 1);
+  assert.equal(MAX_SELECTED_SPOTS, 50);
 });
 
-test('validateSpotCount blocks outside 5-10 range and allows within 5-10', () => {
+test('validateSpotCount blocks an empty choice and allows 1 or more', () => {
   // Low boundary violations
   const low0 = validateSpotCount(0);
   assert.equal(low0.valid, false);
   assert.equal(low0.code, 'OUT_OF_RANGE_LOW');
-  assert.match(low0.message, /tối thiểu 5/i);
+  assert.match(low0.message, /ít nhất 1/i);
 
-  const low4 = validateSpotCount(4);
-  assert.equal(low4.valid, false);
-  assert.equal(low4.code, 'OUT_OF_RANGE_LOW');
+  const one = validateSpotCount(1);
+  assert.equal(one.valid, true);
+  assert.equal(one.code, null);
 
   // Valid window: exactly 5 to 10
   const valid5 = validateSpotCount(5);
@@ -58,14 +58,12 @@ test('validateSpotCount blocks outside 5-10 range and allows within 5-10', () =>
   assert.equal(valid10.count, 10);
 
   // High boundary violations
-  const high11 = validateSpotCount(11);
-  assert.equal(high11.valid, false);
-  assert.equal(high11.code, 'OUT_OF_RANGE_HIGH');
-  assert.match(high11.message, /tối đa 10/i);
-
   const high20 = validateSpotCount(20);
-  assert.equal(high20.valid, false);
-  assert.equal(high20.code, 'OUT_OF_RANGE_HIGH');
+  assert.equal(high20.valid, true);
+
+  const high51 = validateSpotCount(51);
+  assert.equal(high51.valid, false);
+  assert.equal(high51.code, 'OUT_OF_RANGE_HIGH');
 
   // Edge cases
   assert.equal(validateSpotCount(null).valid, false);
@@ -74,28 +72,25 @@ test('validateSpotCount blocks outside 5-10 range and allows within 5-10', () =>
 });
 
 test('validateSpotsSelection combines candidates and manual spots', () => {
-  assert.equal(validateSpotsSelection({ candidateIds: ['c1', 'c2', 'c3', 'c4'], manual: [] }).valid, false);
+  assert.equal(validateSpotsSelection({ candidateIds: [], manual: [] }).valid, false);
+  assert.equal(validateSpotsSelection({ candidateIds: ['c1'], manual: [] }).valid, true);
+  assert.equal(validateSpotsSelection({ candidateIds: [], manual: [{ title: 'm1' }] }).valid, true);
   assert.equal(validateSpotsSelection({ candidateIds: ['c1', 'c2', 'c3', 'c4'], manual: [{ title: 'm1' }] }).valid, true);
-  assert.equal(validateSpotsSelection({ candidateIds: ['c1', 'c2', 'c3', 'c4', 'c5', 'c6', 'c7', 'c8'], manual: [{ title: 'm1' }, { title: 'm2' }] }).valid, true);
-  assert.equal(validateSpotsSelection({ candidateIds: ['c1', 'c2', 'c3', 'c4', 'c5', 'c6', 'c7', 'c8'], manual: [{ title: 'm1' }, { title: 'm2' }, { title: 'm3' }] }).valid, false);
 });
 
-test('canSaveSpots helper aligns with 5-10 rule', () => {
-  for (let i = 0; i < 5; i++) {
-    assert.equal(canSaveSpots(i), false, `Count ${i} must not be saveable`);
-  }
-  for (let i = 5; i <= 10; i++) {
+test('canSaveSpots helper: one or more is saveable, zero is not', () => {
+  assert.equal(canSaveSpots(0), false);
+  for (let i = 1; i <= 20; i++) {
     assert.equal(canSaveSpots(i), true, `Count ${i} must be saveable`);
   }
-  for (let i = 11; i <= 15; i++) {
-    assert.equal(canSaveSpots(i), false, `Count ${i} must not be saveable`);
-  }
+  assert.equal(canSaveSpots(51), false);
 });
 
 test('getCounterBadgeStyle reflects valid/invalid state', () => {
-  assert.equal(getCounterBadgeStyle(3).inRange, false);
+  assert.equal(getCounterBadgeStyle(0).inRange, false);
+  assert.equal(getCounterBadgeStyle(1).inRange, true);
   assert.equal(getCounterBadgeStyle(7).inRange, true);
-  assert.equal(getCounterBadgeStyle(12).inRange, false);
+  assert.equal(getCounterBadgeStyle(51).inRange, false);
 });
 
 test('normalizeIndicator normalizes standard variations', () => {

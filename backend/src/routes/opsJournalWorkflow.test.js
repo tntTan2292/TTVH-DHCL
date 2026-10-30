@@ -1,4 +1,4 @@
-// OPS-JOURNAL-01 (A3): the write side end to end -- choose 5-10 spots, fill the "6 rõ" rows, finalize (giao việc), report,
+// OPS-JOURNAL-01 (A3): the write side end to end -- choose at least 1 spot, fill the "6 rõ" rows, finalize (giao việc), report,
 // accept, close -- and who may do each step. A stranger must learn nothing from any write route (same 404, nothing changed).
 const test = require('node:test');
 const assert = require('node:assert/strict');
@@ -109,19 +109,17 @@ test('a stranger cannot write anything: same 404 as an unknown path, and nothing
     assert.equal((await call(null, 'PUT', `/days/${DAY}/spots`, { candidateIds: ALL_FIVE })).status, 401);
 });
 
-test('choosing spots: 5 to 10 per day, only real candidates, manual spots validated, re-choosing keeps what exists', async () => {
-    const few = await call(GD, 'PUT', `/days/${DAY}/spots`, { candidateIds: ALL_FIVE.slice(0, 4) });
+test('choosing spots: at least 1 per day (the manager decides how many), only real candidates, manual spots validated, re-choosing keeps what exists', async () => {
+    const few = await call(GD, 'PUT', `/days/${DAY}/spots`, { candidateIds: [] });
     assert.equal(few.status, 400);
     assert.equal(few.body.error.code, 'OUT_OF_RANGE');
     const fake = await call(GD, 'PUT', `/days/${DAY}/spots`, { candidateIds: [...ALL_FIVE.slice(0, 4), 'F1.3:BCVH:999999'] });
     assert.equal(fake.status, 409);
     assert.equal(fake.body.error.code, 'UNKNOWN_CANDIDATE');
-    const many = await call(GD, 'PUT', `/days/${DAY}/spots`, { candidateIds: ALL_FIVE, manual: Array.from({ length: 6 }, (_, i) => ({ indicator: 'F1.3', title: `tay ${i}`, officeCode: '533140' })) });
+    const many = await call(GD, 'PUT', `/days/${DAY}/spots`, { candidateIds: ALL_FIVE, manual: Array.from({ length: 46 }, (_, i) => ({ indicator: 'F1.3', title: `tay ${i}`, officeCode: '533140' })) });
     assert.equal(many.status, 400);
     assert.equal((await call(GD, 'PUT', `/days/${DAY}/spots`, { candidateIds: ALL_FIVE.slice(0, 4), manual: [{ indicator: 'F9.9', title: 'x' }] })).body.error.code, 'BAD_MANUAL');
     assert.equal((await call(GD, 'PUT', `/days/${DAY}/spots`, { candidateIds: ALL_FIVE.slice(0, 4), manual: [{ indicator: 'F1.3', title: '  ' }] })).body.error.code, 'BAD_MANUAL');
-    const repeated = await call(GD, 'PUT', `/days/${DAY}/spots`, { candidateIds: [ALL_FIVE[0], ALL_FIVE[0], ...ALL_FIVE.slice(1, 4)] });
-    assert.equal(repeated.body.error.code, 'OUT_OF_RANGE', 'a repeated id is one spot: four distinct is still too few');
     assert.equal((await dayOf()).spots.length, 0, 'none of the refused choices left anything behind');
 });
 

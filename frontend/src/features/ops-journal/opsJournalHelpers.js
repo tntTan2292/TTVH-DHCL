@@ -1,8 +1,8 @@
 // Pure helpers for OPS-JOURNAL-01 (PL06) - Daily quality alerts and journal module
 // Adheres strictly to OPS-JOURNAL-01_MANIFEST.md Sections 2, 6, 9 and report_block_ui_standard.md.
 
-export const MIN_SELECTED_SPOTS = 5;
-export const MAX_SELECTED_SPOTS = 10;
+export const MIN_SELECTED_SPOTS = 1;
+export const MAX_SELECTED_SPOTS = 50; // sanity cap only; the manager decides how many
 
 /**
  * Returns today's date in YYYY-MM-DD format according to Vietnam timezone (UTC+7).
@@ -126,7 +126,7 @@ export function getIndicatorChipStyle(indicator) {
 }
 
 /**
- * Validates the number of selected spots against the mandatory 5–10 window.
+ * Validates the number of selected spots against the window (at least 1; the upper bound is only a sanity cap).
  * Returns validation outcome, code and human-readable Vietnamese message.
  */
 export function validateSpotCount(count) {
@@ -136,7 +136,7 @@ export function validateSpotCount(count) {
       valid: false,
       count: n,
       code: 'OUT_OF_RANGE_LOW',
-      message: `Cần chọn tối thiểu ${MIN_SELECTED_SPOTS} điểm đen (hiện tại: ${n})`,
+      message: 'Cần chọn ít nhất 1 điểm đen.',
     };
   }
   if (n > MAX_SELECTED_SPOTS) {
@@ -151,7 +151,7 @@ export function validateSpotCount(count) {
     valid: true,
     count: n,
     code: null,
-    message: `Đã chọn ${n}/${MAX_SELECTED_SPOTS} điểm đen`,
+    message: `Đã chọn ${n} điểm đen`,
   };
 }
 
@@ -180,20 +180,20 @@ export function getCounterBadgeStyle(count) {
   if (n >= MIN_SELECTED_SPOTS && n <= MAX_SELECTED_SPOTS) {
     return {
       badgeClass: 'bg-emerald-100 text-emerald-800 border-emerald-300',
-      label: `Đã chọn ${n}/${MAX_SELECTED_SPOTS} (Hợp lệ)`,
+      label: `Đã chọn ${n} điểm đen`,
       inRange: true,
     };
   }
   if (n > MAX_SELECTED_SPOTS) {
     return {
       badgeClass: 'bg-rose-100 text-rose-800 border-rose-300',
-      label: `Đã chọn ${n}/${MAX_SELECTED_SPOTS} (Vượt quá 10)`,
+      label: `Đã chọn ${n} (vượt mức ${MAX_SELECTED_SPOTS})`,
       inRange: false,
     };
   }
   return {
     badgeClass: 'bg-amber-100 text-amber-800 border-amber-300',
-    label: `Đã chọn ${n}/${MAX_SELECTED_SPOTS} (Tối thiểu 5)`,
+    label: 'Chưa chọn điểm đen nào',
     inRange: false,
   };
 }

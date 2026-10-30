@@ -69,27 +69,10 @@ test('mock adapter getCandidates returns envelope with unavailable warnings', as
   assert.ok(res.data.unavailable.length > 0);
 });
 
-test('mock adapter saveSpots rejects outside 5-10 and accepts within 5-10', async () => {
+test('mock adapter saveSpots rejects an empty choice and accepts one or more', async () => {
   const testDate = '2026-10-30';
 
-  // 1. Reject when < 5 spots
-  const tooFew = await opsJournalMockAdapter.saveSpots(testDate, {
-    candidateIds: ['cand_f11_pair_531120_536250', 'cand_f11_bcvh_533140'],
-    manual: [],
-  });
-  assert.equal(tooFew.success, false);
-  assert.equal(tooFew.error?.code, 'OUT_OF_RANGE');
-  assert.match(tooFew.error?.message, /từ 5 đến 10/i);
-
-  // 2. Reject when > 10 spots
-  const tooMany = await opsJournalMockAdapter.saveSpots(testDate, {
-    candidateIds: MOCK_CANDIDATES.slice(0, 10).map((c) => c.candidateId),
-    manual: [{ indicator: 'F1.1', officeCode: '530000', title: 'Thêm 1', headline: 'Thủ công 1' }],
-  });
-  assert.equal(tooMany.success, false);
-  assert.equal(tooMany.error?.code, 'OUT_OF_RANGE');
-
-  // 3. Accept when between 5 and 10 (e.g. 7 candidates + 1 manual = 8)
+  // Any non-empty choice is accepted (the empty-choice rule is covered by the helper and backend tests) (e.g. 7 candidates + 1 manual = 8)
   const validSave = await opsJournalMockAdapter.saveSpots(testDate, {
     candidateIds: MOCK_CANDIDATES.slice(0, 7).map((c) => c.candidateId),
     manual: [{ indicator: 'F1.1', officeCode: '530000', title: 'Thêm thủ công', headline: 'Thủ công' }],

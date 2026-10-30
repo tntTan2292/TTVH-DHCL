@@ -620,7 +620,7 @@ export default function OpsJournalComposerPage({
           <Calendar className="h-10 w-10 text-slate-400 mb-3" />
           <h3 className="text-base font-bold text-slate-800">Chưa có điểm đen nào cho ngày {selectedDate}</h3>
           <p className="mt-1 max-w-md text-xs text-slate-500">
-            Vui lòng chuyển sang bước Chọn điểm đen để lựa chọn 5–10 điểm đen từ dữ liệu hệ thống hoặc thêm thủ công.
+            Vui lòng chuyển sang bước Chọn điểm đen để lựa chọn điểm đen từ dữ liệu hệ thống hoặc thêm thủ công.
           </p>
           {onNavigateToCandidates && (
             <button

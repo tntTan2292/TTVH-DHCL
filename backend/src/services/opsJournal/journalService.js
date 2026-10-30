@@ -2,7 +2,7 @@
 
 // OPS-JOURNAL-01 (A3): the write side of the Nhật ký điều hành. Everything here is for the manager (Giám đốc TTVH, admin)
 // except `report`, which an assignee does on a row that names them. Rules:
-//  - a day holds 5-10 spots (PO 2026-10-29); candidates are re-derived on the server, a client cannot invent figures;
+//  - a day holds at least 1 spot, as many as the manager decides (PO 2026-10-30, replaces 5-10); candidates are re-derived on the server, a client cannot invent figures;
 //  - a spot is DRAFT until the manager finalizes it (chốt = giao việc); a finalized spot is locked (409) until the manager
 //    reopens it with a reason; a reopened spot keeps its reports;
 //  - an assignee reports IN_PROGRESS / REPORTED on their own row of a finalized spot; the manager marks it DONE;
@@ -14,8 +14,8 @@ const { BCVH_BY_CODE, HANGTON_OFFICES_BY_BCVH } = require('../auth/access/office
 const { NotFoundError, asDay, asSpotId, getDay } = require('./visibility');
 const candidateService = require('./candidateService');
 
-const MIN_SPOTS = 5;
-const MAX_SPOTS = 10;
+const MIN_SPOTS = 1;
+const MAX_SPOTS = 50; // sanity cap only: how many spots to assign is the manager's call (PO 2026-10-30)
 const MAX_ROWS = 12;
 const MAX_ASSIGNEES = 20;
 const MAX_SHORT = 300;
@@ -137,7 +137,7 @@ async function selectSpots(db, { date, candidateIds = [], manual = [], actor, ad
         const draftsKept = existing.filter((s) => s.status === 'DRAFT' && !protectedIds.has(s.id) && wantedKeys.has(keyOf(s)));
         const total = kept.length + draftsKept.length + toCreate.filter((w) => !draftsKept.some((s) => keyOf(s) === `${w.indicator}|${w.scopeType}|${w.scopeKey}`)).length;
         if (total < MIN_SPOTS || total > MAX_SPOTS) {
-            throw new JournalError('OUT_OF_RANGE', `Mỗi ngày phải chọn từ ${MIN_SPOTS} đến ${MAX_SPOTS} điểm đen (hiện ${total}, gồm ${kept.length} điểm đã chốt).`);
+            throw new JournalError('OUT_OF_RANGE', total < MIN_SPOTS ? 'Cần chọn ít nhất 1 điểm đen.' : `Một ngày chỉ nhận tối đa ${MAX_SPOTS} điểm đen (hiện ${total}, gồm ${kept.length} điểm đã chốt).`);
         }
         const t = now();
         if (!(await dayRow(db, day))) await db.run('INSERT INTO ops_journal_day (day, status, created_by, created_at, updated_at) VALUES (?, ?, ?, ?, ?)', [day, 'DRAFT', actor.id, t, t]);

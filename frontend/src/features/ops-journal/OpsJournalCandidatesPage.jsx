@@ -227,7 +227,7 @@ export default function OpsJournalCandidatesPage({
 
   // Save selected spots
   const handleSave = async () => {
-    // Client-side guard 5-10
+    // Client-side guard (at least 1)
     if (!validation.valid) {
       setAlert({
         type: 'error',
@@ -326,7 +326,7 @@ export default function OpsJournalCandidatesPage({
                 )}
               </div>
               <p className="mt-1 text-xs text-slate-500">
-                Lựa chọn từ 5 đến 10 điểm đen chất lượng để phân công xử lý theo nguyên tắc 6 rõ (Ai / Làm gì / Ở đâu / Khi nào / Bằng cách nào / Kết quả).
+                Chọn các điểm đen cần giao việc hôm nay (số lượng do Giám đốc quyết định) để phân công xử lý theo nguyên tắc 6 rõ (Ai / Làm gì / Ở đâu / Khi nào / Bằng cách nào / Kết quả).
               </p>
             </div>
 
@@ -349,7 +349,7 @@ export default function OpsJournalCandidatesPage({
               {/* Counter Badge */}
               <div
                 className={`inline-flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-bold shadow-2xs transition-colors ${counterStyle.badgeClass}`}
-                title="Yêu cầu chọn từ 5 đến 10 điểm đen"
+                title="Chọn ít nhất 1 điểm đen"
               >
                 <span>{counterStyle.label}</span>
               </div>
@@ -477,7 +477,7 @@ export default function OpsJournalCandidatesPage({
 
         {orphanLockedSpots.length > 0 && (
           <div className="rounded-xl border border-slate-200 bg-white p-3 text-xs text-slate-700" data-testid="locked-orphans">
-            <span className="font-bold">Điểm đã chốt không còn trong gợi ý hôm nay (vẫn được tính vào 5–10): </span>
+            <span className="font-bold">Điểm đã chốt không còn trong gợi ý hôm nay (vẫn được tính vào số đã chọn): </span>
             {orphanLockedSpots.map((spot) => spot.title).join('; ')}
           </div>
         )}
@@ -506,13 +506,13 @@ export default function OpsJournalCandidatesPage({
         <div className="flex flex-col gap-2 rounded-xl bg-slate-100/80 p-3 text-xs text-slate-600 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-2">
             <span className="font-semibold text-slate-700">Quy tắc chọn điểm đen:</span>
-            <span>Tối thiểu 5 điểm, tối đa 10 điểm (gồm ứng viên hệ thống và điểm thêm thủ công).</span>
+            <span>Chọn ít nhất 1 điểm, giao bao nhiêu tùy Giám đốc (gồm ứng viên hệ thống và điểm thêm thủ công).</span>
           </div>
           <div className="flex items-center gap-3 text-slate-500 font-medium">
             <span>Tổng ứng viên: {candidates.length}</span>
             <span>•</span>
             <span className={validation.valid ? 'font-bold text-emerald-700' : 'font-bold text-amber-700'}>
-              Đã chọn: {totalCount}/10
+              Đã chọn: {totalCount}
             </span>
           </div>
         </div>
