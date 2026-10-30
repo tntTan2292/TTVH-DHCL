@@ -28,3 +28,23 @@ test('the printed journal uses the draft until the manager saves his own closing
     const saved = buildPl06({ ...base, closing: { ...draft, lesson: 'Bài học của GĐ', doneTime: '16:30' }, closingDraft: draft }, { name: 'Mai Văn Mười', positionCode: 'GD_TTVH' });
     assert.ok(text(saved).includes('Bài học của GĐ') && text(saved).includes('16h30'));
 });
+
+test('an F1.1 pair gets the pair lesson of the 16/10 journal', () => {
+    const pair = draftClosing({ day: '2026-10-16', indicator: 'F1.1', scopeType: 'PAIR', metrics: {} });
+    assert.match(pair.lesson, /các cặp chấp nhận – phát có sản lượng lớn hằng ngày.*dưới 85%/);
+    assert.equal(pair.handlingTimeText, 'rà soát xong trong ngày 16/10; theo dõi kết quả cặp hằng ngày');
+});
+
+test('an F1.1 pair gets the pair lesson of the 16/10 journal', () => {
+    const pair = draftClosing({ day: '2026-10-16', indicator: 'F1.1', scopeType: 'PAIR', metrics: {} });
+    assert.match(pair.lesson, /các cặp chấp nhận – phát có sản lượng lớn hằng ngày.*dưới 85%/);
+    assert.equal(pair.handlingTimeText, 'rà soát xong trong ngày 16/10; theo dõi kết quả cặp hằng ngày');
+});
+
+test('the recorder printed on the journal is always Mai Văn Mười, GĐ TTVH, whoever signs in', () => {
+    const { buildPl06 } = require('./pl06Document');
+    const model = buildPl06({ day: '2026-10-22', indicator: 'F1.3', title: 'F1.3 - BCVH Thuận An', headline: 'h', actions: [], closing: null }, { name: 'Quản trị viên', positionCode: 'ADMIN' });
+    const text = JSON.stringify(model);
+    assert.ok(text.includes('Người ghi nhận: Mai Văn Mười (PGĐ BĐTP, GĐ TTVH)') && text.includes('Người ghi nhận / Ký xác nhận: Mai Văn Mười'));
+    assert.ok(!text.includes('Quản trị viên'));
+});

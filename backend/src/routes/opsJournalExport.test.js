@@ -115,7 +115,7 @@ test('Word file: opens, is well-formed, carries every row with the PL06 headings
     const xml = await zip.file('word/document.xml').async('string');
     const plain = xml.replace(/<w:br\/>/g, '\n').replace(/<\/w:p>/g, '\n').replace(/<[^>]+>/g, '')
         .replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&amp;/g, '&');
-    for (const wanted of ['NHẬT KÝ ĐIỀU HÀNH HÀNG NGÀY', 'Ngày: 23/10/2026', 'Người ghi nhận: Mai Văn Mười (Giám đốc TTVH)', '1.  ĐIỂM NGHẼN HÔM NAY', '2.  QUYẾT ĐỊNH XỬ LÝ — NGUYÊN TẮC 6 RÕ',
+    for (const wanted of ['NHẬT KÝ ĐIỀU HÀNH HÀNG NGÀY', 'Ngày: 23/10/2026', 'Người ghi nhận: Mai Văn Mười (PGĐ BĐTP, GĐ TTVH)', '1.  ĐIỂM NGHẼN HÔM NAY', '2.  QUYẾT ĐỊNH XỬ LÝ — NGUYÊN TẮC 6 RÕ',
         '3.  KẾT QUẢ THỰC TẾ CUỐI NGÀY', '4.  BÀI HỌC RÚT RA', 'KHI NÀO XONG', '(rõ kết quả cần đạt)', 'Giờ hoàn thành nhật ký: 17h00', '07h30', '☒ Dashboard']) {
         assert.ok(plain.includes(wanted), `missing: ${wanted}`);
     }
@@ -155,7 +155,7 @@ test('download: manager only, finalized spots only, right type and headers, ever
     const zip = await JSZip.loadAsync(docx.buffer);
     const xml = await zip.file('word/document.xml').async('string');
     const text = xml.replace(/<[^>]+>/g, '');
-    assert.ok(text.includes('Theo dõi hằng ngày') && text.includes('Người ghi nhận: Mai Văn Mười (Giám đốc TTVH)'), 'the finalizer signs, not whoever downloads');
+    assert.ok(text.includes('Theo dõi hằng ngày') && text.includes('Người ghi nhận: Mai Văn Mười (PGĐ BĐTP, GĐ TTVH)'), 'the finalizer signs, not whoever downloads');
     assert.ok(xml.includes('☐ Rồi   ☒ Chưa'), 'the saved closing is printed');
     const closed = await download(GD, `/spots/${ids.closed}/export?format=docx`);
     assert.equal(closed.status, 200, 'a closed spot can still be printed');

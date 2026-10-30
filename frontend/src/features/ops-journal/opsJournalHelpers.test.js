@@ -429,8 +429,8 @@ test('buildPl06PrintModel creates renderer-neutral data model matching PL06 stru
   assert.ok(model);
   assert.equal(model.title, 'NHẬT KÝ ĐIỀU HÀNH HÀNG NGÀY');
   assert.equal(model.dateText, '30/10/2026');
-  assert.equal(model.signerName, ''); // I1: Defaults to empty string if not provided
-  assert.equal(model.signerPosition, 'Giám đốc TTVH');
+  assert.equal(model.signerName, 'Mai Văn Mười'); // the recorder is always the Giám đốc TTVH, whoever pressed chốt
+  assert.equal(model.signerPosition, 'PGĐ BĐTP, GĐ TTVH');
   assert.equal(model.channel, 'Dashboard');
   assert.equal(model.actions.length, 1);
   assert.equal(model.actions[0].stt, 1);
@@ -444,7 +444,7 @@ test('buildPl06PrintModel creates renderer-neutral data model matching PL06 stru
     ...mockSpot,
     closing: { ...mockSpot.closing, signedBy: 'Lê Văn Trưởng' },
   });
-  assert.equal(modelWithSigner.signerName, 'Lê Văn Trưởng');
+  assert.equal(modelWithSigner.signerName, 'Mai Văn Mười', 'an account name in the data never replaces the recorder');
 });
 
 

@@ -552,7 +552,7 @@ export function generatePl06FileName(spot, extension = '') {
  * Builds structured document data model for PL06 Print Preview and Export.
  * Accurately mirrors pl06Document.js schema and PO sample structure.
  */
-export function buildPl06PrintModel(spot, signer = { name: '', position: 'Giám đốc TTVH' }) {
+export function buildPl06PrintModel(spot, _signer = null) {
   if (!spot) return null;
   const day = spot.day || '';
   const dmyStr = /^\d{4}-\d{2}-\d{2}$/.test(day)
@@ -574,8 +574,9 @@ export function buildPl06PrintModel(spot, signer = { name: '', position: 'Giám 
 
   const closing = spot.closing || spot.closingDraft || null;
   const actions = Array.isArray(spot.actions) ? spot.actions : [];
-  const signerName = spot.finalizedByName || spot.signedBy || spot.finalizedBy || spot.closing?.signedBy || signer?.name || '';
-  const signerPosition = signer?.position || 'Giám đốc TTVH';
+  // the recorder is always the Giám đốc TTVH, as in the journals of 01-23/10 (PO 2026-10-30), whoever pressed chốt
+  const signerName = 'Mai Văn Mười';
+  const signerPosition = 'PGĐ BĐTP, GĐ TTVH';
 
   return {
     fileBase: generatePl06FileName(spot),

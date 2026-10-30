@@ -4,7 +4,7 @@
 // (title, info lines, sections with tables and lines). The Word writer (pl06Docx.js) and the print view for the PDF
 // (pl06Html.js) both draw this one model, so the two files can never disagree. Layout follows the PO's PL06 samples
 // (01-23/10/2026): A4, Arial, navy headings, the six-column "6 rõ" table, sections 1-4 and the signature line.
-const { POSITIONS } = require('../auth/access/roles');
+const RECORDER = Object.freeze({ name: 'Mai Văn Mười', title: 'PGĐ BĐTP, GĐ TTVH' });
 
 const SIX_CLEAR = Object.freeze([
     { title: 'STT', hint: '', width: 500 },
@@ -42,8 +42,9 @@ function fileBaseName(spot) {
  */
 function buildPl06(spot, signer) {
     const closing = spot.closing || spot.closingDraft || null; // the saved one, else the system's draft
-    const positionLabel = POSITIONS[signer?.positionCode]?.label || signer?.positionCode || '';
-    const who = signer?.name ? `${signer.name}${positionLabel ? ` (${positionLabel})` : ''}` : '';
+    // the recorder of the Nhật ký điều hành is always the Giám đốc TTVH (PO 2026-10-30), whoever pressed chốt or downloaded
+    // (an admin account included), exactly as in the journals of 01-23/10
+    const who = `${RECORDER.name} (${RECORDER.title})`;
     const shift = shiftOf(spot.finalizedAt);
     const channel = spot.channel || '';
 
@@ -110,10 +111,10 @@ function buildPl06(spot, signer) {
         ],
         sections,
         signature: [
-            { text: `Người ghi nhận / Ký xác nhận: ${signer?.name || ''}` },
+            { text: `Người ghi nhận / Ký xác nhận: ${RECORDER.name}` },
             { text: `Giờ hoàn thành nhật ký: ${closing?.doneTime ? hhmm(closing.doneTime) : ''}` },
         ],
     };
 }
 
-module.exports = { buildPl06, fileBaseName, shiftOf, dmy, SIX_CLEAR };
+module.exports = { RECORDER, buildPl06, fileBaseName, shiftOf, dmy, SIX_CLEAR };

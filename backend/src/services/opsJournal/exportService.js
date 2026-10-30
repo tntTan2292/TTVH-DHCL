@@ -48,12 +48,7 @@ async function exportSpot(db, { spotId, format, user }) {
     const spot = await getSpot(db, { access: { capabilities: ['journal.manage'] } }, spotId);
     if (spot.status === 'DRAFT') throw new JournalError('NOT_FINALIZED', 'Chỉ xuất được nhật ký của điểm đen đã chốt.', 409);
 
-    const finalizer = await db.get(
-        'SELECT u.display_name, u.username, u.position FROM ops_journal_spot s LEFT JOIN qis_user u ON u.id = s.finalized_by WHERE s.id = ?', [spot.id]);
-    const signer = finalizer && (finalizer.display_name || finalizer.username)
-        ? { name: finalizer.display_name || finalizer.username, positionCode: finalizer.position }
-        : { name: user.display_name || user.username, positionCode: user.access?.position };
-    const model = buildPl06(spot, signer);
+    const model = buildPl06(spot); // the recorder is fixed (Mai Văn Mười, GĐ TTVH), not the account that pressed chốt
 
     const buffer = kind.extension === 'docx' ? await buildDocx(model) : await renderPdfQueued(model);
     const actor = actorOf(user);

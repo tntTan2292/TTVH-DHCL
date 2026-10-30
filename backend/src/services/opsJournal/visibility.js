@@ -138,7 +138,7 @@ async function managerSpot(db, spotRow) {
         actions: actions.map((a) => ({ ...presentRow(a), assignedAt: a.assigned_at, assigneeUserIds: assignees.get(a.id) || [] })),
         closing: presentClosing(await db.get('SELECT * FROM ops_journal_closing WHERE spot_id = ?', [spotRow.id])),
         // what the system proposes for sections 3-4 until the manager saves his own (the screens prefill it, the export falls back to it)
-        closingDraft: draftClosing({ day: spotRow.day, indicator: spotRow.indicator, metrics: spotRow.metrics_json ? JSON.parse(spotRow.metrics_json) : null }),
+        closingDraft: draftClosing({ day: spotRow.day, indicator: spotRow.indicator, scopeType: spotRow.scope_type, metrics: spotRow.metrics_json ? JSON.parse(spotRow.metrics_json) : null }),
     };
 }
 

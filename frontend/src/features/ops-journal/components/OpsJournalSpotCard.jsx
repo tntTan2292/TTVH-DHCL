@@ -412,11 +412,35 @@ export default function OpsJournalSpotCard({
           />
         )}
 
+        {/* Sections 3-4 of the PL06 as the system drafted them: visible from the draft stage so the manager sees what will be printed */}
+        {(() => {
+          const c = spot.closing || spot.closingDraft;
+          if (!c) return null;
+          const mark = (on) => (on ? '☒' : '☐');
+          return (
+            <div className="mt-5 rounded-xl border border-slate-200 bg-slate-50/70 p-3 text-xs text-slate-700" data-testid="closing-preview">
+              <p className="mb-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                Kết quả cuối ngày và bài học rút ra {spot.closing ? '(đã lưu)' : '(hệ thống soạn sẵn - có trong file Word)'}
+              </p>
+              <p>
+                <span className="font-semibold">Sự cố đã giải quyết?</span> {mark(c.resolved === true)} Rồi &nbsp;{mark(c.resolved === false)} Chưa
+                &nbsp;•&nbsp;<span className="font-semibold">Thời gian xử lý:</span> {c.handlingTimeText}
+                &nbsp;•&nbsp;<span className="font-semibold">Đã phục hồi bình thường?</span> {mark(c.recovered === true)} Rồi &nbsp;{mark(c.recovered === false)} Chưa, đang theo dõi
+              </p>
+              <p className="mt-1.5"><span className="font-semibold">Bài học rút ra:</span> {c.lesson}</p>
+              <p className="mt-1.5">
+                <span className="font-semibold">Quy trình cần cập nhật?</span> {mark(!c.processUpdate)} Không &nbsp;{mark(Boolean(c.processUpdate))} Có{c.processUpdate ? `: ${c.processUpdate}` : ''}
+                &nbsp;•&nbsp;<span className="font-semibold">Giờ hoàn thành:</span> {String(c.doneTime || '').replace(':', 'h')}
+              </p>
+            </div>
+          );
+        })()}
+
         {/* Phase B3: End-of-day closing form for Finalized or Closed spots */}
         {(isFinalized || isClosed) && (
-          <details className="mt-5 border-t border-slate-100 pt-4 text-xs" open={Boolean(spot.closing)}>
+          <details className="mt-3 pt-1 text-xs" open={Boolean(spot.closing)}>
             <summary className="cursor-pointer select-none font-semibold text-blue-700 hover:underline">
-              Kết quả cuối ngày và bài học (đã soạn sẵn trong file Word - chỉ mở nếu muốn sửa)
+              Sửa kết quả cuối ngày và bài học trong hệ thống (không bắt buộc)
             </summary>
             <div className="mt-4">
               <SpotClosingForm

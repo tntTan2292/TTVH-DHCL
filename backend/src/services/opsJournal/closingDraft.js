@@ -9,22 +9,25 @@ const LESSONS = Object.freeze({
     'F1.1': 'Với F1.1, rà soát theo từng luồng bưu cục chấp nhận – bưu cục phát để giao đúng đơn vị chịu trách nhiệm từng khâu; theo dõi hằng ngày các luồng có tỷ lệ thấp kéo dài.',
     'F1.2': 'Theo dõi F1.2 theo từng khách hàng có sản lượng lớn hằng ngày; khi một khách hàng có nhiều bưu gửi không đạt trong ngày thì rà soát ngay khâu thu gom, chấp nhận của khách hàng đó.',
     SUDDEN_DROP: (label) => `BCVH có tỷ lệ tốt vẫn có thể giảm đột ngột do một tuyến phát; theo dõi ${label} đến từng tuyến phát hằng ngày để phát hiện sớm và khoanh vùng đúng tuyến cần xử lý.`,
+    PAIR: 'Theo dõi F1.1 của các cặp chấp nhận – phát có sản lượng lớn hằng ngày trên Dashboard từ giao ban đầu ngày; cặp nào dưới 85% thì rà soát ngay theo từng khâu (chấp nhận, khai thác, vận chuyển, phát) để giao đúng đơn vị xử lý.',
     CHRONIC: 'Với BCVH có tỷ lệ thấp kéo dài, cần rà soát đến từng tuyến phát, từng bưu tá và theo dõi hằng ngày thay vì xử lý theo từng ngày phát sinh.',
 });
 const TARGETS = Object.freeze({ 'F1.1': 95, 'F1.2': 95, 'F1.3': 90, 'F4.1': 90 });
 const dm = (day) => `${day.slice(8, 10)}/${day.slice(5, 7)}`;
 
-/** @param spot { day, indicator, metrics } */
+/** @param spot { day, indicator, scopeType, metrics } */
 function draftClosing(spot) {
     const label = spot.indicator;
     const m = spot.metrics || {};
     let lesson;
-    if (label === 'HANGTON' || label === 'F1.1' || label === 'F1.2') lesson = LESSONS[label];
+    const pair = label === 'F1.1' && spot.scopeType === 'PAIR';
+    if (pair) lesson = LESSONS.PAIR;
+    else if (label === 'HANGTON' || label === 'F1.1' || label === 'F1.2') lesson = LESSONS[label];
     else if (label === 'F1.3' && m.compareRate != null && Number(m.compareRate) >= (TARGETS[label] ?? 90)) lesson = LESSONS.SUDDEN_DROP(label);
     else lesson = LESSONS.CHRONIC;
     return {
         resolved: false,
-        handlingTimeText: label === 'HANGTON' ? `xử lý dứt điểm trong ngày ${dm(spot.day)}` : `rà soát xong trong ngày ${dm(spot.day)}; theo dõi kết quả hằng ngày`,
+        handlingTimeText: label === 'HANGTON' ? `xử lý dứt điểm trong ngày ${dm(spot.day)}` : `rà soát xong trong ngày ${dm(spot.day)}; theo dõi kết quả ${pair ? 'cặp ' : ''}hằng ngày`,
         recovered: false,
         lesson,
         processUpdate: '',
