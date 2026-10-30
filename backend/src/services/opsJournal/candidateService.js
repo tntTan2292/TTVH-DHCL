@@ -216,6 +216,11 @@ function rankAndSelect(all) {
     });
 }
 
+const CACHE_TTL_MS = 10 * 60 * 1000;
+const cache = new Map(); // journal day -> { generation, at, promise }
+
+function clearCandidateCache() { cache.clear(); }
+
 /**
  * GET /candidates: the ranked candidates for the journal day. A source that fails is listed in `unavailable` and the others
  * still answer (one broken indicator must not hide the rest of the day).
@@ -226,9 +231,26 @@ async function buildCandidates({ db, date, adapters }) {
     const tx = db.txState || { active: 0, generation: 0 };
     if (tx.active > 0) throw new DataUpdatingError();
     const generation = tx.generation;
-    const result = await buildCandidatesUnguarded({ db, date, adapters });
-    if (tx.active > 0 || tx.generation !== generation) throw new DataUpdatingError();
-    return result;
+    // Building takes ~3 s (four indicators, three periods each). The answer only changes when data is loaded, and every load moves
+    // txState.generation, so a result is reused while the generation is the same (bounded by CACHE_TTL_MS); a build in flight is shared.
+    const cached = cache.get(date);
+    if (cached && cached.adapters === adapters && cached.db === db && cached.generation === generation && Date.now() - cached.at < CACHE_TTL_MS) {
+        return structuredClone(await cached.promise);
+    }
+    const promise = buildCandidatesUnguarded({ db, date, adapters });
+    cache.set(date, { adapters, db, generation, at: Date.now(), promise });
+    let result;
+    try {
+        result = await promise;
+    } catch (error) {
+        if (cache.get(date)?.promise === promise) cache.delete(date);
+        throw error;
+    }
+    if (tx.active > 0 || tx.generation !== generation) {
+        if (cache.get(date)?.promise === promise) cache.delete(date);
+        throw new DataUpdatingError();
+    }
+    return structuredClone(result);
 }
 
 async function buildCandidatesUnguarded({ db, date, adapters }) {
@@ -269,6 +291,6 @@ async function buildCandidatesUnguarded({ db, date, adapters }) {
 }
 
 module.exports = {
-    DataUpdatingError, buildCandidates, rankAndSelect, collectUnits,
+    DataUpdatingError, buildCandidates, clearCandidateCache, rankAndSelect, collectUnits,
     LIMITS: { MIN_VOLUME, FALLBACK_WEIGHT, MAX_CANDIDATES, PER_INDICATOR_CAP, PRESELECT_COUNT, PRESELECT_PER_INDICATOR },
 };

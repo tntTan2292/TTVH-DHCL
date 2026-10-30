@@ -164,3 +164,20 @@ test('no loaded data before the journal day: that indicator is empty, not an err
     assert.equal(result.asOfDate, null);
     assert.deepEqual(result.items.filter((i) => i.indicator !== 'HANGTON'), []);
 });
+
+test('the answer for a day is reused while no data load happened, and rebuilt after one', async () => {
+    let calls = 0;
+    const adapters = fakeAdapters({ f13: { localTable: 'fact_f13', ranking: async () => { calls += 1; return { data: [] }; } } });
+    const conn = dbModule();
+    const first = await candidates.buildCandidates({ db: conn, date: JOURNAL_DAY, adapters });
+    const afterFirst = calls;
+    assert.ok(afterFirst > 0);
+    const second = await candidates.buildCandidates({ db: conn, date: JOURNAL_DAY, adapters });
+    assert.equal(calls, afterFirst, 'second call is served from the cache');
+    assert.deepEqual(second.items, first.items);
+    second.items.length = 0;
+    assert.equal((await candidates.buildCandidates({ db: conn, date: JOURNAL_DAY, adapters })).items.length, first.items.length, 'callers cannot corrupt the cache');
+    conn.txState.generation += 1; // what a data load does
+    await candidates.buildCandidates({ db: conn, date: JOURNAL_DAY, adapters });
+    assert.ok(calls > afterFirst, 'rebuilt after the data changed');
+});
