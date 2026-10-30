@@ -88,24 +88,30 @@ const ALL_FIVE = ids(OFFICES.map(([code]) => code));
 const dayOf = async () => (await call(GD, 'GET', `/days/${DAY}`)).body.data;
 
 
-test('choosing a spot drafts 3 rows of the right wording with the unit people on them (inactive accounts are left out)', async () => {
+test('choosing a spot drafts the 4 rows of the PL06 model with the real figures, dates and people of the unit', async () => {
     const picked = await call(GD, 'PUT', `/days/${DAY}/spots`, { candidateIds: ids(['533140', '537220']) });
     assert.equal(picked.status, 200, JSON.stringify(picked.body));
     const spots = picked.body.data.spots;
     assert.equal(spots.length, 2);
-    for (const spot of spots) assert.equal(spot.actions.length, 3, 'three drafted rows per spot');
+    for (const spot of spots) assert.equal(spot.actions.length, 4, 'four drafted rows per spot, as in the journals of 19-23/10');
     const thuan = spots.find((s) => s.officeCode === '533140');
-    assert.deepEqual(thuan.actions[0].assigneeUserIds, [401], 'row 1: the unit Giám đốc BCVH');
-    assert.deepEqual([...thuan.actions[1].assigneeUserIds].sort(), [401, 402], 'row 2: Chuyên quản + Giám đốc BCVH');
-    assert.deepEqual(thuan.actions[2].assigneeUserIds, [402], 'row 3: the Chuyên quản (the locked account 404 is not used)');
-    assert.match(thuan.actions[0].whoText, /Giám đốc BCVH: gd-thuan-hoa/);
-    assert.match(thuan.actions[0].what, /tồn đọng/);
+    const [r1, r2, r3, r4] = thuan.actions;
+    assert.deepEqual(r1.assigneeUserIds, [401], 'row 1: the unit Giám đốc BCVH');
+    assert.equal(r1.whoText, 'Giám đốc BCVH Thuận Hóa');
+    assert.match(r1.what, /^Rà soát toàn bộ 3 bưu gửi tồn từ 5 ngày trở lên, xử lý dứt điểm/, 'the real count of the spot');
+    assert.equal(r1.due, 'Trong ngày 30/10');
+    assert.equal(r1.where, 'BCVH Thuận Hóa');
+    assert.deepEqual(r2.assigneeUserIds, [401]);
+    assert.match(r2.how, /báo cáo trực tiếp cho cq-thuan-hoa tại TTVH/, 'the specialist is named');
+    assert.deepEqual([...r3.assigneeUserIds].sort(), [401, 402], 'row 3: Chuyên quản phối hợp Giám đốc BCVH');
+    assert.match(r3.whoText, /^cq-thuan-hoa \(Chuyên quản BCVH Thuận Hóa tại TTVH\) phối hợp Giám đốc BCVH Thuận Hóa$/);
+    assert.deepEqual(r4.assigneeUserIds, [402], 'row 4: the Chuyên quản (the locked account 404 is never used)');
+    assert.match(r4.how, /11h30, 21h00 ngày 30\/10 và 07h30 ngày 31\/10/, 'dates of the journal');
     const loc = spots.find((s) => s.officeCode === '537220');
     assert.deepEqual(loc.actions[0].assigneeUserIds, [], 'a unit with nobody on record: the manager picks');
-    assert.equal(loc.actions.length, 3);
-    // choosing the same list again must not draft a second set
+    assert.equal(loc.actions[0].whoText, 'Giám đốc BCVH Phú Lộc');
     const again = (await call(GD, 'PUT', `/days/${DAY}/spots`, { candidateIds: ids(['533140', '537220']) })).body.data;
-    assert.ok(again.spots.every((s) => s.actions.length === 3));
+    assert.ok(again.spots.every((s) => s.actions.length === 4), 'choosing again does not draft a second set');
 });
 
 test('a draft spot can be removed by the manager; a finalized one, an unknown id and a stranger cannot', async () => {

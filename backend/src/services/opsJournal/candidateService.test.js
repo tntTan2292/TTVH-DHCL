@@ -77,6 +77,7 @@ test('rate indicators: below target, enough volume, canonical BCVH only; score =
     assert.equal(result.compareDate, '2026-10-22');
     assert.deepEqual(one.metrics, {
         rate: 82.5, total: 120, fail: 21, notEvaluated: null, compareRate: 88.8, compareTotal: 110, delta: -6.3, mtdRate: 86.1,
+        day: '2026-10-29', compareDay: '2026-10-22',
         stockGe5: null, stockGe7: null, stockGe14: null, cod: null,
     });
     assert.equal(one.score, Math.round(21 * (88.8 - 82.5) * 100) / 100);

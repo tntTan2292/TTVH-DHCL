@@ -121,6 +121,12 @@ async function rateCandidates(db, id, adapter, journalDay, canonical) {
     const prevByKey = new Map(previous.map((u) => [u.key, u]));
     const monthByKey = new Map(month.map((u) => [u.key, u]));
     const items = [];
+    // F1.1: the accepting offices that hurt a delivering BCVH most (the journal names them: "thấp nhất là hàng chấp nhận tại ...")
+    const worstSources = (officeCode) => current
+        .filter((u) => u.scopeType === 'PAIR' && u.officeCode === officeCode && u.fail > 0)
+        .sort((a, b) => (b.fail - a.fail) || (a.rate - b.rate))
+        .slice(0, 3)
+        .map((u) => ({ name: String(u.label).split(' → ')[0], total: u.total, passed: u.total - u.fail }));
     for (const unit of current) {
         if (unit.total < MIN_VOLUME[id] || !(unit.rate < target)) continue;
         const prev = prevByKey.get(unit.key);
@@ -143,6 +149,8 @@ async function rateCandidates(db, id, adapter, journalDay, canonical) {
                 compareRate: withCompare.compareRate === null ? null : round1(withCompare.compareRate), compareTotal: withCompare.compareTotal,
                 delta: withCompare.compareRate === null ? null : round1(unit.rate - withCompare.compareRate),
                 mtdRate: mtd === null ? null : round1(mtd),
+                day, compareDay: withCompare.compareRate === null ? null : compareDay,
+                ...(id === 'f11' && unit.scopeType === 'BCVH' ? { focus: worstSources(unit.officeCode) } : {}),
                 stockGe5: null, stockGe7: null, stockGe14: null, cod: null,
             },
             score,
@@ -178,7 +186,7 @@ async function hangtonCandidates(db, journalDay) {
         headline: `Hàng tồn của ${row.office} lúc ${snapshot.slot === '0730' ? '07:30' : snapshot.slot} ngày ${dm(snapshot.business_date)}: ${row.ge5} bưu gửi tồn từ ${HANGTON_MIN_RANK} ngày trở lên `
             + `(từ 7 ngày: ${row.ge7}, từ 14 ngày: ${row.ge14}), COD ${money(row.cod_ge5)} đồng.`,
         metrics: {
-            rate: null, total: null, fail: null, notEvaluated: null, compareRate: null, compareTotal: null, delta: null, mtdRate: null,
+            rate: null, total: null, fail: null, notEvaluated: null, compareRate: null, compareTotal: null, delta: null, mtdRate: null, day: snapshot.business_date,
             stockGe5: row.ge5, stockGe7: row.ge7, stockGe14: row.ge14, cod: Math.round(row.cod_ge5),
         },
         score: row.ge5,

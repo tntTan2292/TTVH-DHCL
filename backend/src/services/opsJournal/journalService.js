@@ -157,7 +157,7 @@ async function selectSpots(db, { date, candidateIds = [], manual = [], actor, ad
             if (present) {
                 await db.run('UPDATE ops_journal_spot SET sort = ? WHERE id = ?', [sort, present.id]);
                 if (present.status === 'DRAFT' && !(await db.get('SELECT 1 AS x FROM ops_journal_action WHERE spot_id = ?', [present.id]))) {
-                    await seedRows(db, present.id, { indicator: present.indicator, title: present.title, officeCode: present.office_code }, actor);
+                    await seedRows(db, present.id, { day, indicator: present.indicator, scopeType: present.scope_type, title: present.title, officeCode: present.office_code, metrics: present.metrics_json ? JSON.parse(present.metrics_json) : null }, actor);
                 }
                 continue;
             }
@@ -167,7 +167,7 @@ async function selectSpots(db, { date, candidateIds = [], manual = [], actor, ad
                 [day, w.indicator, w.scopeType, w.scopeKey, w.officeCode, w.title, w.headline, w.metrics ? JSON.stringify(w.metrics) : null, w.source,
                     w.source === 'SYSTEM' ? '07:30' : null, w.source === 'SYSTEM' ? 'Dashboard' : null, sort, t]);
             await logChange(db, { spotId: result.lastID, kind: 'SPOT_ADDED', after: { title: w.title, source: w.source, headline: w.headline, metrics: w.metrics }, actor });
-            await seedRows(db, result.lastID, { indicator: w.indicator, title: w.title, officeCode: w.officeCode }, actor);
+            await seedRows(db, result.lastID, { day, indicator: w.indicator, scopeType: w.scopeType, title: w.title, officeCode: w.officeCode, metrics: w.metrics || null }, actor);
         }
         await db.run('UPDATE ops_journal_day SET updated_at = ? WHERE day = ?', [t, day]);
         return true;
@@ -176,7 +176,7 @@ async function selectSpots(db, { date, candidateIds = [], manual = [], actor, ad
 
 /** The system drafts the 3 "6 rõ" rows of a spot (right wording for its indicator, the unit's people already on them). */
 async function seedRows(db, spotId, spot, actor) {
-    const people = await assignableUsers(db, { officeCode: spot.officeCode, indicator: spot.indicator });
+    const people = await assignableDetailed(db, { officeCode: spot.officeCode, indicator: spot.indicator });
     const rows = buildRows(spot, people);
     for (let i = 0; i < rows.length; i += 1) {
         const r = rows[i];
@@ -449,7 +449,7 @@ async function closeDay(db, { date, actor }) {
  * GET /assignable-users: active Giám đốc BCVH / Chuyên quản accounts whose BCVH scope covers the office, plus the Chuyên quản who
  * hold the indicator as their specialty. `all=1` lists every such account (for an office that maps to no BCVH).
  */
-async function assignableUsers(db, { officeCode, indicator, all }) {
+async function assignableDetailed(db, { officeCode, indicator, all }) {
     const office = String(officeCode || '').trim();
     const bcvh = new Set();
     if (BCVH_BY_CODE[office]) bcvh.add(office);
@@ -462,8 +462,16 @@ async function assignableUsers(db, { officeCode, indicator, all }) {
            FROM qis_user u WHERE u.is_active = 1 AND u.position IN (${positions.map(() => '?').join(',')}) ORDER BY u.display_name, u.username`, positions);
     const wantedIndicator = INDICATORS.includes(indicator) ? indicator : null;
     return rows
-        .filter((u) => all || (u.bcvh || '').split(',').some((code) => bcvh.has(code)) || (wantedIndicator && (u.indicators || '').split(',').includes(wantedIndicator)))
-        .map((u) => ({ id: u.id, username: u.username, name: u.display_name || u.username, position: u.position, positionLabel: POSITIONS[u.position]?.label || u.position }));
+        .map((u) => ({
+            id: u.id, username: u.username, name: u.display_name || u.username, position: u.position, positionLabel: POSITIONS[u.position]?.label || u.position,
+            byOffice: (u.bcvh || '').split(',').some((code) => bcvh.has(code)),
+            byIndicator: Boolean(wantedIndicator) && (u.indicators || '').split(',').includes(wantedIndicator),
+        }))
+        .filter((u) => all || u.byOffice || u.byIndicator);
+}
+
+async function assignableUsers(db, options) {
+    return (await assignableDetailed(db, options)).map(({ id, username, name, position, positionLabel }) => ({ id, username, name, position, positionLabel }));
 }
 
 module.exports = {
