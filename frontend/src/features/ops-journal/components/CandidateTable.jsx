@@ -181,7 +181,7 @@ export default function CandidateTable({
                     <td className="py-3.5 px-4">
                       <div className="space-y-1.5">
                         <div className="flex flex-wrap gap-1.5" data-testid="spot-reasons">
-                          {getSpotReasons(cand.indicator, cand.metrics).map((reason) => (
+                          {getSpotReasons(cand.indicator, cand.metrics, cand.scopeType).map((reason) => (
                             <span
                               key={reason.text}
                               className={`inline-flex items-center rounded-md border px-2 py-0.5 text-[11px] font-semibold ${TONE_CLASS[reason.tone] || TONE_CLASS.neutral}`}

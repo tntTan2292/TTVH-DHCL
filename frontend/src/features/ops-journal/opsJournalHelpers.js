@@ -212,36 +212,65 @@ export function formatDeltaRate(delta) {
   return `giảm ${Math.abs(n).toFixed(1)}%`;
 }
 
-const RATE_TARGETS = Object.freeze({ 'F1.1': 95, 'F1.2': 95, 'F1.3': 90, 'F4.1': 90 });
-
 /**
  * The few facts that make a candidate a black spot, as short chips the manager can read at a glance
- * (tone: bad = red, warn = amber, good = green, neutral = grey). The full headline stays available behind "Xem nhận định".
+ * (tone: bad = red, warn = amber, good = green, neutral = grey). The reasons are comparisons that tell why THIS unit is on top:
+ * its standing among the units of the same kind (lowest rate, most failed parcels), the fall against yesterday and against the same
+ * day last week, and where each of those ranks. Nothing is said about the target (no unit reaches it, PO 2026-10-30). The full
+ * headline stays available behind "Xem nhận định".
  */
-export function getSpotReasons(indicator, metrics) {
+export function getSpotReasons(indicator, metrics, scopeType = 'BCVH') {
   const m = metrics || {};
   const norm = normalizeIndicator(indicator);
   const reasons = [];
   const num = (v) => (v === null || v === undefined || Number.isNaN(Number(v)) ? null : Number(v));
   const fmt = (v) => Number(v).toLocaleString('vi-VN', { maximumFractionDigits: 1 });
+  const rank = m.rank || {};
+  const peers = scopeType === 'PAIR' ? 'các cặp' : (norm === 'F1.2' ? 'các đơn vị chấp nhận' : 'các BCVH');
+  // "mạnh nhất" / "mạnh thứ 2" when it is among the top 3 of `of` (at least 2 units to compare)
+  const place = (standing, topWord) => {
+    if (!standing || standing.of < 2 || standing.pos > 3) return '';
+    return standing.pos === 1 ? ` — ${topWord} nhất` : ` — ${topWord} thứ ${standing.pos}`;
+  };
+
   if (norm === 'HANGTON') {
-    if (num(m.stockGe5) !== null) reasons.push({ tone: 'bad', text: `${fmt(m.stockGe5)} bưu gửi tồn ≥5 ngày` });
-    if (num(m.stockGe14)) reasons.push({ tone: 'bad', text: `${fmt(m.stockGe14)} bưu gửi tồn ≥14 ngày` });
+    const ge5 = num(m.stockGe5);
+    if (ge5 !== null) {
+      const s5 = rank.mostStock;
+      if (s5 && s5.of >= 2 && s5.pos === 1) reasons.push({ tone: 'bad', text: `Tồn nhiều nhất trong ${peers} (${fmt(ge5)} bưu gửi ≥5 ngày)` });
+      else reasons.push({ tone: s5 && s5.of >= 2 && s5.pos <= 3 ? 'warn' : 'neutral', text: `${fmt(ge5)} bưu gửi tồn ≥5 ngày${place(s5, 'nhiều')}` });
+    }
+    const ge14 = num(m.stockGe14);
+    if (ge14) reasons.push({ tone: 'bad', text: `${fmt(ge14)} bưu gửi tồn ≥14 ngày${place(rank.mostStock14, 'nhiều')}` });
     else if (num(m.stockGe7)) reasons.push({ tone: 'warn', text: `${fmt(m.stockGe7)} bưu gửi tồn ≥7 ngày` });
+    const rise = num(m.deltaStock);
+    if (rise !== null && rise > 0) reasons.push({ tone: 'bad', text: `Tăng ${fmt(rise)} bưu gửi so với hôm trước${place(rank.mostRise, 'tăng nhiều')}` });
+    else if (rise !== null && rise < 0) reasons.push({ tone: 'good', text: `Giảm ${fmt(Math.abs(rise))} bưu gửi so với hôm trước` });
     if (num(m.cod)) reasons.push({ tone: 'warn', text: `COD ${fmt(m.cod)} đ` });
     return reasons;
   }
-  const target = RATE_TARGETS[norm] ?? 90;
+
   const rate = num(m.rate);
-  if (rate !== null) reasons.push({ tone: 'bad', text: `${fmt(rate)}% — thấp hơn chỉ tiêu ${fmt(target - rate)} điểm` });
-  const delta = num(m.delta);
-  if (delta === null) reasons.push({ tone: 'neutral', text: 'Chưa có số liệu tuần trước' });
-  else if (delta < 0) reasons.push({ tone: 'bad', text: `Giảm ${fmt(Math.abs(delta))} điểm so tuần trước` });
-  else if (delta > 0) reasons.push({ tone: 'good', text: `Tăng ${fmt(delta)} điểm so tuần trước` });
-  else reasons.push({ tone: 'neutral', text: 'Không đổi so tuần trước' });
-  if (num(m.fail) !== null) reasons.push({ tone: 'bad', text: `${fmt(m.fail)} BG không đạt` });
+  if (rate !== null) reasons.push({ tone: 'neutral', text: `Tỷ lệ ${fmt(rate)}%` });
+  const low = rank.lowRate;
+  if (low && low.of >= 2 && low.pos <= 3) {
+    reasons.push({ tone: low.pos === 1 ? 'bad' : 'warn', text: low.pos === 1 ? `Thấp nhất trong ${peers}` : `Thấp thứ ${low.pos}/${low.of} trong ${peers}` });
+  }
+  const fail = num(m.fail);
+  if (fail !== null) {
+    const f = rank.mostFailed;
+    reasons.push({ tone: 'bad', text: f && f.of >= 2 && f.pos === 1 ? `Nhiều bưu gửi không đạt nhất (${fmt(fail)} BG)` : `${fmt(fail)} BG không đạt${place(f, 'nhiều')}` });
+  }
+  const change = (delta, standing, against) => {
+    if (delta === null) return;
+    if (delta < 0) reasons.push({ tone: 'bad', text: `Giảm ${fmt(Math.abs(delta))} điểm so với ${against}${place(standing, 'mạnh')}` });
+    else if (delta > 0) reasons.push({ tone: 'good', text: `Tăng ${fmt(delta)} điểm so với ${against}` });
+    else reasons.push({ tone: 'neutral', text: `Không đổi so với ${against}` });
+  };
+  change(num(m.deltaDay), rank.dropDay, 'hôm trước');
+  change(num(m.delta), rank.dropWeek, 'cùng kỳ tuần trước');
   const mtd = num(m.mtdRate);
-  if (mtd !== null && mtd < target) reasons.push({ tone: 'warn', text: `Lũy kế tháng ${fmt(mtd)}% chưa đạt` });
+  if (mtd !== null) reasons.push({ tone: 'neutral', text: `Lũy kế tháng ${fmt(mtd)}%` });
   return reasons;
 }
 

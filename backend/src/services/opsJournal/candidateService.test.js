@@ -75,7 +75,11 @@ test('rate indicators: below target, enough volume, canonical BCVH only; score =
     assert.equal(one.title, 'F1.3 - BCVH Hương Thủy');
     assert.equal(result.asOfDate, '2026-10-29');
     assert.equal(result.compareDate, '2026-10-22');
-    assert.deepEqual(one.metrics, {
+    const { rank, prevDayRate, deltaDay, ...figures } = one.metrics;
+    assert.deepEqual(rank, { lowRate: { pos: 1, of: 2 }, mostFailed: { pos: 1, of: 2 }, dropDay: null, dropWeek: { pos: 1, of: 2 } }, 'standing among the units of that day (the 8-parcel unit does not take part)');
+    assert.equal(prevDayRate, null);
+    assert.equal(deltaDay, null);
+    assert.deepEqual(figures, {
         rate: 82.5, total: 120, fail: 21, notEvaluated: null, compareRate: 88.8, compareTotal: 110, delta: -6.3, mtdRate: 86.1,
         day: '2026-10-29', compareDay: '2026-10-22',
         stockGe5: null, stockGe7: null, stockGe14: null, cod: null,
@@ -181,4 +185,21 @@ test('the answer for a day is reused while no data load happened, and rebuilt af
     conn.txState.generation += 1; // what a data load does
     await candidates.buildCandidates({ db: conn, date: JOURNAL_DAY, adapters });
     assert.ok(calls > afterFirst, 'rebuilt after the data changed');
+});
+
+test('hàng tồn: rise against yesterday snapshot and standing among the offices', async () => {
+    await run(`INSERT INTO hangton_snapshot (id, business_date, slot, captured_at, source_row_count, kept_row_count, is_stale, trigger) VALUES (2, '2026-10-29', '0730', 'x', 0, 0, 0, 'SCHEDULE')`);
+    const old = (code, rank, officeCode, office) => run(
+        `INSERT INTO hangton_snapshot_item (snapshot_id, item_code, status_name, ton_level, ton_rank, office, office_code, district, cod, customer_class, postman_code, postman_name)
+         VALUES (2, ?, 's', 'l', ?, ?, ?, 'Huế', 1, 'KH', 'P', 'B')`, [code, rank, office, officeCode]);
+    await old('Y0', 5, THUY[0], THUY[1]);
+    await old('Y1', 6, THUY[0], THUY[1]);
+    await old('Y2', 5, THUA[0], THUA[1]);
+    const result = await candidates.buildCandidates({ db: dbModule(), date: JOURNAL_DAY, adapters: fakeAdapters() });
+    const stock = Object.fromEntries(result.items.filter((i) => i.indicator === 'HANGTON').map((i) => [i.scopeKey, i.metrics]));
+    assert.equal(stock[THUY[0]].prevStockGe5, 2);
+    assert.equal(stock[THUY[0]].deltaStock, 3, '5 now against 2 yesterday');
+    assert.deepEqual(stock[THUY[0]].rank.mostStock, { pos: 1, of: 2 });
+    assert.deepEqual(stock[THUY[0]].rank.mostRise, { pos: 1, of: 2 });
+    assert.equal(stock[THUA[0]].deltaStock, 0);
 });

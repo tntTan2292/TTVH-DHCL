@@ -7,6 +7,7 @@ import {
   DEFAULT_DUE_TEXT,
   INDICATOR_CHIP_CONFIG,
   getIndicatorChipStyle,
+  getSpotReasons,
   normalizeIndicator,
   validateSpotCount,
   validateSpotsSelection,
@@ -448,3 +449,30 @@ test('buildPl06PrintModel creates renderer-neutral data model matching PL06 stru
 
 
 
+
+test('getSpotReasons gives comparisons (standing, fall vs yesterday and last week) and never mentions the target', () => {
+  const reasons = getSpotReasons('F4.1', {
+    rate: 42.3, fail: 337, delta: -15.4, deltaDay: -3.2, mtdRate: 50.5,
+    rank: { lowRate: { pos: 1, of: 6 }, mostFailed: { pos: 1, of: 6 }, dropDay: { pos: 2, of: 6 }, dropWeek: { pos: 1, of: 6 } },
+  });
+  const texts = reasons.map((r) => r.text);
+  assert.deepEqual(texts, [
+    'Tỷ lệ 42,3%',
+    'Thấp nhất trong các BCVH',
+    'Nhiều bưu gửi không đạt nhất (337 BG)',
+    'Giảm 3,2 điểm so với hôm trước — mạnh thứ 2',
+    'Giảm 15,4 điểm so với cùng kỳ tuần trước — mạnh nhất',
+    'Lũy kế tháng 50,5%',
+  ]);
+  assert.ok(!texts.some((t) => /chỉ tiêu|chưa đạt/.test(t)), 'no target wording');
+  assert.equal(getSpotReasons('F1.1', { rate: 10, rank: { lowRate: { pos: 1, of: 8 } } }, 'PAIR')[1].text, 'Thấp nhất trong các cặp');
+  assert.equal(getSpotReasons('F1.3', { rate: 60, rank: { lowRate: { pos: 1, of: 1 } } }).length, 1, 'a unit alone is not "the lowest"');
+  const stock = getSpotReasons('HANGTON', { stockGe5: 174, stockGe7: 93, stockGe14: 4, deltaStock: 37, cod: 41208649, rank: { mostStock: { pos: 1, of: 6 }, mostStock14: { pos: 2, of: 6 }, mostRise: { pos: 1, of: 6 } } });
+  assert.deepEqual(stock.map((r) => r.text), [
+    'Tồn nhiều nhất trong các BCVH (174 bưu gửi ≥5 ngày)',
+    '4 bưu gửi tồn ≥14 ngày — nhiều thứ 2',
+    'Tăng 37 bưu gửi so với hôm trước — tăng nhiều nhất',
+    'COD 41.208.649 đ',
+  ]);
+  assert.deepEqual(getSpotReasons('F1.3', { rate: 55 }).map((r) => r.text), ['Tỷ lệ 55%'], 'older saved spots without ranks still render');
+});

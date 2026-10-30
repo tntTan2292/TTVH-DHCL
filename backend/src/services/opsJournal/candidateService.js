@@ -113,12 +113,26 @@ async function rateCandidates(db, id, adapter, journalDay, canonical) {
     if (!day) return { asOf: null, items: [] };
     const compareDay = shiftDate(day, -7);
     const monthStart = `${day.slice(0, 7)}-01`;
-    const [current, previous, month] = await Promise.all([
+    const yesterday = shiftDate(day, -1);
+    const [current, previous, month, dayBefore] = await Promise.all([
         collectUnits(id, adapter, day, day, canonical),
         collectUnits(id, adapter, compareDay, compareDay, canonical).catch(() => []),
         collectUnits(id, adapter, monthStart, day, canonical).catch(() => []),
+        collectUnits(id, adapter, yesterday, yesterday, canonical).catch(() => []),
     ]);
     const prevByKey = new Map(previous.map((u) => [u.key, u]));
+    const yesterdayByKey = new Map(dayBefore.map((u) => [u.key, u]));
+    // "why this one": where the unit stands among the units of the same kind that day (lowest rate, most failed parcels,
+    // biggest fall against yesterday and against the same day last week). Only units with enough volume take part.
+    const pool = current.filter((u) => u.total >= MIN_VOLUME[id]);
+    const standing = (unit, valueOf, ascending) => {
+        const peers = pool.filter((u) => u.scopeType === unit.scopeType).map((u) => ({ key: u.key, value: valueOf(u) })).filter((x) => x.value !== null);
+        const mine = peers.find((x) => x.key === unit.key);
+        if (!mine) return null;
+        peers.sort((a, b) => (ascending ? a.value - b.value : b.value - a.value));
+        return { pos: peers.findIndex((x) => x.key === unit.key) + 1, of: peers.length };
+    };
+    const dropAgainst = (map) => (u) => { const o = map.get(u.key); return o ? u.rate - o.rate : null; };
     const monthByKey = new Map(month.map((u) => [u.key, u]));
     const items = [];
     // F1.1: the accepting offices that hurt a delivering BCVH most (the journal names them: "thấp nhất là hàng chấp nhận tại ...")
@@ -150,6 +164,14 @@ async function rateCandidates(db, id, adapter, journalDay, canonical) {
                 delta: withCompare.compareRate === null ? null : round1(unit.rate - withCompare.compareRate),
                 mtdRate: mtd === null ? null : round1(mtd),
                 day, compareDay: withCompare.compareRate === null ? null : compareDay,
+                prevDayRate: yesterdayByKey.has(unit.key) ? round1(yesterdayByKey.get(unit.key).rate) : null,
+                deltaDay: yesterdayByKey.has(unit.key) ? round1(unit.rate - yesterdayByKey.get(unit.key).rate) : null,
+                rank: {
+                    lowRate: standing(unit, (u) => u.rate, true),
+                    mostFailed: standing(unit, (u) => u.fail, false),
+                    dropDay: standing(unit, dropAgainst(yesterdayByKey), true),
+                    dropWeek: standing(unit, dropAgainst(prevByKey), true),
+                },
                 ...(id === 'f11' && unit.scopeType === 'BCVH' ? { focus: worstSources(unit.officeCode) } : {}),
                 stockGe5: null, stockGe7: null, stockGe14: null, cod: null,
             },
@@ -175,6 +197,20 @@ async function hangtonCandidates(db, journalDay) {
            FROM hangton_snapshot_item
           WHERE snapshot_id = ? AND office_code IS NOT NULL AND office_code <> ''
           GROUP BY office_code HAVING ge5 > 0`, [snapshot.id]);
+    // yesterday's snapshot (07:30 when there is one) for "tăng / giảm so với hôm trước"
+    const before = await db.get(
+        `SELECT * FROM hangton_snapshot WHERE business_date < ? ORDER BY business_date DESC, is_stale ASC,
+            CASE WHEN slot = '0730' THEN 0 ELSE 1 END, slot DESC LIMIT 1`, [snapshot.business_date]);
+    const beforeRows = before ? await db.all(
+        `SELECT office_code, SUM(CASE WHEN ton_rank >= 5 THEN 1 ELSE 0 END) AS ge5 FROM hangton_snapshot_item
+          WHERE snapshot_id = ? AND office_code IS NOT NULL AND office_code <> '' GROUP BY office_code`, [before.id]) : [];
+    const beforeByOffice = new Map(beforeRows.map((r) => [String(r.office_code), r.ge5]));
+    const stand = (row, valueOf, ascending) => {
+        const peers = rows.map((r) => ({ key: r.office_code, value: valueOf(r) })).filter((x) => x.value !== null);
+        peers.sort((a, b) => (ascending ? a.value - b.value : b.value - a.value));
+        return { pos: peers.findIndex((x) => x.key === row.office_code) + 1, of: peers.length };
+    };
+    const rise = (row) => (beforeByOffice.has(String(row.office_code)) ? row.ge5 - beforeByOffice.get(String(row.office_code)) : null);
     const items = rows.map((row) => ({
         candidateId: `HANGTON:BCVH:${row.office_code}`,
         indicator: 'HANGTON',
@@ -188,6 +224,9 @@ async function hangtonCandidates(db, journalDay) {
         metrics: {
             rate: null, total: null, fail: null, notEvaluated: null, compareRate: null, compareTotal: null, delta: null, mtdRate: null, day: snapshot.business_date,
             stockGe5: row.ge5, stockGe7: row.ge7, stockGe14: row.ge14, cod: Math.round(row.cod_ge5),
+            prevStockGe5: beforeByOffice.has(String(row.office_code)) ? beforeByOffice.get(String(row.office_code)) : null,
+            deltaStock: rise(row),
+            rank: { mostStock: stand(row, (r) => r.ge5, false), mostStock14: stand(row, (r) => r.ge14, false), mostRise: stand(row, rise, false) },
         },
         score: row.ge5,
         tieBreak: row.cod_ge5,
