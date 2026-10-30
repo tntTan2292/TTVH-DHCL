@@ -9,6 +9,7 @@ import {
   CheckSquare,
   Square,
   ArrowLeft,
+  Trash2,
 } from 'lucide-react';
 import opsJournalAdapter from './api/opsJournalApi.js';
 import { validateSpotsForAssign, getVietnamToday } from './opsJournalHelpers.js';
@@ -303,6 +304,43 @@ export default function OpsJournalComposerPage({
     }
   };
 
+  // Take every ticked draft spot out of the day's list at once (the bar next to "Chốt và giao việc")
+  const [removingBatch, setRemovingBatch] = useState(false);
+  const handleRemoveSelected = async () => {
+    const targets = draftSpots.filter((s) => selectedSpotIdsForAssign.has(s.id) && !s.protected);
+    const keptCount = draftSpots.filter((s) => selectedSpotIdsForAssign.has(s.id) && s.protected).length;
+    if (targets.length === 0) {
+      setAlert({ type: 'error', message: 'Các điểm đã tick từng được chốt hoặc đã có báo cáo nên không xóa được.' });
+      return;
+    }
+    if (!globalThis.confirm?.(`Xóa ${targets.length} điểm đen đã tick khỏi danh sách hôm nay?`)) return;
+    setRemovingBatch(true);
+    setAlert(null);
+    let removed = 0;
+    let failure = '';
+    try {
+      for (const spot of targets) {
+        const res = await opsJournalAdapter.removeSpot(spot.id);
+        if (!res.success) {
+          failure = res.error?.message || 'Không thể xóa điểm đen.';
+          break;
+        }
+        removed += 1;
+        setDayData(res.data);
+      }
+    } catch (err) {
+      failure = err.message || 'Lỗi khi xóa điểm đen.';
+    } finally {
+      setSelectedSpotIdsForAssign(new Set());
+      setRemovingBatch(false);
+    }
+    if (failure) {
+      setAlert({ type: 'error', message: `Đã xóa ${removed}/${targets.length} điểm. ${failure}` });
+    } else {
+      setAlert({ type: 'success', message: `Đã xóa ${removed} điểm đen khỏi danh sách.${keptCount ? ` ${keptCount} điểm đã từng chốt hoặc có báo cáo được giữ lại.` : ''}` });
+    }
+  };
+
   // M1: Hỏi xác nhận khi tải lại, chuyển ngày, hoặc chuyển màn hình nếu có thẻ dirty
   const handleReload = () => {
     if (dirtySpotIds.size > 0) {
@@ -589,7 +627,21 @@ export default function OpsJournalComposerPage({
             </span>
           </div>
 
-          <div>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={handleRemoveSelected}
+              disabled={selectedSpotIdsForAssign.size === 0 || removingBatch || assigningBatch}
+              className={`inline-flex items-center gap-2 rounded-xl border px-4 py-2 text-xs font-bold shadow-sm transition-all ${
+                selectedSpotIdsForAssign.size === 0 || removingBatch || assigningBatch
+                  ? 'border-slate-200 bg-white text-slate-400 cursor-not-allowed'
+                  : 'border-rose-300 bg-white text-rose-600 hover:bg-rose-50 cursor-pointer'
+              }`}
+              title="Xóa các điểm nháp đã tick khỏi danh sách điều hành hôm nay"
+            >
+              <Trash2 size={14} />
+              <span>{removingBatch ? 'Đang xóa...' : `Xóa khỏi danh sách (${selectedSpotIdsForAssign.size} điểm)`}</span>
+            </button>
             <button
               type="button"
               onClick={handleBatchAssign}
