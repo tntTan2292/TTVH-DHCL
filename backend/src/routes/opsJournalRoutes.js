@@ -8,6 +8,7 @@ const { requireAuth } = require('../middleware/authMiddleware');
 const visibility = require('../services/opsJournal/visibility');
 const candidateService = require('../services/opsJournal/candidateService');
 const journal = require('../services/opsJournal/journalService');
+const exporter = require('../services/opsJournal/exportService');
 
 function createOpsJournalRouter({ db = require('../config/db'), adapters = null } = {}) {
     let sourceAdapters = adapters;
@@ -69,6 +70,17 @@ function createOpsJournalRouter({ db = require('../config/db'), adapters = null 
         res.json({ success: true, data: await journal.report(db, {
             actionId: req.params.id, status: req.body?.status, causeText: req.body?.causeText, reportText: req.body?.reportText, actor: journal.actorOf(req.auth.user),
         }) });
+    }));
+
+    // One PL06 (Word or PDF) per finalized spot. Manager only; the file is never cached.
+    router.get('/spots/:id/export', wrap(async (req, res) => {
+        visibility.assertManager(who(req));
+        const file = await exporter.exportSpot(db, { spotId: req.params.id, format: req.query.format, user: req.auth.user });
+        res.status(200);
+        res.setHeader('Content-Type', file.contentType);
+        res.setHeader('Content-Disposition', `attachment; filename="${file.filename.replace(/[^ -~]/g, '_')}"; filename*=UTF-8''${encodeURIComponent(file.filename)}`);
+        res.setHeader('Content-Length', String(file.buffer.length));
+        res.end(file.buffer);
     }));
 
     router.get('/days/:date', wrap(async (req, res) => {
