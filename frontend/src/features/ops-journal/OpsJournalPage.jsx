@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import { CheckSquare, Edit3 } from 'lucide-react';
+import { CheckSquare, Edit3, ListChecks } from 'lucide-react';
 import { getVietnamToday } from './opsJournalHelpers.js';
 import OpsJournalCandidatesPage from './OpsJournalCandidatesPage.jsx';
 import OpsJournalComposerPage from './OpsJournalComposerPage.jsx';
@@ -10,12 +10,14 @@ export default function OpsJournalPage() {
   // a notification opens /ops-journal?tab=composer&date=YYYY-MM-DD
   const params = new URLSearchParams(location.search);
   const linkedDate = /^\d{4}-\d{2}-\d{2}$/.test(params.get('date') || '') ? params.get('date') : null;
-  const [activeTab, setActiveTab] = useState(params.get('tab') === 'composer' ? 'composer' : 'candidates'); // 'candidates' | 'composer'
+  const TABS = ['candidates', 'composer', 'assigned']; // 1 choose, 2 compose and finalize, 3 the finalized list
+  const [activeTab, setActiveTab] = useState(TABS.includes(params.get('tab')) ? params.get('tab') : 'candidates');
+  const [flash, setFlash] = useState(null);
   const [sharedDate, setSharedDate] = useState(linkedDate || getVietnamToday());
   useEffect(() => {
     const p = new URLSearchParams(location.search);
-    if (p.get('tab') === 'composer') {
-      setActiveTab('composer');
+    if (['composer', 'assigned'].includes(p.get('tab'))) {
+      setActiveTab(p.get('tab'));
       const d = p.get('date');
       if (/^\d{4}-\d{2}-\d{2}$/.test(d || '')) setSharedDate(d);
     }
@@ -37,9 +39,18 @@ export default function OpsJournalPage() {
     setActiveTab('candidates');
   };
 
+  // finalizing in step 2 moves on to step 3 with a message
+  const handleAssigned = (message, date) => {
+    if (date) setSharedDate(date);
+    setFlash(message);
+    setHasComposerDirty(false);
+    setActiveTab('assigned');
+  };
+
   const handleSwitchTab = (tab) => {
     if (tab === activeTab) return;
-    if (activeTab === 'composer' && hasComposerDirty && tab === 'candidates') {
+    if (tab !== 'assigned') setFlash(null);
+    if (activeTab === 'composer' && hasComposerDirty && tab !== 'composer') {
       const ok = globalThis.confirm?.(
         'Bạn có chỉnh sửa 6-rõ chưa lưu. Rời khỏi màn hình sẽ làm mất các thay đổi này. Bạn có chắc chắn muốn tiếp tục?'
       );
@@ -78,6 +89,19 @@ export default function OpsJournalPage() {
             <Edit3 size={15} />
             <span>2. Soạn nhật ký & Giao việc</span>
           </button>
+
+          <button
+            type="button"
+            onClick={() => handleSwitchTab('assigned')}
+            className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition-all cursor-pointer ${
+              activeTab === 'assigned'
+                ? 'bg-blue-600 text-white shadow-sm ring-2 ring-blue-600/20'
+                : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 hover:text-slate-900'
+            }`}
+          >
+            <ListChecks size={15} />
+            <span>3. Danh sách giao việc</span>
+          </button>
         </div>
 
         {/* Tab Content */}
@@ -86,10 +110,23 @@ export default function OpsJournalPage() {
             initialDate={sharedDate}
             onNavigateToComposer={handleNavigateToComposer}
           />
-        ) : (
+        ) : activeTab === 'composer' ? (
           <OpsJournalComposerPage
+            key="compose"
+            mode="compose"
             initialDate={sharedDate}
             onNavigateToCandidates={handleNavigateToCandidates}
+            onNavigateToTab={handleSwitchTab}
+            onAssigned={handleAssigned}
+            onDirtyStateChange={setHasComposerDirty}
+          />
+        ) : (
+          <OpsJournalComposerPage
+            key="assigned"
+            mode="assigned"
+            initialDate={sharedDate}
+            flash={flash}
+            onNavigateToTab={handleSwitchTab}
             onDirtyStateChange={setHasComposerDirty}
           />
         )}

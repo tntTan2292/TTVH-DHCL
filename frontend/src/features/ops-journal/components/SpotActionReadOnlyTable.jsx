@@ -52,11 +52,11 @@ export default function SpotActionReadOnlyTable({
           <tr className="border-b border-slate-200 bg-slate-50/90 text-[11px] font-bold uppercase tracking-wider text-slate-600">
             <th className="py-2.5 px-2.5 w-10 text-center">#</th>
             <th className="py-2.5 px-3 w-44">Ai (Người thực hiện)</th>
-            <th className="py-2.5 px-3">Làm gì</th>
+            <th className="py-2.5 px-3 min-w-[240px]">Làm gì</th>
             <th className="py-2.5 px-2.5 w-28">Ở đâu</th>
             <th className="py-2.5 px-2.5 w-24">Khi nào</th>
-            <th className="py-2.5 px-3 w-40">Bằng cách nào</th>
-            <th className="py-2.5 px-3 w-40">Kết quả gì</th>
+            <th className="py-2.5 px-3 min-w-[220px]">Bằng cách nào</th>
+            <th className="py-2.5 px-3 min-w-[180px]">Kết quả gì</th>
             <th className="py-2.5 px-3 w-36 text-center">Tiến độ & Báo cáo</th>
           </tr>
         </thead>

@@ -17,9 +17,15 @@ import OpsJournalSpotCard from './components/OpsJournalSpotCard.jsx';
 
 export default function OpsJournalComposerPage({
   initialDate = getVietnamToday(),
+  mode = 'compose', // 'compose' = step 2 (drafts to edit and finalize), 'assigned' = step 3 (the finalized list: progress, reports, files, Word/PDF)
   onNavigateToCandidates,
+  onNavigateToTab,
+  onAssigned,
+  flash = null,
   onDirtyStateChange,
 }) {
+  const isAssignedView = mode === 'assigned';
+  const [flashClosed, setFlashClosed] = useState(false);
   const [selectedDate, setSelectedDate] = useState(initialDate);
   const [loading, setLoading] = useState(true);
   const [dayData, setDayData] = useState(null);
@@ -114,6 +120,8 @@ export default function OpsJournalComposerPage({
   const draftSpots = useMemo(() => spots.filter((s) => s.status === 'DRAFT'), [spots]);
   const finalizedSpots = useMemo(() => spots.filter((s) => s.status === 'FINALIZED'), [spots]);
   const closedSpots = useMemo(() => spots.filter((s) => s.status === 'CLOSED'), [spots]);
+  // each step shows its own spots: drafts to compose in step 2, everything finalized (or closed) in step 3
+  const shownSpots = useMemo(() => (isAssignedView ? spots.filter((s) => s.status !== 'DRAFT') : draftSpots), [isAssignedView, spots, draftSpots]);
 
   // Toggle select spot for assignment
   const handleToggleSelectForAssign = (spotId) => {
@@ -231,6 +239,8 @@ export default function OpsJournalComposerPage({
           type: 'success',
           message: `Đã chốt và giao việc thành công cho ${targetIds.length} điểm đen ngày ${selectedDate}.`,
         });
+        // the finalized spots now live in step 3: go there
+        onAssigned?.(`Đã chốt và giao việc thành công cho ${targetIds.length} điểm đen ngày ${selectedDate}. Theo dõi tiến độ, báo cáo và tải Word / PDF tại đây.`, selectedDate);
       } else {
         // Displays error.message from 400/409 (e.g. SPOT_INCOMPLETE)
         setAlert({
@@ -260,7 +270,7 @@ export default function OpsJournalComposerPage({
         setSelectedSpotIdsForAssign((prev) => new Set([...prev, spotId]));
         setAlert({
           type: 'success',
-          message: 'Đã mở lại điểm đen thành công về trạng thái Bản nháp.',
+          message: 'Đã mở lại điểm đen về trạng thái Bản nháp. Chỉnh sửa tại bước 2 (Soạn nhật ký & Giao việc), rồi chốt lại.',
         });
         return true;
       } else {
@@ -492,7 +502,7 @@ export default function OpsJournalComposerPage({
                 Nhật ký điều hành (PL06)
               </h1>
               <span className="rounded-md bg-emerald-50 px-2 py-0.5 text-xs font-bold text-emerald-700 border border-emerald-200">
-                Bước 2: Soạn nhật ký & Giao việc
+                {isAssignedView ? 'Bước 3: Danh sách giao việc' : 'Bước 2: Soạn nhật ký & Giao việc'}
               </span>
               {dayData?.status && (
                 <span
@@ -514,7 +524,9 @@ export default function OpsJournalComposerPage({
               )}
             </div>
             <p className="mt-1 text-xs text-slate-500">
-              Chi tiết các dòng hành động 6 rõ (Ai / Làm gì / Ở đâu / Khi nào / Bằng cách nào / Kết quả gì) và phân công nhân sự.
+              {isAssignedView
+                ? 'Các điểm đen đã chốt và giao việc: theo dõi tiến độ, báo cáo và file minh chứng của người được giao, xác nhận hoàn thành, tải Word / PDF.'
+                : 'Các điểm đen đang soạn (bản nháp): kiểm tra các dòng 6 rõ đã soạn sẵn rồi chốt và giao việc. Điểm đã chốt nằm ở bước 3.'}
             </p>
           </div>
 
@@ -544,8 +556,8 @@ export default function OpsJournalComposerPage({
               <RefreshCw size={15} className={loading ? 'animate-spin' : ''} />
             </button>
 
-            {/* Close Day Button (Giám đốc TTVH) */}
-            {dayData?.status !== 'CLOSED' && (
+            {/* Close Day Button (Giám đốc TTVH): closing the day belongs to the list of assigned work */}
+            {isAssignedView && dayData?.status !== 'CLOSED' && (
               <button
                 type="button"
                 onClick={handleCloseDay}
@@ -599,8 +611,16 @@ export default function OpsJournalComposerPage({
         </div>
       )}
 
-      {/* Batch Assign Bar (when there are draft spots) */}
-      {draftSpots.length > 0 && dayData?.status !== 'CLOSED' && (
+      {flash && !flashClosed && (
+        <div role="status" className="flex items-center gap-3 rounded-xl border border-emerald-300 bg-emerald-50 p-4 text-xs font-bold text-emerald-900 shadow-xs">
+          <CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-600" />
+          <div className="flex-1">{flash}</div>
+          <button type="button" onClick={() => setFlashClosed(true)} className="font-extrabold text-slate-400 hover:text-slate-600 cursor-pointer">×</button>
+        </div>
+      )}
+
+      {/* Batch Assign Bar (step 2: when there are draft spots) */}
+      {!isAssignedView && draftSpots.length > 0 && dayData?.status !== 'CLOSED' && (
         <div className="flex flex-col gap-3 rounded-2xl border border-blue-200 bg-blue-50/70 p-4 sm:flex-row sm:items-center sm:justify-between shadow-xs">
           <div className="flex items-center gap-3">
             <button
@@ -680,6 +700,16 @@ export default function OpsJournalComposerPage({
             Đã đóng: <strong>{closedSpots.length}</strong>
           </span>
         )}
+        {onNavigateToTab && !isAssignedView && finalizedSpots.length + closedSpots.length > 0 && (
+          <button type="button" onClick={() => onNavigateToTab('assigned')} className="rounded-lg border border-emerald-300 bg-white px-2.5 py-1 font-bold text-emerald-800 hover:bg-emerald-50 cursor-pointer">
+            Xem {finalizedSpots.length + closedSpots.length} điểm đã chốt ở bước 3 →
+          </button>
+        )}
+        {onNavigateToTab && isAssignedView && draftSpots.length > 0 && (
+          <button type="button" onClick={() => onNavigateToTab('composer')} className="rounded-lg border border-amber-300 bg-white px-2.5 py-1 font-bold text-amber-800 hover:bg-amber-50 cursor-pointer">
+            ← {draftSpots.length} điểm bản nháp đang soạn ở bước 2
+          </button>
+        )}
       </div>
 
       {/* Spots List */}
@@ -690,13 +720,26 @@ export default function OpsJournalComposerPage({
             <span className="text-xs font-semibold">Đang tải danh sách điểm đen...</span>
           </div>
         </div>
-      ) : spots.length === 0 ? (
+      ) : shownSpots.length === 0 ? (
         <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-white p-12 text-center">
           <Calendar className="h-10 w-10 text-slate-400 mb-3" />
-          <h3 className="text-base font-bold text-slate-800">Chưa có điểm đen nào cho ngày {selectedDate}</h3>
+          <h3 className="text-base font-bold text-slate-800">
+            {isAssignedView
+              ? `Chưa có việc nào đã chốt cho ngày ${selectedDate}`
+              : (spots.length > 0 ? `Không còn điểm bản nháp nào cho ngày ${selectedDate}` : `Chưa có điểm đen nào cho ngày ${selectedDate}`)}
+          </h3>
           <p className="mt-1 max-w-md text-xs text-slate-500">
-            Vui lòng chuyển sang bước Chọn điểm đen để lựa chọn điểm đen từ dữ liệu hệ thống hoặc thêm thủ công.
+            {isAssignedView
+              ? 'Các điểm đen sau khi chốt và giao việc ở bước 2 sẽ hiện ở đây.'
+              : (spots.length > 0
+                ? 'Mọi điểm đen của ngày này đã được chốt. Xem tiến độ ở bước 3, hoặc chọn thêm điểm đen ở bước 1.'
+                : 'Vui lòng chuyển sang bước Chọn điểm đen để lựa chọn điểm đen từ dữ liệu hệ thống hoặc thêm thủ công.')}
           </p>
+          {onNavigateToTab && !isAssignedView && spots.length > 0 && (
+            <button type="button" onClick={() => onNavigateToTab('assigned')} className="mt-4 inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-xs font-bold text-white shadow-sm hover:bg-emerald-700 cursor-pointer">
+              <span>Xem danh sách giao việc →</span>
+            </button>
+          )}
           {onNavigateToCandidates && (
             <button
               type="button"
@@ -709,7 +752,7 @@ export default function OpsJournalComposerPage({
         </div>
       ) : (
         <div className="space-y-5">
-          {spots.map((spot) => (
+          {shownSpots.map((spot) => (
             <OpsJournalSpotCard
               key={spot.id}
               spot={spot}

@@ -64,7 +64,7 @@ export default function NotificationBell() {
       await opsJournalAdapter.markNotificationsRead({ ids: [item.id] });
       load();
     }
-    if (item.target === 'MANAGER') navigate(`/ops-journal?tab=composer&date=${encodeURIComponent(item.day || '')}`);
+    if (item.target === 'MANAGER') navigate(`/ops-journal?tab=assigned&date=${encodeURIComponent(item.day || '')}`);
     else navigate('/ops-journal/my-tasks');
   };
 
