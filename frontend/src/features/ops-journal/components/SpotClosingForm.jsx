@@ -5,29 +5,33 @@ import { validateClosingInput } from '../opsJournalHelpers.js';
 export default function SpotClosingForm({
   spot,
   closing = null,
+  draft = null,
   onSaveClosing,
   saving = false,
   isClosed = false,
 }) {
-  const [resolved, setResolved] = useState(closing?.resolved ?? null);
-  const [recovered, setRecovered] = useState(closing?.recovered ?? null);
-  const [handlingTimeText, setHandlingTimeText] = useState(closing?.handlingTimeText || '');
-  const [lesson, setLesson] = useState(closing?.lesson || '');
-  const [processUpdate, setProcessUpdate] = useState(closing?.processUpdate || '');
-  const [doneTime, setDoneTime] = useState(closing?.doneTime || '');
+  // nothing saved yet: start from what the system drafted (the manager edits it, then saves = signs)
+  const start = closing || draft;
+  const [resolved, setResolved] = useState(start?.resolved ?? null);
+  const [recovered, setRecovered] = useState(start?.recovered ?? null);
+  const [handlingTimeText, setHandlingTimeText] = useState(start?.handlingTimeText || '');
+  const [lesson, setLesson] = useState(start?.lesson || '');
+  const [processUpdate, setProcessUpdate] = useState(start?.processUpdate || '');
+  const [doneTime, setDoneTime] = useState(start?.doneTime || '');
   const [isDirty, setIsDirty] = useState(false);
   const [localError, setLocalError] = useState('');
 
   // Sync state when spot.closing changes, but DO NOT overwrite if user has unsaved edits (M2)
   useEffect(() => {
     if (!isDirty) {
-      if (closing) {
-        setResolved(closing.resolved ?? null);
-        setRecovered(closing.recovered ?? null);
-        setHandlingTimeText(closing.handlingTimeText || '');
-        setLesson(closing.lesson || '');
-        setProcessUpdate(closing.processUpdate || '');
-        setDoneTime(closing.doneTime || '');
+      const source = closing || draft;
+      if (source) {
+        setResolved(source.resolved ?? null);
+        setRecovered(source.recovered ?? null);
+        setHandlingTimeText(source.handlingTimeText || '');
+        setLesson(source.lesson || '');
+        setProcessUpdate(source.processUpdate || '');
+        setDoneTime(source.doneTime || '');
       } else {
         setResolved(null);
         setRecovered(null);
@@ -37,7 +41,7 @@ export default function SpotClosingForm({
         setDoneTime('');
       }
     }
-  }, [closing, isDirty]);
+  }, [closing, draft, isDirty]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

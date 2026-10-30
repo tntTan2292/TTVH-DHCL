@@ -6,6 +6,7 @@
 //    together with the headline / metrics of that spot (the "phiếu"); never the other rows, other assignees, the closing,
 //    a draft spot, a count or an id of anything else;
 //  - everything else is NOT_FOUND (404, never 403) with the same body as an id that does not exist, so existence is not disclosed.
+const { draftClosing } = require('./closingDraft');
 const { CAPABILITIES, can } = require('../auth/access/roles');
 
 class NotFoundError extends Error {
@@ -136,6 +137,8 @@ async function managerSpot(db, spotRow) {
         finalizedAt: spotRow.finalized_at,
         actions: actions.map((a) => ({ ...presentRow(a), assignedAt: a.assigned_at, assigneeUserIds: assignees.get(a.id) || [] })),
         closing: presentClosing(await db.get('SELECT * FROM ops_journal_closing WHERE spot_id = ?', [spotRow.id])),
+        // what the system proposes for sections 3-4 until the manager saves his own (the screens prefill it, the export falls back to it)
+        closingDraft: draftClosing({ day: spotRow.day, indicator: spotRow.indicator, metrics: spotRow.metrics_json ? JSON.parse(spotRow.metrics_json) : null }),
     };
 }
 

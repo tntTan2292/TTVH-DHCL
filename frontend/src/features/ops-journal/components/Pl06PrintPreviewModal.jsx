@@ -12,7 +12,7 @@ export default function Pl06PrintPreviewModal({
   if (!isOpen || !spot) return null;
 
   const model = buildPl06PrintModel(spot);
-  const closing = spot.closing;
+  const closing = spot.closing || spot.closingDraft;
   const actions = model?.actions || [];
 
   const handlePrint = () => {

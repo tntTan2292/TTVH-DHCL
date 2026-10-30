@@ -555,7 +555,7 @@ export function buildPl06PrintModel(spot, signer = { name: '', position: 'Giám 
     shift = hour < 12 ? 0 : hour < 18 ? 1 : 2;
   }
 
-  const closing = spot.closing || null;
+  const closing = spot.closing || spot.closingDraft || null;
   const actions = Array.isArray(spot.actions) ? spot.actions : [];
   const signerName = spot.finalizedByName || spot.signedBy || spot.finalizedBy || spot.closing?.signedBy || signer?.name || '';
   const signerPosition = signer?.position || 'Giám đốc TTVH';

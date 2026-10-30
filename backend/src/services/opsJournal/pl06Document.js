@@ -41,7 +41,7 @@ function fileBaseName(spot) {
  * @param signer { name, positionCode } of the Giám đốc TTVH who finalized the spot (or the exporter)
  */
 function buildPl06(spot, signer) {
-    const closing = spot.closing;
+    const closing = spot.closing || spot.closingDraft || null; // the saved one, else the system's draft
     const positionLabel = POSITIONS[signer?.positionCode]?.label || signer?.positionCode || '';
     const who = signer?.name ? `${signer.name}${positionLabel ? ` (${positionLabel})` : ''}` : '';
     const shift = shiftOf(spot.finalizedAt);

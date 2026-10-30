@@ -402,6 +402,7 @@ export default function OpsJournalSpotCard({
             <SpotClosingForm
               spot={spot}
               closing={spot.closing}
+              draft={spot.closingDraft}
               onSaveClosing={onSaveClosing}
               saving={savingClosingSpotId === spot.id}
               isClosed={isClosed}
