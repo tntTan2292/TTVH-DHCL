@@ -7,6 +7,7 @@ const express = require('express');
 const { requireAuth } = require('../middleware/authMiddleware');
 const visibility = require('../services/opsJournal/visibility');
 const candidateService = require('../services/opsJournal/candidateService');
+const journal = require('../services/opsJournal/journalService');
 
 function createOpsJournalRouter({ db = require('../config/db'), adapters = null } = {}) {
     let sourceAdapters = adapters;
@@ -14,10 +15,20 @@ function createOpsJournalRouter({ db = require('../config/db'), adapters = null 
     const notFound = (res) => res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Không tìm thấy' } });
     const wrap = (handler) => (req, res) => handler(req, res).catch((error) => {
         if (error instanceof visibility.NotFoundError) return notFound(res);
+        if (error instanceof journal.JournalError) return res.status(error.status).json({ success: false, error: { code: error.code, message: error.message } });
         console.error('[ops-journal]', error);
         return res.status(500).json({ success: false, error: { code: 'OPS_JOURNAL_ERROR', message: 'Lỗi hệ thống' } });
     });
     const who = (req) => ({ access: req.access, userId: req.auth.user.id ?? null });
+    const adaptersOf = () => {
+        if (!sourceAdapters) sourceAdapters = require('../services/HomeExecutiveService').buildDefaultAdapters(db.db);
+        return sourceAdapters;
+    };
+    // manager-only write: the gate runs BEFORE the body is looked at, so a stranger learns nothing from validation errors
+    const managerWrite = (handler) => wrap(async (req, res) => {
+        visibility.assertManager(who(req));
+        res.json({ success: true, data: await handler(req, journal.actorOf(req.auth.user)) });
+    });
 
     // before requireAuth, so even the 401 / password-change answers are no-store and carry no ETag
     router.use((req, res, next) => {
@@ -35,8 +46,29 @@ function createOpsJournalRouter({ db = require('../config/db'), adapters = null 
     router.get('/candidates', wrap(async (req, res) => {
         visibility.assertManager(who(req));
         const date = req.query.date ? visibility.asDay(req.query.date) : new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
-        if (!sourceAdapters) sourceAdapters = require('../services/HomeExecutiveService').buildDefaultAdapters(db.db);
-        res.json({ success: true, data: await candidateService.buildCandidates({ db, date, adapters: sourceAdapters }) });
+        res.json({ success: true, data: await candidateService.buildCandidates({ db, date, adapters: adaptersOf() }) });
+    }));
+
+    router.get('/assignable-users', wrap(async (req, res) => {
+        visibility.assertManager(who(req));
+        res.json({ success: true, data: await journal.assignableUsers(db, { officeCode: req.query.officeCode, indicator: req.query.indicator, all: req.query.all === '1' }) });
+    }));
+
+    router.put('/days/:date/spots', managerWrite((req, actor) => journal.selectSpots(db, {
+        date: req.params.date, candidateIds: req.body?.candidateIds ?? [], manual: req.body?.manual ?? [], actor, adapters: adaptersOf(),
+    })));
+    router.post('/days/:date/assign', managerWrite((req, actor) => journal.finalizeSpots(db, { date: req.params.date, spotIds: req.body?.spotIds, actor })));
+    router.post('/days/:date/close', managerWrite((req, actor) => journal.closeDay(db, { date: req.params.date, actor })));
+    router.put('/spots/:id/actions', managerWrite((req, actor) => journal.saveActions(db, { spotId: req.params.id, actions: req.body?.actions, actor })));
+    router.post('/spots/:id/reopen', managerWrite((req, actor) => journal.reopenSpot(db, { spotId: req.params.id, reason: req.body?.reason, actor })));
+    router.put('/spots/:id/closing', managerWrite((req, actor) => journal.saveClosing(db, { spotId: req.params.id, closing: req.body, actor })));
+    router.post('/actions/:id/done', managerWrite((req, actor) => journal.markDone(db, { actionId: req.params.id, actor })));
+
+    // Assignee: any signed-in user; the service answers NOT_FOUND unless the row names them on a finalized spot.
+    router.post('/actions/:id/report', wrap(async (req, res) => {
+        res.json({ success: true, data: await journal.report(db, {
+            actionId: req.params.id, status: req.body?.status, causeText: req.body?.causeText, reportText: req.body?.reportText, actor: journal.actorOf(req.auth.user),
+        }) });
     }));
 
     router.get('/days/:date', wrap(async (req, res) => {

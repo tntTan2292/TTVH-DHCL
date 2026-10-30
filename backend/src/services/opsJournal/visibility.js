@@ -204,4 +204,4 @@ function assertManager({ access }) {
     if (!isManager(access)) throw new NotFoundError();
 }
 
-module.exports = { NotFoundError, isManager, assertManager, asDay, getDay, getSpot, listMyTasks };
+module.exports = { NotFoundError, isManager, assertManager, asDay, asSpotId, getDay, getSpot, listMyTasks };
