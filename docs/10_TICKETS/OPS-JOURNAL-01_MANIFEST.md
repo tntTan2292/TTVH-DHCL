@@ -42,7 +42,7 @@ Verdict: **do not hand the whole feature to Antigravity.** Doing so would put pe
 - New position `GD_TTVH` (tier LEADER, rank above `LD_TTVH`) in `backend/src/services/auth/access/roles.js`, assigned **only** to Mai Văn Mười; capability `journal.manage`. The other BĐTP / TTVH leaders do **not** get it (PO: "chỉ Giám đốc TTVH"). Admin gets `journal.manage` for support, to confirm (Section 8, item 1).
 - Assignee needs no capability: a user has access to a **task** when an `ops_journal_action` row names them and the leader has pressed Giao việc. Everything else returns 404 (not 403) so existence is not disclosed.
 - Candidates are computed from the existing services for the **latest loaded data day** (N-1), compared with the same weekday last week, with a minimum-volume floor per indicator. Up to **20 candidates**, ranked; the leader ticks 5-10 and can add a manual spot. Default pre-selection: top 8, at most 3 per indicator. Ranking score (to confirm, Section 8, item 2): failed parcels x week-on-week drop, hàng tồn by parcels ≥5 days and COD.
-- Output file name `PL06 - Nhat ky dieu hanh dd.mm.yyyy.docx/.pdf` (same as the PO's files). One file per finalized spot (PO decision 2026-10-30, Section 8 item 3), not per day.
+- Output file name `PL06 - Nhat ky dieu hanh dd.mm.yyyy - <indicator> <office>.docx/.pdf` (the PO's name plus the spot, since there is one file per spot). One file per finalized spot (PO decision 2026-10-30, Section 8 item 3), not per day.
 - Word via the `docx` npm package (new backend dependency; alternative: fill the PO's `.docx` as template). PDF via the Playwright already in `backend/package.json`, from the same HTML print view, or LibreOffice-free. Fonts must carry Vietnamese (Times New Roman / Arial as in the PL06 files).
 - Tables are append-only where history matters (`ops_journal_action_log`), as in HANGTON-HANDLING-01.
 
@@ -52,6 +52,7 @@ Verdict: **do not hand the whole feature to Antigravity.** Doing so would put pe
 - `ops_journal_spot(id, day, indicator F1.1|F1.2|F1.3|F4.1|HANGTON, scope_type BCVH|ROUTE|CUSTOMER|PAIR, scope_key, office_code, title, headline, metrics_json, source SYSTEM|MANUAL, detected_at, channel, sort)`.
 - `ops_journal_action(id, spot_id, seq, who_text, assignee_user_ids, what, where_text, due, how, expected_result, assigned_at, status ASSIGNED|IN_PROGRESS|REPORTED|DONE, report_cause, report_text, reported_by, reported_at)`; `ops_journal_action_log` records every change.
 - `ops_journal_closing(spot_id, resolved, recovered, handling_time_text, lesson, process_update, signed_by, done_time)`.
+- A1 as built (2026-10-30): assignees live in `ops_journal_action_assignee(action_id, user_id)` instead of an `assignee_user_ids` column; a spot has its own `status` DRAFT|FINALIZED|CLOSED (+ `finalized_at/by`); an assignee sees a row only when `assigned_at` is set AND its spot is FINALIZED/CLOSED. `GET /my-tasks` returns one task per spot (`{ spotId, day, indicator, title, headline, metrics, status, myRows: [{ id, seq, ... }] }`, no task-level `actionId`); `GET /spots/:id` returns the phiếu with `myRows` only (no `actions`, `closing` or assignee ids) to an assignee, the full spot to the manager. Code: `migrate_ops_journal_01_schema.js`, `services/opsJournal/visibility.js`, `routes/opsJournalRoutes.js`, test `routes/opsJournalRoutes.test.js`.
 - Metrics are **snapshotted** at selection time (the journal must not change when the data is re-imported).
 
 ## 6. API contract (all under `/api/ops-journal`, session auth)
@@ -81,7 +82,8 @@ Frontend gate (cosmetic, backend is the real one): "Nhật ký điều hành" me
 | 0 | This manifest + Antigravity prompt | Claude Code | Sonnet (done 2026-10-29) |
 | B | UI at `frontend/src/features/ops-journal/` + route + menu, mock adapter that follows Section 6, pure helpers with tests; no backend, no browser | **Antigravity** | Gemini |
 | A | Position `GD_TTVH`, tables, candidate service, actions / assign / my-tasks with server-side visibility, tests (leak tests per role) | Claude Code | Sonnet |
-| A2 | Word + PDF export (PL06 layout), tests that open the file | Claude Code | Sonnet |
+| A1-R | Independent review of A1 (position, tables, server-side visibility, leak tests) before A2 starts; a different model from the implementer (PO decision 2026-10-30) | Claude Code | Opus review |
+| A2 | Word + PDF export (PL06 layout, one file per finalized spot), tests that open the file | Claude Code | Sonnet |
 | C | Replace the mock with the API, Playwright check with `ignoreHTTPSErrors` ([[qis-frontend-served-over-self-signed-https]]), independent security + permission review | Claude Code | Opus review |
 | PO | UI check, then a trial week beside the paper journal | PO | - |
 

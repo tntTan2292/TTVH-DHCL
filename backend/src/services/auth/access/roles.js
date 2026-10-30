@@ -20,12 +20,16 @@ const CAPABILITIES = Object.freeze({
     HANGTON_HANDLING_WRITE: 'hangton.handling.write',
     HANGTON_HANDLING_APPROVE: 'hangton.handling.approve',
     HANGTON_HANDLING_REASONS: 'hangton.handling.reasons',
+    // OPS-JOURNAL-01: pick the day's black spots, fill the "6 rõ" rows, assign and print the Nhật ký điều hành (PL06).
+    // Held by the Giám đốc TTVH only (and the admin for support). An assignee needs no capability: see opsJournal/visibility.js.
+    JOURNAL_MANAGE: 'journal.manage',
 });
 const C = CAPABILITIES;
 
 const POSITIONS = Object.freeze({
-    ADMIN: { code: 'ADMIN', label: 'Quản trị hệ thống', tier: TIERS.ADMIN, group: GROUPS.SYSTEM, rank: 100, capabilities: [C.HANGTON_HANDLING_VIEW, C.HANGTON_HANDLING_WRITE, C.HANGTON_HANDLING_APPROVE, C.HANGTON_HANDLING_REASONS] },
+    ADMIN: { code: 'ADMIN', label: 'Quản trị hệ thống', tier: TIERS.ADMIN, group: GROUPS.SYSTEM, rank: 100, capabilities: [C.HANGTON_HANDLING_VIEW, C.HANGTON_HANDLING_WRITE, C.HANGTON_HANDLING_APPROVE, C.HANGTON_HANDLING_REASONS, C.JOURNAL_MANAGE] },
     LD_BDTP: { code: 'LD_BDTP', label: 'Lãnh đạo BĐTP', tier: TIERS.LEADER, group: GROUPS.LEADER_BDTP, rank: 90, capabilities: [C.HANGTON_HANDLING_VIEW] },
+    GD_TTVH: { code: 'GD_TTVH', label: 'Giám đốc TTVH', tier: TIERS.LEADER, group: GROUPS.LEADER_TTVH_IT, rank: 85, capabilities: [C.HANGTON_HANDLING_VIEW, C.JOURNAL_MANAGE] },
     LD_TTVH: { code: 'LD_TTVH', label: 'Lãnh đạo TTVH', tier: TIERS.LEADER, group: GROUPS.LEADER_TTVH_IT, rank: 80, capabilities: [C.HANGTON_HANDLING_VIEW] },
     IT_BDTP: { code: 'IT_BDTP', label: 'IT BĐTP', tier: TIERS.LEADER, group: GROUPS.LEADER_TTVH_IT, rank: 80, capabilities: [C.HANGTON_HANDLING_VIEW] },
     CHUYEN_QUAN: { code: 'CHUYEN_QUAN', label: 'Chuyên quản BCVH', tier: TIERS.STAFF, group: GROUPS.BCVH, rank: 50, capabilities: [C.HANGTON_HANDLING_VIEW, C.HANGTON_HANDLING_WRITE, C.HANGTON_HANDLING_APPROVE, C.HANGTON_HANDLING_REASONS] },
@@ -39,6 +43,7 @@ const DEFAULT_POSITION_BY_TIER = Object.freeze({ ADMIN: 'ADMIN', LEADER: 'LD_TTV
 // "Chức vụ" text of the PO's user file -> position code (compared without case and with NFC text).
 const POSITION_BY_TITLE = Object.freeze({
     'lãnh đạo bđtp': 'LD_BDTP',
+    'giám đốc ttvh': 'GD_TTVH',
     'lãnh đạo ttvh': 'LD_TTVH',
     'it bđtp': 'IT_BDTP',
     'giám đốc bcvh': 'GD_BCVH',

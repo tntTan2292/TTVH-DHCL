@@ -40,6 +40,8 @@ const { applyBfPhat01Schema } = require('./migrate_bf_phat_01_schema');
 const { applyPerfLoad01AggSchema } = require('./migrate_perf_load_01_agg_schema');
 const { applyHangtonInventory01Schema } = require('./migrate_hangton_inventory_01_schema');
 const { applyHangtonHandling01Schema } = require('./migrate_hangton_handling_01_schema');
+const { applyOpsJournal01Schema } = require('./migrate_ops_journal_01_schema');
+const createOpsJournalRouter = require('./src/routes/opsJournalRoutes');
 
 const app = express();
 const PORT = Number(process.env.PORT || 5050);
@@ -138,6 +140,7 @@ app.use('/api/f12', f12Routes);
 app.use('/api/f42', f42Routes);
 app.use('/api/home', homeRoutes);
 app.use('/api/hangton', createHangtonRouter());
+app.use('/api/ops-journal', createOpsJournalRouter());
 
 // Additive, idempotent schema migrations applied on every startup so any
 // environment running this codebase self-heals instead of depending on
@@ -165,6 +168,7 @@ async function ensureStartupSchemaMigrations(dbPath = activeDbPath) {
     await applyRbac01Schema(dbPath);
     await applyHangtonHandling01Schema(dbPath);
     await applyBfPhat01Schema(dbPath);
+    await applyOpsJournal01Schema(dbPath);
 }
 
 // HANGTON-INVENTORY-01: three daily stock snapshots (07:30, 11:30, 21:00). Off in tests, with
