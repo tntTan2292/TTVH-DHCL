@@ -123,13 +123,12 @@ async function assigneesByAction(db, actionIds) {
 async function managerSpot(db, spotRow) {
     const actions = await db.all('SELECT * FROM ops_journal_action WHERE spot_id = ? ORDER BY seq', [spotRow.id]);
     const assignees = await assigneesByAction(db, actions.map((a) => a.id));
-    // protected = the spot was finalized at some point or holds a report, so choosing a different list never drops it, even when
-    // it is a DRAFT again after a reopen (the screens lock and count it); finalizedByName signs the printed journal
+    // protected = the spot holds a report (an assignee answered), so it can never be dropped, even as a DRAFT again after a reopen
+    // (the screens lock and count it); a reopened spot nobody reported on is removable
     const flags = await db.get(
-        `SELECT EXISTS (SELECT 1 FROM ops_journal_action_log l WHERE l.spot_id = ? AND l.kind = 'FINALIZED')
-             OR EXISTS (SELECT 1 FROM ops_journal_action a WHERE a.spot_id = ? AND a.reported_at IS NOT NULL) AS protected,
+        `SELECT EXISTS (SELECT 1 FROM ops_journal_action a WHERE a.spot_id = ? AND a.reported_at IS NOT NULL) AS protected,
                 (SELECT COALESCE(NULLIF(u.display_name, ''), u.username) FROM qis_user u WHERE u.id = ?) AS finalized_by_name`,
-        [spotRow.id, spotRow.id, spotRow.finalized_by]);
+        [spotRow.id, spotRow.finalized_by]);
     return {
         ...presentSpot(spotRow),
         protected: Boolean(flags.protected),

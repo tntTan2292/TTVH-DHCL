@@ -126,11 +126,10 @@ async function selectSpots(db, { date, candidateIds = [], manual = [], actor, ad
         ];
         const wantedKeys = new Set(wanted.map((w) => `${w.indicator}|${w.scopeType}|${w.scopeKey}`));
         if (wantedKeys.size !== wanted.length) throw new JournalError('DUPLICATE_SPOT', 'Một điểm đen được chọn hai lần.');
-        // a spot that was ever finalized or holds a report is never dropped, even when it was reopened (it is a DRAFT again)
+        // a finalized or closed spot is never dropped, and neither is a draft that holds a report (a reopened one); a reopened spot nobody
+        // reported on can be dropped (PO 2026-10-30: a wrong chốt must be removable; the log keeps the trail)
         const protectedRows = await db.all(
-            `SELECT id FROM ops_journal_spot s WHERE s.day = ? AND (
-                EXISTS (SELECT 1 FROM ops_journal_action_log l WHERE l.spot_id = s.id AND l.kind = 'FINALIZED')
-                OR EXISTS (SELECT 1 FROM ops_journal_action a WHERE a.spot_id = s.id AND a.reported_at IS NOT NULL))`, [day]);
+            `SELECT id FROM ops_journal_spot s WHERE s.day = ? AND EXISTS (SELECT 1 FROM ops_journal_action a WHERE a.spot_id = s.id AND a.reported_at IS NOT NULL)`, [day]);
         const protectedIds = new Set(protectedRows.map((r) => r.id));
         const kept = existing.filter((s) => s.status !== 'DRAFT' || protectedIds.has(s.id)); // finalized / closed / reported spots cannot be dropped
         const keptKeys = new Set(kept.map(keyOf));
@@ -291,9 +290,8 @@ async function removeSpot(db, { spotId, actor }) {
         await requireOpenDay(db, spot.day);
         if (spot.status !== 'DRAFT') throw new JournalError('LOCKED', 'Điểm đen đã chốt nên không xóa được. Hãy mở lại để sửa.', 409);
         const protectedSpot = await db.get(
-            `SELECT 1 AS x WHERE EXISTS (SELECT 1 FROM ops_journal_action_log l WHERE l.spot_id = ? AND l.kind = 'FINALIZED')
-                OR EXISTS (SELECT 1 FROM ops_journal_action a WHERE a.spot_id = ? AND a.reported_at IS NOT NULL)`, [id, id]);
-        if (protectedSpot) throw new JournalError('PROTECTED', 'Điểm đen đã từng được chốt hoặc đã có báo cáo nên không xóa được.', 409);
+            'SELECT 1 AS x FROM ops_journal_action WHERE spot_id = ? AND reported_at IS NOT NULL LIMIT 1', [id]);
+        if (protectedSpot) throw new JournalError('PROTECTED', 'Điểm đen đã có báo cáo của người được giao nên không xóa được.', 409);
         const goneRows = await db.all('SELECT * FROM ops_journal_action WHERE spot_id = ? ORDER BY seq', [id]);
         await db.run('DELETE FROM ops_journal_action_assignee WHERE action_id IN (SELECT id FROM ops_journal_action WHERE spot_id = ?)', [id]);
         await db.run('DELETE FROM ops_journal_action WHERE spot_id = ?', [id]);

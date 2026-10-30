@@ -310,7 +310,7 @@ export default function OpsJournalComposerPage({
     const targets = draftSpots.filter((s) => selectedSpotIdsForAssign.has(s.id) && !s.protected);
     const keptCount = draftSpots.filter((s) => selectedSpotIdsForAssign.has(s.id) && s.protected).length;
     if (targets.length === 0) {
-      setAlert({ type: 'error', message: 'Các điểm đã tick từng được chốt hoặc đã có báo cáo nên không xóa được.' });
+      setAlert({ type: 'error', message: 'Các điểm đã tick đã có báo cáo của người được giao nên không xóa được.' });
       return;
     }
     if (!globalThis.confirm?.(`Xóa ${targets.length} điểm đen đã tick khỏi danh sách hôm nay?`)) return;
@@ -337,7 +337,7 @@ export default function OpsJournalComposerPage({
     if (failure) {
       setAlert({ type: 'error', message: `Đã xóa ${removed}/${targets.length} điểm. ${failure}` });
     } else {
-      setAlert({ type: 'success', message: `Đã xóa ${removed} điểm đen khỏi danh sách.${keptCount ? ` ${keptCount} điểm đã từng chốt hoặc có báo cáo được giữ lại.` : ''}` });
+      setAlert({ type: 'success', message: `Đã xóa ${removed} điểm đen khỏi danh sách.${keptCount ? ` ${keptCount} điểm đã có báo cáo được giữ lại.` : ''}` });
     }
   };
 

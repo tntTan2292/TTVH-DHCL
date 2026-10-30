@@ -145,3 +145,16 @@ test('just press chốt: a spot whose rows name nobody (no account on record) is
     assert.equal(done.body.data.spots.find((s) => s.id === loc.id).status, 'FINALIZED');
     assert.equal(done.body.data.spots.find((s) => s.id === loc.id).closingDraft.doneTime, '17:00');
 });
+
+test('a spot that was finalized by mistake and reopened (no report yet) can be removed; one with a report cannot', async () => {
+    const day = (await call(GD, 'GET', `/days/${DAY}`)).body.data;
+    const spot = day.spots.find((s) => s.status === 'FINALIZED');
+    assert.ok(spot);
+    assert.equal((await call(GD, 'POST', `/spots/${spot.id}/reopen`, { reason: 'Chốt nhầm' })).status, 200);
+    const reopened = (await call(GD, 'GET', `/days/${DAY}`)).body.data.spots.find((s) => s.id === spot.id);
+    assert.equal(reopened.status, 'DRAFT');
+    assert.equal(reopened.protected, false, 'nobody reported: not protected');
+    const removed = await call(GD, 'DELETE', `/spots/${spot.id}`);
+    assert.equal(removed.status, 200, JSON.stringify(removed.body));
+    assert.ok(!removed.body.data.spots.some((s) => s.id === spot.id));
+});

@@ -103,8 +103,8 @@ test('M1: a reopened spot that was finalized or reported cannot be dropped by ch
     assert.ok(!(await logKinds()).includes('SPOT_REMOVED'));
     assert.equal(kept.status, 'DRAFT');
     assert.equal(kept.protected, true, 'the screens can tell a reopened spot from a plain draft');
-    assert.equal(after.find((s) => s.id !== target.id && s.status === 'FINALIZED').protected, true);
-    assert.equal(after.find((s) => s.scopeKey === OFFICES[5][0]).protected, false, 'a never-finalized draft is not protected');
+    assert.equal(after.find((s) => s.id !== target.id && s.status === 'FINALIZED').protected, false, 'a finalized spot is locked by its status; protected means it holds a report');
+    assert.equal(after.find((s) => s.scopeKey === OFFICES[5][0]).protected, false, 'a draft without a report is not protected');
     assert.equal(after.find((s) => s.status === 'FINALIZED').finalizedByName, 'gd', 'the printed journal is signed by the person who finalized');
     // a plain draft that was never finalized can still be dropped, and its rows go to the log
     const sixth = after.find((s) => s.scopeKey === OFFICES[5][0]);
