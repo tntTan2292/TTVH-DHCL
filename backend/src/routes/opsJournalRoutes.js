@@ -16,6 +16,7 @@ function createOpsJournalRouter({ db = require('../config/db'), adapters = null 
     const notFound = (res) => res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Không tìm thấy' } });
     const wrap = (handler) => (req, res) => handler(req, res).catch((error) => {
         if (error instanceof visibility.NotFoundError) return notFound(res);
+        if (error instanceof candidateService.DataUpdatingError) return res.status(409).json({ success: false, error: { code: error.code, message: error.message } });
         if (error instanceof journal.JournalError) return res.status(error.status).json({ success: false, error: { code: error.code, message: error.message } });
         console.error('[ops-journal]', error);
         return res.status(500).json({ success: false, error: { code: 'OPS_JOURNAL_ERROR', message: 'Lỗi hệ thống' } });
@@ -46,7 +47,7 @@ function createOpsJournalRouter({ db = require('../config/db'), adapters = null 
     // Candidates for the journal day (default: today). Manager only; the figures come from the indicators' own services.
     router.get('/candidates', wrap(async (req, res) => {
         visibility.assertManager(who(req));
-        const date = req.query.date ? visibility.asDay(req.query.date) : new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+        const date = req.query.date ? visibility.asDay(req.query.date) : new Date(Date.now() + 7 * 3600 * 1000).toISOString().slice(0, 10) /* today in Vietnam */;
         res.json({ success: true, data: await candidateService.buildCandidates({ db, date, adapters: adaptersOf() }) });
     }));
 

@@ -125,21 +125,28 @@ async function selectSpots(db, { date, candidateIds = [], manual = [], actor, ad
         ];
         const wantedKeys = new Set(wanted.map((w) => `${w.indicator}|${w.scopeType}|${w.scopeKey}`));
         if (wantedKeys.size !== wanted.length) throw new JournalError('DUPLICATE_SPOT', 'Một điểm đen được chọn hai lần.');
-        const kept = existing.filter((s) => s.status !== 'DRAFT'); // finalized / closed spots cannot be dropped
+        // a spot that was ever finalized or holds a report is never dropped, even when it was reopened (it is a DRAFT again)
+        const protectedRows = await db.all(
+            `SELECT id FROM ops_journal_spot s WHERE s.day = ? AND (
+                EXISTS (SELECT 1 FROM ops_journal_action_log l WHERE l.spot_id = s.id AND l.kind = 'FINALIZED')
+                OR EXISTS (SELECT 1 FROM ops_journal_action a WHERE a.spot_id = s.id AND a.reported_at IS NOT NULL))`, [day]);
+        const protectedIds = new Set(protectedRows.map((r) => r.id));
+        const kept = existing.filter((s) => s.status !== 'DRAFT' || protectedIds.has(s.id)); // finalized / closed / reported spots cannot be dropped
         const keptKeys = new Set(kept.map(keyOf));
         const toCreate = wanted.filter((w) => !keptKeys.has(`${w.indicator}|${w.scopeType}|${w.scopeKey}`));
-        const draftsKept = existing.filter((s) => s.status === 'DRAFT' && wantedKeys.has(keyOf(s)));
+        const draftsKept = existing.filter((s) => s.status === 'DRAFT' && !protectedIds.has(s.id) && wantedKeys.has(keyOf(s)));
         const total = kept.length + draftsKept.length + toCreate.filter((w) => !draftsKept.some((s) => keyOf(s) === `${w.indicator}|${w.scopeType}|${w.scopeKey}`)).length;
         if (total < MIN_SPOTS || total > MAX_SPOTS) {
             throw new JournalError('OUT_OF_RANGE', `Mỗi ngày phải chọn từ ${MIN_SPOTS} đến ${MAX_SPOTS} điểm đen (hiện ${total}, gồm ${kept.length} điểm đã chốt).`);
         }
         const t = now();
         if (!(await dayRow(db, day))) await db.run('INSERT INTO ops_journal_day (day, status, created_by, created_at, updated_at) VALUES (?, ?, ?, ?, ?)', [day, 'DRAFT', actor.id, t, t]);
-        for (const draft of existing.filter((s) => s.status === 'DRAFT' && !wantedKeys.has(keyOf(s)))) {
+        for (const draft of existing.filter((s) => s.status === 'DRAFT' && !protectedIds.has(s.id) && !wantedKeys.has(keyOf(s)))) {
+            const goneRows = await db.all('SELECT * FROM ops_journal_action WHERE spot_id = ? ORDER BY seq', [draft.id]);
             await db.run('DELETE FROM ops_journal_action_assignee WHERE action_id IN (SELECT id FROM ops_journal_action WHERE spot_id = ?)', [draft.id]);
             await db.run('DELETE FROM ops_journal_action WHERE spot_id = ?', [draft.id]);
             await db.run('DELETE FROM ops_journal_spot WHERE id = ?', [draft.id]);
-            await logChange(db, { spotId: draft.id, kind: 'SPOT_REMOVED', before: { title: draft.title }, actor });
+            await logChange(db, { spotId: draft.id, kind: 'SPOT_REMOVED', before: { title: draft.title, headline: draft.headline, metrics: draft.metrics_json, rows: goneRows.map((r) => ({ seq: r.seq, who: r.who_text, what: r.what })) }, actor });
         }
         let sort = 0;
         for (const w of wanted) {
@@ -155,7 +162,7 @@ async function selectSpots(db, { date, candidateIds = [], manual = [], actor, ad
                  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'DRAFT', ?, ?, ?, ?)`,
                 [day, w.indicator, w.scopeType, w.scopeKey, w.officeCode, w.title, w.headline, w.metrics ? JSON.stringify(w.metrics) : null, w.source,
                     w.source === 'SYSTEM' ? '07:30' : null, w.source === 'SYSTEM' ? 'Dashboard' : null, sort, t]);
-            await logChange(db, { spotId: result.lastID, kind: 'SPOT_ADDED', after: { title: w.title, source: w.source }, actor });
+            await logChange(db, { spotId: result.lastID, kind: 'SPOT_ADDED', after: { title: w.title, source: w.source, headline: w.headline, metrics: w.metrics }, actor });
         }
         await db.run('UPDATE ops_journal_day SET updated_at = ? WHERE day = ?', [t, day]);
         return true;
@@ -166,6 +173,7 @@ async function selectSpots(db, { date, candidateIds = [], manual = [], actor, ad
 
 async function validAssignees(db, ids) {
     if (!Array.isArray(ids)) throw new JournalError('BAD_ROW', 'Danh sách người được giao không hợp lệ.');
+    if (ids.some((v) => !(Number.isInteger(v) || (typeof v === 'string' && /^[1-9]\d{0,14}$/.test(v))))) throw new JournalError('BAD_ROW', 'Danh sách người được giao không hợp lệ.');
     const clean = [...new Set(ids.map((v) => Number(v)))];
     if (clean.length > MAX_ASSIGNEES || clean.some((v) => !Number.isInteger(v) || v <= 0)) throw new JournalError('BAD_ROW', 'Danh sách người được giao không hợp lệ.');
     if (!clean.length) return [];
@@ -201,6 +209,7 @@ async function saveActions(db, { spotId, actions, actor }) {
         const assigneeLists = [];
         for (const entry of actions) assigneeLists.push(await validAssignees(db, entry.assigneeUserIds ?? []));
         const before = await db.all('SELECT * FROM ops_journal_action WHERE spot_id = ? ORDER BY seq', [id]);
+        const beforeAssignees = await assigneesOf(db, before.map((r) => r.id));
         for (const old of before.filter((r) => r.seq > fields.length)) {
             if (old.reported_at) throw new JournalError('ROW_HAS_REPORT', `Dòng ${old.seq} đã có báo cáo nên không xóa được.`, 409);
         }
@@ -214,8 +223,18 @@ async function saveActions(db, { spotId, actions, actor }) {
             const old = before.find((r) => r.seq === seq);
             let actionId;
             if (old) {
+                const kept = beforeAssignees.get(old.id) || [];
+                const sameWork = old.what === f.what && assigneeLists[i].length === kept.length && assigneeLists[i].every((u) => kept.includes(u));
+                // a confirmed row is final; a reported row only keeps its report while the same work stays with the reporter
+                if (old.status === 'DONE' && !sameWork) throw new JournalError('ROW_DONE', `Dòng ${old.seq} đã được xác nhận hoàn thành nên không đổi nội dung hoặc người được giao.`, 409);
+                const reporterStays = old.reported_by === null || assigneeLists[i].includes(old.reported_by);
+                const resetReport = Boolean(old.reported_at) && old.status !== 'DONE' && (old.what !== f.what || !reporterStays);
                 await db.run('UPDATE ops_journal_action SET who_text = ?, what = ?, where_text = ?, due = ?, how = ?, expected_result = ? WHERE id = ?',
                     [f.who_text, f.what, f.where_text, f.due, f.how, f.expected_result, old.id]);
+                if (resetReport) {
+                    await db.run("UPDATE ops_journal_action SET status = 'DRAFT', report_cause = NULL, report_text = NULL, reported_by = NULL, reported_at = NULL WHERE id = ?", [old.id]);
+                    await logChange(db, { spotId: id, actionId: old.id, kind: 'REPORT_RESET', before: { status: old.status, cause: old.report_cause, text: old.report_text, reportedBy: old.reported_by }, actor });
+                }
                 actionId = old.id;
                 await db.run('DELETE FROM ops_journal_action_assignee WHERE action_id = ?', [actionId]);
             } else {
@@ -225,13 +244,25 @@ async function saveActions(db, { spotId, actions, actor }) {
             }
             for (const userId of assigneeLists[i]) await db.run('INSERT INTO ops_journal_action_assignee (action_id, user_id) VALUES (?, ?)', [actionId, userId]);
         }
+        const rowLog = (r, assignees) => ({ seq: r.seq, who: r.who_text, what: r.what, where: r.where_text, due: r.due, how: r.how, expectedResult: r.expected_result, assignees });
         await logChange(db, {
             spotId: id, kind: 'ACTIONS_SAVED',
-            before: before.map((r) => ({ seq: r.seq, who: r.who_text, what: r.what, due: r.due })),
-            after: fields.map((f, i) => ({ seq: i + 1, who: f.who_text, what: f.what, due: f.due, assignees: assigneeLists[i] })), actor,
+            before: before.map((r) => rowLog(r, beforeAssignees.get(r.id) || [])),
+            after: fields.map((f, i) => rowLog({ seq: i + 1, who_text: f.who_text, what: f.what, where_text: f.where_text, due: f.due, how: f.how, expected_result: f.expected_result }, assigneeLists[i])), actor,
         });
         return true;
     }).then(async () => getDay(db, { access: { capabilities: ['journal.manage'] } }, await spotDayOf(db, id)));
+}
+
+async function assigneesOf(db, actionIds) {
+    const map = new Map();
+    if (!actionIds.length) return map;
+    const rows = await db.all(`SELECT action_id, user_id FROM ops_journal_action_assignee WHERE action_id IN (${actionIds.map(() => '?').join(',')}) ORDER BY user_id`, actionIds);
+    for (const r of rows) {
+        if (!map.has(r.action_id)) map.set(r.action_id, []);
+        map.get(r.action_id).push(r.user_id);
+    }
+    return map;
 }
 
 async function spotDayOf(db, id) {
@@ -288,16 +319,20 @@ async function reopenSpot(db, { spotId, reason, actor }) {
 /** POST /actions/:id/report: an assignee's own row of a finalized spot; anything else is NOT_FOUND (never disclosed). */
 async function report(db, { actionId, status, causeText, reportText, actor }) {
     const id = asSpotId(actionId);
+    // who may report is decided BEFORE anything else (and before the write lock): a stranger gets NOT_FOUND whatever the body
+    // says, and cannot queue behind an import just by posting
+    const eligible = () => db.get(
+        `SELECT a.* FROM ops_journal_action a
+           JOIN ops_journal_action_assignee x ON x.action_id = a.id AND x.user_id = ?
+           JOIN ops_journal_spot s ON s.id = a.spot_id
+          WHERE a.id = ? AND a.assigned_at IS NOT NULL AND s.status = 'FINALIZED'`, [actor.id, id]);
+    if (actor.id == null || !(await eligible())) throw new NotFoundError();
     if (!REPORT_STATUSES.includes(status)) throw new JournalError('BAD_STATUS', 'Trạng thái báo cáo không hợp lệ.');
     const cause = text(causeText, MAX_TEXT, 'Nguyên nhân');
     const body = text(reportText, MAX_TEXT, 'Nội dung báo cáo');
     if (status === 'REPORTED' && !body) throw new JournalError('REPORT_REQUIRED', 'Cần ghi nội dung báo cáo.');
     return inTransaction(db, async () => {
-        const row = await db.get(
-            `SELECT a.* FROM ops_journal_action a
-               JOIN ops_journal_action_assignee x ON x.action_id = a.id AND x.user_id = ?
-               JOIN ops_journal_spot s ON s.id = a.spot_id
-              WHERE a.id = ? AND a.assigned_at IS NOT NULL AND s.status = 'FINALIZED'`, [actor.id, id]);
+        const row = await eligible(); // re-checked inside the lock: the spot may have been reopened meanwhile
         if (!row) throw new NotFoundError();
         if (row.status === 'DONE') throw new JournalError('LOCKED', 'Dòng này đã được xác nhận hoàn thành.', 409);
         const t = now();

@@ -24,7 +24,7 @@ const hhmm = (value) => (/^\d{1,2}:\d{2}$/.test(String(value || '')) ? String(va
 /** "Sáng" before 12:00, "Chiều" before 18:00, else "Đêm" (the shift the journal was finalized in). */
 function shiftOf(timestamp) {
     if (!timestamp) return null;
-    const hour = new Date(timestamp).getHours();
+    const hour = new Date(Number(timestamp) + 7 * 3600 * 1000).getUTCHours(); // Vietnam time, whatever the server's time zone
     return hour < 12 ? 0 : (hour < 18 ? 1 : 2);
 }
 

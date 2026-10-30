@@ -238,12 +238,15 @@ test('reopening needs a reason, hides the spot from assignees, keeps the reports
     assert.ok(!(await call(U401, 'GET', '/my-tasks')).body.data.tasks.some((t) => t.spotId === spot.id));
     const drop = await call(GD, 'PUT', `/spots/${spot.id}/actions`, { actions: [] });
     assert.equal(drop.body.error.code, 'ROW_HAS_REPORT');
-    const edited = await call(GD, 'PUT', `/spots/${spot.id}/actions`, { actions: [{ ...rowFor('Rà soát lại', [401]) }, rowFor('Tìm giải pháp', [402])] });
+    const rewrite = await call(GD, 'PUT', `/spots/${spot.id}/actions`, { actions: [rowFor('Rà soát lại', [401]), rowFor('Tìm giải pháp', [402])] });
+    assert.equal(rewrite.body.error.code, 'ROW_DONE', 'a confirmed row cannot get new work or new people');
+    const edited = await call(GD, 'PUT', `/spots/${spot.id}/actions`, { actions: [{ ...rowFor('Rà soát nguyên nhân', [401, 402]), how: 'Cách làm mới' }, rowFor('Tìm giải pháp', [402])] });
     assert.equal(edited.status, 200);
     const row1 = edited.body.data.spots.find((s) => s.id === spot.id).actions[0];
     assert.equal(row1.id, spot.actions[0].id, 'the row is updated in place');
     assert.equal(row1.reportText, 'Đã gọi lại 12 khách', 'the report survives a correction');
-    assert.deepEqual(row1.assigneeUserIds, [401]);
+    assert.deepEqual(row1.assigneeUserIds, [401, 402]);
+    assert.equal(row1.how, 'Cách làm mới');
     assert.equal((await call(GD, 'POST', `/days/${DAY}/assign`, { spotIds: [spot.id] })).status, 200);
     assert.equal((await call(U401, 'GET', `/spots/${spot.id}`)).body.data.myRows[0].reportText, 'Đã gọi lại 12 khách');
     assert.equal((await call(GD, 'POST', `/spots/${spot.id}/reopen`, { reason: 'lần 2' })).status, 200);

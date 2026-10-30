@@ -4,6 +4,7 @@
 // (the route gates it). The Word file is written directly; the PDF is the print view printed by Chromium (Playwright).
 // One PDF render at a time: a render starts a browser process, and the machine also runs the portal downloads.
 const { getSpot } = require('./visibility');
+const { withImportWriteLock } = require('../importWriteLock');
 const { JournalError, actorOf } = require('./journalService');
 const { buildPl06 } = require('./pl06Document');
 const { buildDocx } = require('./pl06Docx');
@@ -19,9 +20,12 @@ let pdfQueue = Promise.resolve();
 
 async function renderPdf(model) {
     const { chromium } = require('playwright');
-    const browser = await chromium.launch({ headless: true });
+    const browser = await chromium.launch({ headless: true, timeout: PDF_TIMEOUT_MS });
     try {
-        const page = await browser.newPage();
+        // the page is our own generated HTML: no script and no network are needed, so neither is allowed
+        const context = await browser.newContext({ javaScriptEnabled: false });
+        const page = await context.newPage();
+        await page.route('**/*', (route) => (route.request().url().startsWith('data:') ? route.continue() : route.abort()));
         await page.setContent(buildHtml(model), { waitUntil: 'load', timeout: PDF_TIMEOUT_MS });
         return await page.pdf({
             format: 'A4', printBackground: true, displayHeaderFooter: true, ...pdfChrome(model),
@@ -53,9 +57,10 @@ async function exportSpot(db, { spotId, format, user }) {
 
     const buffer = kind.extension === 'docx' ? await buildDocx(model) : await renderPdfQueued(model);
     const actor = actorOf(user);
-    await db.run(
+    // on the shared connection a bare write could join someone else's open transaction: take the lock every other write takes
+    await withImportWriteLock(() => db.run(
         `INSERT INTO ops_journal_action_log (spot_id, kind, after_json, actor_id, actor_name, actor_position, created_at) VALUES (?, 'EXPORTED', ?, ?, ?, ?, ?)`,
-        [spot.id, JSON.stringify({ format: kind.extension, bytes: buffer.length }), actor.id, actor.name, actor.position, Date.now()]);
+        [spot.id, JSON.stringify({ format: kind.extension, bytes: buffer.length }), actor.id, actor.name, actor.position, Date.now()]));
     return { buffer, contentType: kind.contentType, filename: `${model.fileBase}.${kind.extension}` };
 }
 

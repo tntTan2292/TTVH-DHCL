@@ -16,6 +16,15 @@
 // PRESELECT_PER_INDICATOR per indicator.
 const { TARGETS } = require('../HomeExecutiveService');
 
+/** The figures are being written right now (an import or a snapshot holds a transaction on the shared connection). */
+class DataUpdatingError extends Error {
+    constructor() {
+        super('Dữ liệu đang được cập nhật, vui lòng thử lại sau ít phút.');
+        this.code = 'DATA_UPDATING';
+        this.status = 409;
+    }
+}
+
 const LABELS = Object.freeze({ f11: 'F1.1', f12: 'F1.2', f13: 'F1.3', f41: 'F4.1' });
 const INDICATOR_ORDER = Object.freeze(['F1.1', 'F1.2', 'F1.3', 'F4.1', 'HANGTON']);
 const MIN_VOLUME = Object.freeze({ f11: 5, f12: 5, f13: 10, f41: 10 });
@@ -146,7 +155,7 @@ async function rateCandidates(db, id, adapter, journalDay, canonical) {
 
 async function hangtonCandidates(db, journalDay) {
     const snapshot = await db.get(
-        `SELECT * FROM hangton_snapshot WHERE business_date <= ? ORDER BY business_date DESC,
+        `SELECT * FROM hangton_snapshot WHERE business_date <= ? ORDER BY business_date DESC, is_stale ASC,
             CASE WHEN slot = '0730' THEN 0 ELSE 1 END, slot DESC LIMIT 1`, [journalDay]);
     if (!snapshot) return { asOf: null, items: [] };
     const rows = await db.all(
@@ -212,6 +221,17 @@ function rankAndSelect(all) {
  * still answer (one broken indicator must not hide the rest of the day).
  */
 async function buildCandidates({ db, date, adapters }) {
+    // Reads on the single shared connection also see the uncommitted rows of an open import / snapshot transaction. The figures are
+    // frozen into the journal, so refuse to build while one is open, or when one opened or closed during the build.
+    const tx = db.txState || { active: 0, generation: 0 };
+    if (tx.active > 0) throw new DataUpdatingError();
+    const generation = tx.generation;
+    const result = await buildCandidatesUnguarded({ db, date, adapters });
+    if (tx.active > 0 || tx.generation !== generation) throw new DataUpdatingError();
+    return result;
+}
+
+async function buildCandidatesUnguarded({ db, date, adapters }) {
     const { CANONICAL_CODES } = require('../F11RankingService');
     const canonical = new Set(CANONICAL_CODES.map(String));
     const all = [];
@@ -249,6 +269,6 @@ async function buildCandidates({ db, date, adapters }) {
 }
 
 module.exports = {
-    buildCandidates, rankAndSelect, collectUnits,
+    DataUpdatingError, buildCandidates, rankAndSelect, collectUnits,
     LIMITS: { MIN_VOLUME, FALLBACK_WEIGHT, MAX_CANDIDATES, PER_INDICATOR_CAP, PRESELECT_COUNT, PRESELECT_PER_INDICATOR },
 };

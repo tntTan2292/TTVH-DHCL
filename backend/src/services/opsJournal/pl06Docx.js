@@ -11,7 +11,7 @@ const TABLE_W = 10400;
 
 const esc = (value) => String(value ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
     // control characters are not valid in XML 1.0
-    .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '');
+    .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\uFFFE\uFFFF]/g, '');
 
 function run(text, { bold = false, size = 18, color = null } = {}) {
     const parts = String(text ?? '').split(/\r?\n/);

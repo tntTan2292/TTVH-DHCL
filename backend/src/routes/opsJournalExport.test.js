@@ -35,7 +35,7 @@ test.before(async () => {
     await applyRbac01Schema(dbFile);
     await applyOpsJournal01Schema(dbFile);
     await run("INSERT INTO qis_user (id, username, display_name, tier, position, password_hash, must_change_password, is_active, created_at, updated_at) VALUES (301, 'muoi', 'Mai Văn Mười', 'LEADER', 'GD_TTVH', 'x', 0, 1, 1, 1)");
-    const finalizedAt = new Date('2026-10-23T08:10:00').getTime();
+    const finalizedAt = Date.parse('2026-10-23T08:10:00+07:00');
     const spot = async (title, status, closing) => {
         const result = await run(
             `INSERT INTO ops_journal_spot (day, indicator, scope_type, scope_key, office_code, title, headline, metrics_json, source, status, finalized_at, finalized_by, detected_at, channel, sort, created_at)
@@ -84,7 +84,7 @@ function assertWellFormed(xml, name) {
 }
 
 const manager = (extra = {}) => ({
-    id: 1, day: DAY, indicator: 'F4.1', officeName: 'BCVH Phú Lộc', title: 'F4.1 - BCVH Phú Lộc', status: 'FINALIZED', finalizedAt: new Date('2026-10-23T08:10:00').getTime(),
+    id: 1, day: DAY, indicator: 'F4.1', officeName: 'BCVH Phú Lộc', title: 'F4.1 - BCVH Phú Lộc', status: 'FINALIZED', finalizedAt: Date.parse('2026-10-23T08:10:00+07:00'),
     detectedAt: '07:30', channel: 'Dashboard', headline: 'Nhận định', actions: [], closing: null, ...extra,
 });
 
@@ -92,7 +92,7 @@ test('model: file name, shift, check boxes follow the closing, nothing is ticked
     assert.equal(fileBaseName(manager()), 'PL06 - Nhat ky dieu hanh 23.10.2026 - F4.1 BCVH Phu Loc');
     assert.equal(fileBaseName(manager({ indicator: 'HANGTON', officeName: 'BCVH Hương Thủy' })), 'PL06 - Nhat ky dieu hanh 23.10.2026 - Hang ton BCVH Huong Thuy');
     assert.equal(fileBaseName(manager({ officeName: null, title: 'F1.1 - Khách hàng lớn → BCVH A/B' })), 'PL06 - Nhat ky dieu hanh 23.10.2026 - F4.1 Khach hang lon → BCVH A B');
-    assert.deepEqual([8, 13, 22].map((h) => shiftOf(new Date(2026, 9, 23, h).getTime())), [0, 1, 2]);
+    assert.deepEqual([8, 13, 22].map((h) => shiftOf(Date.parse(`2026-10-23T${String(h).padStart(2, '0')}:00:00+07:00`))), [0, 1, 2]);
     const text = (model) => JSON.stringify([model.info, model.sections.map((s) => s.blocks.map((b) => b.text))]);
     const open = text(buildPl06(manager(), { name: 'M', positionCode: 'GD_TTVH' }));
     assert.ok(open.includes('Sự cố đã giải quyết?  ☐ Rồi   ☐ Chưa') && open.includes('Quy trình nào cần cập nhật?  ☐ Không   ☐ Có'));
