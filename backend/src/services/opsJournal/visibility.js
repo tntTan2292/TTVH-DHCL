@@ -230,6 +230,19 @@ async function listMyTasks(db, { userId }) {
 
 const MAX_RANGE_DAYS = 62;
 
+/** Who still owes a report: [{ name, seqs: [1, 2] }] over the rows nobody has reported on yet (not REPORTED, not DONE). */
+function pendingOf(spotRows, rowPeople) {
+    const byName = new Map();
+    for (const row of spotRows) {
+        if (row.status === 'REPORTED' || row.status === 'DONE') continue;
+        for (const person of rowPeople.filter((p) => p.action_id === row.id)) {
+            if (!byName.has(person.name)) byName.set(person.name, []);
+            byName.get(person.name).push(row.seq);
+        }
+    }
+    return [...byName.entries()].map(([name, seqs]) => ({ name, seqs }));
+}
+
 /**
  * GET /assigned?from=&to= -- manager only. One light line per finalized or closed spot of the range (no rows, no report text): how many
  * rows, how they stand (not reported / reported and waiting / done), how many evidence files, the last report time and who the work is
@@ -247,7 +260,10 @@ async function listAssigned(db, { access }, fromValue, toValue) {
     if (!spots.length) return { from, to, days: [], items: [] };
     const marks = spots.map(() => '?').join(',');
     const ids = spots.map((s) => s.id);
-    const rows = await db.all(`SELECT spot_id, status, reported_at FROM ops_journal_action WHERE spot_id IN (${marks})`, ids);
+    const rows = await db.all(`SELECT id, spot_id, seq, status, reported_at FROM ops_journal_action WHERE spot_id IN (${marks}) ORDER BY seq`, ids);
+    const rowPeople = await db.all(
+        `SELECT x.action_id, COALESCE(NULLIF(u.display_name, ''), u.username) AS name FROM ops_journal_action_assignee x JOIN qis_user u ON u.id = x.user_id
+          WHERE x.action_id IN (SELECT id FROM ops_journal_action WHERE spot_id IN (${marks}))`, ids);
     const files = await db.all(`SELECT spot_id, COUNT(*) AS n FROM ops_journal_attachment WHERE spot_id IN (${marks}) GROUP BY spot_id`, ids);
     const people = await db.all(
         `SELECT DISTINCT a.spot_id, COALESCE(NULLIF(u.display_name, ''), u.username) AS name
@@ -264,6 +280,7 @@ async function listAssigned(db, { access }, fromValue, toValue) {
             fileCount: files.find((f) => f.spot_id === spot.id)?.n || 0,
             lastReportedAt: own.reduce((max, r) => Math.max(max, r.reported_at || 0), 0) || null,
             assignees: people.filter((p) => p.spot_id === spot.id).map((p) => p.name),
+            pending: pendingOf(own, rowPeople),
         };
     });
     const days = [...new Set(items.map((i) => i.day))].map((day) => ({ day, status: dayRows.find((d) => d.day === day)?.status || 'ASSIGNED' }));

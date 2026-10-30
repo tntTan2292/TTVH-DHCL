@@ -362,7 +362,7 @@ export const opsJournalMockAdapter = {
         items.push({
           id: spot.id, day: day.date, indicator: spot.indicator, title: spot.title, status: spot.status, officeCode: spot.officeCode,
           rowCount: rows.length, counts: { assigned: count('ASSIGNED'), inProgress: count('IN_PROGRESS'), reported: count('REPORTED'), done: count('DONE') },
-          fileCount: 0, lastReportedAt: null, assignees: [],
+          fileCount: 0, lastReportedAt: null, assignees: [], pending: [],
         });
       }
     }

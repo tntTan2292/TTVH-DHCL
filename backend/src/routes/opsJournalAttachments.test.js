@@ -205,6 +205,7 @@ test('the assigned list: one light line per finalized spot, manager only, bounde
     assert.equal(item.rowCount, 4);
     assert.deepEqual(item.counts, { assigned: 3, inProgress: 0, reported: 0, done: 1 });
     assert.equal(item.fileCount, 1);
+    assert.deepEqual(item.pending, [{ name: 'gd-thuan-hoa', seqs: [1, 2] }, { name: 'cq-thuan-hoa', seqs: [4] }], 'who still owes a report, and for which rows');
     assert.ok(item.lastReportedAt > 0);
     assert.deepEqual(item.assignees, ['cq-thuan-hoa', 'gd-thuan-hoa']);
     assert.equal(JSON.stringify(item).includes('reportText'), false, 'no report text in the list');

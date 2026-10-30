@@ -316,6 +316,17 @@ export default function OpsJournalAssignedPage({ initialDate = getVietnamToday()
                         <span>{sum.total} dòng việc</span>
                         {item.lastReportedAt && <span>Báo cáo gần nhất: {timeAgoText(item.lastReportedAt)}</span>}
                       </span>
+                      {(item.pending || []).length > 0 && (
+                        <span className="flex w-full flex-wrap items-center gap-x-1.5 pl-7 text-[11px] font-semibold text-slate-600" data-testid="pending-line">
+                          <Clock size={11} className="text-slate-400" />
+                          Chờ báo cáo:
+                          {item.pending.map((p) => (
+                            <span key={p.name} className="rounded bg-slate-100 px-1.5 py-0.5 text-slate-700">
+                              {p.name} (dòng {p.seqs.join(', ')})
+                            </span>
+                          ))}
+                        </span>
+                      )}
                     </button>
 
                     {isOpen && (
