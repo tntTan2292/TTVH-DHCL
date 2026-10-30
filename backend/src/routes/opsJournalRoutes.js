@@ -6,8 +6,10 @@
 const express = require('express');
 const { requireAuth } = require('../middleware/authMiddleware');
 const visibility = require('../services/opsJournal/visibility');
+const candidateService = require('../services/opsJournal/candidateService');
 
-function createOpsJournalRouter({ db = require('../config/db') } = {}) {
+function createOpsJournalRouter({ db = require('../config/db'), adapters = null } = {}) {
+    let sourceAdapters = adapters;
     const router = express.Router();
     const notFound = (res) => res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Không tìm thấy' } });
     const wrap = (handler) => (req, res) => handler(req, res).catch((error) => {
@@ -28,6 +30,14 @@ function createOpsJournalRouter({ db = require('../config/db') } = {}) {
         next();
     });
     router.use(requireAuth);
+
+    // Candidates for the journal day (default: today). Manager only; the figures come from the indicators' own services.
+    router.get('/candidates', wrap(async (req, res) => {
+        visibility.assertManager(who(req));
+        const date = req.query.date ? visibility.asDay(req.query.date) : new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+        if (!sourceAdapters) sourceAdapters = require('../services/HomeExecutiveService').buildDefaultAdapters(db.db);
+        res.json({ success: true, data: await candidateService.buildCandidates({ db, date, adapters: sourceAdapters }) });
+    }));
 
     router.get('/days/:date', wrap(async (req, res) => {
         res.json({ success: true, data: await visibility.getDay(db, who(req), req.params.date) });

@@ -199,4 +199,9 @@ async function listMyTasks(db, { userId }) {
     return { tasks };
 }
 
-module.exports = { NotFoundError, isManager, getDay, getSpot, listMyTasks };
+/** Manager-only gate for the routes that have no row-level rule (candidates ...): everyone else gets the usual NOT_FOUND. */
+function assertManager({ access }) {
+    if (!isManager(access)) throw new NotFoundError();
+}
+
+module.exports = { NotFoundError, isManager, assertManager, asDay, getDay, getSpot, listMyTasks };

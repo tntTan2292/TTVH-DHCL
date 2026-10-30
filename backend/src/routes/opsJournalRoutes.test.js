@@ -58,7 +58,7 @@ test.before(async () => {
 
     const app = express();
     app.use(express.json());
-    app.use('/api/ops-journal', createOpsJournalRouter({ db: require('../config/db') }));
+    app.use('/api/ops-journal', createOpsJournalRouter({ db: require('../config/db'), adapters: { f11: { localTable: 'fact_f11' }, f12: { localTable: 'fact_f12' }, f13: { localTable: 'fact_f13' }, f41: { localTable: 'fact_f41' } } }));
     server = http.createServer(app);
     await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
     baseUrl = `http://127.0.0.1:${server.address().port}/api/ops-journal`;
@@ -261,4 +261,21 @@ test('schema: applying it twice is harmless, and the change log refuses UPDATE a
     assert.deepEqual(rows.map((r) => r.kind), ['TEST']);
     const draft = await require('../config/db').get("SELECT status FROM ops_journal_action WHERE what = 'ROW-IN-DRAFT-201'");
     assert.equal(draft.status, 'DRAFT', 'a row not yet given out is a draft, not ASSIGNED');
+});
+
+test('candidates: manager only; everyone else gets the same 404 as an unknown path; a source that cannot be read is reported, not thrown', async () => {
+    for (const who of [LD_BDTP, LD_TTVH, IT, CQ, GD_BCVH, PLAIN, LEADER_ASSIGNEE]) {
+        const answer = await call(who, 'GET', `/candidates?date=${DAY}`);
+        assert.equal(answer.status, 404);
+        assert.equal(answer.text, (await call(who, 'GET', '/whatever')).text);
+    }
+    assert.equal((await call(null, 'GET', '/candidates')).status, 401);
+    for (const who of [GD_TTVH, ADMIN]) {
+        const answer = await call(who, 'GET', `/candidates?date=${DAY}`);
+        assert.equal(answer.status, 200);
+        assert.deepEqual(answer.body.data.items, []);
+        assert.ok(answer.body.data.unavailable.length >= 1, 'this test database has no indicator tables');
+        assert.ok(!answer.text.includes('no such table'), 'database error text never reaches the client');
+    }
+    assert.equal((await call(GD_TTVH, 'GET', '/candidates?date=2026-02-31')).status, 404);
 });

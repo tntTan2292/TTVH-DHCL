@@ -685,4 +685,5 @@ module.exports = {
     F13_RANK_SOURCE,
     F41_RANK_SOURCE,
     TARGETS,
+    buildDefaultAdapters,
 };
