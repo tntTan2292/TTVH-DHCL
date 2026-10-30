@@ -96,7 +96,31 @@ function buildRows(spot, people = []) {
         expectedResult: `Tỷ lệ đạt ${label} ${subject} cải thiện, ${compareText}; báo cáo lãnh đạo`, assigneeUserIds: whoIds,
     });
 
-    if (label === 'F1.1' || label === 'F1.2') {
+    if (label === 'F1.2') {
+        // F1.2 is special (PO 2026-10-30): only the indicator specialist works the spot, with the director of the Bưu điện Phường/Xã
+        // or the counter clerk of that office, who have no account in QIS. All four rows therefore sit on the specialist.
+        const cq = indicatorSpecialists[0] || null;
+        const who = named(cq, cqIndText);
+        const mine = ids(cq);
+        const dueDay = `Trong ngày ${dm(D)}`;
+        return [
+            { whoText: who, what: `Rà soát toàn bộ ${failText} không đạt F1.2 tại ${unit} ngày ${dm(dataDay)}, xác định khâu phát sinh chậm theo từng khách hàng`,
+                where: 'Trung tâm Vận hành', due: dueDay,
+                how: 'Trích danh sách bưu gửi không đạt trên Dashboard theo từng khách hàng; đối chiếu từng bưu gửi theo các mốc thời gian nhận tin thu gom, chấp nhận, đóng BĐ8 đi, quét BĐ10 lên TMS và đóng đi',
+                expectedResult: 'Xác định rõ khâu và nguyên nhân chậm của từng bưu gửi, từng khách hàng', assigneeUserIds: mine },
+            { whoText: who, what: `Làm việc với Giám đốc Bưu điện Phường/Xã hoặc Giao dịch viên tại ${unit} để xác định nguyên nhân chậm ở khâu thu gom, chấp nhận, đóng đi`,
+                where: unit, due: dueDay,
+                how: 'Làm việc trực tiếp với người phụ trách thu gom, giao dịch viên; đối chiếu thời điểm nhận tin, thời điểm thu gom thực tế và thời điểm chấp nhận trên hệ thống; lập danh sách nguyên nhân từng bưu gửi',
+                expectedResult: `TTVH nắm đủ nguyên nhân chậm của ${unit}`, assigneeUserIds: mine },
+            { whoText: who, what: `Tìm giải pháp cải tiến phù hợp cho khâu thu gom, chấp nhận, đóng đi tại ${unit}`,
+                where: `Trung tâm Vận hành và ${unit}`, due: dueDay,
+                how: `Làm việc trực tiếp với đơn vị; phối hợp bộ phận khai thác đối với bưu gửi chậm sau khi đóng đi; chốt giải pháp áp dụng từ ngày ${dm(D1)}`,
+                expectedResult: `Có giải pháp cải tiến cụ thể theo từng khâu, áp dụng từ ngày ${dm(D1)}`, assigneeUserIds: mine },
+            follow(cq ? cq.name : cqIndText, mine, `tại ${unit}`),
+        ];
+    }
+
+    if (label === 'F1.1') {
         const isPair = spot.scopeType === 'PAIR';
         const subject = label === 'F1.1' ? (isPair ? `của ${unit}` : `phát tại ${bcvh}`) : `tại ${unit}`;
         const focus = Array.isArray(m.focus) && m.focus.length
