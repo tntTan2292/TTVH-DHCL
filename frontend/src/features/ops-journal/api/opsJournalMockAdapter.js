@@ -363,6 +363,24 @@ export const opsJournalMockAdapter = {
   },
 
   /**
+   * DELETE /spots/:id
+   */
+  async removeSpot(spotId) {
+    await sleep(80);
+    for (const day of mockDaysStore.values()) {
+      const spot = day.spots.find((s) => s.id === spotId);
+      if (spot) {
+        if (spot.status !== 'DRAFT' || spot.protected) {
+          return { success: false, error: { code: 'PROTECTED', message: 'Điểm đen đã chốt hoặc đã có báo cáo nên không xóa được.' } };
+        }
+        day.spots = day.spots.filter((s) => s.id !== spotId);
+        return { success: true, data: JSON.parse(JSON.stringify(day)) };
+      }
+    }
+    return { success: false, error: { code: 'NOT_FOUND', message: 'Không tìm thấy điểm đen yêu cầu' } };
+  },
+
+  /**
    * POST /spots/:id/reopen
    */
   async reopenSpot(spotId, { reason = '' } = {}) {

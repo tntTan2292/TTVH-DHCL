@@ -1,6 +1,13 @@
 import React from 'react';
-import { Check, Trash2, Sparkles, MapPin, Layers, Lock } from 'lucide-react';
-import { getIndicatorChipStyle } from '../opsJournalHelpers.js';
+import { Check, Trash2, MapPin, Layers, Lock } from 'lucide-react';
+import { getIndicatorChipStyle, getSpotReasons } from '../opsJournalHelpers.js';
+
+const TONE_CLASS = {
+  bad: 'bg-rose-50 text-rose-700 border-rose-200',
+  warn: 'bg-amber-50 text-amber-800 border-amber-200',
+  good: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+  neutral: 'bg-slate-100 text-slate-600 border-slate-200',
+};
 import SpotMetricsSummary from './SpotMetricsSummary.jsx';
 
 export default function CandidateTable({
@@ -149,11 +156,6 @@ export default function CandidateTable({
                             <Lock size={9} />
                             Đã chốt
                           </span>
-                        ) : cand.preselected ? (
-                          <span className="inline-flex items-center gap-0.5 text-[10px] font-bold text-blue-700 bg-blue-100/70 px-1.5 py-0.5 rounded-full">
-                            <Sparkles size={9} />
-                            Gợi ý
-                          </span>
                         ) : null}
                       </div>
                     </td>
@@ -178,13 +180,23 @@ export default function CandidateTable({
                     </td>
                     <td className="py-3.5 px-4">
                       <div className="space-y-1.5">
-                        <p className="font-medium text-slate-800 italic leading-relaxed text-[12px]">
-                          "{cand.headline}"
-                        </p>
-                        <SpotMetricsSummary
-                          indicator={cand.indicator}
-                          metrics={cand.metrics}
-                        />
+                        <div className="flex flex-wrap gap-1.5" data-testid="spot-reasons">
+                          {getSpotReasons(cand.indicator, cand.metrics).map((reason) => (
+                            <span
+                              key={reason.text}
+                              className={`inline-flex items-center rounded-md border px-2 py-0.5 text-[11px] font-semibold ${TONE_CLASS[reason.tone] || TONE_CLASS.neutral}`}
+                            >
+                              {reason.text}
+                            </span>
+                          ))}
+                        </div>
+                        <details className="text-[11px] text-slate-500" onClick={(e) => e.stopPropagation()}>
+                          <summary className="cursor-pointer select-none font-medium text-blue-700 hover:underline">Xem nhận định đầy đủ</summary>
+                          <div className="mt-1.5 space-y-1.5">
+                            <p className="italic leading-relaxed text-slate-700">"{cand.headline}"</p>
+                            <SpotMetricsSummary indicator={cand.indicator} metrics={cand.metrics} />
+                          </div>
+                        </details>
                       </div>
                     </td>
                     <td className="py-3.5 px-3 text-right">

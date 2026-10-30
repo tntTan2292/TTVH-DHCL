@@ -280,6 +280,29 @@ export default function OpsJournalComposerPage({
     }
   };
 
+  // Take a draft spot out of the day's list (DELETE /spots/:id)
+  const handleRemoveSpot = async (spotId) => {
+    setAlert(null);
+    try {
+      const res = await opsJournalAdapter.removeSpot(spotId);
+      if (res.success) {
+        setDayData(res.data);
+        setSelectedSpotIdsForAssign((prev) => {
+          const next = new Set(prev);
+          next.delete(spotId);
+          return next;
+        });
+        setAlert({ type: 'success', message: 'Đã xóa điểm đen khỏi danh sách.' });
+        return true;
+      }
+      setAlert({ type: 'error', message: res.error?.message || 'Không thể xóa điểm đen.' });
+      return false;
+    } catch (err) {
+      setAlert({ type: 'error', message: err.message || 'Lỗi khi xóa điểm đen.' });
+      return false;
+    }
+  };
+
   // M1: Hỏi xác nhận khi tải lại, chuyển ngày, hoặc chuyển màn hình nếu có thẻ dirty
   const handleReload = () => {
     if (dirtySpotIds.size > 0) {
@@ -644,6 +667,7 @@ export default function OpsJournalComposerPage({
               savingActionsSpotId={savingActionsSpotIds.has(spot.id) ? spot.id : null}
               onDirtyChange={handleDirtyChange}
               onReopenSpot={handleReopenSpot}
+              onRemoveSpot={handleRemoveSpot}
               reopeningSpotId={reopeningSpotId}
               onMarkActionDone={handleMarkActionDone}
               markingDoneActionId={markingDoneActionId}

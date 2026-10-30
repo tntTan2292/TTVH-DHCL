@@ -212,6 +212,39 @@ export function formatDeltaRate(delta) {
   return `giảm ${Math.abs(n).toFixed(1)}%`;
 }
 
+const RATE_TARGETS = Object.freeze({ 'F1.1': 95, 'F1.2': 95, 'F1.3': 90, 'F4.1': 90 });
+
+/**
+ * The few facts that make a candidate a black spot, as short chips the manager can read at a glance
+ * (tone: bad = red, warn = amber, good = green, neutral = grey). The full headline stays available behind "Xem nhận định".
+ */
+export function getSpotReasons(indicator, metrics) {
+  const m = metrics || {};
+  const norm = normalizeIndicator(indicator);
+  const reasons = [];
+  const num = (v) => (v === null || v === undefined || Number.isNaN(Number(v)) ? null : Number(v));
+  const fmt = (v) => Number(v).toLocaleString('vi-VN', { maximumFractionDigits: 1 });
+  if (norm === 'HANGTON') {
+    if (num(m.stockGe5) !== null) reasons.push({ tone: 'bad', text: `${fmt(m.stockGe5)} bưu gửi tồn ≥5 ngày` });
+    if (num(m.stockGe14)) reasons.push({ tone: 'bad', text: `${fmt(m.stockGe14)} bưu gửi tồn ≥14 ngày` });
+    else if (num(m.stockGe7)) reasons.push({ tone: 'warn', text: `${fmt(m.stockGe7)} bưu gửi tồn ≥7 ngày` });
+    if (num(m.cod)) reasons.push({ tone: 'warn', text: `COD ${fmt(m.cod)} đ` });
+    return reasons;
+  }
+  const target = RATE_TARGETS[norm] ?? 90;
+  const rate = num(m.rate);
+  if (rate !== null) reasons.push({ tone: 'bad', text: `${fmt(rate)}% — thấp hơn chỉ tiêu ${fmt(target - rate)} điểm` });
+  const delta = num(m.delta);
+  if (delta === null) reasons.push({ tone: 'neutral', text: 'Chưa có số liệu tuần trước' });
+  else if (delta < 0) reasons.push({ tone: 'bad', text: `Giảm ${fmt(Math.abs(delta))} điểm so tuần trước` });
+  else if (delta > 0) reasons.push({ tone: 'good', text: `Tăng ${fmt(delta)} điểm so tuần trước` });
+  else reasons.push({ tone: 'neutral', text: 'Không đổi so tuần trước' });
+  if (num(m.fail) !== null) reasons.push({ tone: 'bad', text: `${fmt(m.fail)} BG không đạt` });
+  const mtd = num(m.mtdRate);
+  if (mtd !== null && mtd < target) reasons.push({ tone: 'warn', text: `Lũy kế tháng ${fmt(mtd)}% chưa đạt` });
+  return reasons;
+}
+
 export const MAX_ACTIONS_PER_SPOT = 12;
 export const DEFAULT_DUE_TEXT = 'Trong ngày';
 

@@ -134,12 +134,8 @@ export default function OpsJournalCandidatesPage({
       setCandidates(items);
       setLockedSpots(locked);
       setManualSpots(savedManual);
-      if (daySpots.length > 0) {
-        setSelectedIds(savedCandidateIds);
-      } else {
-        // empty day: preselect what the server suggests
-        setSelectedIds(new Set(items.filter((c) => c.preselected).map((c) => c.candidateId)));
-      }
+      // nothing is ticked unless it was saved: the manager searches / ticks the BCVH they want (PO 2026-10-30)
+      setSelectedIds(savedCandidateIds);
       setLoadedDate(date);
     } catch (err) {
       if (requestId !== activeRequestIdRef.current) return;

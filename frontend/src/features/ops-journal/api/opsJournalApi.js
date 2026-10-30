@@ -54,6 +54,10 @@ export const opsJournalAdapter = {
     const adapter = await getDelegate();
     return adapter.reopenSpot(...args);
   },
+  async removeSpot(...args) {
+    const adapter = await getDelegate();
+    return adapter.removeSpot(...args);
+  },
   async saveClosing(...args) {
     const adapter = await getDelegate();
     return adapter.saveClosing(...args);

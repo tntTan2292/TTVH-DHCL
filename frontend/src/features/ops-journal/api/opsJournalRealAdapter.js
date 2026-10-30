@@ -88,6 +88,18 @@ export const opsJournalRealAdapter = {
   },
 
   /**
+   * DELETE /spots/:id  (a DRAFT spot that was never finalized and holds no report)
+   */
+  async removeSpot(spotId) {
+    try {
+      const res = await api.delete(`${BASE_URL}/spots/${encodeURIComponent(spotId)}`);
+      return res.data;
+    } catch (err) {
+      return handleApiError(err, 'Không thể xóa điểm đen khỏi danh sách');
+    }
+  },
+
+  /**
    * POST /spots/:id/reopen
    */
   async reopenSpot(spotId, { reason = '' } = {}) {

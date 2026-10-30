@@ -61,6 +61,7 @@ function createOpsJournalRouter({ db = require('../config/db'), adapters = null 
     })));
     router.post('/days/:date/assign', managerWrite((req, actor) => journal.finalizeSpots(db, { date: req.params.date, spotIds: req.body?.spotIds, actor })));
     router.post('/days/:date/close', managerWrite((req, actor) => journal.closeDay(db, { date: req.params.date, actor })));
+    router.delete('/spots/:id', managerWrite((req, actor) => journal.removeSpot(db, { spotId: req.params.id, actor })));
     router.put('/spots/:id/actions', managerWrite((req, actor) => journal.saveActions(db, { spotId: req.params.id, actions: req.body?.actions, actor })));
     router.post('/spots/:id/reopen', managerWrite((req, actor) => journal.reopenSpot(db, { spotId: req.params.id, reason: req.body?.reason, actor })));
     router.put('/spots/:id/closing', managerWrite((req, actor) => journal.saveClosing(db, { spotId: req.params.id, closing: req.body, actor })));

@@ -13,6 +13,7 @@ const { POSITIONS } = require('../auth/access/roles');
 const { BCVH_BY_CODE, HANGTON_OFFICES_BY_BCVH } = require('../auth/access/officeMap');
 const { NotFoundError, asDay, asSpotId, getDay } = require('./visibility');
 const candidateService = require('./candidateService');
+const { buildRows } = require('./rowTemplates');
 
 const MIN_SPOTS = 1;
 const MAX_SPOTS = 50; // sanity cap only: how many spots to assign is the manager's call (PO 2026-10-30)
@@ -155,6 +156,9 @@ async function selectSpots(db, { date, candidateIds = [], manual = [], actor, ad
             const present = existing.find((s) => keyOf(s) === key);
             if (present) {
                 await db.run('UPDATE ops_journal_spot SET sort = ? WHERE id = ?', [sort, present.id]);
+                if (present.status === 'DRAFT' && !(await db.get('SELECT 1 AS x FROM ops_journal_action WHERE spot_id = ?', [present.id]))) {
+                    await seedRows(db, present.id, { indicator: present.indicator, title: present.title, officeCode: present.office_code }, actor);
+                }
                 continue;
             }
             const result = await db.run(
@@ -163,10 +167,24 @@ async function selectSpots(db, { date, candidateIds = [], manual = [], actor, ad
                 [day, w.indicator, w.scopeType, w.scopeKey, w.officeCode, w.title, w.headline, w.metrics ? JSON.stringify(w.metrics) : null, w.source,
                     w.source === 'SYSTEM' ? '07:30' : null, w.source === 'SYSTEM' ? 'Dashboard' : null, sort, t]);
             await logChange(db, { spotId: result.lastID, kind: 'SPOT_ADDED', after: { title: w.title, source: w.source, headline: w.headline, metrics: w.metrics }, actor });
+            await seedRows(db, result.lastID, { indicator: w.indicator, title: w.title, officeCode: w.officeCode }, actor);
         }
         await db.run('UPDATE ops_journal_day SET updated_at = ? WHERE day = ?', [t, day]);
         return true;
     }).then(() => getDay(db, { access: { capabilities: ['journal.manage'] } }, day));
+}
+
+/** The system drafts the 3 "6 rõ" rows of a spot (right wording for its indicator, the unit's people already on them). */
+async function seedRows(db, spotId, spot, actor) {
+    const people = await assignableUsers(db, { officeCode: spot.officeCode, indicator: spot.indicator });
+    const rows = buildRows(spot, people);
+    for (let i = 0; i < rows.length; i += 1) {
+        const r = rows[i];
+        const result = await db.run('INSERT INTO ops_journal_action (spot_id, seq, who_text, what, where_text, due, how, expected_result, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            [spotId, i + 1, r.whoText, r.what, r.where, r.due, r.how, r.expectedResult, 'DRAFT']);
+        for (const userId of r.assigneeUserIds) await db.run('INSERT INTO ops_journal_action_assignee (action_id, user_id) VALUES (?, ?)', [result.lastID, userId]);
+    }
+    await logChange(db, { spotId, kind: 'ACTIONS_SAVED', before: [], after: rows.map((r, i) => ({ seq: i + 1, who: r.whoText, what: r.what, where: r.where, due: r.due, how: r.how, expectedResult: r.expectedResult, assignees: r.assigneeUserIds, drafted: 'SYSTEM' })), actor });
 }
 
 // ---- 2. the "6 rõ" rows ------------------------------------------------------------------------------------------------------
@@ -263,6 +281,27 @@ async function assigneesOf(db, actionIds) {
         map.get(r.action_id).push(r.user_id);
     }
     return map;
+}
+
+/** DELETE /spots/:id: take one DRAFT spot out of the day's list (a spot that was ever finalized or holds a report stays). */
+async function removeSpot(db, { spotId, actor }) {
+    const id = asSpotId(spotId);
+    return inTransaction(db, async () => {
+        const spot = await spotById(db, id);
+        await requireOpenDay(db, spot.day);
+        if (spot.status !== 'DRAFT') throw new JournalError('LOCKED', 'Điểm đen đã chốt nên không xóa được. Hãy mở lại để sửa.', 409);
+        const protectedSpot = await db.get(
+            `SELECT 1 AS x WHERE EXISTS (SELECT 1 FROM ops_journal_action_log l WHERE l.spot_id = ? AND l.kind = 'FINALIZED')
+                OR EXISTS (SELECT 1 FROM ops_journal_action a WHERE a.spot_id = ? AND a.reported_at IS NOT NULL)`, [id, id]);
+        if (protectedSpot) throw new JournalError('PROTECTED', 'Điểm đen đã từng được chốt hoặc đã có báo cáo nên không xóa được.', 409);
+        const goneRows = await db.all('SELECT * FROM ops_journal_action WHERE spot_id = ? ORDER BY seq', [id]);
+        await db.run('DELETE FROM ops_journal_action_assignee WHERE action_id IN (SELECT id FROM ops_journal_action WHERE spot_id = ?)', [id]);
+        await db.run('DELETE FROM ops_journal_action WHERE spot_id = ?', [id]);
+        await db.run('DELETE FROM ops_journal_spot WHERE id = ?', [id]);
+        await logChange(db, { spotId: id, kind: 'SPOT_REMOVED', before: { title: spot.title, headline: spot.headline, metrics: spot.metrics_json, rows: goneRows.map((r) => ({ seq: r.seq, who: r.who_text, what: r.what })) }, actor });
+        await db.run('UPDATE ops_journal_day SET updated_at = ? WHERE day = ?', [now(), spot.day]);
+        return spot.day;
+    }).then((day) => getDay(db, { access: { capabilities: ['journal.manage'] } }, day));
 }
 
 async function spotDayOf(db, id) {
@@ -428,6 +467,6 @@ async function assignableUsers(db, { officeCode, indicator, all }) {
 }
 
 module.exports = {
-    JournalError, actorOf, selectSpots, saveActions, finalizeSpots, reopenSpot, report, markDone, saveClosing, closeDay, assignableUsers,
+    JournalError, actorOf, selectSpots, removeSpot, saveActions, finalizeSpots, reopenSpot, report, markDone, saveClosing, closeDay, assignableUsers,
     LIMITS: { MIN_SPOTS, MAX_SPOTS, MAX_ROWS },
 };

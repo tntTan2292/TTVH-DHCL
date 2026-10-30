@@ -4,7 +4,6 @@ import {
   Trash2,
   ArrowUp,
   ArrowDown,
-  Sparkles,
   Save,
   Users,
   Check,
@@ -14,7 +13,6 @@ import {
 import {
   MAX_ACTIONS_PER_SPOT,
   DEFAULT_DUE_TEXT,
-  buildDefaultActions,
 } from '../opsJournalHelpers.js';
 
 let newRowCounter = 0;
@@ -44,9 +42,6 @@ export default function SpotActionEditor({
       maxReportedIndex = i;
     }
   }
-
-  // H2: "Áp dụng mẫu" bị chặn khi có dòng đã báo cáo hoặc DONE
-  const hasReportedOrDone = actions.some((a) => a.reportedAt != null || a.status === 'DONE');
 
   // Add new blank row (key không dùng Date.now() trùng)
   const handleAddRow = () => {
@@ -130,27 +125,6 @@ export default function SpotActionEditor({
     onChangeActions(updated);
   };
 
-  // Load standard template rows (H2: chặn khi có dòng đã báo cáo / DONE; xác nhận trước khi áp dụng)
-  const handleApplyTemplate = () => {
-    if (hasReportedOrDone) {
-      alert?.('Không thể áp dụng mẫu vì điểm đen đã có dòng đã báo cáo hoặc đã hoàn thành.');
-      return;
-    }
-    if (actions.length > 0) {
-      const ok = globalThis.confirm?.(
-        'Áp dụng mẫu gợi ý sẽ thay thế toàn bộ danh sách 6-rõ hiện tại. Bạn có chắc chắn muốn áp dụng mẫu không?'
-      );
-      if (!ok) return;
-    }
-    const templateRows = buildDefaultActions(
-      spot.indicator,
-      spot.officeCode,
-      spot.officeName,
-      spot.title
-    );
-    onChangeActions(templateRows);
-  };
-
   // H2: Cảnh báo trước khi lưu nếu đổi "Làm gì" hoặc bỏ người đã báo cáo của dòng có báo cáo
   const handleSave = () => {
     const originalActions = spot.actions || [];
@@ -197,26 +171,6 @@ export default function SpotActionEditor({
         </div>
 
         <div className="flex items-center gap-2">
-          {/* Template Button (H2: disabled if hasReportedOrDone) */}
-          <button
-            type="button"
-            onClick={handleApplyTemplate}
-            disabled={hasReportedOrDone}
-            className={`inline-flex items-center gap-1 rounded-lg border px-2.5 py-1 text-xs font-semibold transition-colors ${
-              hasReportedOrDone
-                ? 'border-slate-200 bg-slate-100 text-slate-400 cursor-not-allowed opacity-60'
-                : 'border-blue-200 bg-blue-50/70 text-blue-700 hover:bg-blue-100 cursor-pointer'
-            }`}
-            title={
-              hasReportedOrDone
-                ? 'Không thể áp dụng mẫu khi đã có dòng báo cáo hoặc hoàn thành'
-                : 'Điền mẫu 6 rõ chuẩn theo loại điểm đen'
-            }
-          >
-            <Sparkles size={13} className={hasReportedOrDone ? 'text-slate-400' : 'text-blue-600'} />
-            <span>Áp dụng mẫu gợi ý</span>
-          </button>
-
           {/* Toggle all users */}
           <button
             type="button"
@@ -259,16 +213,7 @@ export default function SpotActionEditor({
       {/* 6-rõ Table */}
       {actions.length === 0 ? (
         <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-slate-200 py-6 text-center text-xs text-slate-500">
-          <p>Chưa có dòng hành động 6-rõ nào.</p>
-          <button
-            type="button"
-            onClick={handleApplyTemplate}
-            disabled={hasReportedOrDone}
-            className="mt-2 inline-flex items-center gap-1 rounded-lg bg-blue-600 px-3 py-1.5 font-bold text-white hover:bg-blue-700 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <Sparkles size={13} />
-            <span>Áp dụng mẫu dòng gợi ý cho {spot.indicator}</span>
-          </button>
+          <p>Chưa có dòng 6-rõ nào. Bấm "Thêm dòng" để tự soạn.</p>
         </div>
       ) : (
         <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-2xs">

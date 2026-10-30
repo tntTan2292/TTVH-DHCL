@@ -9,6 +9,7 @@ import {
   Printer,
   Download,
   AlertCircle,
+  Trash2,
 } from 'lucide-react';
 import { getIndicatorChipStyle, generatePl06FileName } from '../opsJournalHelpers.js';
 import opsJournalAdapter from '../api/opsJournalApi.js';
@@ -27,6 +28,7 @@ export default function OpsJournalSpotCard({
   savingActionsSpotId = null,
   onDirtyChange,
   onReopenSpot,
+  onRemoveSpot,
   reopeningSpotId = null,
   onMarkActionDone,
   markingDoneActionId = null,
@@ -261,6 +263,21 @@ export default function OpsJournalSpotCard({
 
           {/* Right Header Actions */}
           <div className="flex flex-wrap items-center gap-2 self-start pt-1">
+            {/* Remove from the day's list: only a draft that was never finalized and holds no report */}
+            {isDraft && !isClosed && !isDayClosed && !spot.protected && onRemoveSpot && (
+              <button
+                type="button"
+                onClick={() => {
+                  if (globalThis.confirm?.(`Xóa điểm đen "${spot.title}" khỏi danh sách hôm nay?`)) onRemoveSpot(spot.id);
+                }}
+                className="inline-flex items-center gap-1.5 rounded-xl border border-rose-200 bg-white px-2.5 py-1.5 text-xs font-bold text-rose-600 hover:bg-rose-50 shadow-2xs transition-colors cursor-pointer"
+                title="Xóa điểm đen này khỏi danh sách hôm nay"
+              >
+                <Trash2 size={13} />
+                <span>Xóa khỏi danh sách</span>
+              </button>
+            )}
+
             {/* Reopen button for Finalized spots */}
             {isFinalized && !isClosed && (
               <button
