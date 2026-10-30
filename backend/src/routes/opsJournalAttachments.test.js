@@ -205,8 +205,8 @@ test('the assigned list: one light line per finalized spot, manager only, bounde
     assert.equal(item.rowCount, 4);
     assert.deepEqual(item.counts, { assigned: 3, inProgress: 0, reported: 0, done: 1 });
     assert.equal(item.fileCount, 1);
-    assert.deepEqual([item.reportedCount, item.reportsNeeded, item.enough], [1, 2, false], 'one report of the two needed so far');
-    assert.deepEqual(item.pending, [{ name: 'gd-thuan-hoa', seqs: [1, 2] }, { name: 'cq-thuan-hoa', seqs: [4] }], 'who still owes a report, and for which rows');
+    assert.deepEqual([item.reportedCount, item.reportsNeeded, item.enough, item.keySeqs], [1, 2, false, [3, 4]], 'row 3 reported (and accepted), row 4 still owed');
+    assert.deepEqual(item.pending, [{ name: 'cq-thuan-hoa', seqs: [4] }], 'only the last two rows are owed: row 4, by the Chuyên quản');
     assert.ok(item.lastReportedAt > 0);
     assert.deepEqual(item.assignees, ['cq-thuan-hoa', 'gd-thuan-hoa']);
     assert.equal(JSON.stringify(item).includes('reportText'), false, 'no report text in the list');
@@ -217,13 +217,14 @@ test('the assigned list: one light line per finalized spot, manager only, bounde
     for (const who of [U401, U402, U403]) assert.equal((await call(who, 'GET', '/assigned')).status, 404, 'only the manager');
 });
 
-test('2 of the 4 reports are enough: the list says so and nobody is listed as owing a report', async () => {
+test('the last two rows are the ones that count: reporting them completes the task', async () => {
     const before = (await call(GD, 'GET', `/assigned?from=${DAY}&to=${DAY}`)).body.data.items[0];
     assert.equal(before.enough, false);
     const row4 = (await call(GD, 'GET', `/spots/${spotId}`)).body.data.actions[3];
     assert.equal((await call(U402, 'POST', `/actions/${row4.id}/report`, { status: 'REPORTED', reportText: 'Đã theo dõi, kết quả tốt.' })).status, 200);
     const after = (await call(GD, 'GET', `/assigned?from=${DAY}&to=${DAY}`)).body.data.items[0];
     assert.deepEqual([after.reportedCount, after.reportsNeeded, after.enough], [2, 2, true]);
-    assert.deepEqual(after.pending, [], 'once enough reports are in, the unreported rows owe nothing');
+    assert.deepEqual(after.pending, [], 'nothing is owed once the last two rows are reported (rows 1 and 2 stay unreported)');
+    assert.equal(after.counts.assigned, 2, 'rows 1 and 2 are still unreported and that is fine');
     assert.equal((await call(GD, 'GET', `/spots/${spotId}`)).body.data.actions[3].reportedByName, 'cq-thuan-hoa', 'the report says by whom');
 });

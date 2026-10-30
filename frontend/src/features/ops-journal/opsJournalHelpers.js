@@ -312,10 +312,10 @@ export function summarizeAssigned(item) {
   const done = c.done || 0;
   const reported = c.reported || 0;
   const open = (c.assigned || 0) + (c.inProgress || 0);
-  // 2 of the 4 reports are enough to count the task as done (PO 2026-10-30)
+  // the LAST TWO rows are the ones that count: once they are reported the task is done (PO 2026-10-30); the server says so
   const needed = Number(item?.reportsNeeded) || Math.min(2, total);
-  const reportedCount = reported + done;
-  const enough = total > 0 && reportedCount >= needed;
+  const reportedCount = item?.reportedCount ?? (reported + done);
+  const enough = typeof item?.enough === 'boolean' ? item.enough : (total > 0 && reportedCount >= needed);
   let state = 'open';
   if (reported > 0) state = 'waiting'; // something is waiting for the manager to accept
   else if (enough) state = 'done';

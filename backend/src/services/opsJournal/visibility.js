@@ -242,8 +242,9 @@ async function listMyTasks(db, { userId }) {
 }
 
 const MAX_RANGE_DAYS = 62;
-// PO 2026-10-30: a spot keeps its 4 rows and 4 reports, but 2 of them are enough to count the task as done
-const REPORTS_NEEDED = 2;
+// PO 2026-10-30: a spot keeps its 4 rows and 4 reports, but the LAST TWO are the ones that count: the Chuyên quản of TTVH reporting on
+// them means rows 1 and 2 were already worked, so the task is done once those two are reported
+const KEY_ROWS = 2;
 
 /** Who still owes a report: [{ name, seqs: [1, 2] }] over the rows nobody has reported on yet (not REPORTED, not DONE). */
 function pendingOf(spotRows, rowPeople) {
@@ -288,9 +289,10 @@ async function listAssigned(db, { access }, fromValue, toValue) {
     const items = spots.map((spot) => {
         const own = rows.filter((r) => r.spot_id === spot.id);
         const count = (status) => own.filter((r) => r.status === status).length;
-        const reportedCount = count('REPORTED') + count('DONE');
-        const reportsNeeded = Math.min(REPORTS_NEEDED, own.length);
-        const enough = own.length > 0 && reportedCount >= reportsNeeded;
+        const keyRows = [...own].sort((a, b) => a.seq - b.seq).slice(-KEY_ROWS);
+        const reportedCount = keyRows.filter((r) => r.status === 'REPORTED' || r.status === 'DONE').length;
+        const reportsNeeded = keyRows.length;
+        const enough = keyRows.length > 0 && reportedCount === reportsNeeded;
         return {
             id: spot.id, day: spot.day, indicator: spot.indicator, title: spot.title, status: spot.status, officeCode: spot.office_code,
             rowCount: own.length,
@@ -299,7 +301,8 @@ async function listAssigned(db, { access }, fromValue, toValue) {
             lastReportedAt: own.reduce((max, r) => Math.max(max, r.reported_at || 0), 0) || null,
             assignees: people.filter((p) => p.spot_id === spot.id).map((p) => p.name),
             reportedCount, reportsNeeded, enough,
-            pending: enough ? [] : pendingOf(own, rowPeople), // nobody "owes" a report once enough have come in
+            keySeqs: keyRows.map((r) => r.seq),
+            pending: enough ? [] : pendingOf(keyRows, rowPeople), // only the last two rows are owed, and nothing once they are in
         };
     });
     const days = [...new Set(items.map((i) => i.day))].map((day) => ({ day, status: dayRows.find((d) => d.day === day)?.status || 'ASSIGNED' }));

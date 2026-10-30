@@ -297,9 +297,9 @@ export default function OpsJournalAssignedPage({ initialDate = getVietnamToday()
                       <span className="flex flex-wrap items-center gap-1.5 text-[11px] font-bold">
                         <span
                           className={`inline-flex items-center gap-1 rounded-md border px-2 py-0.5 ${sum.enough ? 'border-emerald-300 bg-emerald-50 text-emerald-800' : 'border-slate-300 bg-white text-slate-700'}`}
-                          title={`Cần ${sum.needed} báo cáo trong ${sum.total} dòng để coi là hoàn thành nhiệm vụ`}
+                          title="Chỉ cần báo cáo của 2 dòng cuối (Chuyên quản báo cáo thì dòng 1, 2 đã được làm) là coi như hoàn thành nhiệm vụ"
                         >
-                          <CheckCircle2 size={11} />{sum.reportedCount}/{sum.total} báo cáo{sum.enough ? ' - đủ' : ` (cần ${sum.needed})`}
+                          <CheckCircle2 size={11} />{sum.reportedCount}/{sum.needed} báo cáo cuối{sum.enough ? ' - đủ' : ''}
                         </span>
                         {sum.done > 0 && (
                           <span className="inline-flex items-center gap-1 rounded-md border border-emerald-300 bg-emerald-50 px-2 py-0.5 text-emerald-800">{sum.done} đã xác nhận</span>
