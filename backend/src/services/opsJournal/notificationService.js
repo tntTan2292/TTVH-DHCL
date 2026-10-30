@@ -7,11 +7,19 @@
 // A notification belongs to ONE user and only that user reads it; a user nobody notified gets an empty list (the bell stays hidden),
 // so nothing is learned about who else is involved. The writers run inside the caller's transaction (they use the same `db`).
 const { withImportWriteLock } = require('../importWriteLock');
+const { POSITIONS } = require('../auth/access/roles');
 
 const MAX_LIST = 50;
 const clip = (value, max) => {
     const s = String(value ?? '').replace(/\s+/g, ' ').trim();
     return s.length > max ? `${s.slice(0, max - 1)}…` : s;
+};
+// "Mai Văn Mười – Giám đốc TTVH": the person AND the position, because several people can hold one position and the notification
+// is the record of who assigned, who reported and who accepted
+const whoIs = (actor) => {
+    const name = String(actor?.name || '').trim() || 'Người dùng';
+    const label = POSITIONS[actor?.position]?.label;
+    return label ? `${name} – ${label}` : name;
 };
 const dmy = (day) => (day ? `${day.slice(8, 10)}/${day.slice(5, 7)}/${day.slice(0, 4)}` : '');
 
@@ -28,7 +36,7 @@ async function managerIds(db) {
 }
 
 /** The spot was finalized: tell each person named on its rows which rows are theirs. */
-async function notifyAssigned(db, { spot, at, actorName }) {
+async function notifyAssigned(db, { spot, at, actor }) {
     const rows = await db.all(
         `SELECT a.id, a.seq, a.what, a.due, x.user_id FROM ops_journal_action a JOIN ops_journal_action_assignee x ON x.action_id = a.id
           WHERE a.spot_id = ? ORDER BY a.seq`, [spot.id]);
@@ -41,38 +49,40 @@ async function notifyAssigned(db, { spot, at, actorName }) {
         const list = own.map((r) => `• ${clip(r.what, 160)}${r.due ? ` (hạn: ${clip(r.due, 60)})` : ''}`).join('\n');
         await insert(db, {
             userId, kind: 'ASSIGNED', target: 'MY_TASKS', day: spot.day, spotId: spot.id, actionId: own[0].id, at,
-            title: `Giao việc mới: ${spot.title}`,
-            body: `${actorName ? `${actorName} giao ` : 'Được giao '}${own.length} dòng việc ngày ${dmy(spot.day)}:\n${list}`,
+            title: `${whoIs(actor)} giao việc: ${spot.title}`,
+            body: `Bạn được giao ${own.length} dòng việc ngày ${dmy(spot.day)}:\n${list}`,
         });
     }
 }
 
 /** Someone reported on a row: the manager(s) and the other people on the row are told. */
-async function notifyReported(db, { row, spot, reporterId, reporterName, status, text, files, at }) {
+async function notifyReported(db, { row, spot, reporter, status, text, files, at }) {
     const co = (await db.all('SELECT user_id FROM ops_journal_action_assignee WHERE action_id = ?', [row.id])).map((r) => r.user_id);
     const managers = await managerIds(db);
     const what = status === 'REPORTED' ? 'đã báo cáo' : 'cập nhật tiến độ';
-    const body = `${reporterName || 'Người được giao'} ${what} dòng ${row.seq}: ${clip(row.what, 120)}\nNội dung: ${clip(text, 300) || '(không có)'}${files ? `\nĐính kèm: ${files} file` : ''}`;
-    const sent = new Set([reporterId]);
+    const who = whoIs(reporter);
+    const title = `${who} ${what} dòng ${row.seq}: ${spot.title}`;
+    const body = `Dòng ${row.seq}: ${clip(row.what, 120)}\nNội dung: ${clip(text, 300) || '(không có)'}${files ? `\nĐính kèm: ${files} file` : ''}`;
+    const sent = new Set([reporter.id]);
     for (const userId of managers) {
         if (sent.has(userId)) continue;
         sent.add(userId);
-        await insert(db, { userId, kind: 'REPORTED', target: 'MANAGER', day: spot.day, spotId: spot.id, actionId: row.id, title: `Báo cáo mới: ${spot.title}`, body, at });
+        await insert(db, { userId, kind: 'REPORTED', target: 'MANAGER', day: spot.day, spotId: spot.id, actionId: row.id, title, body, at });
     }
     for (const userId of co) {
         if (sent.has(userId)) continue;
         sent.add(userId);
-        await insert(db, { userId, kind: 'REPORTED', target: 'MY_TASKS', day: spot.day, spotId: spot.id, actionId: row.id, title: `Báo cáo mới: ${spot.title}`, body, at });
+        await insert(db, { userId, kind: 'REPORTED', target: 'MY_TASKS', day: spot.day, spotId: spot.id, actionId: row.id, title, body, at });
     }
 }
 
 /** The manager accepted a row: the people on it are told. */
-async function notifyDone(db, { row, spot, at }) {
+async function notifyDone(db, { row, spot, actor, at }) {
     const people = await db.all('SELECT user_id FROM ops_journal_action_assignee WHERE action_id = ?', [row.id]);
     for (const { user_id: userId } of people) {
         await insert(db, {
             userId, kind: 'DONE', target: 'MY_TASKS', day: spot.day, spotId: spot.id, actionId: row.id, at,
-            title: `Đã xác nhận hoàn thành: ${spot.title}`, body: `Dòng ${row.seq} đã được Giám đốc TTVH xác nhận hoàn thành: ${clip(row.what, 160)}`,
+            title: `${whoIs(actor)} xác nhận hoàn thành dòng ${row.seq}: ${spot.title}`, body: `Dòng ${row.seq}: ${clip(row.what, 160)}`,
         });
     }
 }

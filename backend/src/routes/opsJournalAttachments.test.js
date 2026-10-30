@@ -118,7 +118,7 @@ test('finalizing tells the people named on the rows, and nobody else', async () 
     assert.equal(gdNotes.unread, 1);
     assert.equal(gdNotes.items[0].kind, 'ASSIGNED');
     assert.equal(gdNotes.items[0].target, 'MY_TASKS');
-    assert.match(gdNotes.items[0].title, /Giao việc mới: Hàng tồn - BCVH Thuận Hóa/);
+    assert.match(gdNotes.items[0].title, /^gd-ttvh – Giám đốc TTVH giao việc: Hàng tồn - BCVH Thuận Hóa$/, 'who assigned, with the position');
     assert.match(gdNotes.items[0].body, /dòng việc ngày 30\/10/);
     assert.equal((await notes(U402)).unread, 1);
     assert.deepEqual(await notes(U403), { items: [], unread: 0, hasAny: false }, 'a user nobody notified sees an empty list (the bell stays hidden)');
@@ -167,7 +167,7 @@ test('a report tells the manager (with the file count) and the co-assignee, not 
     const managerNotes = await notes(GD);
     assert.equal(managerNotes.items[0].kind, 'REPORTED');
     assert.equal(managerNotes.items[0].target, 'MANAGER');
-    assert.match(managerNotes.items[0].body, /cq-thuan-hoa đã báo cáo dòng 3/);
+    assert.equal(managerNotes.items[0].title, 'cq-thuan-hoa – Chuyên quản BCVH đã báo cáo dòng 3: Hàng tồn - BCVH Thuận Hóa', 'who reported, with the position');
     assert.match(managerNotes.items[0].body, /Đính kèm: 1 file/);
     const co = await notes(U401);
     assert.equal(co.unread, before + 1);
@@ -177,7 +177,7 @@ test('a report tells the manager (with the file count) and the co-assignee, not 
     assert.equal((await call(GD, 'POST', `/actions/${rowId}/done`)).status, 200);
     const done = (await notes(U402)).items[0];
     assert.equal(done.kind, 'DONE');
-    assert.match(done.body, /Dòng 3 đã được Giám đốc TTVH xác nhận hoàn thành/);
+    assert.equal(done.title, 'gd-ttvh – Giám đốc TTVH xác nhận hoàn thành dòng 3: Hàng tồn - BCVH Thuận Hóa', 'who accepted, with the position');
     assert.equal((await upload(U402, rowId, 'late.pdf', Buffer.from('%PDF-1.4 x'))).status, 409, 'no new file on an accepted row');
 });
 

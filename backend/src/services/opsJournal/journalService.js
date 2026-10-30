@@ -331,7 +331,7 @@ async function finalizeSpots(db, { date, spotIds, actor }) {
             await db.run('UPDATE ops_journal_action SET assigned_at = COALESCE(assigned_at, ?), status = CASE WHEN status = ? THEN ? ELSE status END WHERE spot_id = ?', [t, 'DRAFT', 'ASSIGNED', id]);
             await db.run("UPDATE ops_journal_spot SET status = 'FINALIZED', finalized_at = ?, finalized_by = ? WHERE id = ?", [t, actor.id, id]);
             await logChange(db, { spotId: id, kind: 'FINALIZED', after: { rows: rows.length }, actor });
-            await notifications.notifyAssigned(db, { spot, at: t, actorName: actor.name });
+            await notifications.notifyAssigned(db, { spot, at: t, actor });
         }
         await db.run("UPDATE ops_journal_day SET status = 'ASSIGNED', updated_at = ? WHERE day = ?", [t, day]);
     });
@@ -383,7 +383,7 @@ async function report(db, { actionId, status, causeText, reportText, actor }) {
         });
         const spot = await db.get('SELECT id, day, title FROM ops_journal_spot WHERE id = ?', [row.spot_id]);
         const files = (await db.get('SELECT COUNT(*) AS n FROM ops_journal_attachment WHERE action_id = ?', [id])).n;
-        await notifications.notifyReported(db, { row, spot, reporterId: actor.id, reporterName: actor.name, status, text: body, files, at: t });
+        await notifications.notifyReported(db, { row, spot, reporter: actor, status, text: body, files, at: t });
         return { id, status, reportCause: cause, reportText: body, reportedAt: t };
     });
 }
@@ -399,7 +399,7 @@ async function markDone(db, { actionId, actor }) {
         await db.run("UPDATE ops_journal_action SET status = 'DONE' WHERE id = ?", [id]);
         await logChange(db, { spotId: row.spot_id, actionId: id, kind: 'DONE', before: { status: row.status }, after: { status: 'DONE' }, actor });
         const spot = await db.get('SELECT id, day, title FROM ops_journal_spot WHERE id = ?', [row.spot_id]);
-        await notifications.notifyDone(db, { row, spot, at: Date.now() });
+        await notifications.notifyDone(db, { row, spot, actor, at: Date.now() });
         return { id, status: 'DONE' };
     });
 }

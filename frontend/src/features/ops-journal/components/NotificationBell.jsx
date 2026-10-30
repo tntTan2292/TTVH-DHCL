@@ -116,7 +116,7 @@ export default function NotificationBell() {
                     </span>
                     <span className="min-w-0 flex-1">
                       <span className="flex items-center justify-between gap-2">
-                        <span className={`truncate text-xs ${item.read ? 'font-semibold text-slate-700' : 'font-extrabold text-slate-900'}`}>{item.title}</span>
+                        <span className={`text-xs leading-snug break-words ${item.read ? 'font-semibold text-slate-700' : 'font-extrabold text-slate-900'}`}>{item.title}</span>
                         {!item.read && <span className="h-2 w-2 shrink-0 rounded-full bg-rose-500" aria-label="Chưa đọc" />}
                       </span>
                       <span className="mt-0.5 block whitespace-pre-line text-[11px] leading-snug text-slate-600">{item.body}</span>
