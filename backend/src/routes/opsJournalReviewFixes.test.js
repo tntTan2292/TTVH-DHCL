@@ -39,6 +39,7 @@ test.before(async () => {
         await run('INSERT INTO qis_user (id, username, display_name, tier, position, password_hash, must_change_password, is_active, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, 0, 1, 1, 1)',
             [id, `u${id}`, `u${id}`, 'STAFF', 'CHUYEN_QUAN', 'x']);
     }
+    await run("INSERT INTO qis_user (id, username, display_name, tier, position, password_hash, must_change_password, is_active, created_at, updated_at) VALUES (301, 'gd', 'gd', 'LEADER', 'GD_TTVH', 'x', 0, 1, 1, 1)");
     await run(`INSERT INTO hangton_snapshot (id, business_date, slot, captured_at, source_row_count, kept_row_count, is_stale, trigger) VALUES (1, ?, '0730', 'x', 0, 0, 0, 'SCHEDULE')`, [DAY]);
     for (const [code, name] of OFFICES) {
         await run(`INSERT INTO hangton_snapshot_item (snapshot_id, item_code, status_name, ton_level, ton_rank, office, office_code, district, cod, customer_class, postman_code, postman_name)
@@ -100,6 +101,11 @@ test('M1: a reopened spot that was finalized or reported cannot be dropped by ch
     assert.ok(kept, 'the reopened spot is still there');
     assert.equal(kept.actions[0].reportText, 'Đã rà soát', 'with its report');
     assert.ok(!(await logKinds()).includes('SPOT_REMOVED'));
+    assert.equal(kept.status, 'DRAFT');
+    assert.equal(kept.protected, true, 'the screens can tell a reopened spot from a plain draft');
+    assert.equal(after.find((s) => s.id !== target.id && s.status === 'FINALIZED').protected, true);
+    assert.equal(after.find((s) => s.scopeKey === OFFICES[5][0]).protected, false, 'a never-finalized draft is not protected');
+    assert.equal(after.find((s) => s.status === 'FINALIZED').finalizedByName, 'gd', 'the printed journal is signed by the person who finalized');
     // a plain draft that was never finalized can still be dropped, and its rows go to the log
     const sixth = after.find((s) => s.scopeKey === OFFICES[5][0]);
     await call(GD, 'PUT', `/spots/${sixth.id}/actions`, { actions: [row('Nháp', [403])] });
