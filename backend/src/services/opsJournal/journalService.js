@@ -383,7 +383,7 @@ async function report(db, { actionId, status, causeText, reportText, actor }) {
         });
         const spot = await db.get('SELECT id, day, title FROM ops_journal_spot WHERE id = ?', [row.spot_id]);
         const files = (await db.get('SELECT COUNT(*) AS n FROM ops_journal_attachment WHERE action_id = ?', [id])).n;
-        await notifications.notifyReported(db, { row, spot, reporter: actor, status, text: body, files, at: t });
+        await notifications.notifyReported(db, { rows: [row], spot, reporter: actor, status, text: body, files, at: t });
         return { id, status, reportCause: cause, reportText: body, reportedAt: t };
     });
 }
@@ -399,8 +399,63 @@ async function markDone(db, { actionId, actor }) {
         await db.run("UPDATE ops_journal_action SET status = 'DONE' WHERE id = ?", [id]);
         await logChange(db, { spotId: row.spot_id, actionId: id, kind: 'DONE', before: { status: row.status }, after: { status: 'DONE' }, actor });
         const spot = await db.get('SELECT id, day, title FROM ops_journal_spot WHERE id = ?', [row.spot_id]);
-        await notifications.notifyDone(db, { row, spot, actor, at: Date.now() });
+        await notifications.notifyDone(db, { rows: [row], spot, actor, at: Date.now() });
         return { id, status: 'DONE' };
+    });
+}
+
+/**
+ * POST /spots/:id/report: ONE report for the whole spot (PO 2026-10-30: the Giám đốc BCVH and the Chuyên quản agree and one of them
+ * reports to the leader). It lands on every row of the spot that names the reporter and is not accepted yet; anything else is NOT_FOUND.
+ */
+async function reportSpot(db, { spotId, status, causeText, reportText, actor }) {
+    const id = asSpotId(spotId);
+    const eligible = () => db.all(
+        `SELECT a.* FROM ops_journal_action a
+           JOIN ops_journal_action_assignee x ON x.action_id = a.id AND x.user_id = ?
+           JOIN ops_journal_spot s ON s.id = a.spot_id
+          WHERE a.spot_id = ? AND a.assigned_at IS NOT NULL AND s.status = 'FINALIZED' ORDER BY a.seq`, [actor.id, id]);
+    if (actor.id == null || !(await eligible()).length) throw new NotFoundError();
+    if (!REPORT_STATUSES.includes(status)) throw new JournalError('BAD_STATUS', 'Trạng thái báo cáo không hợp lệ.');
+    const cause = text(causeText, MAX_TEXT, 'Nguyên nhân');
+    const body = text(reportText, MAX_TEXT, 'Nội dung báo cáo');
+    if (status === 'REPORTED' && !body) throw new JournalError('REPORT_REQUIRED', 'Cần ghi nội dung báo cáo.');
+    return inTransaction(db, async () => {
+        const rows = (await eligible()).filter((r) => r.status !== 'DONE'); // re-read inside the lock: the spot may have been reopened
+        if (!rows.length) {
+            if ((await eligible()).length) throw new JournalError('LOCKED', 'Mọi dòng của điểm đen này đã được xác nhận hoàn thành.', 409);
+            throw new NotFoundError();
+        }
+        const t = now();
+        for (const row of rows) {
+            await db.run('UPDATE ops_journal_action SET status = ?, report_cause = ?, report_text = ?, reported_by = ?, reported_at = ? WHERE id = ?', [status, cause, body, actor.id, t, row.id]);
+            await logChange(db, {
+                spotId: id, actionId: row.id, kind: 'REPORT',
+                before: { status: row.status, cause: row.report_cause, text: row.report_text }, after: { status, cause, text: body, scope: 'SPOT' }, actor,
+            });
+        }
+        const spot = await db.get('SELECT id, day, title FROM ops_journal_spot WHERE id = ?', [id]);
+        const files = (await db.get(`SELECT COUNT(*) AS n FROM ops_journal_attachment WHERE action_id IN (${rows.map(() => '?').join(',')})`, rows.map((r) => r.id))).n;
+        await notifications.notifyReported(db, { rows, spot, reporter: actor, status, text: body, files, at: t });
+        return { spotId: id, actionIds: rows.map((r) => r.id), status, reportCause: cause, reportText: body, reportedAt: t };
+    });
+}
+
+/** POST /spots/:id/done (manager): every REPORTED row of the spot is accepted at once. */
+async function markSpotDone(db, { spotId, actor }) {
+    const id = asSpotId(spotId);
+    return inTransaction(db, async () => {
+        const spot = await db.get('SELECT id, day, title, status FROM ops_journal_spot WHERE id = ?', [id]);
+        if (!spot) throw new NotFoundError();
+        if (spot.status !== 'FINALIZED') throw new JournalError('LOCKED', 'Điểm đen chưa chốt hoặc đã đóng.', 409);
+        const rows = await db.all("SELECT * FROM ops_journal_action WHERE spot_id = ? AND status = 'REPORTED' ORDER BY seq", [id]);
+        if (!rows.length) throw new JournalError('NOT_REPORTED', 'Chưa có dòng nào có báo cáo để xác nhận.', 409);
+        for (const row of rows) {
+            await db.run("UPDATE ops_journal_action SET status = 'DONE' WHERE id = ?", [row.id]);
+            await logChange(db, { spotId: id, actionId: row.id, kind: 'DONE', before: { status: 'REPORTED' }, after: { status: 'DONE', scope: 'SPOT' }, actor });
+        }
+        await notifications.notifyDone(db, { rows, spot, actor, at: now() });
+        return { spotId: id, done: rows.length };
     });
 }
 
@@ -481,6 +536,6 @@ async function assignableUsers(db, options) {
 }
 
 module.exports = {
-    JournalError, inTransaction, logChange, actorOf, selectSpots, removeSpot, saveActions, finalizeSpots, reopenSpot, report, markDone, saveClosing, closeDay, assignableUsers,
+    JournalError, inTransaction, logChange, actorOf, selectSpots, removeSpot, saveActions, finalizeSpots, reopenSpot, report, reportSpot, markDone, markSpotDone, saveClosing, closeDay, assignableUsers,
     LIMITS: { MIN_SPOTS, MAX_SPOTS, MAX_ROWS },
 };

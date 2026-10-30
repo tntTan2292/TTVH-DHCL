@@ -56,13 +56,17 @@ async function notifyAssigned(db, { spot, at, actor }) {
 }
 
 /** Someone reported on a row: the manager(s) and the other people on the row are told. */
-async function notifyReported(db, { row, spot, reporter, status, text, files, at }) {
-    const co = (await db.all('SELECT user_id FROM ops_journal_action_assignee WHERE action_id = ?', [row.id])).map((r) => r.user_id);
+const rowsLabel = (seqs) => (seqs.length > 1 ? `các dòng ${seqs.join(', ')}` : `dòng ${seqs[0]}`);
+
+async function notifyReported(db, { rows, spot, reporter, status, text, files, at }) {
+    const seqs = rows.map((r) => r.seq);
+    const co = (await db.all(`SELECT DISTINCT user_id FROM ops_journal_action_assignee WHERE action_id IN (${rows.map(() => '?').join(',')})`, rows.map((r) => r.id))).map((r) => r.user_id);
+    const row = rows[0];
     const managers = await managerIds(db);
     const what = status === 'REPORTED' ? 'đã báo cáo' : 'cập nhật tiến độ';
     const who = whoIs(reporter);
-    const title = `${who} ${what} dòng ${row.seq}: ${spot.title}`;
-    const body = `Dòng ${row.seq}: ${clip(row.what, 120)}\nNội dung: ${clip(text, 300) || '(không có)'}${files ? `\nĐính kèm: ${files} file` : ''}`;
+    const title = `${who} ${what} ${rowsLabel(seqs)}: ${spot.title}`;
+    const body = `${rows.length > 1 ? `Báo cáo chung cho ${rows.length} dòng việc của điểm đen` : `Dòng ${row.seq}: ${clip(row.what, 120)}`}\nNội dung: ${clip(text, 300) || '(không có)'}${files ? `\nĐính kèm: ${files} file` : ''}`;
     const sent = new Set([reporter.id]);
     for (const userId of managers) {
         if (sent.has(userId)) continue;
@@ -77,12 +81,14 @@ async function notifyReported(db, { row, spot, reporter, status, text, files, at
 }
 
 /** The manager accepted a row: the people on it are told. */
-async function notifyDone(db, { row, spot, actor, at }) {
-    const people = await db.all('SELECT user_id FROM ops_journal_action_assignee WHERE action_id = ?', [row.id]);
+async function notifyDone(db, { rows, spot, actor, at }) {
+    const seqs = rows.map((r) => r.seq);
+    const row = rows[0];
+    const people = await db.all(`SELECT DISTINCT user_id FROM ops_journal_action_assignee WHERE action_id IN (${rows.map(() => '?').join(',')})`, rows.map((r) => r.id));
     for (const { user_id: userId } of people) {
         await insert(db, {
             userId, kind: 'DONE', target: 'MY_TASKS', day: spot.day, spotId: spot.id, actionId: row.id, at,
-            title: `${whoIs(actor)} xác nhận hoàn thành dòng ${row.seq}: ${spot.title}`, body: `Dòng ${row.seq}: ${clip(row.what, 160)}`,
+            title: `${whoIs(actor)} xác nhận hoàn thành ${rowsLabel(seqs)}: ${spot.title}`, body: rows.length > 1 ? `${rows.length} dòng việc của điểm đen đã được xác nhận hoàn thành.` : `Dòng ${row.seq}: ${clip(row.what, 160)}`,
         });
     }
 }

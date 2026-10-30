@@ -31,6 +31,8 @@ export default function OpsJournalSpotCard({
   onRemoveSpot,
   reopeningSpotId = null,
   onMarkActionDone,
+  onMarkSpotDone,
+  markingSpotDone = false,
   markingDoneActionId = null,
   assignableUsers = [],
   allUsers = [],
@@ -275,6 +277,20 @@ export default function OpsJournalSpotCard({
               >
                 <Trash2 size={13} />
                 <span>Xóa khỏi danh sách</span>
+              </button>
+            )}
+
+            {/* Accept every reported row of the spot at once (the team sends ONE report) */}
+            {isFinalized && !isClosed && onMarkSpotDone && (spot.actions || []).some((a) => a.status === 'REPORTED') && (
+              <button
+                type="button"
+                onClick={() => onMarkSpotDone(spot.id)}
+                disabled={markingSpotDone}
+                className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white shadow-sm hover:bg-emerald-700 transition-colors cursor-pointer disabled:opacity-50"
+                title="Xác nhận hoàn thành mọi dòng đã có báo cáo của điểm đen này"
+              >
+                <CheckCircle2 size={13} />
+                <span>{markingSpotDone ? 'Đang xác nhận...' : `Xác nhận hoàn thành tất cả (${(spot.actions || []).filter((a) => a.status === 'REPORTED').length} dòng)`}</span>
               </button>
             )}
 

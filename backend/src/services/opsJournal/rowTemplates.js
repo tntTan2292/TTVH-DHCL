@@ -29,7 +29,7 @@ function bcvhNameOf(officeCode, title) {
  * @param people assignable accounts of the unit: { id, name, position, byOffice, byIndicator }
  * @returns 4 rows: { whoText, what, where, due, how, expectedResult, assigneeUserIds }
  */
-function buildRows(spot, people = []) {
+function buildRowsRaw(spot, people = []) {
     const m = spot.metrics || {};
     const D = spot.day;
     const D1 = shift(D, 1);
@@ -167,6 +167,16 @@ function buildRows(spot, people = []) {
             expectedResult: `Có giải pháp cải tiến cụ thể cho từng tuyến phát, áp dụng từ ngày ${dm(D1)}`, assigneeUserIds: ids(unitCq, gdIds) },
         follow(nameOnly(unitCq, cqUnitText), ids(unitCq), `của ${bcvh}`),
     ];
+}
+
+/**
+ * Every row names the whole team of the spot (the unit's Giám đốc BCVH and Chuyên quản, the indicator's specialist): the roles stay in
+ * the "Ai" text as in the PL06, but the two of them must agree and ONE reports for the spot (PO 2026-10-30), so either can.
+ */
+function buildRows(spot, people = []) {
+    const rows = buildRowsRaw(spot, people);
+    const team = [...new Set(rows.flatMap((r) => r.assigneeUserIds))];
+    return rows.map((r) => ({ ...r, assigneeUserIds: team }));
 }
 
 module.exports = { buildRows };

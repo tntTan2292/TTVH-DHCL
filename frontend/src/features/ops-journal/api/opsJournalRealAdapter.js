@@ -262,6 +262,30 @@ export const opsJournalRealAdapter = {
   },
 
   /**
+   * POST /spots/:id/report -- ONE report for the whole spot (applies to every row of the spot that names the user)
+   */
+  async reportSpot(spotId, { status = 'REPORTED', causeText = '', reportText = '' } = {}) {
+    try {
+      const res = await api.post(`${BASE_URL}/spots/${encodeURIComponent(spotId)}/report`, { status, causeText, reportText });
+      return res.data;
+    } catch (err) {
+      return handleApiError(err, 'Không thể gửi báo cáo');
+    }
+  },
+
+  /**
+   * POST /spots/:id/done (manager) -- accepts every reported row of the spot
+   */
+  async markSpotDone(spotId) {
+    try {
+      const res = await api.post(`${BASE_URL}/spots/${encodeURIComponent(spotId)}/done`);
+      return res.data;
+    } catch (err) {
+      return handleApiError(err, 'Không thể xác nhận hoàn thành');
+    }
+  },
+
+  /**
    * POST /actions/:id/report
    */
   async reportAction(actionId, { status = 'REPORTED', causeText = '', reportText = '' } = {}) {

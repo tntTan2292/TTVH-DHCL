@@ -13,6 +13,7 @@ import opsJournalAdapter from './api/opsJournalApi.js';
 import { groupTasksByDay, getIndicatorChipStyle } from './opsJournalHelpers.js';
 import SpotMetricsSummary from './components/SpotMetricsSummary.jsx';
 import MyTaskRowItem from './components/MyTaskRowItem.jsx';
+import SpotReportForm from './components/SpotReportForm.jsx';
 import { ErrorLayout } from '../../components/common/StateLayouts.jsx';
 import { useAuth } from '../../auth/AuthContext.jsx';
 import { hasCapability } from '../../auth/accessModel.js';
@@ -63,36 +64,19 @@ export default function MyTasksPage() {
     }
   }, []);
 
-  const handleReportAction = async (rowId, { status, causeText, reportText }) => {
-    setReportingRowId(rowId);
+  // ONE report for the whole spot (PO 2026-10-30): the team agrees and one person reports to the leader
+  const handleReportSpot = async (spotId, { status, causeText, reportText }) => {
+    setReportingRowId(spotId);
     setAlert(null);
 
     try {
-      const res = await opsJournalAdapter.reportAction(rowId, {
+      const res = await opsJournalAdapter.reportSpot(spotId, {
         status,
         causeText,
         reportText,
       });
 
       if (res.success) {
-        // Update local tasks state
-        setTasks((prevTasks) =>
-          prevTasks.map((t) => ({
-            ...t,
-            myRows: (t.myRows || []).map((r) =>
-              r.id === rowId
-                ? {
-                    ...r,
-                    status: res.data.status,
-                    reportCause: res.data.reportCause,
-                    reportText: res.data.reportText,
-                    reportedAt: res.data.reportedAt,
-                  }
-                : r
-            ),
-          }))
-        );
-
         setAlert({
           type: 'success',
           message:
@@ -109,6 +93,7 @@ export default function MyTasksPage() {
             ? 'Không gửi được báo cáo: phiếu này có thể đã đóng, đang được chỉnh sửa hoặc không còn giao cho bạn. Hãy tải lại danh sách nhiệm vụ.'
             : (res.error?.message || 'Không thể gửi báo cáo kết quả.'),
         });
+        refreshTasks();
       }
     } catch (err) {
       setAlert({
@@ -314,12 +299,18 @@ export default function MyTasksPage() {
                             <MyTaskRowItem
                               key={row.id}
                               row={row}
-                              onReport={handleReportAction}
-                              onChanged={refreshTasks}
-                              reporting={reportingRowId === row.id}
+                              hideReportForm
                             />
                           ))}
                         </div>
+
+                        <SpotReportForm
+                          key={`${task.spotId}_${(task.myRows || []).map((r) => `${r.status}${r.reportedAt || ''}`).join('')}`}
+                          task={task}
+                          onReport={handleReportSpot}
+                          onChanged={refreshTasks}
+                          reporting={reportingRowId === task.spotId}
+                        />
                       </div>
                     </div>
                   );

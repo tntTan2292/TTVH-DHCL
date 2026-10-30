@@ -30,6 +30,7 @@ export default function OpsJournalAssignedPage({ initialDate = getVietnamToday()
   const [detailLoading, setDetailLoading] = useState(null);
   const [reopeningSpotId, setReopeningSpotId] = useState(null);
   const [markingDoneActionId, setMarkingDoneActionId] = useState(null);
+  const [markingSpotId, setMarkingSpotId] = useState(null);
   const [savingClosingSpotId, setSavingClosingSpotId] = useState(null);
   const [closingDay, setClosingDay] = useState(null);
 
@@ -91,6 +92,24 @@ export default function OpsJournalAssignedPage({ initialDate = getVietnamToday()
       setAlert({ type: 'error', message: err.message || 'Lỗi khi xác nhận hoàn thành.' });
     } finally {
       setMarkingDoneActionId(null);
+    }
+  };
+
+  const handleMarkSpotDone = async (spotId) => {
+    setMarkingSpotId(spotId);
+    setAlert(null);
+    try {
+      const res = await opsJournalAdapter.markSpotDone(spotId);
+      if (res.success) {
+        setAlert({ type: 'success', message: `Đã xác nhận hoàn thành ${res.data?.done ?? ''} dòng việc của điểm đen.` });
+        await refreshAfterChange(spotId);
+      } else {
+        setAlert({ type: 'error', message: res.error?.message || 'Không thể xác nhận hoàn thành.' });
+      }
+    } catch (err) {
+      setAlert({ type: 'error', message: err.message || 'Lỗi khi xác nhận hoàn thành.' });
+    } finally {
+      setMarkingSpotId(null);
     }
   };
 
@@ -343,6 +362,8 @@ export default function OpsJournalAssignedPage({ initialDate = getVietnamToday()
                             onReopenSpot={handleReopen}
                             reopeningSpotId={reopeningSpotId}
                             onMarkActionDone={handleMarkDone}
+                            onMarkSpotDone={handleMarkSpotDone}
+                            markingSpotDone={markingSpotId === item.id}
                             markingDoneActionId={markingDoneActionId}
                             onLoadAllUsers={noop}
                             isDayClosed={dayStatus(item.day) === 'CLOSED'}

@@ -352,6 +352,14 @@ export const opsJournalMockAdapter = {
     return { success: true, data: JSON.parse(JSON.stringify(day)) };
   },
 
+  async reportSpot(spotId, { status = 'REPORTED', causeText = '', reportText = '' } = {}) {
+    await sleep(60);
+    return { success: true, data: { spotId, actionIds: [], status, reportCause: causeText, reportText, reportedAt: Date.now() } };
+  },
+  async markSpotDone(spotId) {
+    await sleep(60);
+    return { success: true, data: { spotId, done: 0 } };
+  },
   async getAssigned(from, to) {
     const items = [];
     for (const day of mockDaysStore.values()) {

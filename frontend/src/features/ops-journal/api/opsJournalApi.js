@@ -78,6 +78,14 @@ export const opsJournalAdapter = {
     const adapter = await getDelegate();
     return adapter.getAssigned(...args);
   },
+  async reportSpot(...args) {
+    const adapter = await getDelegate();
+    return adapter.reportSpot(...args);
+  },
+  async markSpotDone(...args) {
+    const adapter = await getDelegate();
+    return adapter.markSpotDone(...args);
+  },
   async removeSpot(...args) {
     const adapter = await getDelegate();
     return adapter.removeSpot(...args);
