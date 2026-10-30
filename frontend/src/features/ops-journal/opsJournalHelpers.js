@@ -373,18 +373,6 @@ export function validateSpotCompleteness(spot) {
       };
     }
 
-    const hasAssignee = Array.isArray(act.assigneeUserIds) && act.assigneeUserIds.length > 0;
-
-    if (!hasAssignee) {
-      return {
-        valid: false,
-        code: 'SPOT_INCOMPLETE',
-        spotId: spot.id,
-        spotTitle: title,
-        rowSeq: seq,
-        message: `Điểm đen "${title}": dòng số ${seq} chưa có người thực hiện (Ai).`,
-      };
-    }
   }
 
   return {

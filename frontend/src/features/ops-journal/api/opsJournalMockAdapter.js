@@ -329,16 +329,6 @@ export const opsJournalMockAdapter = {
             },
           };
         }
-        const hasAssignee = Array.isArray(act.assigneeUserIds) && act.assigneeUserIds.length > 0;
-        if (!hasAssignee) {
-          return {
-            success: false,
-            error: {
-              code: 'SPOT_INCOMPLETE',
-              message: `Điểm đen "${spot.title}": dòng số ${act.seq || idx + 1} chưa chọn người thực hiện.`,
-            },
-          };
-        }
       }
     }
 

@@ -324,9 +324,10 @@ async function finalizeSpots(db, { date, spotIds, actor }) {
             if (spot.status !== 'DRAFT') throw new JournalError('LOCKED', `Điểm đen "${spot.title}" đã được chốt.`, 409);
             const rows = await db.all('SELECT * FROM ops_journal_action WHERE spot_id = ? ORDER BY seq', [id]);
             if (!rows.length) throw new JournalError('SPOT_INCOMPLETE', `Điểm đen "${spot.title}" chưa có dòng "6 rõ" nào.`);
+            // a row nobody is named on is allowed (the unit has no account on record, or the work is outside QIS, e.g. F1.2): the
+            // PO's flow is "just press chốt" and the Word / PDF is the deliverable; such a row simply has no task screen
             for (const row of rows) {
-                const assignees = await db.get('SELECT COUNT(*) AS n FROM ops_journal_action_assignee WHERE action_id = ?', [row.id]);
-                if (!row.what || !assignees.n) throw new JournalError('SPOT_INCOMPLETE', `Điểm đen "${spot.title}", dòng ${row.seq}: cần "Làm gì" và ít nhất một người được giao.`);
+                if (!row.what) throw new JournalError('SPOT_INCOMPLETE', `Điểm đen "${spot.title}", dòng ${row.seq}: cần "Làm gì".`);
             }
             await db.run('UPDATE ops_journal_action SET assigned_at = COALESCE(assigned_at, ?), status = CASE WHEN status = ? THEN ? ELSE status END WHERE spot_id = ?', [t, 'DRAFT', 'ASSIGNED', id]);
             await db.run("UPDATE ops_journal_spot SET status = 'FINALIZED', finalized_at = ?, finalized_by = ? WHERE id = ?", [t, actor.id, id]);

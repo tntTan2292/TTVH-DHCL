@@ -374,17 +374,33 @@ export default function OpsJournalSpotCard({
       {/* Spot Card Body: 6-rõ Table */}
       <div className="p-4 sm:p-5">
         {isDraft ? (
-          <SpotActionEditor
-            spot={spot}
-            actions={actions}
-            onChangeActions={handleActionsChange}
-            assignableUsers={spotAssignableUsers}
-            allUsers={spotAllUsers}
-            onLoadAllUsers={handleToggleLoadAllUsersLocal}
-            showAllUsers={showAllUsersLocal}
-            onSaveActions={handleSaveActionsLocal}
-            saving={savingActionsSpotId === spot.id}
-          />
+          <>
+            {/* The system drafted the rows: press Chốt to get the Word / PDF; edit the file after downloading it */}
+            <SpotActionReadOnlyTable
+              spot={spot}
+              actions={spot.actions || []}
+              assignableUsers={spotAssignableUsers}
+              isClosed
+            />
+            <details className="mt-3 text-xs" open={isDirty}>
+              <summary className="cursor-pointer select-none font-semibold text-blue-700 hover:underline">
+                Sửa các dòng ngay trong hệ thống (không bắt buộc - có thể tải Word về sửa)
+              </summary>
+              <div className="mt-3">
+                <SpotActionEditor
+                  spot={spot}
+                  actions={actions}
+                  onChangeActions={handleActionsChange}
+                  assignableUsers={spotAssignableUsers}
+                  allUsers={spotAllUsers}
+                  onLoadAllUsers={handleToggleLoadAllUsersLocal}
+                  showAllUsers={showAllUsersLocal}
+                  onSaveActions={handleSaveActionsLocal}
+                  saving={savingActionsSpotId === spot.id}
+                />
+              </div>
+            </details>
+          </>
         ) : (
           <SpotActionReadOnlyTable
             spot={spot}
@@ -398,16 +414,21 @@ export default function OpsJournalSpotCard({
 
         {/* Phase B3: End-of-day closing form for Finalized or Closed spots */}
         {(isFinalized || isClosed) && (
-          <div className="mt-5 border-t border-slate-100 pt-5">
-            <SpotClosingForm
-              spot={spot}
-              closing={spot.closing}
-              draft={spot.closingDraft}
-              onSaveClosing={onSaveClosing}
-              saving={savingClosingSpotId === spot.id}
-              isClosed={isClosed}
-            />
-          </div>
+          <details className="mt-5 border-t border-slate-100 pt-4 text-xs" open={Boolean(spot.closing)}>
+            <summary className="cursor-pointer select-none font-semibold text-blue-700 hover:underline">
+              Kết quả cuối ngày và bài học (đã soạn sẵn trong file Word - chỉ mở nếu muốn sửa)
+            </summary>
+            <div className="mt-4">
+              <SpotClosingForm
+                spot={spot}
+                closing={spot.closing}
+                draft={spot.closingDraft}
+                onSaveClosing={onSaveClosing}
+                saving={savingClosingSpotId === spot.id}
+                isClosed={isClosed}
+              />
+            </div>
+          </details>
         )}
       </div>
 

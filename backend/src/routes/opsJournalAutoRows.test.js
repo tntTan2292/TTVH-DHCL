@@ -133,3 +133,15 @@ test('a draft spot can be removed by the manager; a finalized one, an unknown id
     assert.equal(refused.body.error.code, 'LOCKED');
     assert.equal((await get('SELECT COUNT(*) AS n FROM ops_journal_spot WHERE id = ?', [thuan.id])).n, 1);
 });
+
+test('just press chốt: a spot whose rows name nobody (no account on record) is finalized and exportable', async () => {
+    const picked = await call(GD, 'PUT', `/days/${DAY}/spots`, { candidateIds: ids(['533140', '537220']) });
+    assert.equal(picked.status, 200, JSON.stringify(picked.body));
+    const loc = picked.body.data.spots.find((s) => s.officeCode === '537220');
+    assert.ok(loc.actions.every((r) => r.assigneeUserIds.length === 0 || r.assigneeUserIds.length > 0));
+    assert.deepEqual(loc.actions[0].assigneeUserIds, []);
+    const done = await call(GD, 'POST', `/days/${DAY}/assign`, { spotIds: [loc.id] });
+    assert.equal(done.status, 200, JSON.stringify(done.body));
+    assert.equal(done.body.data.spots.find((s) => s.id === loc.id).status, 'FINALIZED');
+    assert.equal(done.body.data.spots.find((s) => s.id === loc.id).closingDraft.doneTime, '17:00');
+});

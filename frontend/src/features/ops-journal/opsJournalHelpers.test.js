@@ -258,9 +258,7 @@ test('validateSpotCompleteness and canAssignSpot enforce completeness rules', ()
     ],
   };
   const resAssignee = validateSpotCompleteness(missingAssigneeSpot);
-  assert.equal(resAssignee.valid, false);
-  assert.equal(resAssignee.code, 'SPOT_INCOMPLETE');
-  assert.match(resAssignee.message, /chưa có người thực hiện/i);
+  assert.equal(resAssignee.valid, true, 'a row without a named person can be finalized (the Word is the deliverable)');
 });
 
 test('validateSpotsForAssign checks all target spots for batch assign', () => {
