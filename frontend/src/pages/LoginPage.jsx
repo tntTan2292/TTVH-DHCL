@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { User, Lock, Eye, EyeOff, ShieldCheck, LoaderCircle, AlertCircle } from 'lucide-react';
 import { useAuth } from '../auth/AuthContext';
+import { armWelcome } from '../components/welcome/welcomeMessage.js';
 
 export default function LoginPage() {
     const { login } = useAuth();
@@ -25,6 +26,7 @@ export default function LoginPage() {
 
         try {
             const res = await login(username, password);
+            armWelcome();
             if (res?.data?.user?.must_change_password) {
                 navigate('/change-password', { replace: true });
             } else {

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
 import { ChevronDown, ChevronLeft, ChevronRight, Search, CalendarDays, Filter, LoaderCircle, AlertTriangle, Pin } from 'lucide-react';
 import Topbar from '../Topbar';
+import WelcomeToast from '../welcome/WelcomeToast.jsx';
 import CollapsedFlyout from '../CollapsedFlyout';
 import { useAuth } from '../../auth/AuthContext';
 import { getNavigationForRole, getMyTasksNavItem } from '../../navigation/appNavigation.jsx';
@@ -785,6 +786,7 @@ export function SharedLayout({
 
       {loadingOverlay}
       {errorOverlay}
+      <WelcomeToast />
     </div>
   );
 }
