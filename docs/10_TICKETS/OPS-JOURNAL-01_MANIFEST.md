@@ -42,7 +42,7 @@ Verdict: **do not hand the whole feature to Antigravity.** Doing so would put pe
 - New position `GD_TTVH` (tier LEADER, rank above `LD_TTVH`) in `backend/src/services/auth/access/roles.js`, assigned **only** to Mai Văn Mười; capability `journal.manage`. The other BĐTP / TTVH leaders do **not** get it (PO: "chỉ Giám đốc TTVH"). Admin gets `journal.manage` for support, to confirm (Section 8, item 1).
 - Assignee needs no capability: a user has access to a **task** when an `ops_journal_action` row names them and the leader has pressed Giao việc. Everything else returns 404 (not 403) so existence is not disclosed.
 - Candidates are computed from the existing services for the **latest loaded data day** (N-1), compared with the same weekday last week, with a minimum-volume floor per indicator. Up to **20 candidates**, ranked; the leader ticks 5-10 and can add a manual spot. Default pre-selection: top 8, at most 3 per indicator. Ranking score (to confirm, Section 8, item 2): failed parcels x week-on-week drop, hàng tồn by parcels ≥5 days and COD.
-- Output file name `PL06 - Nhat ky dieu hanh dd.mm.yyyy.docx/.pdf` (same as the PO's files). One file per day with all selected spots.
+- Output file name `PL06 - Nhat ky dieu hanh dd.mm.yyyy.docx/.pdf` (same as the PO's files). One file per finalized spot (PO decision 2026-10-30, Section 8 item 3), not per day.
 - Word via the `docx` npm package (new backend dependency; alternative: fill the PO's `.docx` as template). PDF via the Playwright already in `backend/package.json`, from the same HTML print view, or LibreOffice-free. Fonts must carry Vietnamese (Times New Roman / Arial as in the PL06 files).
 - Tables are append-only where history matters (`ops_journal_action_log`), as in HANGTON-HANDLING-01.
 
@@ -62,9 +62,9 @@ Leader (`journal.manage`):
 - `GET /days/:date` -> `{ date, status, spots: [{ id, indicator, ...fields above, actions: [...], closing }] }`
 - `PUT /days/:date/spots` body `{ candidateIds: [], manual: [{ indicator, officeCode, title, headline }] }` (5-10 enforced) -> day.
 - `PUT /spots/:id/actions` body `{ actions: [{ seq, whoText, assigneeUserIds, what, where, due, how, expectedResult }] }`.
-- `POST /days/:date/assign` body `{ spotIds: [] }` -> status ASSIGNED, `assigned_at` set.
+- `POST /days/:date/assign` body `{ spotIds: [] }` -> finalizes (chốt) the given spots, status ASSIGNED, `assigned_at` set; content is locked afterwards.
 - `PUT /spots/:id/closing`, `POST /days/:date/close`.
-- `GET /days/:date/export?format=docx|pdf` -> file stream.
+- `GET /spots/:id/export?format=docx|pdf` -> file stream, one PL06 per spot, only after the spot is finalized.
 - `GET /assignable-users?officeCode=` -> users who hold a Giám đốc / Chuyên quản position for that office or indicator (from RBAC scope).
 
 Assignee (any signed-in user; rows filtered server-side):
@@ -87,13 +87,14 @@ Frontend gate (cosmetic, backend is the real one): "Nhật ký điều hành" me
 
 A and B are independent and can run in either order. Phase 2 (later): week-over-week follow-up of closed spots, auto "carry over" of unresolved spots to the next day, statistics of causes.
 
-## 8. Open PO decisions (business only; defaults above apply if the PO does not object)
+## 8. PO decisions (answered 2026-10-30)
 
-1. Admin account sees the module (for support): default **yes**.
-2. Ranking rule for suggestions: default failed parcels x week-on-week drop; hàng tồn by parcels ≥5 days and COD.
-3. One Word / PDF per day with all 5-10 spots (default), or one file per spot?
-4. Does a BCVH Giám đốc report back inside QIS (default **yes**, Phase 1: status + cause + free text) or only on paper?
-5. Spots not resolved by the end of the day: carry to next day (Phase 2) - keep as a later item.
+1. Admin account sees the module (for support): **yes**.
+2. Ranking rule for suggestions: **default** (failed parcels x week-on-week drop; hàng tồn by parcels ≥5 days and COD).
+3. Export: **one Word / PDF file per black spot (per indicator), not one per day**. The Giám đốc TTVH picks which spots to generate; each file is addressed to the individual Chuyên quản BCVH and Giám đốc BCVH concerned, like the current paper journals. Flow (PO correction 2026-10-30): the **Giám đốc TTVH** edits the 6-rõ content, then finalizes (chốt) it to assign the work to the Chuyên quản + Giám đốc BCVH concerned; only after that is the Word / PDF printed. The BCVH side does not edit the journal content; it reports back (item 4). This supersedes the "one file per day" decision in Section 4 and the `GET /days/:date/export` contract in Section 6 (now per spot: `GET /spots/:id/export?format=docx|pdf`, available once the spot is finalized).
+4. A BCVH Giám đốc reports back **inside QIS** (Phase 1: status + cause + free text): **yes**.
+5. Spots not resolved by the end of the day: carry to next day - kept as a Phase 2 item.
+6. Resolved: only the Giám đốc TTVH edits and finalizes a spot's 6-rõ content. Technical default (may change): after finalizing, content is locked; a correction reopens the spot and is written to `ops_journal_action_log`, and the assignee is notified.
 
 ## 9. Report-screen standard
 
