@@ -9,6 +9,12 @@ const visibility = require('../services/opsJournal/visibility');
 const candidateService = require('../services/opsJournal/candidateService');
 const journal = require('../services/opsJournal/journalService');
 const exporter = require('../services/opsJournal/exportService');
+const attachments = require('../services/opsJournal/attachmentService');
+const notifications = require('../services/opsJournal/notificationService');
+const multer = require('multer');
+const fs = require('fs');
+
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: attachments.MAX_BYTES, files: 1 } });
 
 function createOpsJournalRouter({ db = require('../config/db'), adapters = null } = {}) {
     let sourceAdapters = adapters;
@@ -17,6 +23,8 @@ function createOpsJournalRouter({ db = require('../config/db'), adapters = null 
     const wrap = (handler) => (req, res) => handler(req, res).catch((error) => {
         if (error instanceof visibility.NotFoundError) return notFound(res);
         if (error instanceof candidateService.DataUpdatingError) return res.status(409).json({ success: false, error: { code: error.code, message: error.message } });
+        if (error && error.code === 'LIMIT_FILE_SIZE') return res.status(413).json({ success: false, error: { code: 'FILE_TOO_BIG', message: 'Tệp quá lớn (tối đa 15 MB).' } });
+        if (error && typeof error.code === 'string' && error.code.startsWith('LIMIT_')) return res.status(400).json({ success: false, error: { code: 'BAD_UPLOAD', message: 'Tệp tải lên không hợp lệ.' } });
         if (error instanceof journal.JournalError) return res.status(error.status).json({ success: false, error: { code: error.code, message: error.message } });
         console.error('[ops-journal]', error);
         return res.status(500).json({ success: false, error: { code: 'OPS_JOURNAL_ERROR', message: 'Lỗi hệ thống' } });
@@ -72,6 +80,36 @@ function createOpsJournalRouter({ db = require('../config/db'), adapters = null 
         res.json({ success: true, data: await journal.report(db, {
             actionId: req.params.id, status: req.body?.status, causeText: req.body?.causeText, reportText: req.body?.reportText, actor: journal.actorOf(req.auth.user),
         }) });
+    }));
+
+    // Evidence files on a report. The right to attach is checked BEFORE the upload body is read, so a stranger cannot make the server
+    // buffer 15 MB, and gets the plain 404.
+    router.post('/actions/:id/attachments', wrap(async (req, res) => {
+        const user = req.auth.user;
+        if (!(await attachments.canAttach(db, { actionId: req.params.id, userId: user.id ?? null }))) return notFound(res);
+        await new Promise((resolve, reject) => upload.single('file')(req, res, (error) => (error ? reject(error) : resolve())));
+        const saved = await attachments.addAttachment(db, { actionId: req.params.id, file: req.file, actor: journal.actorOf(user) });
+        res.json({ success: true, data: saved });
+    }));
+    router.get('/attachments/:id', wrap(async (req, res) => {
+        const file = await attachments.readAttachment(db, { attachmentId: req.params.id, userId: req.auth.user.id ?? null, isManager: visibility.isManager(req.access) });
+        res.status(200);
+        res.setHeader('Content-Type', file.mime);
+        res.setHeader('X-Content-Type-Options', 'nosniff');
+        res.setHeader('Content-Disposition', `attachment; filename="${file.name.replace(/[^ -~]/g, '_').replace(/"/g, '_')}"; filename*=UTF-8''${encodeURIComponent(file.name)}`);
+        res.setHeader('Content-Length', String(file.size));
+        fs.createReadStream(file.path).on('error', () => res.destroy()).pipe(res);
+    }));
+    router.delete('/attachments/:id', wrap(async (req, res) => {
+        res.json({ success: true, data: await attachments.removeAttachment(db, { attachmentId: req.params.id, actor: journal.actorOf(req.auth.user) }) });
+    }));
+
+    // The user's own notifications (new task, a report came in, a row accepted).
+    router.get('/notifications', wrap(async (req, res) => {
+        res.json({ success: true, data: await notifications.listNotifications(db, who(req)) });
+    }));
+    router.post('/notifications/read', wrap(async (req, res) => {
+        res.json({ success: true, data: await notifications.markRead(db, { userId: req.auth.user.id ?? null, ids: req.body?.ids, all: req.body?.all === true }) });
     }));
 
     // One PL06 (Word or PDF) per finalized spot. Manager only; the file is never cached.

@@ -274,6 +274,27 @@ export function getSpotReasons(indicator, metrics, scopeType = 'BCVH') {
   return reasons;
 }
 
+/** "1,2 MB" / "340 KB" for an attachment. */
+export function formatFileSize(bytes) {
+  const n = Number(bytes) || 0;
+  if (n >= 1024 * 1024) return `${(n / 1024 / 1024).toLocaleString('vi-VN', { maximumFractionDigits: 1 })} MB`;
+  return `${Math.max(1, Math.round(n / 1024)).toLocaleString('vi-VN')} KB`;
+}
+
+/** "5 phút trước", "3 giờ trước", else the date; for the notification list. */
+export function timeAgoText(timestamp, now = Date.now()) {
+  const diff = Math.max(0, now - Number(timestamp));
+  const minutes = Math.floor(diff / 60000);
+  if (minutes < 1) return 'vừa xong';
+  if (minutes < 60) return `${minutes} phút trước`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours} giờ trước`;
+  return new Date(Number(timestamp)).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' });
+}
+
+export const ATTACHMENT_ACCEPT = '.xlsx,.xls,.csv,.pdf,.doc,.docx,.jpg,.jpeg,.png';
+export const ATTACHMENT_MAX_BYTES = 15 * 1024 * 1024;
+
 export const MAX_ACTIONS_PER_SPOT = 12;
 export const DEFAULT_DUE_TEXT = 'Trong ngày';
 

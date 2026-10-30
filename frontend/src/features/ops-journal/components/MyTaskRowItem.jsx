@@ -1,21 +1,39 @@
 import React, { useState } from 'react';
-import { Clock, Send, PlayCircle, CheckCircle2, AlertCircle } from 'lucide-react';
-import { isRowLocked, validateReportInput } from '../opsJournalHelpers.js';
+import { Clock, Send, PlayCircle, CheckCircle2, AlertCircle, Paperclip, X } from 'lucide-react';
+import { isRowLocked, validateReportInput, formatFileSize, ATTACHMENT_ACCEPT, ATTACHMENT_MAX_BYTES } from '../opsJournalHelpers.js';
+import opsJournalAdapter from '../api/opsJournalApi.js';
+import AttachmentList from './AttachmentList.jsx';
 
 export default function MyTaskRowItem({
   row,
   onReport,
+  onChanged,
   reporting = false,
 }) {
   const [causeText, setCauseText] = useState(row.reportCause || '');
   const [reportText, setReportText] = useState(row.reportText || '');
   const [localError, setLocalError] = useState('');
+  const [pendingFiles, setPendingFiles] = useState([]);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = React.useRef(null);
+
+  const handlePick = (event) => {
+    const picked = Array.from(event.target.files || []);
+    event.target.value = '';
+    const tooBig = picked.find((f) => f.size > ATTACHMENT_MAX_BYTES);
+    if (tooBig) {
+      setLocalError(`Tệp "${tooBig.name}" quá lớn (tối đa 15 MB).`);
+      return;
+    }
+    setLocalError('');
+    setPendingFiles((prev) => [...prev, ...picked].slice(0, 10));
+  };
 
   const locked = isRowLocked(row.status);
   const isReported = row.status === 'REPORTED';
   const isInProgress = row.status === 'IN_PROGRESS';
 
-  const handleActionClick = (targetStatus) => {
+  const handleActionClick = async (targetStatus) => {
     setLocalError('');
 
     const validation = validateReportInput({
@@ -26,6 +44,23 @@ export default function MyTaskRowItem({
     if (!validation.valid) {
       setLocalError(validation.message);
       return;
+    }
+
+    // evidence first, so the notification of the report can say how many files came with it
+    if (pendingFiles.length) {
+      setUploading(true);
+      try {
+        for (const file of pendingFiles) {
+          const res = await opsJournalAdapter.uploadAttachment(row.id, file);
+          if (!res.success) {
+            setLocalError(`Không đính kèm được "${file.name}": ${res.error?.message || 'lỗi không xác định'}. Báo cáo chưa được gửi.`);
+            return;
+          }
+        }
+        setPendingFiles([]);
+      } finally {
+        setUploading(false);
+      }
     }
 
     onReport(row.id, {
@@ -124,6 +159,13 @@ export default function MyTaskRowItem({
         </div>
       )}
 
+      {/* Evidence already attached to this row (shared with the other people on the row) */}
+      <AttachmentList
+        attachments={row.attachments || []}
+        canRemove={() => !locked}
+        onRemoved={() => onChanged && onChanged()}
+      />
+
       {/* Validation Error Banner */}
       {localError && (
         <div className="mt-3 flex items-center gap-2 rounded-lg bg-rose-50 border border-rose-200 p-2 text-xs font-bold text-rose-800">
@@ -166,6 +208,51 @@ export default function MyTaskRowItem({
           />
         </div>
 
+        {/* Evidence files: Excel data, scanned minutes ... sent together with the report */}
+        {!locked && (
+          <div>
+            <div className="flex flex-wrap items-center gap-2">
+              <input
+                ref={fileInputRef}
+                id={`files_${row.id}`}
+                type="file"
+                multiple
+                accept={ATTACHMENT_ACCEPT}
+                onChange={handlePick}
+                className="hidden"
+              />
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-dashed border-slate-300 bg-white px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-50 cursor-pointer"
+              >
+                <Paperclip size={13} />
+                <span>Đính kèm file minh chứng</span>
+              </button>
+              <span className="text-[11px] text-slate-400">Excel, PDF/ảnh scan biên bản, Word (tối đa 15 MB/tệp)</span>
+            </div>
+            {pendingFiles.length > 0 && (
+              <ul className="mt-2 space-y-1" data-testid="pending-files">
+                {pendingFiles.map((file, index) => (
+                  <li key={`${file.name}_${index}`} className="flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50/60 px-2 py-1 text-[11px]">
+                    <Paperclip size={12} className="shrink-0 text-blue-600" />
+                    <span className="min-w-0 flex-1 truncate font-semibold text-slate-800">{file.name}</span>
+                    <span className="shrink-0 text-slate-500">{formatFileSize(file.size)}</span>
+                    <button
+                      type="button"
+                      onClick={() => setPendingFiles((prev) => prev.filter((_, i) => i !== index))}
+                      className="shrink-0 rounded p-0.5 text-rose-500 hover:bg-rose-50 cursor-pointer"
+                      aria-label={`Bỏ tệp ${file.name}`}
+                    >
+                      <X size={13} />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        )}
+
         {/* Action Buttons */}
         {!locked && (
           <div className="flex flex-wrap items-center justify-end gap-2 pt-1">
@@ -173,7 +260,7 @@ export default function MyTaskRowItem({
             <button
               type="button"
               onClick={() => handleActionClick('IN_PROGRESS')}
-              disabled={reporting}
+              disabled={reporting || uploading}
               className={`inline-flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-bold shadow-2xs transition-all cursor-pointer disabled:opacity-50 ${
                 isInProgress
                   ? 'border-amber-300 bg-amber-50 text-amber-800'
@@ -189,12 +276,12 @@ export default function MyTaskRowItem({
             <button
               type="button"
               onClick={() => handleActionClick('REPORTED')}
-              disabled={reporting}
+              disabled={reporting || uploading}
               className="inline-flex items-center gap-1.5 rounded-xl bg-blue-600 px-3.5 py-1.5 text-xs font-bold text-white shadow-sm hover:bg-blue-700 active:scale-98 transition-all cursor-pointer disabled:opacity-50"
               title="Gửi báo cáo kết quả hoàn thành dòng công việc"
             >
               <Send size={13} />
-              <span>{reporting ? 'Đang gửi...' : 'Gửi báo cáo'}</span>
+              <span>{uploading ? 'Đang tải tệp...' : (reporting ? 'Đang gửi...' : 'Gửi báo cáo')}</span>
             </button>
           </div>
         )}

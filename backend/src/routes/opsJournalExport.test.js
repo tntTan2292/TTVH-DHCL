@@ -17,6 +17,7 @@ process.env.QIS_TEST_DB_PATH = dbFile;
 
 const { db, run, get, all } = require('../config/db');
 const { applyOpsJournal01Schema } = require('../../migrate_ops_journal_01_schema');
+const { applyOpsJournal02Schema } = require('../../migrate_ops_journal_02_schema');
 const { applyRbac01Schema } = require('../../migrate_rbac_01_schema');
 const authSessionStore = require('../services/auth/AuthSessionStore');
 const { resolveAccess } = require('../services/auth/access/resolveAccess');
@@ -34,6 +35,7 @@ const ids = {};
 test.before(async () => {
     await applyRbac01Schema(dbFile);
     await applyOpsJournal01Schema(dbFile);
+    await applyOpsJournal02Schema(dbFile);
     await run("INSERT INTO qis_user (id, username, display_name, tier, position, password_hash, must_change_password, is_active, created_at, updated_at) VALUES (301, 'muoi', 'Mai Văn Mười', 'LEADER', 'GD_TTVH', 'x', 0, 1, 1, 1)");
     const finalizedAt = Date.parse('2026-10-23T08:10:00+07:00');
     const spot = async (title, status, closing) => {

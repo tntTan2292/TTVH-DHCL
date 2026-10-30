@@ -54,6 +54,26 @@ export const opsJournalAdapter = {
     const adapter = await getDelegate();
     return adapter.reopenSpot(...args);
   },
+  async uploadAttachment(...args) {
+    const adapter = await getDelegate();
+    return adapter.uploadAttachment(...args);
+  },
+  async downloadAttachment(...args) {
+    const adapter = await getDelegate();
+    return adapter.downloadAttachment(...args);
+  },
+  async removeAttachment(...args) {
+    const adapter = await getDelegate();
+    return adapter.removeAttachment(...args);
+  },
+  async getNotifications(...args) {
+    const adapter = await getDelegate();
+    return adapter.getNotifications(...args);
+  },
+  async markNotificationsRead(...args) {
+    const adapter = await getDelegate();
+    return adapter.markNotificationsRead(...args);
+  },
   async removeSpot(...args) {
     const adapter = await getDelegate();
     return adapter.removeSpot(...args);

@@ -88,6 +88,70 @@ export const opsJournalRealAdapter = {
   },
 
   /**
+   * POST /actions/:id/attachments  (multipart, field "file"): evidence file of a report
+   */
+  async uploadAttachment(actionId, file) {
+    try {
+      const body = new FormData();
+      body.append('file', file, file.name);
+      const res = await api.post(`${BASE_URL}/actions/${encodeURIComponent(actionId)}/attachments`, body);
+      return res.data;
+    } catch (err) {
+      return handleApiError(err, `Không thể tải lên tệp "${file?.name || ''}"`);
+    }
+  },
+
+  /**
+   * GET /attachments/:id -> { success, data: Blob, filename }
+   */
+  async downloadAttachment(attachmentId) {
+    try {
+      const res = await api.get(`${BASE_URL}/attachments/${encodeURIComponent(attachmentId)}`, { responseType: 'blob' });
+      const disposition = res.headers?.['content-disposition'] || '';
+      const utf8 = disposition.match(/filename\*=UTF-8''([^;]+)/i);
+      return { success: true, data: res.data, filename: utf8 ? decodeURIComponent(utf8[1]) : '' };
+    } catch (err) {
+      return handleApiError(err, 'Không thể tải tệp đính kèm');
+    }
+  },
+
+  /**
+   * DELETE /attachments/:id  (the uploader, until the manager accepts the row)
+   */
+  async removeAttachment(attachmentId) {
+    try {
+      const res = await api.delete(`${BASE_URL}/attachments/${encodeURIComponent(attachmentId)}`);
+      return res.data;
+    } catch (err) {
+      return handleApiError(err, 'Không thể gỡ tệp đính kèm');
+    }
+  },
+
+  /**
+   * GET /notifications -> { items, unread, hasAny }
+   */
+  async getNotifications() {
+    try {
+      const res = await api.get(`${BASE_URL}/notifications`);
+      return res.data;
+    } catch (err) {
+      return handleApiError(err, 'Không thể tải thông báo');
+    }
+  },
+
+  /**
+   * POST /notifications/read  { ids } or { all: true }
+   */
+  async markNotificationsRead({ ids = [], all = false } = {}) {
+    try {
+      const res = await api.post(`${BASE_URL}/notifications/read`, all ? { all: true } : { ids });
+      return res.data;
+    } catch (err) {
+      return handleApiError(err, 'Không thể đánh dấu đã đọc');
+    }
+  },
+
+  /**
    * DELETE /spots/:id  (a DRAFT spot that was never finalized and holds no report)
    */
   async removeSpot(spotId) {

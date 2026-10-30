@@ -16,6 +16,7 @@ process.env.QIS_TEST_DB_PATH = dbFile;
 const dbModule = require('../config/db');
 const { db, run, get, all } = dbModule;
 const { applyOpsJournal01Schema } = require('../../migrate_ops_journal_01_schema');
+const { applyOpsJournal02Schema } = require('../../migrate_ops_journal_02_schema');
 const { applyHangtonInventory01Schema } = require('../../migrate_hangton_inventory_01_schema');
 const { applyRbac01Schema } = require('../../migrate_rbac_01_schema');
 const authSessionStore = require('../services/auth/AuthSessionStore');
@@ -35,6 +36,7 @@ test.before(async () => {
     await applyRbac01Schema(dbFile);
     await applyHangtonInventory01Schema(dbFile);
     await applyOpsJournal01Schema(dbFile);
+    await applyOpsJournal02Schema(dbFile);
     for (const id of [401, 402, 403]) {
         await run('INSERT INTO qis_user (id, username, display_name, tier, position, password_hash, must_change_password, is_active, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, 0, 1, 1, 1)',
             [id, `u${id}`, `u${id}`, 'STAFF', 'CHUYEN_QUAN', 'x']);

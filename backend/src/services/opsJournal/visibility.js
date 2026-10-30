@@ -108,6 +108,21 @@ function presentClosing(row) {
     };
 }
 
+/** The evidence files of rows: { id, name, size, uploadedAt, uploadedByName }, oldest first. */
+async function attachmentsByAction(db, actionIds) {
+    const map = new Map();
+    if (!actionIds.length) return map;
+    const rows = await db.all(
+        `SELECT f.id, f.action_id, f.file_name, f.size, f.uploaded_at, f.uploaded_by, COALESCE(NULLIF(u.display_name, ''), u.username) AS by_name
+           FROM ops_journal_attachment f LEFT JOIN qis_user u ON u.id = f.uploaded_by
+          WHERE f.action_id IN (${actionIds.map(() => '?').join(',')}) ORDER BY f.id`, actionIds);
+    for (const r of rows) {
+        if (!map.has(r.action_id)) map.set(r.action_id, []);
+        map.get(r.action_id).push({ id: r.id, name: r.file_name, size: r.size, uploadedAt: r.uploaded_at, uploadedBy: r.uploaded_by, uploadedByName: r.by_name });
+    }
+    return map;
+}
+
 async function assigneesByAction(db, actionIds) {
     const map = new Map();
     if (!actionIds.length) return map;
@@ -123,6 +138,7 @@ async function assigneesByAction(db, actionIds) {
 async function managerSpot(db, spotRow) {
     const actions = await db.all('SELECT * FROM ops_journal_action WHERE spot_id = ? ORDER BY seq', [spotRow.id]);
     const assignees = await assigneesByAction(db, actions.map((a) => a.id));
+    const files = await attachmentsByAction(db, actions.map((a) => a.id));
     // protected = the spot holds a report (an assignee answered), so it can never be dropped, even as a DRAFT again after a reopen
     // (the screens lock and count it); a reopened spot nobody reported on is removable
     const flags = await db.get(
@@ -134,7 +150,7 @@ async function managerSpot(db, spotRow) {
         protected: Boolean(flags.protected),
         finalizedByName: flags.finalized_by_name || null,
         finalizedAt: spotRow.finalized_at,
-        actions: actions.map((a) => ({ ...presentRow(a), assignedAt: a.assigned_at, assigneeUserIds: assignees.get(a.id) || [] })),
+        actions: actions.map((a) => ({ ...presentRow(a), assignedAt: a.assigned_at, assigneeUserIds: assignees.get(a.id) || [], attachments: files.get(a.id) || [] })),
         closing: presentClosing(await db.get('SELECT * FROM ops_journal_closing WHERE spot_id = ?', [spotRow.id])),
         // what the system proposes for sections 3-4 until the manager saves his own (the screens prefill it, the export falls back to it)
         closingDraft: draftClosing({ day: spotRow.day, indicator: spotRow.indicator, scopeType: spotRow.scope_type, metrics: spotRow.metrics_json ? JSON.parse(spotRow.metrics_json) : null }),
@@ -175,7 +191,8 @@ async function getSpot(db, { access, userId }, idValue) {
     const rows = userId == null ? [] : await ownRows(db, id, userId);
     if (!rows.length) throw new NotFoundError();
     const spotRow = await db.get('SELECT * FROM ops_journal_spot WHERE id = ?', [id]);
-    return { ...presentSpotForAssignee(spotRow), myRows: rows.map(presentRowForAssignee) };
+    const files = await attachmentsByAction(db, rows.map((r) => r.id));
+    return { ...presentSpotForAssignee(spotRow), myRows: rows.map((r) => ({ ...presentRowForAssignee(r), attachments: files.get(r.id) || [] })) };
 }
 
 /** GET /my-tasks -- one task per finalized spot that has rows assigned to the user; [] when none (the menu entry stays hidden). */
@@ -194,6 +211,7 @@ async function listMyTasks(db, { userId }) {
         bySpot.get(row.spot_id).push(row);
     }
     const tasks = [];
+    const files = await attachmentsByAction(db, rows.map((r) => r.id));
     for (const [spotId, spotRows] of bySpot) {
         const spot = presentSpotForAssignee(await db.get('SELECT * FROM ops_journal_spot WHERE id = ?', [spotId]));
         tasks.push({
@@ -204,7 +222,7 @@ async function listMyTasks(db, { userId }) {
             headline: spot.headline,
             metrics: spot.metrics,
             status: spotRows.every((r) => r.status === 'DONE') ? 'DONE' : (spotRows.some((r) => r.status === 'REPORTED') ? 'REPORTED' : spotRows[0].status),
-            myRows: spotRows.map(presentRowForAssignee),
+            myRows: spotRows.map((r) => ({ ...presentRowForAssignee(r), attachments: files.get(r.id) || [] })),
         });
     }
     return { tasks };

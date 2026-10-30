@@ -41,6 +41,7 @@ const { applyPerfLoad01AggSchema } = require('./migrate_perf_load_01_agg_schema'
 const { applyHangtonInventory01Schema } = require('./migrate_hangton_inventory_01_schema');
 const { applyHangtonHandling01Schema } = require('./migrate_hangton_handling_01_schema');
 const { applyOpsJournal01Schema } = require('./migrate_ops_journal_01_schema');
+const { applyOpsJournal02Schema } = require('./migrate_ops_journal_02_schema');
 const createOpsJournalRouter = require('./src/routes/opsJournalRoutes');
 
 const app = express();
@@ -169,6 +170,7 @@ async function ensureStartupSchemaMigrations(dbPath = activeDbPath) {
     await applyHangtonHandling01Schema(dbPath);
     await applyBfPhat01Schema(dbPath);
     await applyOpsJournal01Schema(dbPath);
+    await applyOpsJournal02Schema(dbPath);
 }
 
 // HANGTON-INVENTORY-01: three daily stock snapshots (07:30, 11:30, 21:00). Off in tests, with

@@ -16,6 +16,7 @@ process.env.QIS_TEST_DB_PATH = dbFile;
 
 const { db, run } = require('../config/db');
 const { applyOpsJournal01Schema } = require('../../migrate_ops_journal_01_schema');
+const { applyOpsJournal02Schema } = require('../../migrate_ops_journal_02_schema');
 const { applyRbac01Schema } = require('../../migrate_rbac_01_schema');
 const authSessionStore = require('../services/auth/AuthSessionStore');
 const { resolveAccess } = require('../services/auth/access/resolveAccess');
@@ -45,6 +46,7 @@ async function insertRow(spotId, seq, what, assignedAt, users) {
 test.before(async () => {
     await applyRbac01Schema(dbFile);
     await applyOpsJournal01Schema(dbFile);
+    await applyOpsJournal02Schema(dbFile);
     await run('INSERT INTO ops_journal_day (day, status, created_at, updated_at) VALUES (?, ?, ?, ?)', [DAY, 'ASSIGNED', NOW, NOW]);
     ids.s1 = await insertSpot(DAY, 'SPOT-ONE', 'FINALIZED', 'headline one');
     ids.s1a = await insertRow(ids.s1, 1, 'ROW-FOR-201', NOW, [201]);

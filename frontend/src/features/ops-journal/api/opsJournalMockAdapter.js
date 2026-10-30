@@ -352,6 +352,23 @@ export const opsJournalMockAdapter = {
     return { success: true, data: JSON.parse(JSON.stringify(day)) };
   },
 
+  async uploadAttachment(actionId, file) {
+    await sleep(60);
+    return { success: true, data: { id: Date.now(), name: file?.name || 'tep', size: file?.size || 0, uploadedAt: Date.now() } };
+  },
+  async downloadAttachment() {
+    return { success: true, data: new Blob(['mock']), filename: 'mock.txt' };
+  },
+  async removeAttachment(attachmentId) {
+    return { success: true, data: { id: attachmentId } };
+  },
+  async getNotifications() {
+    return { success: true, data: { items: [], unread: 0, hasAny: false } };
+  },
+  async markNotificationsRead() {
+    return { success: true, data: { updated: 0 } };
+  },
+
   /**
    * DELETE /spots/:id
    */

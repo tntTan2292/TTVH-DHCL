@@ -14,6 +14,7 @@ const { BCVH_BY_CODE, HANGTON_OFFICES_BY_BCVH } = require('../auth/access/office
 const { NotFoundError, asDay, asSpotId, getDay } = require('./visibility');
 const candidateService = require('./candidateService');
 const { buildRows } = require('./rowTemplates');
+const notifications = require('./notificationService');
 
 const MIN_SPOTS = 1;
 const MAX_SPOTS = 50; // sanity cap only: how many spots to assign is the manager's call (PO 2026-10-30)
@@ -330,6 +331,7 @@ async function finalizeSpots(db, { date, spotIds, actor }) {
             await db.run('UPDATE ops_journal_action SET assigned_at = COALESCE(assigned_at, ?), status = CASE WHEN status = ? THEN ? ELSE status END WHERE spot_id = ?', [t, 'DRAFT', 'ASSIGNED', id]);
             await db.run("UPDATE ops_journal_spot SET status = 'FINALIZED', finalized_at = ?, finalized_by = ? WHERE id = ?", [t, actor.id, id]);
             await logChange(db, { spotId: id, kind: 'FINALIZED', after: { rows: rows.length }, actor });
+            await notifications.notifyAssigned(db, { spot, at: t, actorName: actor.name });
         }
         await db.run("UPDATE ops_journal_day SET status = 'ASSIGNED', updated_at = ? WHERE day = ?", [t, day]);
     });
@@ -379,6 +381,9 @@ async function report(db, { actionId, status, causeText, reportText, actor }) {
             spotId: row.spot_id, actionId: id, kind: 'REPORT',
             before: { status: row.status, cause: row.report_cause, text: row.report_text }, after: { status, cause, text: body }, actor,
         });
+        const spot = await db.get('SELECT id, day, title FROM ops_journal_spot WHERE id = ?', [row.spot_id]);
+        const files = (await db.get('SELECT COUNT(*) AS n FROM ops_journal_attachment WHERE action_id = ?', [id])).n;
+        await notifications.notifyReported(db, { row, spot, reporterId: actor.id, reporterName: actor.name, status, text: body, files, at: t });
         return { id, status, reportCause: cause, reportText: body, reportedAt: t };
     });
 }
@@ -393,6 +398,8 @@ async function markDone(db, { actionId, actor }) {
         if (row.status !== 'REPORTED') throw new JournalError('NOT_REPORTED', 'Dòng này chưa có báo cáo để xác nhận.', 409);
         await db.run("UPDATE ops_journal_action SET status = 'DONE' WHERE id = ?", [id]);
         await logChange(db, { spotId: row.spot_id, actionId: id, kind: 'DONE', before: { status: row.status }, after: { status: 'DONE' }, actor });
+        const spot = await db.get('SELECT id, day, title FROM ops_journal_spot WHERE id = ?', [row.spot_id]);
+        await notifications.notifyDone(db, { row, spot, at: Date.now() });
         return { id, status: 'DONE' };
     });
 }
@@ -474,6 +481,6 @@ async function assignableUsers(db, options) {
 }
 
 module.exports = {
-    JournalError, actorOf, selectSpots, removeSpot, saveActions, finalizeSpots, reopenSpot, report, markDone, saveClosing, closeDay, assignableUsers,
+    JournalError, inTransaction, logChange, actorOf, selectSpots, removeSpot, saveActions, finalizeSpots, reopenSpot, report, markDone, saveClosing, closeDay, assignableUsers,
     LIMITS: { MIN_SPOTS, MAX_SPOTS, MAX_ROWS },
 };

@@ -3,6 +3,7 @@ import { Menu, UserCircle, Bell, ChevronDown, LogOut } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { ROLE_VIEWER } from '../auth/roles';
+import NotificationBell from '../features/ops-journal/components/NotificationBell.jsx';
 
 export default function Topbar({ onMenuClick }) {
   const { user, logout } = useAuth();
@@ -39,6 +40,9 @@ export default function Topbar({ onMenuClick }) {
 
       {/* Right Controls: Notifications & User Profile */}
       <div className="flex items-center gap-2 sm:gap-3">
+        {/* Nhật ký điều hành: new task / report / accepted (hidden until the module ever notified this user) */}
+        <NotificationBell />
+
         {/* User Info & Profile */}
         <div className="flex items-center gap-2.5 px-2 py-1 rounded-xl">
           <div className="text-right hidden sm:block">

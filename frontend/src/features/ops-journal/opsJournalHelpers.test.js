@@ -8,6 +8,8 @@ import {
   INDICATOR_CHIP_CONFIG,
   getIndicatorChipStyle,
   getSpotReasons,
+  formatFileSize,
+  timeAgoText,
   normalizeIndicator,
   validateSpotCount,
   validateSpotsSelection,
@@ -475,4 +477,14 @@ test('getSpotReasons gives comparisons (standing, fall vs yesterday and last wee
     'COD 41.208.649 đ',
   ]);
   assert.deepEqual(getSpotReasons('F1.3', { rate: 55 }).map((r) => r.text), ['Tỷ lệ 55%'], 'older saved spots without ranks still render');
+});
+
+test('formatFileSize and timeAgoText read well for attachments and notifications', () => {
+  assert.equal(formatFileSize(300), '1 KB');
+  assert.equal(formatFileSize(340 * 1024), '340 KB');
+  assert.equal(formatFileSize(1.5 * 1024 * 1024), '1,5 MB');
+  const now = 1_700_000_000_000;
+  assert.equal(timeAgoText(now - 20 * 1000, now), 'vừa xong');
+  assert.equal(timeAgoText(now - 5 * 60000, now), '5 phút trước');
+  assert.equal(timeAgoText(now - 3 * 3600000, now), '3 giờ trước');
 });

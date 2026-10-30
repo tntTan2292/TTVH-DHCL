@@ -14,6 +14,7 @@ process.env.QIS_TEST_DB_PATH = dbFile;
 
 const { db, run, get, all } = require('../config/db');
 const { applyOpsJournal01Schema } = require('../../migrate_ops_journal_01_schema');
+const { applyOpsJournal02Schema } = require('../../migrate_ops_journal_02_schema');
 const { applyHangtonInventory01Schema } = require('../../migrate_hangton_inventory_01_schema');
 const { applyRbac01Schema } = require('../../migrate_rbac_01_schema');
 const authSessionStore = require('../services/auth/AuthSessionStore');
@@ -36,6 +37,7 @@ test.before(async () => {
     await applyRbac01Schema(dbFile);
     await applyHangtonInventory01Schema(dbFile);
     await applyOpsJournal01Schema(dbFile);
+    await applyOpsJournal02Schema(dbFile);
     await addUser(401, 'gd-thuan-hoa', 'STAFF', 'GD_BCVH', { bcvh: ['533140'] });
     await addUser(402, 'cq-thuan-hoa', 'STAFF', 'CHUYEN_QUAN', { bcvh: ['533140'] });
     await addUser(403, 'plain', 'STAFF', null, { bcvh: ['533140'] });

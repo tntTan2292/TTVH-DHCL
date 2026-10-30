@@ -53,6 +53,16 @@ export default function MyTasksPage() {
     loadTasks();
   }, [loadTasks]);
 
+  // silent reload (no spinner): attachments and other people's reports change under the page
+  const refreshTasks = useCallback(async () => {
+    try {
+      const res = await opsJournalAdapter.getMyTasks();
+      if (res.success) setTasks(res.data?.tasks || []);
+    } catch {
+      /* the list on screen stays */
+    }
+  }, []);
+
   const handleReportAction = async (rowId, { status, causeText, reportText }) => {
     setReportingRowId(rowId);
     setAlert(null);
@@ -90,6 +100,7 @@ export default function MyTasksPage() {
               ? 'Đã gửi báo cáo tiến độ thành công.'
               : 'Đã cập nhật trạng thái đang xử lý.',
         });
+        refreshTasks();
       } else {
         setAlert({
           type: 'error',
@@ -304,6 +315,7 @@ export default function MyTasksPage() {
                               key={row.id}
                               row={row}
                               onReport={handleReportAction}
+                              onChanged={refreshTasks}
                               reporting={reportingRowId === row.id}
                             />
                           ))}

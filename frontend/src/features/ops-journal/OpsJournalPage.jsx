@@ -1,12 +1,25 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { CheckSquare, Edit3 } from 'lucide-react';
 import { getVietnamToday } from './opsJournalHelpers.js';
 import OpsJournalCandidatesPage from './OpsJournalCandidatesPage.jsx';
 import OpsJournalComposerPage from './OpsJournalComposerPage.jsx';
 
 export default function OpsJournalPage() {
-  const [activeTab, setActiveTab] = useState('candidates'); // 'candidates' | 'composer'
-  const [sharedDate, setSharedDate] = useState(getVietnamToday());
+  const location = useLocation();
+  // a notification opens /ops-journal?tab=composer&date=YYYY-MM-DD
+  const params = new URLSearchParams(location.search);
+  const linkedDate = /^\d{4}-\d{2}-\d{2}$/.test(params.get('date') || '') ? params.get('date') : null;
+  const [activeTab, setActiveTab] = useState(params.get('tab') === 'composer' ? 'composer' : 'candidates'); // 'candidates' | 'composer'
+  const [sharedDate, setSharedDate] = useState(linkedDate || getVietnamToday());
+  useEffect(() => {
+    const p = new URLSearchParams(location.search);
+    if (p.get('tab') === 'composer') {
+      setActiveTab('composer');
+      const d = p.get('date');
+      if (/^\d{4}-\d{2}-\d{2}$/.test(d || '')) setSharedDate(d);
+    }
+  }, [location.search]);
   const [hasComposerDirty, setHasComposerDirty] = useState(false);
 
   const handleNavigateToComposer = (date) => {

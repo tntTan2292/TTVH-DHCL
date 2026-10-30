@@ -1,4 +1,5 @@
 import React from 'react';
+import AttachmentList from './AttachmentList.jsx';
 import { CheckCircle2, Clock, MessageSquare } from 'lucide-react';
 
 function getRowStatusStyle(status) {
@@ -158,6 +159,11 @@ export default function SpotActionReadOnlyTable({
                         )}
                       </div>
                     )}
+
+                    {/* Evidence files of the row (the manager downloads them here) */}
+                    <div className="w-full text-left">
+                      <AttachmentList attachments={row.attachments || []} compact />
+                    </div>
 
                     {/* Action button for REPORTED status */}
                     {isReported && !isClosed && (
