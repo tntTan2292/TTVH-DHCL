@@ -30,7 +30,9 @@ function asSpotId(value) {
 
 function asDay(value) {
     const text = String(value ?? '');
-    if (!DAY_PATTERN.test(text) || Number.isNaN(Date.parse(`${text}T00:00:00Z`))) throw new NotFoundError();
+    const parsed = DAY_PATTERN.test(text) ? new Date(`${text}T00:00:00Z`) : null;
+    // round trip: Date rolls 2026-02-31 over to March, which must not pass for a real day
+    if (!parsed || Number.isNaN(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== text) throw new NotFoundError();
     return text;
 }
 
@@ -56,6 +58,24 @@ function presentSpot(row) {
         channel: row.channel,
         sort: row.sort,
     };
+}
+
+/**
+ * What an assignee gets about the spot: a whitelist, so nothing tells them how many other spots / rows exist or whether the
+ * spot is closed (no sort, source, status). The spot id stays: it is the address of the phiếu.
+ */
+function presentSpotForAssignee(row) {
+    const spot = presentSpot(row);
+    return {
+        id: spot.id, day: spot.day, indicator: spot.indicator, scopeType: spot.scopeType, scopeKey: spot.scopeKey, officeCode: spot.officeCode,
+        title: spot.title, headline: spot.headline, metrics: spot.metrics, detectedAt: spot.detectedAt, channel: spot.channel,
+    };
+}
+
+/** An assignee's row: no seq (its gaps would show how many rows others hold); the row id stays: it is the address of the report. */
+function presentRowForAssignee(row) {
+    const { seq, ...own } = presentRow(row);
+    return own;
 }
 
 function presentRow(row) {
@@ -135,12 +155,16 @@ async function getDay(db, { access }, dayValue) {
 /** GET /spots/:id -- the manager reads the whole spot, an assignee only the phiếu with their own rows. */
 async function getSpot(db, { access, userId }, idValue) {
     const id = asSpotId(idValue);
-    const spotRow = await db.get('SELECT * FROM ops_journal_spot WHERE id = ?', [id]);
-    if (!spotRow) throw new NotFoundError();
-    if (isManager(access)) return managerSpot(db, spotRow);
+    if (isManager(access)) {
+        const spotRow = await db.get('SELECT * FROM ops_journal_spot WHERE id = ?', [id]);
+        if (!spotRow) throw new NotFoundError();
+        return managerSpot(db, spotRow);
+    }
+    // not the manager: the rows come first, so a missing spot and a spot that is not theirs cost the same one query
     const rows = userId == null ? [] : await ownRows(db, id, userId);
     if (!rows.length) throw new NotFoundError();
-    return { ...presentSpot(spotRow), myRows: rows.map(presentRow) };
+    const spotRow = await db.get('SELECT * FROM ops_journal_spot WHERE id = ?', [id]);
+    return { ...presentSpotForAssignee(spotRow), myRows: rows.map(presentRowForAssignee) };
 }
 
 /** GET /my-tasks -- one task per finalized spot that has rows assigned to the user; [] when none (the menu entry stays hidden). */
@@ -160,7 +184,7 @@ async function listMyTasks(db, { userId }) {
     }
     const tasks = [];
     for (const [spotId, spotRows] of bySpot) {
-        const spot = presentSpot(await db.get('SELECT * FROM ops_journal_spot WHERE id = ?', [spotId]));
+        const spot = presentSpotForAssignee(await db.get('SELECT * FROM ops_journal_spot WHERE id = ?', [spotId]));
         tasks.push({
             spotId,
             day: spot.day,
@@ -169,7 +193,7 @@ async function listMyTasks(db, { userId }) {
             headline: spot.headline,
             metrics: spot.metrics,
             status: spotRows.every((r) => r.status === 'DONE') ? 'DONE' : (spotRows.some((r) => r.status === 'REPORTED') ? 'REPORTED' : spotRows[0].status),
-            myRows: spotRows.map(presentRow),
+            myRows: spotRows.map(presentRowForAssignee),
         });
     }
     return { tasks };

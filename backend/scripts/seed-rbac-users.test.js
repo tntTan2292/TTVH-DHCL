@@ -26,6 +26,12 @@ test('maps titles to tiers and units/indicators to scopes', () => {
     assert.deepEqual(users[2].indicators, ['F1.2']);
 });
 
+test('Giám đốc TTVH is a leader with the GD_TTVH position (not a staff row that needs a unit)', () => {
+    const [user] = parseRows([row('7', 'G', 'Giám đốc TTVH', '', '')]);
+    assert.equal(user.tier, 'LEADER');
+    assert.equal(user.position, 'GD_TTVH');
+});
+
 test('stops on an unknown unit, an empty staff row and a duplicate HRM code', () => {
     assert.throws(() => parseRows([row('1', 'A', 'Chuyên quản', 'BCVH Không Có', '')]), /không nhận ra đơn vị/);
     assert.throws(() => parseRows([row('1', 'A', 'Chuyên quản', 'Không', '')]), /không có đơn vị/);

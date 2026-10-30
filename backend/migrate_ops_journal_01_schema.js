@@ -53,7 +53,7 @@ const STATEMENTS = Object.freeze([
         how TEXT,
         expected_result TEXT,
         assigned_at INTEGER,
-        status TEXT NOT NULL DEFAULT 'ASSIGNED' CHECK (status IN ('ASSIGNED', 'IN_PROGRESS', 'REPORTED', 'DONE')),
+        status TEXT NOT NULL DEFAULT 'DRAFT' CHECK (status IN ('DRAFT', 'ASSIGNED', 'IN_PROGRESS', 'REPORTED', 'DONE')),
         report_cause TEXT,
         report_text TEXT,
         reported_by INTEGER,
@@ -79,6 +79,11 @@ const STATEMENTS = Object.freeze([
         created_at INTEGER NOT NULL
     )`,
     'CREATE INDEX IF NOT EXISTS idx_ops_journal_log_spot ON ops_journal_action_log(spot_id, id)',
+    // append-only is enforced by the database, not by convention
+    `CREATE TRIGGER IF NOT EXISTS trg_ops_journal_log_no_update BEFORE UPDATE ON ops_journal_action_log
+        BEGIN SELECT RAISE(ABORT, 'ops_journal_action_log is append-only'); END`,
+    `CREATE TRIGGER IF NOT EXISTS trg_ops_journal_log_no_delete BEFORE DELETE ON ops_journal_action_log
+        BEGIN SELECT RAISE(ABORT, 'ops_journal_action_log is append-only'); END`,
     `CREATE TABLE IF NOT EXISTS ops_journal_closing (
         spot_id INTEGER PRIMARY KEY,
         resolved INTEGER,

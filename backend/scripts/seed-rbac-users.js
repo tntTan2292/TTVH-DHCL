@@ -22,7 +22,7 @@ const { bcvhCodeFromName } = require('../src/services/auth/access/officeMap');
 const { validateNewPassword } = require('../src/services/auth/passwordPolicy');
 const { positionFromTitle } = require('../src/services/auth/access/roles');
 
-const LEADER_TITLES = ['lãnh đạo bđtp', 'lãnh đạo ttvh', 'it bđtp'];
+const LEADER_TITLES = ['lãnh đạo bđtp', 'giám đốc ttvh', 'lãnh đạo ttvh', 'it bđtp'];
 // Same list as the database CHECK constraint and the admin API: a value outside it must stop the run BEFORE any write.
 const ALLOWED_INDICATORS = new Set(['F1.1', 'F1.2', 'F1.3', 'F4.1', 'HANGTON']);
 

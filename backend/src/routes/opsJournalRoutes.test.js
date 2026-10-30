@@ -214,3 +214,51 @@ test('nothing is cacheable and no CORS-style detail leaks through headers', asyn
         assert.equal(answer.headers.get('etag'), null, `${url} must not carry an ETag`);
     }
 });
+
+test('an assignee gets a whitelisted shape: no seq, sort, source or status of the spot, so nothing hints at other rows or spots', async () => {
+    const spot = (await call(GD_BCVH, 'GET', `/spots/${ids.s1}`)).body.data;
+    assert.deepEqual(Object.keys(spot).sort(), ['channel', 'day', 'detectedAt', 'headline', 'id', 'indicator', 'metrics', 'myRows', 'officeCode', 'scopeKey', 'scopeType', 'title']);
+    assert.ok(spot.myRows.every((row) => !('seq' in row)), 'seq gaps would show how many rows others hold');
+    const task = (await call(GD_BCVH, 'GET', '/my-tasks')).body.data.tasks[0];
+    assert.deepEqual(Object.keys(task).sort(), ['day', 'headline', 'indicator', 'metrics', 'myRows', 'spotId', 'status', 'title']);
+    assert.ok(task.myRows.every((row) => !('seq' in row)));
+    // the manager keeps the full shape
+    const full = (await call(GD_TTVH, 'GET', `/spots/${ids.s1}`)).body.data;
+    assert.ok('sort' in full && 'source' in full && full.actions.every((row) => 'seq' in row));
+});
+
+test('a closed spot looks the same to its assignee; a spot taken back to draft disappears again; a session without a user id sees nothing', async () => {
+    await run("UPDATE ops_journal_spot SET status = 'CLOSED' WHERE id = ?", [ids.s1]);
+    const closed = await call(CQ, 'GET', `/spots/${ids.s1}`);
+    assert.equal(closed.status, 200);
+    assert.ok(!closed.text.includes('CLOSED') && !closed.text.includes('SECRET-LESSON'));
+    await run("UPDATE ops_journal_spot SET status = 'DRAFT' WHERE id = ?", [ids.s1]);
+    assert.equal((await call(CQ, 'GET', `/spots/${ids.s1}`)).status, 404);
+    assert.deepEqual((await call(CQ, 'GET', '/my-tasks')).body.data, { tasks: [] });
+    await run("UPDATE ops_journal_spot SET status = 'FINALIZED' WHERE id = ?", [ids.s1]);
+    const noId = authSessionStore.createSession({ username: 'no-id', role: 'viewer', must_change_password: false, access: resolveAccess({ tier: 'STAFF', position: 'CHUYEN_QUAN', bcvh: ['533140'] }) });
+    assert.deepEqual((await call(noId, 'GET', '/my-tasks')).body.data, { tasks: [] });
+    assert.equal((await call(noId, 'GET', `/spots/${ids.s1}`)).status, 404);
+});
+
+test('impossible dates are not days; 401 and password-change answers are no-store too', async () => {
+    for (const bad of ['2026-02-31', '2026-13-01', '2026-00-10', '2026-10-32']) {
+        assert.equal((await call(GD_TTVH, 'GET', `/days/${bad}`)).status, 404, bad);
+    }
+    assert.equal((await call(GD_TTVH, 'GET', '/days/2024-02-29')).status, 200, 'a real leap day is a day');
+    for (const answer of [await call(null, 'GET', '/my-tasks'), await call(MUST_CHANGE, 'GET', '/my-tasks')]) {
+        assert.equal(answer.headers.get('cache-control'), 'no-store');
+        assert.equal(answer.headers.get('etag'), null);
+    }
+});
+
+test('schema: applying it twice is harmless, and the change log refuses UPDATE and DELETE', async () => {
+    await applyOpsJournal01Schema(dbFile);
+    await run("INSERT INTO ops_journal_action_log (spot_id, kind, actor_id, created_at) VALUES (1, 'TEST', 301, ?)", [NOW]);
+    await assert.rejects(run("UPDATE ops_journal_action_log SET kind = 'X'"), /append-only/);
+    await assert.rejects(run('DELETE FROM ops_journal_action_log'), /append-only/);
+    const rows = await require('../config/db').all('SELECT kind FROM ops_journal_action_log');
+    assert.deepEqual(rows.map((r) => r.kind), ['TEST']);
+    const draft = await require('../config/db').get("SELECT status FROM ops_journal_action WHERE what = 'ROW-IN-DRAFT-201'");
+    assert.equal(draft.status, 'DRAFT', 'a row not yet given out is a draft, not ASSIGNED');
+});

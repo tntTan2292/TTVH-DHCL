@@ -17,7 +17,7 @@ function createOpsJournalRouter({ db = require('../config/db') } = {}) {
     });
     const who = (req) => ({ access: req.access, userId: req.auth.user.id ?? null });
 
-    router.use(requireAuth);
+    // before requireAuth, so even the 401 / password-change answers are no-store and carry no ETag
     router.use((req, res, next) => {
         res.setHeader('Cache-Control', 'no-store');
         // res.end skips Express's automatic ETag, so no conditional request can ever answer 304 for a spot
@@ -27,6 +27,7 @@ function createOpsJournalRouter({ db = require('../config/db') } = {}) {
         };
         next();
     });
+    router.use(requireAuth);
 
     router.get('/days/:date', wrap(async (req, res) => {
         res.json({ success: true, data: await visibility.getDay(db, who(req), req.params.date) });
