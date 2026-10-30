@@ -205,7 +205,7 @@ test('the assigned list: one light line per finalized spot, manager only, bounde
     assert.equal(item.rowCount, 4);
     assert.deepEqual(item.counts, { assigned: 3, inProgress: 0, reported: 0, done: 1 });
     assert.equal(item.fileCount, 1);
-    assert.deepEqual([...item.pending].sort((a, b) => a.name.localeCompare(b.name)), [{ name: 'cq-thuan-hoa', seqs: [1, 2, 4] }, { name: 'gd-thuan-hoa', seqs: [1, 2, 4] }], 'who still owes a report, and for which rows');
+    assert.deepEqual(item.pending, [{ name: 'gd-thuan-hoa', seqs: [1, 2] }, { name: 'cq-thuan-hoa', seqs: [4] }], 'who still owes a report, and for which rows');
     assert.ok(item.lastReportedAt > 0);
     assert.deepEqual(item.assignees, ['cq-thuan-hoa', 'gd-thuan-hoa']);
     assert.equal(JSON.stringify(item).includes('reportText'), false, 'no report text in the list');
@@ -214,33 +214,4 @@ test('the assigned list: one light line per finalized spot, manager only, bounde
     assert.equal((await call(GD, 'GET', '/assigned?from=2026-01-01&to=2026-10-30')).status, 404, 'a range over 62 days is refused');
     assert.equal((await call(GD, 'GET', '/assigned?from=nope&to=2026-10-30')).status, 404);
     for (const who of [U401, U402, U403]) assert.equal((await call(who, 'GET', '/assigned')).status, 404, 'only the manager');
-});
-
-test('one report for the whole spot (either person of the team), accepted all at once', async () => {
-    // a second spot of the same unit, finalized: both people are on every row
-    const day = (await call(GD, 'PUT', `/days/${DAY}/spots`, { candidateIds: ids(['533140', '536250']) })).body.data;
-    const second = day.spots.find((s) => s.officeCode === '536250');
-    assert.equal((await call(GD, 'POST', `/days/${DAY}/assign`, { spotIds: [second.id] })).status, 200);
-    assert.equal((await call(U403, 'POST', `/spots/${second.id}/report`, { status: 'REPORTED', reportText: 'x' })).status, 404, 'a stranger gets the plain 404');
-    assert.equal((await call(U401, 'POST', `/spots/${second.id}/report`, { status: 'REPORTED', reportText: 'x' })).status, 404, 'a person of another unit too');
-    const bad = await call(U405, 'POST', `/spots/${second.id}/report`, { status: 'REPORTED', reportText: '' });
-    assert.equal(bad.body.error.code, 'REPORT_REQUIRED');
-    const sent = await call(U405, 'POST', `/spots/${second.id}/report`, { status: 'REPORTED', causeText: 'Thiếu người', reportText: 'Hai bên đã thống nhất, báo cáo chung.' });
-    assert.equal(sent.status, 200, JSON.stringify(sent.body));
-    assert.equal(sent.body.data.actionIds.length, 4, 'the report lands on every row of the spot');
-    const after = (await call(GD, 'GET', `/spots/${second.id}`)).body.data;
-    assert.ok(after.actions.every((a) => a.status === 'REPORTED' && a.reportText === 'Hai bên đã thống nhất, báo cáo chung.'));
-    // the manager is told once, for all rows
-    const managerNotes = (await notes(GD)).items.filter((n) => n.title.includes('Hương Thủy'));
-    assert.equal(managerNotes.filter((n) => n.kind === 'REPORTED').length, 1);
-    assert.match(managerNotes[0].title, /gd-huong-thuy – Giám đốc BCVH đã báo cáo các dòng 1, 2, 3, 4/);
-    // the manager accepts the whole spot at once
-    assert.equal((await call(U405, 'POST', `/spots/${second.id}/done`)).status, 404, 'only the manager accepts');
-    const done = await call(GD, 'POST', `/spots/${second.id}/done`);
-    assert.equal(done.status, 200, JSON.stringify(done.body));
-    assert.equal(done.body.data.done, 4);
-    assert.ok((await call(GD, 'GET', `/spots/${second.id}`)).body.data.actions.every((a) => a.status === 'DONE'));
-    assert.equal((await call(GD, 'POST', `/spots/${second.id}/done`)).body.error.code, 'NOT_REPORTED');
-    assert.equal((await call(U405, 'POST', `/spots/${second.id}/report`, { status: 'REPORTED', reportText: 'again' })).status, 409, 'nothing left to report on');
-    assert.match((await notes(U405)).items[0].title, /Giám đốc TTVH xác nhận hoàn thành các dòng 1, 2, 3, 4/);
 });

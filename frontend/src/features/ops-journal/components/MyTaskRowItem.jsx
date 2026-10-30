@@ -9,7 +9,6 @@ export default function MyTaskRowItem({
   onReport,
   onChanged,
   reporting = false,
-  hideReportForm = false, // the spot has ONE shared report form (SpotReportForm); the row only shows its content and status
 }) {
   const [causeText, setCauseText] = useState(row.reportCause || '');
   const [reportText, setReportText] = useState(row.reportText || '');
@@ -150,7 +149,7 @@ export default function MyTaskRowItem({
       )}
 
       {/* Shared reports banner if present */}
-      {row.reportedAt && !hideReportForm && (
+      {row.reportedAt && (
         <div className="mt-3 flex items-center justify-between rounded-lg bg-blue-50/80 px-3 py-1.5 text-[11px] text-blue-800 border border-blue-200">
           <span>
             Báo cáo cập nhật lúc:{' '}
@@ -161,13 +160,12 @@ export default function MyTaskRowItem({
       )}
 
       {/* Evidence already attached to this row (shared with the other people on the row) */}
-      {!hideReportForm && <AttachmentList
+      <AttachmentList
         attachments={row.attachments || []}
         canRemove={() => !locked}
         onRemoved={() => onChanged && onChanged()}
-      />}
+      />
 
-      {hideReportForm ? null : (<>
       {/* Validation Error Banner */}
       {localError && (
         <div className="mt-3 flex items-center gap-2 rounded-lg bg-rose-50 border border-rose-200 p-2 text-xs font-bold text-rose-800">
@@ -288,7 +286,6 @@ export default function MyTaskRowItem({
           </div>
         )}
       </div>
-      </>)}
     </div>
   );
 }

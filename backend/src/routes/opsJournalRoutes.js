@@ -73,20 +73,12 @@ function createOpsJournalRouter({ db = require('../config/db'), adapters = null 
     router.put('/spots/:id/actions', managerWrite((req, actor) => journal.saveActions(db, { spotId: req.params.id, actions: req.body?.actions, actor })));
     router.post('/spots/:id/reopen', managerWrite((req, actor) => journal.reopenSpot(db, { spotId: req.params.id, reason: req.body?.reason, actor })));
     router.put('/spots/:id/closing', managerWrite((req, actor) => journal.saveClosing(db, { spotId: req.params.id, closing: req.body, actor })));
-    router.post('/spots/:id/done', managerWrite((req, actor) => journal.markSpotDone(db, { spotId: req.params.id, actor })));
     router.post('/actions/:id/done', managerWrite((req, actor) => journal.markDone(db, { actionId: req.params.id, actor })));
 
     // Assignee: any signed-in user; the service answers NOT_FOUND unless the row names them on a finalized spot.
     router.post('/actions/:id/report', wrap(async (req, res) => {
         res.json({ success: true, data: await journal.report(db, {
             actionId: req.params.id, status: req.body?.status, causeText: req.body?.causeText, reportText: req.body?.reportText, actor: journal.actorOf(req.auth.user),
-        }) });
-    }));
-
-    // One report for the whole spot (the person named on its rows; anything else is NOT_FOUND).
-    router.post('/spots/:id/report', wrap(async (req, res) => {
-        res.json({ success: true, data: await journal.reportSpot(db, {
-            spotId: req.params.id, status: req.body?.status, causeText: req.body?.causeText, reportText: req.body?.reportText, actor: journal.actorOf(req.auth.user),
         }) });
     }));
 
