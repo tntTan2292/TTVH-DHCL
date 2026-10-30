@@ -34,6 +34,8 @@ import Level2RoutesPage from './features/networkMap/Level2RoutesPage';
 import DeliveryRoutesPage from './features/networkMap/DeliveryRoutesPage';
 import IntegratedMapPage from './features/networkMap/IntegratedMapPage';
 import PostmanCatalogPage from './features/networkMap/postmanCatalog/PostmanCatalogPage';
+import OpsJournalPage from './features/ops-journal/OpsJournalPage';
+import MyTasksPage from './features/ops-journal/MyTasksPage';
 import { PlaceholderPage } from './components/common/Containers';
 import { ErrorLayout } from './components/common/StateLayouts';
 
@@ -127,6 +129,9 @@ function App() {
             <Route path="f42/ranking/bcvh" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN, ROLE_VIEWER]}><F42BcvhRankingPage /></ProtectedRoute>} />
             <Route path="hangton" element={<Navigate to="/hangton/overview" replace />} />
             <Route path="hangton/:tab" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN, ROLE_VIEWER]}><HangTonPage /></ProtectedRoute>} />
+            <Route path="ops-journal" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN, ROLE_VIEWER]}><OpsJournalPage /></ProtectedRoute>} />
+            <Route path="ops-journal/my-tasks" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN, ROLE_VIEWER]}><MyTasksPage /></ProtectedRoute>} />
+            <Route path="my-tasks" element={<Navigate to="/ops-journal/my-tasks" replace />} />
             <Route path="admin/users" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN]}><UserManagementPage /></ProtectedRoute>} />
             <Route path="import" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN]}><DataImportCenter /></ProtectedRoute>} />
             <Route path="kpi-config" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN]}><KpiConfiguration /></ProtectedRoute>} />

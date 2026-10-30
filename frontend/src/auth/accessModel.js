@@ -21,11 +21,13 @@ export const CAPABILITIES = Object.freeze({
   HANGTON_HANDLING_WRITE: 'hangton.handling.write',
   HANGTON_HANDLING_APPROVE: 'hangton.handling.approve',
   HANGTON_HANDLING_REASONS: 'hangton.handling.reasons',
+  JOURNAL_MANAGE: 'journal.manage',
 });
 
 export const POSITION_LABELS = Object.freeze({
   ADMIN: 'Quản trị hệ thống',
   LD_BDTP: 'Lãnh đạo BĐTP',
+  GD_TTVH: 'Giám đốc TTVH',
   LD_TTVH: 'Lãnh đạo TTVH',
   IT_BDTP: 'IT BĐTP',
   CHUYEN_QUAN: 'Chuyên quản BCVH',
@@ -36,7 +38,7 @@ export const POSITION_LABELS = Object.freeze({
 // Positions an account of a tier may hold (the first one is the default when none is stored).
 export const POSITIONS_BY_TIER = Object.freeze({
   ADMIN: ['ADMIN'],
-  LEADER: ['LD_TTVH', 'IT_BDTP', 'LD_BDTP'],
+  LEADER: ['LD_TTVH', 'GD_TTVH', 'IT_BDTP', 'LD_BDTP'],
   STAFF: ['STAFF', 'GD_BCVH', 'CHUYEN_QUAN'],
 });
 
@@ -195,6 +197,16 @@ export function canAccessPath(access, pathname, legacyRole = null) {
     return true;
   }
 
+  // OPS-JOURNAL-01 Phase B3: My tasks route is accessible to all authenticated users
+  if (cleanPath === '/ops-journal/my-tasks' || cleanPath === '/my-tasks') {
+    return Boolean(access || legacyRole);
+  }
+
+  // OPS-JOURNAL-01: Ops Journal route requires journal.manage capability
+  if (cleanPath === '/ops-journal' || cleanPath.startsWith('/ops-journal/')) {
+    return hasCapability(access, 'journal.manage');
+  }
+
   return false;
 }
 
@@ -235,6 +247,9 @@ export function filterNavigationByAccess(items = [], access = null, legacyRole =
       }
       if (item.title?.includes('Hàng tồn')) {
         return getAllowedHangtonScreens(access, legacyRole).length > 0;
+      }
+      if (item.title === 'Nhật ký điều hành' || item.name === 'Nhật ký điều hành') {
+        return hasCapability(access, 'journal.manage');
       }
       return true;
     })

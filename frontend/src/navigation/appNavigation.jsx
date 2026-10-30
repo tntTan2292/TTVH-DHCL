@@ -1,4 +1,4 @@
-import { Activity, BarChart2, ClipboardCheck, Database, FileSpreadsheet, Info, LayoutDashboard, MapPin, Package, Settings, Target, Users } from 'lucide-react';
+import { Activity, BarChart2, BookOpen, CheckSquare, ClipboardCheck, Database, FileSpreadsheet, Info, LayoutDashboard, MapPin, Package, Settings, Target, Users } from 'lucide-react';
 import { ROLE_ADMIN, normalizeRole } from '../auth/roles';
 
 const F11_GROUP = {
@@ -107,8 +107,20 @@ const ADMIN_ONLY_GROUP = {
 
 const HOME_ITEM = { name: 'Trang chủ – Dashboard', path: '/', icon: <LayoutDashboard size={18} /> };
 
+// OPS-JOURNAL-01: shown only with the journal.manage capability (accessModel.canAccessPath); a session without an access
+// object (legacy) gets it for the admin only.
+const JOURNAL_ITEM = { name: 'Nhật ký điều hành', path: '/ops-journal', icon: <BookOpen size={18} />, roles: [ROLE_ADMIN] };
+
+// Added by the layout only once the signed-in user actually has tasks assigned (GET /api/ops-journal/my-tasks is not empty).
+const MY_TASKS_ITEM = { name: 'Nhiệm vụ của tôi', path: '/ops-journal/my-tasks', icon: <CheckSquare size={18} /> };
+
+export function getMyTasksNavItem() {
+  return MY_TASKS_ITEM;
+}
+
 const ROOT_ITEMS = [
   HOME_ITEM,
+  JOURNAL_ITEM,
   QUALITY_MANAGEMENT_GROUP,
   NETWORK_MANAGEMENT_GROUP,
   ADMIN_ONLY_GROUP,

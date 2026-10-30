@@ -4,7 +4,8 @@ import { ChevronDown, ChevronLeft, ChevronRight, Search, CalendarDays, Filter, L
 import Topbar from '../Topbar';
 import CollapsedFlyout from '../CollapsedFlyout';
 import { useAuth } from '../../auth/AuthContext';
-import { getNavigationForRole } from '../../navigation/appNavigation.jsx';
+import { getNavigationForRole, getMyTasksNavItem } from '../../navigation/appNavigation.jsx';
+import opsJournalAdapter from '../../features/ops-journal/api/opsJournalApi.js';
 import { buildPreservedPath } from '../../navigation/urlPreservation';
 import { createSearchCommitController } from './searchCommitController.js';
 
@@ -59,7 +60,25 @@ export function SidebarNavigation({ isOpen, onClose, isCollapsed, onToggleCollap
   const [searchQuery, setSearchQuery] = useState('');
   // Memoized: the effect below depends on navGroups; a fresh array on every render re-ran it forever
   // (setPinnedGroups -> render -> new navGroups -> effect ...), which blanked every module page.
-  const navGroups = useMemo(() => getNavigationForRole(user?.role, user?.access), [user?.role, user?.access]);
+  // OPS-JOURNAL-01: "Nhiệm vụ của tôi" appears only when the server says this user has tasks (non-empty my-tasks). Nothing else
+  // is shown or counted, and the flag is reset whenever the signed-in user changes.
+  const [hasMyTasks, setHasMyTasks] = useState(false);
+  const userId = user?.id ?? user?.username ?? null;
+  useEffect(() => {
+    setHasMyTasks(false);
+    if (!userId) return undefined;
+    let current = true;
+    opsJournalAdapter.getMyTasks()
+      .then((res) => { if (current) setHasMyTasks(Boolean(res?.success && Array.isArray(res.data?.tasks) && res.data.tasks.length > 0)); })
+      .catch(() => { if (current) setHasMyTasks(false); });
+    return () => { current = false; };
+  }, [userId]);
+  const navGroups = useMemo(() => {
+    const base = getNavigationForRole(user?.role, user?.access);
+    if (!hasMyTasks || !Array.isArray(base)) return base;
+    const homeIndex = base.findIndex((item) => item.path === '/');
+    return [...base.slice(0, homeIndex + 1), getMyTasksNavItem(), ...base.slice(homeIndex + 1)];
+  }, [user?.role, user?.access, hasMyTasks]);
 
   const togglePinGroup = (groupTitle) => {
     setPinnedGroups((prev) => ({

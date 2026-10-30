@@ -139,7 +139,7 @@ test('access model: positions, labels and capabilities mirror the backend regist
   assert.equal(positionLabel('GD_BCVH'), 'Giám đốc BCVH');
   assert.equal(positionLabel('LD_BDTP'), 'Lãnh đạo BĐTP');
   assert.equal(positionLabel('nope'), '');
-  assert.deepEqual(POSITIONS_BY_TIER.LEADER, ['LD_TTVH', 'IT_BDTP', 'LD_BDTP']);
+  assert.deepEqual(POSITIONS_BY_TIER.LEADER, ['LD_TTVH', 'GD_TTVH', 'IT_BDTP', 'LD_BDTP']);
   assert.ok(hasCapability({ capabilities: ['hangton.handling.write'] }, CAPABILITIES.HANGTON_HANDLING_WRITE));
   assert.ok(!hasCapability({ capabilities: [] }, CAPABILITIES.HANGTON_HANDLING_WRITE));
   assert.ok(!hasCapability(null, CAPABILITIES.HANGTON_HANDLING_VIEW));

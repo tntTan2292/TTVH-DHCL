@@ -3,13 +3,18 @@ import assert from 'node:assert/strict';
 import {
   BCVH_BY_CODE,
   BCVH_CODES,
+  CAPABILITIES,
+  POSITION_LABELS,
+  POSITIONS_BY_TIER,
   canAccessPath,
   filterNavigationByAccess,
   getAllowedBcvhCodes,
   getAllowedHangtonScreens,
   getModuleAccess,
+  hasCapability,
   isModuleAllMode,
   isModuleBcvhMode,
+  positionLabel,
 } from './accessModel.js';
 
 // Personas according to backend resolveAccess and RBAC-01-UI manifest
@@ -263,4 +268,65 @@ test('filterNavigationByAccess prunes forbidden modules and hangton sub-screens'
   assert.equal(adminNav.length, 4);
   assert.equal(adminNav.some((m) => m.title === 'Quản trị hệ thống'), true);
   assert.equal(adminNav.some((m) => m.title === 'Quản lý mạng lưới'), true);
+});
+
+test('GD_TTVH position and journal.manage capability access rules', () => {
+  // Task 5: GD_TTVH ("Giám đốc TTVH", tier LEADER)
+  assert.equal(POSITION_LABELS.GD_TTVH, 'Giám đốc TTVH');
+  assert.equal(positionLabel('GD_TTVH'), 'Giám đốc TTVH');
+  assert.ok(POSITIONS_BY_TIER.LEADER.includes('GD_TTVH'));
+  assert.equal(CAPABILITIES.JOURNAL_MANAGE, 'journal.manage');
+
+  const PERSONA_GD_TTVH = {
+    tier: 'LEADER',
+    position: 'GD_TTVH',
+    capabilities: ['journal.manage'],
+    modules: {
+      f11: { mode: 'all', bcvh: [] },
+      f12: { mode: 'all', bcvh: [] },
+      f13: { mode: 'all', bcvh: [] },
+      f41: { mode: 'all', bcvh: [] },
+    },
+    hangton: { screens: ['overview', 'office', 'compare', 'items'], offices: 'all' },
+    network: true,
+    admin: false,
+    home: true,
+  };
+
+  const PERSONA_STAFF_NO_JOURNAL = {
+    tier: 'STAFF',
+    capabilities: [],
+    modules: { f13: { mode: 'all', bcvh: [] } },
+    home: true,
+  };
+
+  // hasCapability helper
+  assert.equal(hasCapability(PERSONA_GD_TTVH, 'journal.manage'), true);
+  assert.equal(hasCapability(PERSONA_STAFF_NO_JOURNAL, 'journal.manage'), false);
+  assert.equal(hasCapability(null, 'journal.manage'), false);
+
+  // Path access gating: /ops-journal only accessible when journal.manage capability is present
+  assert.equal(canAccessPath(PERSONA_GD_TTVH, '/ops-journal'), true);
+  assert.equal(canAccessPath(PERSONA_GD_TTVH, '/ops-journal/candidates'), true);
+  assert.equal(canAccessPath(PERSONA_STAFF_NO_JOURNAL, '/ops-journal'), false);
+  assert.equal(canAccessPath(PERSONA_LEADER, '/ops-journal'), false);
+  assert.equal(canAccessPath(PERSONA_ADMIN, '/ops-journal'), false); // without explicit journal.manage capability
+
+  // Navigation filtering
+  const navWithJournal = [
+    { name: 'Trang chủ', path: '/' },
+    { name: 'Nhật ký điều hành', path: '/ops-journal' },
+  ];
+  const allowedNav = filterNavigationByAccess(navWithJournal, PERSONA_GD_TTVH);
+  assert.equal(allowedNav.some((item) => item.path === '/ops-journal'), true);
+
+  const deniedNav = filterNavigationByAccess(navWithJournal, PERSONA_STAFF_NO_JOURNAL);
+  assert.equal(deniedNav.some((item) => item.path === '/ops-journal'), false);
+
+  // Phase B3: /ops-journal/my-tasks is accessible to all authenticated users
+  assert.equal(canAccessPath(PERSONA_STAFF_NO_JOURNAL, '/ops-journal/my-tasks'), true);
+  assert.equal(canAccessPath(PERSONA_THUAN_HOA, '/ops-journal/my-tasks'), true);
+  assert.equal(canAccessPath(PERSONA_LEADER, '/ops-journal/my-tasks'), true);
+  assert.equal(canAccessPath(PERSONA_ADMIN, '/ops-journal/my-tasks'), true);
+  assert.equal(canAccessPath(null, '/ops-journal/my-tasks'), false);
 });
