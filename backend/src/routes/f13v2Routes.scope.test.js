@@ -136,7 +136,7 @@ test('city-wide account: layout holds every block including the city ones', asyn
     const sid = session('LEADER');
     const { body } = await get(sid, '/v2/layout');
     const blocks = body.data.pages.flatMap((p) => p.blocks);
-    assert.ok(blocks.some((b) => b.id === 'day.actions' && b.scope === 'city'));
+    assert.ok(blocks.some((b) => b.id === 'day.operation' && b.scope === 'city'));
     assert.equal(body.data.units.allow_all, true);
 });
 

@@ -11,9 +11,9 @@ import F13V2FilterBar from './components/F13V2FilterBar.jsx';
 import F13V2DaySummaryTable from './components/F13V2DaySummaryTable.jsx';
 
 import UnifiedCommandSummary from '../dashboard/components/UnifiedCommandSummary.jsx';
+import BcvhOperationTableAdapter from '../dashboard/components/BcvhOperationTableAdapter.jsx';
 import IntegratedTrendRiskWorkspace from '../dashboard/components/IntegratedTrendRiskWorkspace.jsx';
 import OperatingPatternTabsCard from '../dashboard/components/OperatingPatternTabsCard.jsx';
-import UnifiedActionCenter from '../dashboard/components/UnifiedActionCenter.jsx';
 import { buildTrendlineRequestParams } from '../dashboard/components/qualityTrendlineWindow.js';
 import { normalizeComboTrendlineItems } from '../dashboard/components/comboTrendlineData.js';
 
@@ -120,9 +120,10 @@ export default function F13V2DayPage() {
     return metaUnits.filter((u) => allowed.has(u.ma_bcvh));
   }, [isScoped, layout, metaUnits]);
 
-  // Fetch Day Summary table data
+  // Fetch Day Summary table data (only a BCVH-mode account gets this table; city-wide accounts get the operation table)
+  const showOwnDayTable = isBlockVisible(layout, 'ngay', 'day.table');
   useEffect(() => {
-    if (!effectiveFrom || !effectiveTo) return;
+    if (!showOwnDayTable || !effectiveFrom || !effectiveTo) return;
     let active = true;
 
     setDaySummaryState((prev) => ({ ...prev, loading: true, error: null }));
@@ -143,9 +144,9 @@ export default function F13V2DayPage() {
     return () => {
       active = false;
     };
-  }, [effectiveFrom, effectiveTo, bcvhParam]);
+  }, [showOwnDayTable, effectiveFrom, effectiveTo, bcvhParam]);
 
-  // Fetch KPI data for UnifiedCommandSummary and UnifiedActionCenter
+  // Fetch KPI data for UnifiedCommandSummary
   useEffect(() => {
     if (!effectiveFrom || !effectiveTo) return;
     let active = true;
@@ -262,8 +263,18 @@ export default function F13V2DayPage() {
             />
           )}
 
-          {/* Block 2: day.table */}
-          {isBlockVisible(layout, 'ngay', 'day.table') && (
+          {/* Block 2: day.operation (the table the PO sends every day, same as the old Bảng điều hành; scope: city) */}
+          {isBlockVisible(layout, 'ngay', 'day.operation') && (
+            <BcvhOperationTableAdapter
+              fromDate={effectiveFrom}
+              toDate={effectiveTo}
+              interval="daily"
+              maBcvh={bcvhParam}
+            />
+          )}
+
+          {/* Block 2 for a BCVH-mode account: day.table (own row only) */}
+          {showOwnDayTable && (
             <F13V2DaySummaryTable
               data={daySummaryState.data}
               loading={daySummaryState.loading}
@@ -305,19 +316,6 @@ export default function F13V2DayPage() {
               defaultTab="weekday"
               allowedTabs={['weekday']}
               hideTabs={true}
-            />
-          )}
-
-          {/* Block 5: day.actions (scope: city) */}
-          {isBlockVisible(layout, 'ngay', 'day.actions') && (
-            <UnifiedActionCenter
-              fromDate={effectiveFrom}
-              toDate={effectiveTo}
-              maBcvh={bcvhParam}
-              bcvhLabel={selectedBcvhLabel}
-              kpiData={kpiState.data}
-              kpiLoading={kpiState.loading}
-              kpiError={kpiState.error}
             />
           )}
         </div>

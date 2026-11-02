@@ -6,9 +6,10 @@
 //
 //   city  - hidden for a BCVH-mode account (comparison with the other BCVH, city figures, recommendations)
 //   unit  - shown; the response scoping keeps only the account's BCVH rows and drops city totals and ranks
+//   own   - BCVH-mode accounts only: their own-row stand-in for a city block
 //   drill - route / evidence level, shown for the account's own BCVH
 
-const SCOPES = Object.freeze({ CITY: 'city', UNIT: 'unit', DRILL: 'drill' });
+const SCOPES = Object.freeze({ CITY: 'city', UNIT: 'unit', OWN: 'own', DRILL: 'drill' });
 
 const PAGES = Object.freeze([
     { id: 'ngay', title: 'Theo ngày', path: '/f13/v2/ngay' },
@@ -19,10 +20,10 @@ const PAGES = Object.freeze([
 
 const BLOCKS = Object.freeze([
     { id: 'day.overview', page: 'ngay', title: 'Tổng quan điều hành', scope: SCOPES.UNIT },
-    { id: 'day.table', page: 'ngay', title: 'Bảng BCVH theo ngày', scope: SCOPES.UNIT },
+    { id: 'day.operation', page: 'ngay', title: 'Bảng tổng hợp số liệu tại các BCVH', scope: SCOPES.CITY },
+    { id: 'day.table', page: 'ngay', title: 'Bảng BCVH theo ngày', scope: SCOPES.OWN },
     { id: 'day.trend', page: 'ngay', title: 'Xu hướng 7–30 ngày', scope: SCOPES.UNIT },
     { id: 'day.pattern', page: 'ngay', title: 'Quy luật vận hành theo thứ', scope: SCOPES.UNIT },
-    { id: 'day.actions', page: 'ngay', title: 'Trung tâm hành động', scope: SCOPES.CITY },
     { id: 'week.compare', page: 'tuan', title: 'So sánh BCVH theo tuần', scope: SCOPES.UNIT },
     { id: 'week.trend', page: 'tuan', title: 'Diễn biến chất lượng theo tuần', scope: SCOPES.UNIT },
     { id: 'month.compare', page: 'thang', title: 'So sánh BCVH theo tháng', scope: SCOPES.UNIT },
@@ -33,9 +34,9 @@ const BLOCKS = Object.freeze([
     { id: 'topic.evidence', page: 'chuyen-de', title: 'Dữ liệu minh chứng', scope: SCOPES.DRILL, path: '/f13/evidence' },
 ]);
 
-/** Blocks a scope mode may see: 'all' sees everything, 'bcvh' never sees a city block, anything else sees nothing. */
+/** Blocks a scope mode may see: 'all' sees all but the own-row stand-ins, 'bcvh' never sees a city block, anything else sees nothing. */
 function visibleBlocks(mode) {
-    if (mode === 'all') return BLOCKS;
+    if (mode === 'all') return BLOCKS.filter((block) => block.scope !== SCOPES.OWN);
     if (mode === 'bcvh') return BLOCKS.filter((block) => block.scope !== SCOPES.CITY);
     return [];
 }

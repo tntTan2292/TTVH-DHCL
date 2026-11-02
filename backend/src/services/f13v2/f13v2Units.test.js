@@ -11,7 +11,11 @@ const { DaySummaryService, comparisonWindows } = require('./DaySummaryService');
 test('layout for a city-wide account lists every page and block', () => {
     const layout = layoutFor({ mode: 'all', bcvh: [] });
     assert.deepEqual(layout.pages.map((p) => p.id), ['ngay', 'tuan', 'thang', 'chuyen-de']);
-    assert.equal(layout.pages.flatMap((p) => p.blocks).length, BLOCKS.length);
+    const ids = layout.pages.flatMap((p) => p.blocks).map((b) => b.id);
+    assert.deepEqual(ids, BLOCKS.filter((b) => b.scope !== SCOPES.OWN).map((b) => b.id));
+    assert.ok(ids.includes('day.operation'));
+    assert.ok(!ids.includes('day.table'), 'the own-row table reached a city-wide account');
+    assert.ok(!layout.pages[0].subtitle.includes('Trung tâm hành động'));
     assert.equal(layout.units.allow_all, true);
 });
 
@@ -20,10 +24,11 @@ test('layout for a BCVH-mode account has no city block and no "all units" choice
     const blocks = layout.pages.flatMap((p) => p.blocks);
     assert.ok(blocks.length > 0);
     assert.ok(blocks.every((b) => b.scope !== SCOPES.CITY), 'a city block reached a BCVH account');
-    assert.equal(blocks.find((b) => b.id === 'day.actions'), undefined);
+    assert.equal(blocks.find((b) => b.id === 'day.operation'), undefined);
+    assert.ok(blocks.some((b) => b.id === 'day.table'), 'a BCVH account lost its own-row day table');
     assert.equal(layout.units.allow_all, false);
     assert.deepEqual(layout.units.bcvh, ['537015']);
-    assert.ok(!layout.pages[0].subtitle.includes('Trung tâm hành động'));
+    assert.ok(!layout.pages[0].subtitle.includes('Bảng tổng hợp'));
 });
 
 test('layout for a mode with no access is empty', () => {
