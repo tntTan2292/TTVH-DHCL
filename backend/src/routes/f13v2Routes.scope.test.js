@@ -183,6 +183,10 @@ test('period/resolve answers for any account and rejects bad input', async () =>
     assert.equal(ok.body.data.month.month_id, '2026-10');
     assert.equal((await get(sid, '/v2/period/resolve?kind=day&value=2026-13-40')).status, 400);
     assert.equal((await get(sid, '/v2/period/resolve?kind=day')).status, 400);
+    const latest = await get(sid, '/v2/period/resolve?kind=latest');
+    assert.equal(latest.status, 200);
+    assert.equal(latest.body.data.day, ANCHOR);
+    assert.equal(latest.body.data.month.month_id, '2026-10');
 });
 
 test('day table, one day: same figures as the old /ranking/bcvh (volume, rate, N-1, N-7, late cash, rank)', async () => {

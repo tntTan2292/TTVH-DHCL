@@ -80,6 +80,15 @@ test('month -> its last day with data and the week containing that day', () => {
     assert.equal(current.clamped, true);
 });
 
+test('latest -> the latest data day, the week containing it and the calendar month containing it (PO 2026-11-02)', () => {
+    const r = resolvePeriod({ kind: 'latest', latestDate: '2026-11-01' });
+    assert.equal(r.day, '2026-11-01');
+    assert.equal(r.week.week_id, '2026-W44'); // Thursday 29/10 .. Wednesday 04/11
+    assert.equal(r.week.week_start, '2026-10-29');
+    assert.equal(r.month.month_id, '2026-11'); // the calendar month of the day, not of the week Thursday
+    assert.throws(() => resolvePeriod({ kind: 'latest', latestDate: null }), { code: 'NO_DATA' });
+});
+
 test('invalid input is rejected with a stable code', () => {
     assert.throws(() => resolvePeriod({ kind: 'year', value: '2026' }), { code: 'INVALID_KIND' });
     assert.throws(() => resolvePeriod({ kind: 'day', value: '2026-02-30' }), { code: 'INVALID_DATE' });

@@ -2528,3 +2528,7 @@ PO approved D1-D3. Claude Code delivered B0/B1: `/api/f13/v2/layout` (blocks fil
 ## 2026-11-02 - F13-V2-STRUCTURE-01 review R1: not passed, backend part fixed
 
 Opus review found no scope leak but 5 blockers: a heap crash on long ranges (backend, fixed by streaming the late-cash facts: 304 days now 1.5 s / 358 MB), and four UI defects (wrong unit filter, month page 404, duplicate weekly trend block, wrong compare period) handed back to Antigravity. Also fixed: TỔNG CỘNG late-cash rate, ranks among the six canonical BCVH only (PO-visible difference from the old ranking), stronger tests. Open: UI round, re-review, backend restart, PO UI check.
+
+## 2026-11-02 - F13-V2-STRUCTURE-01 PO decisions after review R1
+
+PO confirmed: ranks count the six BCVH only (the old F1.3 may differ on days with a stray code such as 531120), and switching between Ngày / Tuần / Tháng carries no period: each page opens the latest period with data (e.g. latest day 01/11/2026 -> Tuần W44, Tháng 11); the selected unit is kept. Design Sections 3, 5.2, 12 updated; backend `period/resolve?kind=latest` added (28 tests pass). UI round for Antigravity adjusted accordingly.

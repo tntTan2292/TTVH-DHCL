@@ -13,7 +13,7 @@ const { resolveBcvh, sendIfOutOfScope } = require('../middleware/accessScope');
 const daySummaryService = new DaySummaryService({ repository: factBuuGuiRepo, dashboardService: f13DashboardService });
 
 const BAD_REQUEST_CODES = new Set([
-    'INVALID_KIND', 'INVALID_DATE', 'INVALID_RANGE', 'RANGE_TOO_LONG', 'INVALID_BCVH', 'INVALID_WEEK_ID', 'INVALID_MONTH_ID', 'MISSING_PARAM',
+    'NO_DATA', 'INVALID_KIND', 'INVALID_DATE', 'INVALID_RANGE', 'RANGE_TOO_LONG', 'INVALID_BCVH', 'INVALID_WEEK_ID', 'INVALID_MONTH_ID', 'MISSING_PARAM',
 ]);
 
 function sendError(res, error) {
@@ -34,13 +34,13 @@ class F13V2Controller {
     async resolvePeriod(req, res) {
         try {
             const { kind, value } = req.query;
-            if (!kind || !value) {
-                const error = new Error('Yêu cầu kind và value');
+            if (!kind || (kind !== 'latest' && !value)) {
+                const error = new Error('Yêu cầu kind (và value, trừ kind=latest)');
                 error.code = 'MISSING_PARAM';
                 throw error;
             }
             const latestDate = await factBuuGuiRepo.getLatestBcvhDataDateInRange('2000-01-01', '2100-12-31');
-            res.status(200).json({ success: true, data: resolvePeriod({ kind, value: String(value), latestDate }) });
+            res.status(200).json({ success: true, data: resolvePeriod({ kind, value: value === undefined ? undefined : String(value), latestDate }) });
         } catch (error) {
             sendError(res, error);
         }

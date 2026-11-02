@@ -29,7 +29,7 @@ Generic by construction: pages take an indicator config like F4.1/F1.1 do, so F1
 | Module | **Unit** (+ search) | "Tất cả BCVH" or one BCVH; shared by the three pages, kept in the URL. |
 | Block | view options only | Sort, top-N for the camera, show/hide columns, cùng kỳ vs cả tháng trước, compare-period pick, 7/14/30-day window. They never change which rows or which period the data covers. |
 
-URL params: `from`, `to` (Ngày), `week` (Tuần), `month` (Tháng), `bcvh`. Anchor conversion between pages is done by the backend (Section 5.2): the day range's end date → the week containing it and the month **of that day** (decided in R1 remediation 2026-11-02: 1 Nov is November); a week → the month of its Thursday (D3); the other way: the week/month → its last day with data (Ngày shows that single day).
+URL params: `from`, `to` (Ngày), `week` (Tuần), `month` (Tháng), `bcvh`. **Switching pages (PO decision 2026-11-02, replaces the earlier anchor-conversion rule):** a page never derives its period from the one chosen on another page. Each page opens the **latest period with data**: Ngày = the latest day; Tuần = the week containing the latest day; Tháng = the calendar month containing the latest day (latest day 01/11/2026 → Tuần W44, Tháng 11). The **unit stays selected** across pages (`bcvh` is kept in the URL), unless the PO says otherwise. Backend: `GET /api/f13/v2/period/resolve?kind=latest` gives the three at once; picking a date inside a page still uses `kind=day|week|month`.
 
 ## 4. Permissions (unchanged principle, made explicit)
 
@@ -52,7 +52,7 @@ URL params: `from`, `to` (Ngày), `week` (Tuần), `month` (Tháng), `bcvh`. Anc
 | Endpoint | Purpose |
 | --- | --- |
 | `GET /layout` | Pages and blocks for the caller (id, page, title, scope tag), from `backend/src/services/f13v2/blockRegistry.js`. |
-| `GET /period/resolve?kind=day\|week\|month&value=…` | Converts the anchor between day / week / month (rules in Section 3) and returns the latest day with data. Reuses the week logic of `BcvhWeeklyComparisonService`; no second calendar. |
+| `GET /period/resolve?kind=latest\|day\|week\|month&value=…` | `latest` (no value): the latest day with data, the week and the calendar month containing it (what a page opens with). The other kinds convert one picked anchor into the others (clamped to the latest day). Reuses the week logic of `BcvhWeeklyComparisonService`; no second calendar. |
 | `GET /day/summary?from=&to=&ma_bcvh=` | One BCVH table for a day or range: volume, passed, failed, rate, late cash, **So sánh (N-1)** and **So sánh (N-7)**. See D1 for ranges. Verified in B0 whether `/ranking/bcvh` already does this for a range; if yes it is wrapped, not rewritten. |
 
 All SQL parameter-bound, read-only, no schema change. Parity is enforced by tests (`routes/f13v2Routes.scope.test.js`), not by a script: for the same inputs the day table equals the old ranking field by field. One deliberate difference: **ranks are among the six canonical BCVH only**; the old ranking lets a stray code (e.g. 531120) take a place and shifts the others down (R1 decision 2026-11-02, the new numbers are the right ones).
@@ -69,7 +69,7 @@ All SQL parameter-bound, read-only, no schema change. Parity is enforced by test
 | --- | --- | --- |
 | D1 | Meaning of N-1 / N-7 when the Ngày filter is a **range** of L days | N-1 = the L days right before; N-7 = the same range shifted back 7 days. A single day gives exactly today's N-1 / N-7. |
 | D2 | The old "Bảng điều hành BCVH" and "Bảng xếp hạng ngày" are two day tables with overlapping columns | Merge into one table "Bảng BCVH theo ngày"; its lũy kế tháng columns move to Theo tháng. |
-| D3 | Tuần → Tháng conversion | Month of the week's Thursday (same rule as the ISO week number). |
+| D3 | Tuần → Tháng conversion | Month of the week's Thursday. **Superseded 2026-11-02** for page switching by the "each page opens the latest period" rule (Section 3); it remains only for converting a date the user picks. |
 
 ## 8. Phases and gates
 
@@ -95,7 +95,7 @@ All under `/api/f13/v2` (login + role + `requireModule('f13')` + per-scope respo
 | Endpoint | Query | `data` |
 | --- | --- | --- |
 | `GET /layout` | — | `{ indicator, scope:{mode,bcvh}, units:{allow_all,bcvh[]}, pages:[{id,title,path,subtitle,blocks:[{id,title,scope,path?}]}] }` — blocks already filtered for the caller; the UI draws only these. |
-| `GET /period/resolve` | `kind=day\|week\|month`, `value` (`YYYY-MM-DD` / `YYYY-Www` / `YYYY-MM`) | `{ kind, value, latest_date, clamped, day, week:{week_id,week_start,week_end,iso_week}, month:{month_id,month_start,month_end} }` — `day` is the anchor day clamped to the latest day with data. |
+| `GET /period/resolve` | `kind=latest` (no value) or `kind=day\|week\|month`, `value` (`YYYY-MM-DD` / `YYYY-Www` / `YYYY-MM`) | `{ kind, value, latest_date, clamped, day, week:{week_id,week_start,week_end,iso_week}, month:{month_id,month_start,month_end} }` — `day` is the anchor day clamped to the latest day with data. |
 | `GET /day/summary` | `from`, `to` (`YYYY-MM-DD`, range up to 366 days), `ma_bcvh` (optional) | `{ rows:[{ma_bcvh,ten_bcvh,rank,volume,passed,failed,rate,late_cash:{count,rate},compare:{n1,n7}}], meta:{from_date,to_date,days,has_data,compare:{n1:{from_date,to_date},n7:{...}},total_row} }`; `compare.n1/n7` = `{volume,rate,volume_delta,rate_delta}` (null when the window has no data for that BCVH). |
 
 Errors: 400 `MISSING_PARAM` / `INVALID_DATE` / `INVALID_RANGE` / `RANGE_TOO_LONG` / `INVALID_BCVH` / `INVALID_KIND` / `INVALID_WEEK_ID` / `INVALID_MONTH_ID`; 403 `OUT_OF_SCOPE`.
@@ -116,7 +116,13 @@ R1 found 5 blockers, no scope leak. Backend ones fixed by Claude Code, UI ones h
 | B5 | Compare period fixed to `options[1]`; invalid `?week=` empties the filter | UI | Open |
 | R-rank | `rank` differs from the old ranking | Backend | Decided: canonical only (Section 5.2), test added |
 | R-total | TỔNG CỘNG had no `late_cash.rate` | Backend | **Fixed** (summed late / summed failed), parity test with the old total row |
-| R-D3 | Day→month used the day's own month; text said Thursday | Design | Decided: month of the day, text corrected (Section 3) |
+| R-D3 | Day→month used the day's own month; text said Thursday | Design | Superseded by the PO rule "each page opens the latest period" (Section 3); `kind=latest` added |
 | R-tests | Mutants M8 (N-1 window value), M10 (total mixing N-1/N-7), M15 (tie-break) survived | Backend | **Fixed**: value assertions, total-window assertions, tie-break and canonical-only tests |
 
 Remaining R1 recommendations (menu "Chuyên đề" reaching only one block, leftover period pickers in the comparison block, Ngày page pattern tabs, camera caption, colour thresholds, scoped units for BCVH accounts) go to the UI fix round.
+
+## 12. PO decisions of 2026-11-02 (after R1)
+
+1. **Ranking:** only the six BCVH (A Lưới, Hương Thủy, Hương Trà, Phú Lộc, Thuận An, Thuận Hóa); every other code (e.g. 531120) is left out. The old F1.3 module is unchanged, so the two versions can show different ranks on days that have a stray code.
+2. **Page switching:** no period is carried between Ngày / Tuần / Tháng; each opens the latest period with data (Section 3). The selected unit is kept.
+UI consequence for U1: remove the day→week→month conversion on page links; each page defaults its anchor from `period/resolve?kind=latest`; the filter bar keeps `bcvh` only.
