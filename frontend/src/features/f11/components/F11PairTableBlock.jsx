@@ -367,7 +367,7 @@ export default function F11PairTableBlock({ anchorDate, toDate }) {
               >
                 Mặc định
               </button>
-              {[['volume', 'Sản lượng'], ['rate', 'Tỷ lệ đạt']].map(([metric, text]) => {
+              {[['volume', 'Sản lượng'], ['rate', 'Tỷ lệ']].map(([metric, text]) => {
                 const active = colOrder?.metric === metric;
                 return (
                   <button

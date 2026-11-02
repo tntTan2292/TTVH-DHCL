@@ -1,3 +1,4 @@
+import { HEADER_RATE_NO_TMS, HEADER_VOLUME, rateHeader as columnRateHeader } from '../indicator/columnHeaders.js';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   AlertTriangle,
@@ -832,19 +833,19 @@ export default function BcvhWeeklyComparisonBlock() {
                   {renderSortableTh('ten_bcvh', unitsInfo.dynamic ? 'Tên đơn vị' : 'Tên bưu cục', { widthClass: isF41 ? '' : 'w-[24%]', borderClass: 'border-r border-slate-300', hoverClass: 'hover:bg-slate-200/80', nowrap: false })}
 
                   {/* Tuần kỳ này */}
-                  {renderSortableTh('current_volume', 'Sản lượng đo kiểm', { widthClass: isF41 ? '' : 'w-[8%]', borderClass: 'border-r border-slate-200', hoverClass: 'hover:bg-blue-100/90' })}
+                  {renderSortableTh('current_volume', HEADER_VOLUME, { widthClass: isF41 ? '' : 'w-[8%]', borderClass: 'border-r border-slate-200', hoverClass: 'hover:bg-blue-100/90' })}
                   {renderSortableTh('current_passed', 'Đạt', { widthClass: isF41 ? '' : 'w-[7%]', borderClass: 'border-r border-slate-200', hoverClass: 'hover:bg-blue-100/90' })}
-                  {renderSortableTh('current_rate', indicator.id === 'f13' ? 'Tỷ lệ đạt KPI 2026' : `Tỷ lệ đạt ${indicator.moduleLabel}`, { widthClass: isF41 ? '' : 'w-[9.5%]', borderClass: isF41 ? 'border-r border-slate-200' : 'border-r border-blue-300', hoverClass: 'hover:bg-blue-100/90' })}
-                  {isF41 ? renderSortableTh('current_rate_no_tms', 'Tỷ lệ đạt (không đo TMS)', { borderClass: 'border-r border-blue-300', hoverClass: 'hover:bg-blue-100/90' }) : null}
+                  {renderSortableTh('current_rate', columnRateHeader(indicator), { widthClass: isF41 ? '' : 'w-[9.5%]', borderClass: isF41 ? 'border-r border-slate-200' : 'border-r border-blue-300', hoverClass: 'hover:bg-blue-100/90' })}
+                  {isF41 ? renderSortableTh('current_rate_no_tms', HEADER_RATE_NO_TMS, { borderClass: 'border-r border-blue-300', hoverClass: 'hover:bg-blue-100/90' }) : null}
 
                   {/* Tuần so sánh */}
-                  {renderSortableTh('compare_volume', 'Sản lượng đo kiểm', { widthClass: isF41 ? '' : 'w-[8%]', borderClass: 'border-r border-slate-200', hoverClass: 'hover:bg-emerald-100/90' })}
+                  {renderSortableTh('compare_volume', HEADER_VOLUME, { widthClass: isF41 ? '' : 'w-[8%]', borderClass: 'border-r border-slate-200', hoverClass: 'hover:bg-emerald-100/90' })}
                   {renderSortableTh('compare_passed', 'Đạt', { widthClass: isF41 ? '' : 'w-[7%]', borderClass: 'border-r border-slate-200', hoverClass: 'hover:bg-emerald-100/90' })}
-                  {renderSortableTh('compare_rate', indicator.id === 'f13' ? 'Tỷ lệ đạt KPI 2026' : `Tỷ lệ đạt ${indicator.moduleLabel}`, { widthClass: isF41 ? '' : 'w-[9.5%]', borderClass: isF41 ? 'border-r border-slate-200' : 'border-r border-emerald-300', hoverClass: 'hover:bg-emerald-100/90' })}
-                  {isF41 ? renderSortableTh('compare_rate_no_tms', 'Tỷ lệ đạt (không đo TMS)', { borderClass: 'border-r border-emerald-300', hoverClass: 'hover:bg-emerald-100/90' }) : null}
+                  {renderSortableTh('compare_rate', columnRateHeader(indicator), { widthClass: isF41 ? '' : 'w-[9.5%]', borderClass: isF41 ? 'border-r border-slate-200' : 'border-r border-emerald-300', hoverClass: 'hover:bg-emerald-100/90' })}
+                  {isF41 ? renderSortableTh('compare_rate_no_tms', HEADER_RATE_NO_TMS, { borderClass: 'border-r border-emerald-300', hoverClass: 'hover:bg-emerald-100/90' }) : null}
 
                   {/* So sánh (17%) */}
-                  {renderSortableTh('rate_delta', 'Tăng/giảm tỷ lệ', { widthClass: isF41 ? '' : 'w-[8.5%]', borderClass: 'border-r border-slate-200', hoverClass: 'hover:bg-amber-100/90' })}
+                  {renderSortableTh('rate_delta', 'So sánh', { widthClass: isF41 ? '' : 'w-[8.5%]', borderClass: 'border-r border-slate-200', hoverClass: 'hover:bg-amber-100/90' })}
                   {renderSortableTh('volume_delta', 'Chênh lệch SL', { widthClass: isF41 ? '' : 'w-[8.5%]', borderClass: '', hoverClass: 'hover:bg-amber-100/90' })}
                 </tr>
               </thead>

@@ -262,7 +262,7 @@ export function BcvhMonthlyTrendBlock({ data }) {
 export function BcvhRouteCapacityBlock({ data }) {
   if (!data) return null;
   const { routeRows, routeTotalRow, meta } = data;
-  const periodBasis = meta?.route_period ? `${meta.route_period.from_date} – ${meta.route_period.to_date} (MTD)` : 'MTD';
+  const periodBasis = meta?.route_period ? `${meta.route_period.from_date} – ${meta.route_period.to_date} (lũy kế tháng)` : 'lũy kế tháng';
 
   return (
     <div className="rounded-2xl border border-[var(--color-surface-200)] bg-white p-5 shadow-sm">
@@ -275,7 +275,7 @@ export function BcvhRouteCapacityBlock({ data }) {
             </h2>
           </div>
           <p className="mt-0.5 text-xs font-black text-rose-600">
-            VỊ THỨ TOÀN QUỐC (MTD): {formatNationalRank(meta?.national_rank?.mtd) || '—'}
+            VỊ THỨ TOÀN QUỐC (lũy kế tháng): {formatNationalRank(meta?.national_rank?.mtd) || '—'}
           </p>
           <p className="mt-0.5 text-xs text-[var(--color-text-muted)]">
             Kỳ: {periodBasis} · Phân loại tuyến phát theo chất lượng thực hiện.

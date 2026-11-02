@@ -172,8 +172,8 @@ test('F41-TMS-COMPARE-01 (phase 2): BcvhWeeklyComparisonBlock renders Không đo
   assert.match(blockSource, /colSpan=\{3 \+ \(isF41 \? 1 : 0\)\}/);
 
   // Level 2 header rendered conditionally
-  assert.match(blockSource, /renderSortableTh\('current_rate_no_tms',\s*'Tỷ lệ đạt \(không đo TMS\)'/);
-  assert.match(blockSource, /renderSortableTh\('compare_rate_no_tms',\s*'Tỷ lệ đạt \(không đo TMS\)'/);
+  assert.match(blockSource, /renderSortableTh\('current_rate_no_tms',\s*HEADER_RATE_NO_TMS/);
+  assert.match(blockSource, /renderSortableTh\('compare_rate_no_tms',\s*HEADER_RATE_NO_TMS/);
 
   // Data cells reading current.rate_no_tms and compare.rate_no_tms
   assert.match(blockSource, /renderNeutralRate\(totalRow\.current\.rate_no_tms\)/);

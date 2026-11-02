@@ -32,8 +32,8 @@ const TEXT = {
   emptyDescription: 'Chưa có bản ghi BCVH cho kỳ đang chọn.',
   source: 'Ngày đánh giá',
   currentDay: 'Kết quả ngày đánh giá',
-  comparisonD1: 'So sánh D-1',
-  comparisonD7: 'So sánh D-7',
+  comparisonD1: 'So sánh (N-1)',
+  comparisonD7: 'So sánh (N-7)',
   lateCash: 'Chậm nộp tiền',
   routeDistribution: 'Phân bổ tuyến',
   action: 'Hành động',
@@ -59,7 +59,7 @@ const TEXT = {
   analysisAction: 'Phân tích',
   columnOptions: 'Ẩn / hiện cột',
   reset: 'Khôi phục',
-  hideableColumns: 'Chỉ 4 cột raw D-1 / D-7 được phép ẩn',
+  hideableColumns: 'Chỉ 4 cột raw N-1 / N-7 được phép ẩn',
   analysisTitle: 'Phân tích BCVH',
   currentSummary: 'Kết quả ngày đánh giá',
   comparisonSummary: 'So sánh kỳ trước',
@@ -219,10 +219,10 @@ function ColumnOptions({ columns, setColumns }) {
           <div className="mb-2 text-[11px] text-[var(--color-text-muted)] font-medium">{TEXT.hideableColumns}</div>
           <div className="space-y-2">
             {[
-              ['d1Volume', 'D-1 / Sản lượng'],
-              ['d1Rate', 'D-1 / Tỷ lệ'],
-              ['d7Volume', 'D-7 / Sản lượng'],
-              ['d7Rate', 'D-7 / Tỷ lệ'],
+              ['d1Volume', 'N-1 / Sản lượng'],
+              ['d1Rate', 'N-1 / Tỷ lệ'],
+              ['d7Volume', 'N-7 / Sản lượng'],
+              ['d7Rate', 'N-7 / Tỷ lệ'],
             ].map(([key, label]) => (
               <label key={key} className="flex items-center gap-2 rounded-md px-2 py-1 hover:bg-slate-50 transition-colors duration-150 cursor-pointer text-slate-700">
                 <input type="checkbox" checked={columns[key]} onChange={() => toggle(key)} className="rounded cursor-pointer text-blue-600 focus:ring-blue-500" />
@@ -300,7 +300,7 @@ function UnifiedHeader({ columns, sort, onSort, hasRank = true }) {
         {isF41 ? (
           <>
             <SortableTh field="current_day.rate_no_tms" sort={sort} onSort={onSort} activeClassName={theme.sortActive} className={`${GROUP_STYLES.currentDay.cell} ${GROUP_STYLES.lateCash.divider} px-2 py-1.5 text-center`}>
-              <span className="block max-w-[85px] leading-tight text-center">Tỷ lệ đạt (không đo TMS)</span>
+              <span className="block max-w-[85px] leading-tight text-center">Tỷ lệ (không đo TMS)</span>
             </SortableTh>
           </>
         ) : null}

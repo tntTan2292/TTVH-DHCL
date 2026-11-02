@@ -207,10 +207,10 @@ test('component sources preserve four-column comparison order and dashboard isol
   assert.match(componentSource, /rate: 'Tỷ lệ'/);
   assert.match(componentSource, /volumeDelta: 'SS SL'/);
   assert.match(componentSource, /rateDelta: 'SS Tỷ lệ'/);
-  assert.match(componentSource, /D-1 \/ Sản lượng/);
-  assert.match(componentSource, /D-1 \/ Tỷ lệ/);
-  assert.match(componentSource, /D-7 \/ Sản lượng/);
-  assert.match(componentSource, /D-7 \/ Tỷ lệ/);
+  assert.match(componentSource, /N-1 \/ Sản lượng/);
+  assert.match(componentSource, /N-1 \/ Tỷ lệ/);
+  assert.match(componentSource, /N-7 \/ Sản lượng/);
+  assert.match(componentSource, /N-7 \/ Tỷ lệ/);
   assert.match(componentSource, /HeaderGroup label=\{TEXT\.identity\}[\s\S]*HeaderGroup label=\{TEXT\.currentDay\}[\s\S]*HeaderGroup label=\{TEXT\.lateCash\}[\s\S]*HeaderGroup label=\{TEXT\.comparisonD1\}[\s\S]*HeaderGroup label=\{TEXT\.comparisonD7\}[\s\S]*HeaderGroup label=\{TEXT\.routeDistribution\}[\s\S]*HeaderGroup label=\{TEXT\.action\}/);
   assert.match(componentSource, /Sản lượng: <span className="font-semibold">\{formatNumber\(row\.comparisons\.d1\.volume\)\}<\/span>/);
   assert.match(componentSource, /Tỷ lệ: <span className="font-semibold">\{formatRate\(row\.comparisons\.d1\.rate\)\}<\/span>/);
@@ -234,7 +234,7 @@ test('component sources preserve four-column comparison order and dashboard isol
   assert.match(componentSource, /bg-violet-100 text-violet-800/);
   assert.match(componentSource, /bg-amber-100 text-amber-800/);
   assert.match(componentSource, /bg-rose-100 text-rose-800/);
-  assert.match(componentSource, /hideableColumns: 'Chỉ 4 cột raw D-1 \/ D-7 được phép ẩn'/);
+  assert.match(componentSource, /hideableColumns: 'Chỉ 4 cột raw N-1 \/ N-7 được phép ẩn'/);
   assert.match(componentSource, /sticky left-0/);
   assert.match(componentSource, /sticky left-\[48px\]/);
   assert.match(componentSource, /sticky left-\[120px\]/);

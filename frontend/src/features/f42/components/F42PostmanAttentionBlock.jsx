@@ -86,7 +86,7 @@ export default function F42PostmanAttentionBlock({
                 <th className="py-2 px-2.5 text-right">Sản lượng</th>
                 <th className="py-2 px-2.5 text-right">Đạt</th>
                 <th className="py-2 px-2.5 text-right text-rose-700">Không đạt</th>
-                <th className="py-2 px-2.5 text-center">Tỷ lệ đạt</th>
+                <th className="py-2 px-2.5 text-center">Tỷ lệ</th>
                 <th className="py-2 px-2 text-center">Hạng BCVH</th>
               </tr>
             </thead>

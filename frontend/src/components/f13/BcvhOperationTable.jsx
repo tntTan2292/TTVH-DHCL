@@ -1,3 +1,11 @@
+import {
+  HEADER_COMPARE_N1,
+  HEADER_COMPARE_N7,
+  HEADER_VOLUME,
+  NOTE_N_DAY,
+  monthCompareHeader,
+  rateHeader as columnRateHeader,
+} from '../../features/indicator/columnHeaders.js';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   DASH,
@@ -223,7 +231,8 @@ export default function BcvhOperationTable({ globalFilter, anchorDate } = {}) {
   const captureTruncated = Boolean(officeLevel && capturing && captureTop !== 'all' && orderedRows.length > captureTop);
   const displayRows = captureTruncated ? orderedRows.slice(0, captureTop) : orderedRows;
   const isFullPrevMonth = prevMonthMode === 'full_month';
-  const prevMonthShortLabel = isFullPrevMonth ? 'cả tháng trước' : 'cùng kỳ tháng trước';
+  const rateHeader = columnRateHeader(indicator);
+  const prevMonthCompareLabel = monthCompareHeader(isFullPrevMonth);
 
   return (
     <div className="w-full space-y-3">
@@ -415,12 +424,12 @@ export default function BcvhOperationTable({ globalFilter, anchorDate } = {}) {
               <SortableTh field="ten_bcvh" sort={headerSort} onSort={handleSort} activeClassName={theme.sortActive} className={`${headPy} px-2 text-center align-middle w-[17%] border-r border-slate-300 whitespace-nowrap`}>{officeLevel ? officeLevel.nameHeader : 'Tên bưu cục'}</SortableTh>
 
               {/* Lũy kế tháng (30% = 3 * 10%) */}
-              <SortableTh field="mtd_volume" sort={headerSort} onSort={handleSort} activeClassName={theme.sortActive} className={`${headPy} px-1 text-center align-middle w-[10%] border-r border-slate-200 ${headLead}`}>Sản lượng đo kiểm</SortableTh>
-              <SortableTh field="mtd_rate" sort={headerSort} onSort={handleSort} activeClassName={theme.sortActive} className={`${headPy} px-1 text-center align-middle w-[10%] border-r border-slate-200 ${headLead}`}>{indicator.id === 'f13' ? 'Tỷ lệ đạt KPI 2026' : `Tỷ lệ đạt ${indicator.moduleLabel}`}</SortableTh>
+              <SortableTh field="mtd_volume" sort={headerSort} onSort={handleSort} activeClassName={theme.sortActive} className={`${headPy} px-1 text-center align-middle w-[10%] border-r border-slate-200 ${headLead}`}>{HEADER_VOLUME}</SortableTh>
+              <SortableTh field="mtd_rate" sort={headerSort} onSort={handleSort} activeClassName={theme.sortActive} className={`${headPy} px-1 text-center align-middle w-[10%] border-r border-slate-200 ${headLead}`}>{rateHeader}</SortableTh>
               {isF41 ? (
                 <>
                   <SortableTh field="mtd_rate_no_tms" sort={headerSort} onSort={handleSort} activeClassName={theme.sortActive} className={`${headPy} px-1 text-center align-middle border-r border-slate-200 ${headLead}`}>
-                    <span className="block">Tỷ lệ đạt</span>
+                    <span className="block">Tỷ lệ</span>
                     <span className="block">(không đo TMS)</span>
                   </SortableTh>
                 </>
@@ -432,34 +441,31 @@ export default function BcvhOperationTable({ globalFilter, anchorDate } = {}) {
                     <span className="block">{prevMonthLabel.toLowerCase().replace('tháng', 'T')} ({isFullPrevMonth ? 'cả tháng' : 'cùng kỳ'})</span>
                   </SortableTh>
                   <SortableTh field="prev_month_rate" sort={headerSort} onSort={handleSort} activeClassName={theme.sortActive} className={`${headPy} px-1 text-center align-middle border-r border-slate-200 ${headLead}`}>
-                    <span className="block">Tỷ lệ đạt</span>
+                    <span className="block">Tỷ lệ</span>
                     <span className="block">{prevMonthLabel.toLowerCase().replace('tháng', 'T')} ({isFullPrevMonth ? 'cả tháng' : 'cùng kỳ'})</span>
                   </SortableTh>
                 </>
               ) : null}
               <SortableTh field="mtd_delta_rate" sort={headerSort} onSort={handleSort} activeClassName={theme.sortActive} className={`${headPy} px-1 text-center align-middle w-[10%] border-r border-slate-300 ${headLead}`}>
-                <span className="block">Tăng/giảm so với</span>
-                <span className="block">{prevMonthShortLabel}</span>
+                {prevMonthCompareLabel}
               </SortableTh>
 
               {/* Điều hành ngày (40% = 4 * 10%) */}
-              <SortableTh field="daily_volume" sort={headerSort} onSort={handleSort} activeClassName={theme.sortActive} className={`${headPy} px-1 text-center align-middle w-[10%] border-r border-slate-200 ${headLead}`}>Sản lượng đo kiểm</SortableTh>
-              <SortableTh field="daily_rate" sort={headerSort} onSort={handleSort} activeClassName={theme.sortActive} className={`${headPy} px-1 text-center align-middle w-[10%] border-r border-slate-200 ${headLead}`}>{indicator.id === 'f13' ? 'Tỷ lệ đạt KPI 2026' : `Tỷ lệ đạt ${indicator.moduleLabel}`}</SortableTh>
+              <SortableTh field="daily_volume" sort={headerSort} onSort={handleSort} activeClassName={theme.sortActive} className={`${headPy} px-1 text-center align-middle w-[10%] border-r border-slate-200 ${headLead}`}>{HEADER_VOLUME}</SortableTh>
+              <SortableTh field="daily_rate" sort={headerSort} onSort={handleSort} activeClassName={theme.sortActive} className={`${headPy} px-1 text-center align-middle w-[10%] border-r border-slate-200 ${headLead}`}>{rateHeader}</SortableTh>
               {isF41 ? (
                 <>
                   <SortableTh field="daily_rate_no_tms" sort={headerSort} onSort={handleSort} activeClassName={theme.sortActive} className={`${headPy} px-1 text-center align-middle border-r border-slate-200 ${headLead}`}>
-                    <span className="block">Tỷ lệ đạt</span>
+                    <span className="block">Tỷ lệ</span>
                     <span className="block">(không đo TMS)</span>
                   </SortableTh>
                 </>
               ) : null}
               <SortableTh field="daily_delta_rate" sort={headerSort} onSort={handleSort} activeClassName={theme.sortActive} className={`${headPy} px-1 text-center align-middle w-[10%] border-r border-slate-200 ${headLead}`}>
-                <span className="block">Tăng/Giảm so với</span>
-                <span className="block">ngày trước</span>
+                {HEADER_COMPARE_N1}
               </SortableTh>
               <SortableTh field="daily_week_delta_rate" sort={headerSort} onSort={handleSort} activeClassName={theme.sortActive} className={`${headPy} px-1 text-center align-middle w-[10%] ${headLead}`}>
-                <span className="block">Tăng/giảm so với</span>
-                <span className="block">cùng kỳ (tuần trước)</span>
+                {HEADER_COMPARE_N7}
               </SortableTh>
             </tr>
           </thead>
@@ -594,6 +600,7 @@ export default function BcvhOperationTable({ globalFilter, anchorDate } = {}) {
         </table>
         </div>
       </div>
+      <p className="mt-1.5 text-xs font-medium text-slate-500">{NOTE_N_DAY}</p>
       {captureTruncated ? (
         <p className="mt-2 text-xs font-semibold text-slate-600">
           {`Ảnh chụp: top ${displayRows.length} / ${orderedRows.length} bưu cục chấp nhận, sắp theo ${SORT_LABELS[headerSort.field] || 'thứ tự đang chọn'}.`}

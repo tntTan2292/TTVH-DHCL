@@ -319,7 +319,7 @@ export default function F12Cumulative12Block({ anchorDate = null }) {
                   </div>
                   <div className="flex items-center gap-1.5">
                     <span className="inline-block h-2 w-4 rounded-full" style={{ backgroundColor: theme.line }} />
-                    <span>Tỷ lệ đạt (%)</span>
+                    <span>Tỷ lệ (%)</span>
                   </div>
                   <div className="flex items-center gap-1.5">
                     <span className="inline-block h-0.5 w-4 border-t-2 border-dashed border-red-500" />

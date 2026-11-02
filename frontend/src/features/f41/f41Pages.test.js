@@ -33,12 +33,12 @@ test('App.jsx registers f41/dashboard and f41/ranking/bcvh for admin and viewer 
 
 test('T8-F41-NB1: Shared report blocks avoid hardcoded KPI 2026 and use indicator-aware labels', () => {
   const bcvhOpTableSource = fs.readFileSync(new URL('../../components/f13/BcvhOperationTable.jsx', import.meta.url), 'utf8');
-  assert.match(bcvhOpTableSource, /indicator\.id === 'f13' \? 'Tỷ lệ đạt KPI 2026' : `Tỷ lệ đạt \$\{indicator\.moduleLabel\}`/);
+  assert.match(bcvhOpTableSource, /rateHeader as columnRateHeader/);
   assert.doesNotMatch(bcvhOpTableSource, />\s*Tỷ lệ đạt KPI 2026\s*</);
 
   const weeklyComparisonSource = fs.readFileSync(new URL('../ranking/BcvhWeeklyComparisonBlock.jsx', import.meta.url), 'utf8');
-  assert.match(weeklyComparisonSource, /renderSortableTh\('current_rate',\s*indicator\.id === 'f13' \? 'Tỷ lệ đạt KPI 2026' : `Tỷ lệ đạt \$\{indicator\.moduleLabel\}`/);
-  assert.match(weeklyComparisonSource, /renderSortableTh\('compare_rate',\s*indicator\.id === 'f13' \? 'Tỷ lệ đạt KPI 2026' : `Tỷ lệ đạt \$\{indicator\.moduleLabel\}`/);
+  assert.match(weeklyComparisonSource, /renderSortableTh\('current_rate',\s*columnRateHeader\(indicator\)/);
+  assert.match(weeklyComparisonSource, /renderSortableTh\('compare_rate',\s*columnRateHeader\(indicator\)/);
 
   const weeklyTrendSource = fs.readFileSync(new URL('../ranking/BcvhWeeklyTrendBlock.jsx', import.meta.url), 'utf8');
   assert.match(weeklyTrendSource, /Sản lượng đo kiểm \(cột\) và \{indicator\.id === 'f13' \? 'Tỷ lệ đạt KPI 2026' : `Tỷ lệ đạt \$\{indicator\.moduleLabel\}`\} \(đường\)/);
@@ -148,7 +148,7 @@ test('F41-TMS-COMPARE-01: ActionUnitsBlock, BcvhOperationTable, and UnifiedBcvhA
   assert.match(rankingTableSource, /isF41\s*=\s*indicator\.id\s*===\s*'f41'/);
   assert.match(rankingTableSource, /current_day\.rate_no_tms/);
   assert.doesNotMatch(rankingTableSource, /rate_blank_tms/);
-  assert.match(rankingTableSource, /Tỷ lệ đạt \(không đo TMS\)/);
+  assert.match(rankingTableSource, /Tỷ lệ \(không đo TMS\)/);
   assert.doesNotMatch(rankingTableSource, /% chưa có đánh giá/);
 });
 

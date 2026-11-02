@@ -105,12 +105,12 @@ test('dashboard keeps compact BCVH table while ranking keeps redesigned table', 
   assert.doesNotMatch(dashboardAdapterSource, /<UnifiedBcvhAnalysisTable/);
 
   assert.match(compactTableSource, /LŨY KẾ THÁNG/);
-  assert.match(compactTableSource, /Sản lượng đo kiểm/);
+  assert.match(compactTableSource, /HEADER_VOLUME/);
   assert.doesNotMatch(compactTableSource, /Doughnut|Phân tích BCVH|So sánh D-1|So sánh D-7|Xem chi tiết tuyến/);
 
   assert.match(rankingTableSource, /AnalysisPanel/);
   assert.match(rankingTableSource, /DoughnutCell/);
-  assert.match(rankingTableSource, /So sánh D-1/);
-  assert.match(rankingTableSource, /So sánh D-7/);
+  assert.match(rankingTableSource, /So sánh \(N-1\)/);
+  assert.match(rankingTableSource, /So sánh \(N-7\)/);
   assert.match(rankingTableSource, /Xem chi tiết tuyến/);
 });

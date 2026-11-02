@@ -16,7 +16,7 @@ test('Dashboard composition keeps accepted operational surfaces', () => {
   assert.match(adapter, /<BcvhOperationTable/);
   assert.doesNotMatch(adapter, /<UnifiedBcvhAnalysisTable/);
   assert.match(compactTable, /LŨY KẾ THÁNG/);
-  assert.match(compactTable, /Sản lượng đo kiểm/);
+  assert.match(compactTable, /HEADER_VOLUME/);
   assert.doesNotMatch(compactTable, /Doughnut|Phân tích BCVH|So sánh D-1|So sánh D-7|Xem chi tiết tuyến/);
   assert.match(operatingPatterns, /Quy luật vận hành/);
   assert.doesNotMatch(dashboard, /TopListAdapter|Top 2 BCVH/);

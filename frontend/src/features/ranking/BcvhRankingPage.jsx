@@ -441,7 +441,7 @@ export default function BcvhRankingPage() {
           <div className="rounded-2xl border border-slate-200/90 bg-white shadow-sm hover:shadow-md transition-[box-shadow,border-color] duration-150 motion-reduce:transition-none">
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200/80 bg-slate-50/50 px-5 py-4">
               <div>
-                <p className="text-xs text-[var(--color-text-muted)] font-medium">So sánh kỳ trước theo D-1 và D-7.</p>
+                <p className="text-xs text-[var(--color-text-muted)] font-medium">So sánh (N-1) và (N-7). N: ngày đo kiểm.</p>
               </div>
               <div className="flex flex-wrap items-center gap-2">
                 <StatusBadge label={`${indicatorLabel('BCVH', indicator)}: ${metaState.options.find((option) => option.value === maBcvh)?.label || indicatorLabel('Tất cả BCVH', indicator)}`} tone="neutral" />
