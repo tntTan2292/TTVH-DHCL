@@ -2516,3 +2516,7 @@ PO approved showing the F4.1 "Không đo TMS" rate and the "chưa có đánh gi�
 ## 2026-10-29 - F41-TMS-COMPARE-01 closed (PO PASS)
 
 PO passed the F4.1 "Không đo TMS" rate on the Home block, the Dashboard operation table, the BCVH Ranking day table and the weekly / monthly comparison table (Antigravity UI, Opus review, fixes by Claude Code; two columns dropped on PO request). Backend restarted, agg_f41_day rebuilt and verified. No open residual.
+
+## 2026-11-02 - F13-V2-STRUCTURE-01 design written (awaiting PO approval)
+
+PO reviewed F1.1-F4.2 and asked for one module per indicator with a menu on the time axis (Theo ngày / tuần / tháng), identical for every indicator. Design and manifest written for a new F1.3 beside the old one (old pages untouched until the PO accepts): three-tier filters (Ngày takes a free date range), block scope tags to keep the per-module permission rules, additive `/api/f13/v2` backend, UI by Antigravity, Opus review. Also delivered the same day: short column titles on the report tables (commit 5af7b68a). Open: PO decisions D1-D3.
