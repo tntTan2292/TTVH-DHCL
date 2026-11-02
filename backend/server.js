@@ -6,6 +6,7 @@ const { loadLocalEnv } = require('./src/config/env');
 const envLoadResult = loadLocalEnv();
 
 const f13Routes = require('./src/routes/f13Routes');
+const f13v2Routes = require('./src/routes/f13v2Routes');
 const importRoutes = require('./src/routes/importRoutes');
 const authRoutes = require('./src/routes/authRoutes');
 const adminUserRoutes = require('./src/routes/adminUserRoutes');
@@ -132,6 +133,7 @@ app.use(express.json());
 
 app.use('/api/auth', authRoutes);
 app.use('/api/admin/users', adminUserRoutes);
+app.use('/api/f13/v2', f13v2Routes);
 app.use('/api/f13', f13Routes);
 app.use('/api/import', importRoutes);
 app.use('/api/network-map', networkMapRoutes);

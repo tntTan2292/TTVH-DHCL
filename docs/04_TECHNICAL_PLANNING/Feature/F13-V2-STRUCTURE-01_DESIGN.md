@@ -1,6 +1,6 @@
 # F13-V2-STRUCTURE-01 — Design: F1.3 rebuilt on the time axis (new module, old one untouched)
 
-**Status:** `DESIGN FOR PO APPROVAL` (2026-11-02). Nothing is implemented. The old F1.3 module (`/f13/dashboard`, `/f13/ranking/*`) is not changed and is removed only after the PO accepts the new one.
+**Status:** `D1-D3 APPROVED BY PO (2026-11-02) / B0-B1 BACKEND DELIVERED`. UI (U1) not started. The old F1.3 module (`/f13/dashboard`, `/f13/ranking/*`) is not changed and is removed only after the PO accepts the new one.
 **Author:** Claude Code (Sonnet 5.5). Backend: Claude Code. UI: Antigravity. Review: Opus (independent).
 **Manifest:** `docs/10_TICKETS/F13-V2-STRUCTURE-01_MANIFEST.md`.
 
@@ -85,3 +85,20 @@ All SQL parameter-bound, read-only, no schema change. Parity script: for the sam
 ## 9. Out of scope
 
 Any change to the old F1.3 module, the other indicators, Home, Hàng tồn, the database or the Import; rebuilding Chuyên đề pages; new business rules.
+
+## 10. Contract delivered in B0/B1 (backend, 2026-11-02)
+
+B0 finding: the old `/ranking/bcvh` accepts a range for the current figures, but its D-1 / D-7 columns compare with one single day anchored on `to_date`, so it cannot give "the L days before" for a range (D1). `day/summary` therefore has its own service; for one day its figures equal the old ranking's (tested field by field).
+
+All under `/api/f13/v2` (login + role + `requireModule('f13')` + per-scope response cache; body `{ success, data }`):
+
+| Endpoint | Query | `data` |
+| --- | --- | --- |
+| `GET /layout` | — | `{ indicator, scope:{mode,bcvh}, units:{allow_all,bcvh[]}, pages:[{id,title,path,subtitle,blocks:[{id,title,scope,path?}]}] }` — blocks already filtered for the caller; the UI draws only these. |
+| `GET /period/resolve` | `kind=day\|week\|month`, `value` (`YYYY-MM-DD` / `YYYY-Www` / `YYYY-MM`) | `{ kind, value, latest_date, clamped, day, week:{week_id,week_start,week_end,iso_week}, month:{month_id,month_start,month_end} }` — `day` is the anchor day clamped to the latest day with data. |
+| `GET /day/summary` | `from`, `to` (`YYYY-MM-DD`, range up to 366 days), `ma_bcvh` (optional) | `{ rows:[{ma_bcvh,ten_bcvh,rank,volume,passed,failed,rate,late_cash:{count,rate},compare:{n1,n7}}], meta:{from_date,to_date,days,has_data,compare:{n1:{from_date,to_date},n7:{...}},total_row} }`; `compare.n1/n7` = `{volume,rate,volume_delta,rate_delta}` (null when the window has no data for that BCVH). |
+
+Errors: 400 `MISSING_PARAM` / `INVALID_DATE` / `INVALID_RANGE` / `RANGE_TOO_LONG` / `INVALID_BCVH` / `INVALID_KIND` / `INVALID_WEEK_ID` / `INVALID_MONTH_ID`; 403 `OUT_OF_SCOPE`.
+BCVH-mode accounts: `rows` holds their own BCVH only; `meta.total_row` and every `rank` are removed; an unknown or foreign `ma_bcvh` is 403.
+
+The other blocks use the existing `/api/f13/...` endpoints unchanged (Section 5.1). Files: `backend/src/services/f13v2/{blockRegistry,periodResolve,DaySummaryService}.js`, `controllers/F13V2Controller.js`, `routes/f13v2Routes.js`, mount in `server.js`; tests `services/f13v2/f13v2Units.test.js` (13) and `routes/f13v2Routes.scope.test.js` (10, scope leak + parity). The backend needs a restart to serve the new routes.

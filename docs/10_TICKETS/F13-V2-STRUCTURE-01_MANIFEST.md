@@ -17,7 +17,7 @@ Same-time-axis structure for one indicator, starting with F1.3, without touching
 
 ## 3. Current Status
 
-- State: `DESIGN WRITTEN / AWAITING PO APPROVAL` (D1–D3 open). No code written.
+- State: `D1-D3 APPROVED (PO 2026-11-02) / B0-B1 BACKEND DELIVERED` (tests 13 + 10 pass). U1 (Antigravity UI) not started; backend restart needed to serve `/api/f13/v2`.
 - PO UI Check Required: `Yes`, after U1.
 
 ## 4. Required Reading

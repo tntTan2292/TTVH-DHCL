@@ -2520,3 +2520,7 @@ PO passed the F4.1 "Không đo TMS" rate on the Home block, the Dashboard operat
 ## 2026-11-02 - F13-V2-STRUCTURE-01 design written (awaiting PO approval)
 
 PO reviewed F1.1-F4.2 and asked for one module per indicator with a menu on the time axis (Theo ngày / tuần / tháng), identical for every indicator. Design and manifest written for a new F1.3 beside the old one (old pages untouched until the PO accepts): three-tier filters (Ngày takes a free date range), block scope tags to keep the per-module permission rules, additive `/api/f13/v2` backend, UI by Antigravity, Opus review. Also delivered the same day: short column titles on the report tables (commit 5af7b68a). Open: PO decisions D1-D3.
+
+## 2026-11-02 - F13-V2-STRUCTURE-01 backend delivered (UI pending)
+
+PO approved D1-D3. Claude Code delivered B0/B1: `/api/f13/v2/layout` (blocks filtered per scope from a tagged registry), `/period/resolve` (day/week/month anchor conversion, week-to-month by the Thursday), `/day/summary` (one day or a free range with N-1/N-7 windows). Tests 23 pass, including a leak test for BCVH-mode accounts and field-by-field parity with the old ranking for one day. Old F1.3 untouched. Next: backend restart (ask the PO, it pauses backfill), then the Antigravity UI prompt, then Opus review.
