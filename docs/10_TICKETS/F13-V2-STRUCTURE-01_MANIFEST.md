@@ -25,6 +25,7 @@ Same-time-axis structure for one indicator, starting with F1.3, without touching
   - Item B5: Kỳ so sánh tự động là kỳ liền trước kỳ đang chọn (`findPrecedingOption`); kiểm tra mềm `?week=` không hợp lệ (cảnh báo nhẹ, không làm trống ô chọn); ẩn toolbar bộ chọn riêng của khối khi có `controlledPeriod`.
   - Làm luôn: Menu "Chuyên đề" trong nhóm F1.3 (mới) liên kết đầy đủ cả 3 khối (`/f13/ranking/route`, `/f13/ranking/bcvh`, `/f13/evidence`); thẻ quy luật trang Ngày khóa tab "theo thứ"; nút camera truyền chuẩn prop `dateOrPeriod`; ngưỡng màu đọc đúng `indicatorTargetRate(indicator)`.
   - Kiểm thử: 79/79 test suite liên quan pass; frontend build & lint pass.
+  - Sửa sau bàn giao (Claude Code, 2026-11-02): `BcvhRankingOverviewBlocks.jsx` dùng `useEffect` mà thiếu import, làm hỏng khối xu hướng tháng ở trang Theo tháng và trang Phân tích BCVH cũ của mọi chỉ tiêu; phát hiện bằng `oxlint -D no-undef` (gate của `report_block_ui_standard.md` Mục 4).
 - PO UI Check Required: `Yes`, tiến hành kiểm tra giao diện trước khi quyết định thay thế module cũ.
 
 ## 4. Required Reading

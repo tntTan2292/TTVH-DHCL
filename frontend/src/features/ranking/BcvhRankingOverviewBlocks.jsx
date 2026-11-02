@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Route, BarChart3, Clock, ChevronDown } from 'lucide-react';
 import BlockCaptureButton from '../../components/common/BlockCaptureButton';
 import BcvhMonthlyComboTrendChart from './BcvhMonthlyComboTrendChart';
