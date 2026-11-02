@@ -53,6 +53,12 @@ test.before(async () => {
     for (let d = 1; d <= 30; d += 1) days.push(`2026-09-${String(d).padStart(2, '0')}`);
     await run('BEGIN');
     for (const date of days) for (const [index, code] of codes.entries()) await insertDay(date, code, index + Number(date.slice(-2)));
+    // A code outside the six canonical BCVH: the old ranking gives it a place, the new table must ignore it.
+    await run(
+        `INSERT INTO fact_f13 (ngay_do_kiem, ma_bg, ma_tinh_phat, ma_bcvh, ten_bcvh, ma_tuyen, ten_tuyen, loai_tuyen_phat, thoi_gian_ptc, thoi_gian_nop_tien, danh_gia_2026, ket_qua_f13)
+         VALUES (?, 'BGSTRAY', '53', '531120', 'Mã lạ', '53112000', 'Tuyến lạ', 'Tuyến phát xã', ?, ?, 'Đạt', 'Đạt')`,
+        [ANCHOR, `${ANCHOR} 10:00:00`, `${ANCHOR} 11:00:00`],
+    );
     await run('COMMIT');
 
     const app = express();
@@ -185,12 +191,16 @@ test('day table, one day: same figures as the old /ranking/bcvh (volume, rate, N
     const oldRows = new Map(oldBody.data.map((r) => [r.ma_bcvh, r]));
     const rows = (await get(sid, DAY)).body.data.rows;
     assert.ok(rows.length >= 3);
+    assert.equal(rows.some((r) => r.ma_bcvh === '531120'), false, 'a non-canonical code reached the table');
+    // Ranks are among the canonical BCVH only (the old ranking lets a stray code take a place): 1.. in rate order.
+    const ordered = [...rows].sort((a, b) => a.rank - b.rank);
+    assert.equal(ordered[0].rank, 1);
+    for (let i = 1; i < ordered.length; i += 1) assert.ok(ordered[i - 1].rate >= ordered[i].rate - 0.05, 'rank order follows the rate');
     for (const row of rows) {
         const old = oldRows.get(row.ma_bcvh);
         assert.ok(old, row.ma_bcvh);
         assert.equal(row.volume, old.sl_bg_ptc, `volume ${row.ma_bcvh}`);
         assert.equal(row.rate, old.kpi_2026, `rate ${row.ma_bcvh}`);
-        assert.equal(row.rank, old.rank, `rank ${row.ma_bcvh}`);
         assert.equal(row.late_cash.count, old.delayed_cash_handover_count, `late count ${row.ma_bcvh}`);
         assert.equal(row.late_cash.rate, old.f13_303_rate, `late rate ${row.ma_bcvh}`);
         assert.equal(row.compare.n1.volume, old.comparisons.d1.volume, `n1 volume ${row.ma_bcvh}`);
@@ -203,9 +213,22 @@ test('day table, one day: same figures as the old /ranking/bcvh (volume, rate, N
     }
 });
 
+test('day table, one day: the TỔNG CỘNG row equals the old total row (volume, rate, late cash)', async () => {
+    const sid = session('LEADER');
+    const oldTotal = (await get(sid, `/ranking/bcvh?from_date=${ANCHOR}&to_date=${ANCHOR}`)).body.meta.total_row;
+    const total = (await get(sid, DAY)).body.data.meta.total_row;
+    assert.equal(total.volume, oldTotal.sl_bg_ptc);
+    assert.equal(total.rate, oldTotal.kpi_2026);
+    assert.equal(total.late_cash.count, oldTotal.delayed_cash_handover_count);
+    assert.equal(total.late_cash.rate, oldTotal.f13_303_rate);
+});
+
 test('day table, range: current figures equal the old ranking for the same range', async () => {
     const sid = session('LEADER');
     const oldRows = new Map((await get(sid, '/ranking/bcvh?from_date=2026-10-10&to_date=2026-10-16')).body.data.map((r) => [r.ma_bcvh, r]));
+    // 10..16 Oct: N-1 = 3..9 Oct, N-7 = 3..9 Oct as well (a 7-day range is its own week)
+    const n1Rows = new Map((await get(sid, '/ranking/bcvh?from_date=2026-10-03&to_date=2026-10-09')).body.data.map((r) => [r.ma_bcvh, r]));
+    const n7Rows = n1Rows;
     const { rows, meta } = (await get(sid, RANGE)).body.data;
     assert.equal(meta.days, 7);
     assert.deepEqual(meta.compare.n1, { from_date: '2026-10-03', to_date: '2026-10-09' });
@@ -213,5 +236,10 @@ test('day table, range: current figures equal the old ranking for the same range
         assert.equal(row.volume, oldRows.get(row.ma_bcvh).sl_bg_ptc);
         assert.equal(row.rate, oldRows.get(row.ma_bcvh).kpi_2026);
         assert.ok(row.compare.n1.volume > 0 && row.compare.n7.volume > 0);
+        // each window is read back through the old ranking for exactly that window
+        assert.equal(row.compare.n1.volume, n1Rows.get(row.ma_bcvh).sl_bg_ptc);
+        assert.equal(row.compare.n1.rate, n1Rows.get(row.ma_bcvh).kpi_2026);
+        assert.equal(row.compare.n7.volume, n7Rows.get(row.ma_bcvh).sl_bg_ptc);
+        assert.equal(row.compare.n7.rate, n7Rows.get(row.ma_bcvh).kpi_2026);
     }
 });

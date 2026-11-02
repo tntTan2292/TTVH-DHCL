@@ -1124,6 +1124,20 @@ class FactBuuGuiRepository {
         });
     }
 
+    // F13-V2-STRUCTURE-01: streams only the failed shipments of a range, with the four columns the late-cash rule reads,
+    // one row at a time. getFactBetween loads every column of every row, which is what exhausted the heap on long ranges.
+    eachFailedFactBetween(fromDate, toDate, onRow) {
+        return new Promise((resolve, reject) => {
+            const sql = `SELECT ma_bcvh, danh_gia_2026, thoi_gian_ptc, thoi_gian_nop_tien
+                         FROM fact_f13
+                         WHERE ngay_do_kiem BETWEEN ? AND ? AND danh_gia_2026 = 'Không đạt'`;
+            db.each(sql, [fromDate, toDate], (err, row) => {
+                if (err) return;
+                onRow(row);
+            }, (err) => (err ? reject(err) : resolve()));
+        });
+    }
+
     getLatestImportMeta() {
         return new Promise((resolve, reject) => {
             const sql = `

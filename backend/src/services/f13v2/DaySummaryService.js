@@ -6,6 +6,7 @@
 // Rate, delta and late-cash rules are the F13DashboardService ones (injected), so there is one definition of them.
 
 const { CANONICAL_BCVH_UNITS } = require('../../config/canonicalBcvhUnits');
+const RuleF13302 = require('../../engine/rules/RuleF13302');
 const { isRealDate } = require('./periodResolve');
 
 const MS_PER_DAY = 86400000;
@@ -41,6 +42,7 @@ class DaySummaryService {
         if (!repository || !dashboardService) throw new Error('DaySummaryService needs a repository and a dashboard service');
         this.repository = repository;
         this.dashboard = dashboardService;
+        this.lateCashRule = new RuleF13302();
         this.codes = new Set(CANONICAL_BCVH_UNITS.map((unit) => unit.ma_bcvh));
     }
 
@@ -52,6 +54,25 @@ class DaySummaryService {
         const map = {};
         for (const row of this._canonical(rows)) map[row.ma_bcvh] = row;
         return map;
+    }
+
+    // Late cash (RULE_F13_302 / F13_303): late / failed, streamed so a long range never holds its shipments in memory.
+    async _lateCashByBcvh(fromDate, toDate) {
+        const byBcvh = {};
+        await this.repository.eachFailedFactBetween(fromDate, toDate, (fact) => {
+            const key = fact?.ma_bcvh;
+            if (!key) return;
+            const entry = byBcvh[key] || (byBcvh[key] = { failed: 0, late: 0 });
+            entry.failed += 1;
+            if (this.lateCashRule.evaluate(fact)) entry.late += 1;
+        });
+        return byBcvh;
+    }
+
+    _lateCashFigures(entry) {
+        const failed = Number(entry?.failed || 0);
+        const late = Number(entry?.late || 0);
+        return { count: late, rate: failed === 0 ? 0 : Number(((late / failed) * 100).toFixed(1)) };
     }
 
     _compareBlock(current, previous) {
@@ -79,17 +100,16 @@ class DaySummaryService {
         if (bcvhId && !this.codes.has(String(bcvhId))) throw fail('INVALID_BCVH', 'Mã BCVH không hợp lệ.');
 
         const windows = comparisonWindows(fromDate, toDate);
-        const [currentMetrics, n1Metrics, n7Metrics, facts] = await Promise.all([
+        const [currentMetrics, n1Metrics, n7Metrics, lateCash] = await Promise.all([
             this.repository.getBcvhOperationMetricsBetween(fromDate, toDate),
             this.repository.getBcvhOperationMetricsBetween(windows.n1.from_date, windows.n1.to_date),
             this.repository.getBcvhOperationMetricsBetween(windows.n7.from_date, windows.n7.to_date),
-            this.repository.getFactBetween(fromDate, toDate),
+            this._lateCashByBcvh(fromDate, toDate),
         ]);
 
         const current = this._canonical(currentMetrics);
         const n1Map = this._index(n1Metrics);
         const n7Map = this._index(n7Metrics);
-        const { rateMap, summaryMap } = this.dashboard._buildF13302SummaryMap(facts);
 
         // Rank over every BCVH of the city (rate, then volume - same order as the old ranking); the scope layer drops it
         // for a BCVH-mode account, so a unit never learns its place among the others.
@@ -115,10 +135,7 @@ class DaySummaryService {
                 passed,
                 failed: Number(row.khong_dat_kpi_2026 || 0),
                 rate: this.dashboard._calculateRate(passed, volume),
-                late_cash: {
-                    count: summaryMap[row.ma_bcvh]?.delayed_cash_handover_count ?? 0,
-                    rate: rateMap[row.ma_bcvh] ?? 0,
-                },
+                late_cash: this._lateCashFigures(lateCash[row.ma_bcvh]),
                 compare: {
                     n1: this._compareBlock(base, n1Map[row.ma_bcvh]),
                     n7: this._compareBlock(base, n7Map[row.ma_bcvh]),
@@ -164,7 +181,10 @@ class DaySummaryService {
                     passed: totalPassed,
                     failed: sumOf(rows, (r) => r.failed),
                     rate: this.dashboard._calculateRate(totalPassed, totalVolume),
-                    late_cash: { count: sumOf(rows, (r) => r.late_cash.count) },
+                    late_cash: this._lateCashFigures({
+                        failed: sumOf(rows, (r) => lateCash[r.ma_bcvh]?.failed),
+                        late: sumOf(rows, (r) => lateCash[r.ma_bcvh]?.late),
+                    }),
                     compare: { n1: totalBlock(n1Metrics), n7: totalBlock(n7Metrics) },
                 },
             },

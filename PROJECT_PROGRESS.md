@@ -2524,3 +2524,7 @@ PO reviewed F1.1-F4.2 and asked for one module per indicator with a menu on the 
 ## 2026-11-02 - F13-V2-STRUCTURE-01 backend delivered (UI pending)
 
 PO approved D1-D3. Claude Code delivered B0/B1: `/api/f13/v2/layout` (blocks filtered per scope from a tagged registry), `/period/resolve` (day/week/month anchor conversion, week-to-month by the Thursday), `/day/summary` (one day or a free range with N-1/N-7 windows). Tests 23 pass, including a leak test for BCVH-mode accounts and field-by-field parity with the old ranking for one day. Old F1.3 untouched. Next: backend restart (ask the PO, it pauses backfill), then the Antigravity UI prompt, then Opus review.
+
+## 2026-11-02 - F13-V2-STRUCTURE-01 review R1: not passed, backend part fixed
+
+Opus review found no scope leak but 5 blockers: a heap crash on long ranges (backend, fixed by streaming the late-cash facts: 304 days now 1.5 s / 358 MB), and four UI defects (wrong unit filter, month page 404, duplicate weekly trend block, wrong compare period) handed back to Antigravity. Also fixed: TỔNG CỘNG late-cash rate, ranks among the six canonical BCVH only (PO-visible difference from the old ranking), stronger tests. Open: UI round, re-review, backend restart, PO UI check.

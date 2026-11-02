@@ -110,18 +110,28 @@ const dashboardStub = {
         if (!ct || !pt) return null;
         return Number((this._calculateRate(cp, ct) - this._calculateRate(pp, pt)).toFixed(2));
     },
-    _buildF13302SummaryMap: () => ({ rateMap: { 537015: 10 }, summaryMap: { 537015: { delayed_cash_handover_count: 2 } } }),
 };
+
+function failedFact(code, late) {
+    return {
+        ma_bcvh: code,
+        danh_gia_2026: 'Không đạt',
+        thoi_gian_ptc: '2026-10-20 10:00:00',
+        thoi_gian_nop_tien: late ? '2026-10-20 15:00:00' : '2026-10-20 11:00:00',
+    };
+}
 
 function metric(code, name, volume, passed) {
     return { ma_bcvh: code, ten_bcvh: name, sl_bg_ptc: volume, dat_kpi_2026: passed, khong_dat_kpi_2026: volume - passed, sl_ptc_nop_tien: 0 };
 }
 
-function serviceWith(byRange) {
+function serviceWith(byRange, lateFacts = []) {
     return new DaySummaryService({
         repository: {
             getBcvhOperationMetricsBetween: async (from, to) => byRange[`${from}|${to}`] || [],
-            getFactBetween: async () => [],
+            eachFailedFactBetween: async (from, to, onRow) => {
+                for (const fact of lateFacts) onRow(fact);
+            },
         },
         dashboardService: dashboardStub,
     });
@@ -132,7 +142,10 @@ test('day summary: rows, ranks, compare blocks and the total are computed from t
         '2026-10-20|2026-10-20': [metric('537015', 'BCVH Thuận An', 100, 90), metric('535790', 'BCVH A Lưới', 50, 25)],
         '2026-10-19|2026-10-19': [metric('537015', 'BCVH Thuận An', 80, 60)],
         '2026-10-13|2026-10-13': [metric('537015', 'BCVH Thuận An', 100, 95), metric('535790', 'BCVH A Lưới', 40, 20)],
-    });
+    }, [
+        failedFact('537015', true), failedFact('537015', true), failedFact('537015', false), failedFact('537015', false),
+        failedFact('535790', false),
+    ]);
     const { rows, meta } = await service.getSummary('2026-10-20', '2026-10-20');
     assert.deepEqual(rows.map((r) => [r.ma_bcvh, r.rank, r.rate]), [['537015', 1, 90], ['535790', 2, 50]]);
     assert.equal(rows[0].compare.n1.rate, 75);
@@ -140,7 +153,14 @@ test('day summary: rows, ranks, compare blocks and the total are computed from t
     assert.equal(rows[0].compare.n1.rate_delta, 15);
     assert.deepEqual(rows[1].compare.n1, { volume: null, rate: null, volume_delta: null, rate_delta: null });
     assert.equal(rows[0].compare.n7.rate_delta, -5);
-    assert.equal(rows[0].late_cash.count, 2);
+    assert.deepEqual(rows[0].late_cash, { count: 2, rate: 50 });
+    assert.deepEqual(rows[1].late_cash, { count: 0, rate: 0 });
+    assert.deepEqual(meta.total_row.late_cash, { count: 2, rate: 40 }); // 2 late of 5 failed, summed then divided
+    // the N-7 total uses the N-7 window (115 -> 95 + 20 passed of 140), not N-1
+    assert.equal(meta.total_row.compare.n7.volume, 140);
+    assert.equal(meta.total_row.compare.n7.rate, 82.1);
+    assert.equal(meta.total_row.compare.n1.volume, 80);
+    assert.equal(meta.total_row.compare.n1.rate, 75);
     assert.equal(meta.total_row.volume, 150);
     assert.equal(meta.total_row.rate, 76.7); // 115 / 150, summed then divided - not (90 + 50) / 2
     assert.equal(meta.has_data, true);
@@ -161,4 +181,45 @@ test('day summary rejects a bad range and an unknown unit', async () => {
     await assert.rejects(service.getSummary('2026-10-2', '2026-10-20'), { code: 'INVALID_DATE' });
     await assert.rejects(service.getSummary('2024-01-01', '2026-10-20'), { code: 'RANGE_TOO_LONG' });
     await assert.rejects(service.getSummary('2026-10-20', '2026-10-20', { bcvhId: '999999' }), { code: 'INVALID_BCVH' });
+});
+
+test('day summary: a range uses the window just before it (N-1) and the range shifted 7 days (N-7), with their own values', async () => {
+    const service = serviceWith({
+        '2026-10-10|2026-10-12': [metric('537015', 'BCVH Thuận An', 30, 30)],
+        '2026-10-07|2026-10-09': [metric('537015', 'BCVH Thuận An', 20, 10)], // N-1
+        '2026-10-03|2026-10-05': [metric('537015', 'BCVH Thuận An', 40, 36)], // N-7
+    });
+    const { rows } = await service.getSummary('2026-10-10', '2026-10-12');
+    assert.equal(rows[0].compare.n1.volume, 20);
+    assert.equal(rows[0].compare.n1.rate, 50);
+    assert.equal(rows[0].compare.n1.rate_delta, 50);
+    assert.equal(rows[0].compare.n7.volume, 40);
+    assert.equal(rows[0].compare.n7.rate, 90);
+    assert.equal(rows[0].compare.n7.rate_delta, 10);
+});
+
+test('day summary: equal rate and volume share a rank; equal rate with a bigger volume ranks higher', async () => {
+    const service = serviceWith({
+        '2026-10-20|2026-10-20': [
+            metric('537015', 'BCVH Thuận An', 10, 9),
+            metric('535790', 'BCVH A Lưới', 100, 90),
+            metric('533140', 'BCVH Thuận Hóa', 100, 90),
+            metric('536250', 'BCVH Hương Thủy', 50, 45),
+        ],
+    });
+    const { rows } = await service.getSummary('2026-10-20', '2026-10-20');
+    const rankOf = Object.fromEntries(rows.map((r) => [r.ma_bcvh, r.rank]));
+    assert.equal(rankOf['535790'], 1);
+    assert.equal(rankOf['533140'], 1); // same rate and same volume: shared first place
+    assert.equal(rankOf['536250'], 3); // same rate, smaller volume than the two above
+    assert.equal(rankOf['537015'], 4);
+});
+
+test('day summary: a code outside the six canonical BCVH is never ranked or totalled', async () => {
+    const service = serviceWith({
+        '2026-10-20|2026-10-20': [metric('531120', 'Mã lạ', 1, 1), metric('537015', 'BCVH Thuận An', 10, 9)],
+    });
+    const { rows, meta } = await service.getSummary('2026-10-20', '2026-10-20');
+    assert.deepEqual(rows.map((r) => [r.ma_bcvh, r.rank]), [['537015', 1]]);
+    assert.equal(meta.total_row.volume, 10);
 });

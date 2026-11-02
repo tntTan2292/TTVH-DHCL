@@ -29,7 +29,7 @@ Generic by construction: pages take an indicator config like F4.1/F1.1 do, so F1
 | Module | **Unit** (+ search) | "Tất cả BCVH" or one BCVH; shared by the three pages, kept in the URL. |
 | Block | view options only | Sort, top-N for the camera, show/hide columns, cùng kỳ vs cả tháng trước, compare-period pick, 7/14/30-day window. They never change which rows or which period the data covers. |
 
-URL params: `from`, `to` (Ngày), `week` (Tuần), `month` (Tháng), `bcvh`. Anchor conversion between pages is done by the backend (Section 5.2): the day range's end date → the week containing it → the month of that week's Thursday; the other way: the week/month → its last day with data (Ngày shows that single day).
+URL params: `from`, `to` (Ngày), `week` (Tuần), `month` (Tháng), `bcvh`. Anchor conversion between pages is done by the backend (Section 5.2): the day range's end date → the week containing it and the month **of that day** (decided in R1 remediation 2026-11-02: 1 Nov is November); a week → the month of its Thursday (D3); the other way: the week/month → its last day with data (Ngày shows that single day).
 
 ## 4. Permissions (unchanged principle, made explicit)
 
@@ -55,7 +55,7 @@ URL params: `from`, `to` (Ngày), `week` (Tuần), `month` (Tháng), `bcvh`. Anc
 | `GET /period/resolve?kind=day\|week\|month&value=…` | Converts the anchor between day / week / month (rules in Section 3) and returns the latest day with data. Reuses the week logic of `BcvhWeeklyComparisonService`; no second calendar. |
 | `GET /day/summary?from=&to=&ma_bcvh=` | One BCVH table for a day or range: volume, passed, failed, rate, late cash, **So sánh (N-1)** and **So sánh (N-7)**. See D1 for ranges. Verified in B0 whether `/ranking/bcvh` already does this for a range; if yes it is wrapped, not rewritten. |
 
-All SQL parameter-bound, read-only, no schema change. Parity script: for the same inputs, new pages' numbers equal the old pages' numbers (ngày, tuần, tháng) before review.
+All SQL parameter-bound, read-only, no schema change. Parity is enforced by tests (`routes/f13v2Routes.scope.test.js`), not by a script: for the same inputs the day table equals the old ranking field by field. One deliberate difference: **ranks are among the six canonical BCVH only**; the old ranking lets a stray code (e.g. 531120) take a place and shifts the others down (R1 decision 2026-11-02, the new numbers are the right ones).
 
 ## 6. Frontend (Antigravity), constraints
 
@@ -102,3 +102,21 @@ Errors: 400 `MISSING_PARAM` / `INVALID_DATE` / `INVALID_RANGE` / `RANGE_TOO_LONG
 BCVH-mode accounts: `rows` holds their own BCVH only; `meta.total_row` and every `rank` are removed; an unknown or foreign `ma_bcvh` is 403.
 
 The other blocks use the existing `/api/f13/...` endpoints unchanged (Section 5.1). Files: `backend/src/services/f13v2/{blockRegistry,periodResolve,DaySummaryService}.js`, `controllers/F13V2Controller.js`, `routes/f13v2Routes.js`, mount in `server.js`; tests `services/f13v2/f13v2Units.test.js` (13) and `routes/f13v2Routes.scope.test.js` (10, scope leak + parity). The backend needs a restart to serve the new routes.
+
+## 11. Review R1 (Opus, 2026-11-02) and remediation
+
+R1 found 5 blockers, no scope leak. Backend ones fixed by Claude Code, UI ones handed to Antigravity (prompt in chat, tracked in the manifest).
+
+| # | Finding | Owner | State |
+| --- | --- | --- | --- |
+| B1 | `day/summary` on a long range loaded every fact row and exhausted the heap (crash at ~305 days) | Backend | **Fixed**: late cash is streamed (`eachFailedFactBetween`, 4 columns, failed rows only). Synthetic 604k rows / 304 days: 1.5 s, peak 358 MB. |
+| B2 | Unit filter hardcoded wrong codes; Tuần/Tháng ignored `bcvh` | UI | Open |
+| B3 | Month page called `/f13/months` (404); correct is `/f13/ranking/bcvh/months` | UI | Open |
+| B4 | Weekly block always draws the weekly trend block (twice on Tuần, stray on Tháng) | UI | Open |
+| B5 | Compare period fixed to `options[1]`; invalid `?week=` empties the filter | UI | Open |
+| R-rank | `rank` differs from the old ranking | Backend | Decided: canonical only (Section 5.2), test added |
+| R-total | TỔNG CỘNG had no `late_cash.rate` | Backend | **Fixed** (summed late / summed failed), parity test with the old total row |
+| R-D3 | Day→month used the day's own month; text said Thursday | Design | Decided: month of the day, text corrected (Section 3) |
+| R-tests | Mutants M8 (N-1 window value), M10 (total mixing N-1/N-7), M15 (tie-break) survived | Backend | **Fixed**: value assertions, total-window assertions, tie-break and canonical-only tests |
+
+Remaining R1 recommendations (menu "Chuyên đề" reaching only one block, leftover period pickers in the comparison block, Ngày page pattern tabs, camera caption, colour thresholds, scoped units for BCVH accounts) go to the UI fix round.
