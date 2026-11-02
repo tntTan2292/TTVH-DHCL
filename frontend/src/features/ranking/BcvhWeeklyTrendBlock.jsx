@@ -21,7 +21,7 @@ const BASE_TREND_COLORS = { ...BCVH_COLORS, [WEEKLY_TREND_TOTAL_KEY]: '#0f172a' 
 // Replaces the old "Diễn biến theo ngày" block. Driven ONLY by the anchor week ("tuần kỳ này", set by
 // "Điều chỉnh mốc tuần hiện tại" / the week select of the table above) plus its own unit filter.
 // Default view: "Tổng cộng 6 BCVH" (combo bar + line).
-export default function BcvhWeeklyTrendBlock({ anchorWeekId, anchorWeek }) {
+export default function BcvhWeeklyTrendBlock({ anchorWeekId, anchorWeek, controlledUnit, maBcvh }) {
   const indicator = useIndicator();
   const api = useIndicatorApi();
   const units = useBcvhUnits();
@@ -37,6 +37,17 @@ export default function BcvhWeeklyTrendBlock({ anchorWeekId, anchorWeek }) {
   const [trendState, setTrendState] = useState({ status: 'idle', weeks: [], error: null });
   // A user limited to some BCVH has no city total: start on their first BCVH.
   const [unit, setUnit] = useState(units.scoped ? units.codes[0] : WEEKLY_TREND_TOTAL_KEY);
+
+  const effectiveControlledUnit = controlledUnit !== undefined ? controlledUnit : maBcvh;
+  useEffect(() => {
+    if (effectiveControlledUnit !== undefined) {
+      if (!effectiveControlledUnit || effectiveControlledUnit === 'all') {
+        setUnit(units.scoped ? units.codes[0] : WEEKLY_TREND_TOTAL_KEY);
+      } else {
+        setUnit(effectiveControlledUnit);
+      }
+    }
+  }, [effectiveControlledUnit, units.scoped, units.codes]);
 
   const fetchTrend = useMemo(() => createWeeklyTrendFetcher(api, setTrendState), []);
   useEffect(() => {

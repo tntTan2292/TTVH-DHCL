@@ -11,6 +11,8 @@ import {
   classifyRateTone,
   classifyDeltaTone,
   resolveTargetPageParams,
+  findPrecedingOption,
+  buildScopedUnitOptions,
   HEADER_VOLUME,
   HEADER_COMPARE_N1,
   HEADER_COMPARE_N7,
@@ -88,28 +90,28 @@ test('getNestedValue reads deep properties safely', () => {
   assert.equal(getNestedValue(null, 'ma_bcvh'), undefined);
 });
 
-test('sortDaySummaryRows orders numeric and string columns and sends nulls to the end', () => {
+test('sortDaySummaryRows orders numeric and string columns with canonical units and sends nulls to the end', () => {
   const rows = [
-    { ma_bcvh: '533140', ten_bcvh: 'BCVH Hương Thủy', rate: 91.2, rank: 2, compare: { n1: { rate_delta: -0.5 } } },
-    { ma_bcvh: '530000', ten_bcvh: 'BCVH Huế', rate: 94.0, rank: 1, compare: { n1: { rate_delta: 1.2 } } },
-    { ma_bcvh: '532800', ten_bcvh: 'BCVH Phong Điền', rate: 88.0, rank: 3, compare: { n1: { rate_delta: null } } },
+    { ma_bcvh: '533140', ten_bcvh: 'BCVH Thuận Hóa', rate: 91.2, rank: 2, compare: { n1: { rate_delta: -0.5 } } },
+    { ma_bcvh: '535790', ten_bcvh: 'BCVH A Lưới', rate: 94.0, rank: 1, compare: { n1: { rate_delta: 1.2 } } },
+    { ma_bcvh: '536250', ten_bcvh: 'BCVH Hương Thủy', rate: 88.0, rank: 3, compare: { n1: { rate_delta: null } } },
   ];
 
   // Sort by rate desc
   const sortedRateDesc = sortDaySummaryRows(rows, 'rate', 'desc');
-  assert.deepEqual(sortedRateDesc.map((r) => r.ma_bcvh), ['530000', '533140', '532800']);
+  assert.deepEqual(sortedRateDesc.map((r) => r.ma_bcvh), ['535790', '533140', '536250']);
 
   // Sort by ten_bcvh asc
   const sortedNameAsc = sortDaySummaryRows(rows, 'ten_bcvh', 'asc');
-  assert.deepEqual(sortedNameAsc.map((r) => r.ten_bcvh), ['BCVH Huế', 'BCVH Hương Thủy', 'BCVH Phong Điền']);
+  assert.deepEqual(sortedNameAsc.map((r) => r.ten_bcvh), ['BCVH A Lưới', 'BCVH Hương Thủy', 'BCVH Thuận Hóa']);
 
   // Sort by nested field compare.n1.rate_delta desc: missing values go last!
   const sortedDeltaDesc = sortDaySummaryRows(rows, 'compare.n1.rate_delta', 'desc');
-  assert.deepEqual(sortedDeltaDesc.map((r) => r.ma_bcvh), ['530000', '533140', '532800']);
+  assert.deepEqual(sortedDeltaDesc.map((r) => r.ma_bcvh), ['535790', '533140', '536250']);
 
   // Sort by nested field compare.n1.rate_delta asc: missing values STILL go last!
   const sortedDeltaAsc = sortDaySummaryRows(rows, 'compare.n1.rate_delta', 'asc');
-  assert.deepEqual(sortedDeltaAsc.map((r) => r.ma_bcvh), ['533140', '530000', '532800']);
+  assert.deepEqual(sortedDeltaAsc.map((r) => r.ma_bcvh), ['533140', '535790', '536250']);
 });
 
 test('classifyRateTone and classifyDeltaTone assign semantic tones', () => {
@@ -124,42 +126,71 @@ test('classifyRateTone and classifyDeltaTone assign semantic tones', () => {
   assert.equal(classifyDeltaTone(null), 'neutral');
 });
 
-test('resolveTargetPageParams preserves bcvh and maps resolved anchors correctly', () => {
+test('resolveTargetPageParams preserves bcvh and drops cross-period params per PO rule', () => {
   const currentParams = new URLSearchParams('from=2026-07-10&to=2026-07-15&bcvh=533140');
-  const resolveData = {
-    day: '2026-07-15',
-    week: { week_id: '2026-W29' },
-    month: { month_id: '2026-07' },
-  };
 
   const toWeek = resolveTargetPageParams({
     currentPage: 'ngay',
     targetPage: 'tuan',
     currentParams,
-    resolveData,
   });
   assert.equal(toWeek.path, '/f13/v2/tuan');
-  assert.match(toWeek.search, /bcvh=533140/);
-  assert.match(toWeek.search, /week=2026-W29/);
+  assert.equal(toWeek.search, '?bcvh=533140');
 
   const toMonth = resolveTargetPageParams({
     currentPage: 'ngay',
     targetPage: 'thang',
     currentParams,
-    resolveData,
   });
   assert.equal(toMonth.path, '/f13/v2/thang');
-  assert.match(toMonth.search, /bcvh=533140/);
-  assert.match(toMonth.search, /month=2026-07/);
+  assert.equal(toMonth.search, '?bcvh=533140');
 
-  const toDay = resolveTargetPageParams({
+  const toDayFromWeek = resolveTargetPageParams({
     currentPage: 'tuan',
     targetPage: 'ngay',
     currentParams: new URLSearchParams('week=2026-W29&bcvh=all'),
-    resolveData,
   });
-  assert.equal(toDay.path, '/f13/v2/ngay');
-  assert.match(toDay.search, /from=2026-07-15/);
-  assert.match(toDay.search, /to=2026-07-15/);
-  assert.equal(toDay.search.includes('bcvh='), false); // 'all' is dropped from query for cleanliness
+  assert.equal(toDayFromWeek.path, '/f13/v2/ngay');
+  assert.equal(toDayFromWeek.search, ''); // 'all' is not set in query
+});
+
+test('findPrecedingOption identifies the immediately preceding period', () => {
+  const options = [
+    { value: '2026-W38', label: 'Tuần 38' },
+    { value: '2026-W37', label: 'Tuần 37' },
+    { value: '2026-W36', label: 'Tuần 36' },
+  ];
+
+  // For W38, preceding is W37
+  assert.equal(findPrecedingOption(options, '2026-W38')?.value, '2026-W37');
+  // For W37, preceding is W36
+  assert.equal(findPrecedingOption(options, '2026-W37')?.value, '2026-W36');
+  // For oldest W36, falls back to itself
+  assert.equal(findPrecedingOption(options, '2026-W36')?.value, '2026-W36');
+  // If not found in list, falls back to options[1] (or options[0])
+  assert.equal(findPrecedingOption(options, '2026-W99')?.value, '2026-W37');
+});
+
+test('buildScopedUnitOptions respects layout scope contract', () => {
+  const metaUnits = [
+    { ma_bcvh: '535790', ten_bcvh: 'BCVH A Lưới' },
+    { ma_bcvh: '536250', ten_bcvh: 'BCVH Hương Thủy' },
+    { ma_bcvh: '533140', ten_bcvh: 'BCVH Thuận Hóa' },
+  ];
+
+  // Scoped layout: allow_all = false, bcvh = ['533140']
+  const scopedLayout = { units: { allow_all: false, bcvh: ['533140'] } };
+  const scopedOptions = buildScopedUnitOptions({ layout: scopedLayout, metaUnits });
+  assert.equal(scopedOptions.length, 1);
+  assert.equal(scopedOptions[0].value, '533140');
+  assert.equal(scopedOptions[0].ten_bcvh, 'BCVH Thuận Hóa');
+
+  // Full layout: allow_all = true
+  const fullLayout = { units: { allow_all: true, bcvh: [] } };
+  const fullOptions = buildScopedUnitOptions({ layout: fullLayout, metaUnits });
+  assert.equal(fullOptions.length, 3);
+
+  // Failed layout (null): must NOT default to allow_all!
+  const failedOptions = buildScopedUnitOptions({ layout: null, metaUnits });
+  assert.equal(failedOptions.length, 0);
 });

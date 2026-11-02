@@ -139,37 +139,21 @@ export function classifyDeltaTone(delta) {
 }
 
 /**
- * Extract target route and converted search query when switching time axis pages.
+ * Extract target route and search query when switching time axis pages.
+ * PO decision 2026-11-02 (Item 0): no date/week/month period conversion across page links.
+ * Each page opens the latest period with data when it has no period param in URL.
+ * Only `bcvh` is carried over between pages.
  */
 export function resolveTargetPageParams({
   _currentPage,
   targetPage,
   currentParams,
-  resolveData,
 }) {
-  const bcvh = currentParams.get('bcvh') || currentParams.get('ma_bcvh') || currentParams.get('bcvh_id') || 'all';
+  const bcvh = currentParams?.get?.('bcvh') || currentParams?.get?.('ma_bcvh') || currentParams?.get?.('bcvh_id') || 'all';
   const nextParams = new URLSearchParams();
 
   if (bcvh && bcvh !== 'all') {
     nextParams.set('bcvh', bcvh);
-  }
-
-  if (targetPage === 'ngay') {
-    const day = resolveData?.day || currentParams.get('from') || currentParams.get('to') || '';
-    if (day) {
-      nextParams.set('from', day);
-      nextParams.set('to', day);
-    }
-  } else if (targetPage === 'tuan') {
-    const weekId = resolveData?.week?.week_id || currentParams.get('week') || '';
-    if (weekId) {
-      nextParams.set('week', weekId);
-    }
-  } else if (targetPage === 'thang') {
-    const monthId = resolveData?.month?.month_id || currentParams.get('month') || '';
-    if (monthId) {
-      nextParams.set('month', monthId);
-    }
   }
 
   const query = nextParams.toString();
@@ -178,4 +162,53 @@ export function resolveTargetPageParams({
     search: query ? `?${query}` : '',
     fullPath: `/f13/v2/${targetPage}${query ? `?${query}` : ''}`,
   };
+}
+
+/**
+ * Find the period immediately preceding the selected period (options sorted newest first).
+ */
+export function findPrecedingOption(options, currentValue) {
+  if (!Array.isArray(options) || options.length === 0) return null;
+  const index = options.findIndex((opt) => (opt?.value ?? opt) === currentValue);
+  if (index === -1) {
+    return options.length > 1 ? options[1] : options[0];
+  }
+  if (index + 1 < options.length) {
+    return options[index + 1];
+  }
+  return options[index];
+}
+
+/**
+ * Build scoped unit list based on layout contract and metadata.
+ * If layout load fails or allow_all !== true, does NOT default to all units.
+ */
+export function buildScopedUnitOptions({ layout, metaUnits = [] }) {
+  const allowAll = layout?.units?.allow_all === true;
+  const allowedCodes = Array.isArray(layout?.units?.bcvh) ? layout.units.bcvh : [];
+
+  const nameMap = {};
+  metaUnits.forEach((u) => {
+    if (u?.ma_bcvh) nameMap[u.ma_bcvh] = u.ten_bcvh || `BCVH ${u.ma_bcvh}`;
+  });
+
+  if (!allowAll && allowedCodes.length > 0) {
+    return allowedCodes.map((code) => ({
+      value: code,
+      label: nameMap[code] ? `${nameMap[code]} (${code})` : `BCVH ${code}`,
+      ma_bcvh: code,
+      ten_bcvh: nameMap[code] || `BCVH ${code}`,
+    }));
+  }
+
+  if (allowAll) {
+    return metaUnits.map((u) => ({
+      value: u.ma_bcvh,
+      label: u.ten_bcvh ? `${u.ten_bcvh} (${u.ma_bcvh})` : `BCVH ${u.ma_bcvh}`,
+      ma_bcvh: u.ma_bcvh,
+      ten_bcvh: u.ten_bcvh || `BCVH ${u.ma_bcvh}`,
+    }));
+  }
+
+  return [];
 }

@@ -1,11 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import api from '../../api/client.js';
 import { PageContainer } from '../../components/common/Containers.jsx';
 import { useIndicator } from '../indicator/IndicatorContext.js';
 import { indicatorTheme, indicatorTargetRate, F13_INDICATOR } from '../indicator/indicatorConfig.js';
 import { BcvhUnitsProvider } from '../indicator/BcvhUnitsContext.js';
-import { fetchLayout, fetchDaySummary } from './api/f13v2Api.js';
+import { fetchLayout, resolvePeriod, fetchDaySummary } from './api/f13v2Api.js';
 import { isBlockVisible } from './f13v2Helpers.js';
 import F13V2FilterBar from './components/F13V2FilterBar.jsx';
 import F13V2DaySummaryTable from './components/F13V2DaySummaryTable.jsx';
@@ -25,7 +25,7 @@ export default function F13V2DayPage() {
 
   const [layout, setLayout] = useState(null);
   const [latestDate, setLatestDate] = useState(null);
-  const [bcvhOptions, setBcvhOptions] = useState([]);
+  const [metaUnits, setMetaUnits] = useState([]);
 
   // URL parameters: from, to, bcvh
   const fromParam = searchParams.get('from');
@@ -59,12 +59,7 @@ export default function F13V2DayPage() {
       setLatestDate(maxD);
 
       if (meta.bcvh_units && Array.isArray(meta.bcvh_units)) {
-        setBcvhOptions(
-          meta.bcvh_units.map((u) => ({
-            value: u.ma_bcvh,
-            label: u.ten_bcvh ? `${u.ten_bcvh} (${u.ma_bcvh})` : `BCVH ${u.ma_bcvh}`,
-          }))
-        );
+        setMetaUnits(meta.bcvh_units);
       }
     });
 
@@ -73,25 +68,57 @@ export default function F13V2DayPage() {
     };
   }, []);
 
+  // Synchronize initial URL params once latestDate or resolvePeriod is known
+  // PO Rule: if no from/to in URL, resolve default anchor via GET /api/f13/v2/period/resolve?kind=latest
+  useEffect(() => {
+    if (fromParam && toParam) return;
+    let active = true;
+
+    resolvePeriod({ kind: 'latest' })
+      .then((res) => {
+        if (!active || !res?.day) return;
+        setSearchParams(
+          (prev) => {
+            const next = new URLSearchParams(prev);
+            if (!next.get('from')) next.set('from', res.day);
+            if (!next.get('to')) next.set('to', res.day);
+            return next;
+          },
+          { replace: true }
+        );
+      })
+      .catch((err) => {
+        console.warn('[F13V2DayPage] resolvePeriod latest failed, fallback to latestDate:', err);
+        if (latestDate && active) {
+          setSearchParams(
+            (prev) => {
+              const next = new URLSearchParams(prev);
+              if (!next.get('from')) next.set('from', latestDate);
+              if (!next.get('to')) next.set('to', latestDate);
+              return next;
+            },
+            { replace: true }
+          );
+        }
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [fromParam, toParam, latestDate, setSearchParams]);
+
   // Effective dates: use params if present, else fallback to latestDate
   const effectiveFrom = fromParam || latestDate || '';
   const effectiveTo = toParam || latestDate || '';
 
-  // Synchronize initial URL params once latestDate is known
-  useEffect(() => {
-    if (!latestDate) return;
-    if (!fromParam || !toParam) {
-      setSearchParams(
-        (prev) => {
-          const next = new URLSearchParams(prev);
-          if (!next.get('from')) next.set('from', latestDate);
-          if (!next.get('to')) next.set('to', latestDate);
-          return next;
-        },
-        { replace: true }
-      );
-    }
-  }, [latestDate, fromParam, toParam, setSearchParams]);
+  // Scoped units for BcvhUnitsProvider (B2)
+  const isScoped = layout?.units?.allow_all === false;
+  const scopedUnits = useMemo(() => {
+    if (!metaUnits.length) return null;
+    if (!isScoped) return metaUnits;
+    const allowed = new Set(layout?.units?.bcvh || []);
+    return metaUnits.filter((u) => allowed.has(u.ma_bcvh));
+  }, [isScoped, layout, metaUnits]);
 
   // Fetch Day Summary table data
   useEffect(() => {
@@ -191,13 +218,23 @@ export default function F13V2DayPage() {
     };
   }, [effectiveFrom, effectiveTo, latestDate, bcvhParam, trendMode, indicator]);
 
+  const selectedBcvhUnit = metaUnits.find((u) => u.ma_bcvh === bcvhParam);
   const selectedBcvhLabel =
     bcvhParam === 'all'
       ? 'Toàn mạng'
-      : bcvhOptions.find((opt) => opt.value === bcvhParam)?.label || `BCVH ${bcvhParam}`;
+      : selectedBcvhUnit?.ten_bcvh
+        ? `${selectedBcvhUnit.ten_bcvh} (${bcvhParam})`
+        : `BCVH ${bcvhParam}`;
+
+  const bcvhOptions = useMemo(() => {
+    return metaUnits.map((u) => ({
+      value: u.ma_bcvh,
+      label: u.ten_bcvh ? `${u.ten_bcvh} (${u.ma_bcvh})` : `BCVH ${u.ma_bcvh}`,
+    }));
+  }, [metaUnits]);
 
   return (
-    <BcvhUnitsProvider units={bcvhOptions}>
+    <BcvhUnitsProvider units={scopedUnits} scoped={isScoped}>
       <PageContainer
         accentClassName={theme.accentBar}
         badge={<span className={`rounded-full border px-3 py-0.5 text-sm font-black ${theme.chip}`}>F1.3</span>}
@@ -210,6 +247,7 @@ export default function F13V2DayPage() {
             activePage="ngay"
             layout={layout}
             latestDate={latestDate}
+            bcvhUnits={metaUnits}
           />
 
           {/* Block 1: day.overview */}
@@ -258,12 +296,15 @@ export default function F13V2DayPage() {
             />
           )}
 
-          {/* Block 4: day.pattern */}
+          {/* Block 4: day.pattern (Locked to weekday tab only) */}
           {isBlockVisible(layout, 'ngay', 'day.pattern') && (
             <OperatingPatternTabsCard
               fromDate={effectiveFrom}
               toDate={effectiveTo}
               maBcvh={bcvhParam}
+              defaultTab="weekday"
+              allowedTabs={['weekday']}
+              hideTabs={true}
             />
           )}
 

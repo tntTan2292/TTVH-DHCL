@@ -41,12 +41,23 @@ const MONTHLY_HEATMAP_LEGEND = [
 ];
 
 // 2. Monthly Trend Block (Khối 1)
-export function BcvhMonthlyTrendBlock({ data }) {
+export function BcvhMonthlyTrendBlock({ data, controlledUnit, maBcvh }) {
   const indicator = useIndicator();
   const cardRef = useRef(null);
   const units = useBcvhUnits();
   // A user limited to some BCVH has no city total: start on their first BCVH.
   const [unit, setUnit] = useState(units.scoped ? units.codes[0] : MONTHLY_TREND_TOTAL_KEY);
+
+  const effectiveControlledUnit = controlledUnit !== undefined ? controlledUnit : maBcvh;
+  useEffect(() => {
+    if (effectiveControlledUnit !== undefined) {
+      if (!effectiveControlledUnit || effectiveControlledUnit === 'all') {
+        setUnit(units.scoped ? units.codes[0] : MONTHLY_TREND_TOTAL_KEY);
+      } else {
+        setUnit(effectiveControlledUnit);
+      }
+    }
+  }, [effectiveControlledUnit, units.scoped, units.codes]);
   // Click-to-order (PO 2026-10-10) of the 6 BCVH rows of the heatmap by the unit name or by a month's rate.
   const [heatmapSort, setHeatmapSort] = useState(null);
   const handleHeatmapSort = (field) => setHeatmapSort((current) => nextSortState(current, field, { textFields: ['ten_bcvh'] }));
@@ -199,7 +210,7 @@ export function BcvhMonthlyTrendBlock({ data }) {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
-            {orderedHeatmapRows.map((row) => (
+            {((effectiveControlledUnit && effectiveControlledUnit !== 'all') ? orderedHeatmapRows.filter((r) => r.ma_bcvh === effectiveControlledUnit) : orderedHeatmapRows).map((row) => (
               <tr key={row.ma_bcvh} className="hover:bg-gray-50/50 transition-colors">
                 <td className="sticky left-0 bg-white/95 px-3 py-2.5 font-bold text-[var(--color-text-main)] shadow-[1px_0_0_0_#f3f4f6] backdrop-blur-sm z-10">
                   {row.ten_bcvh}

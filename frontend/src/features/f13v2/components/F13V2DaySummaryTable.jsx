@@ -3,7 +3,7 @@ import { Table, AlertCircle } from 'lucide-react';
 import BlockCaptureButton from '../../../components/common/BlockCaptureButton.jsx';
 import SortableTh from '../../../components/common/SortableTh.jsx';
 import { useIndicator } from '../../indicator/IndicatorContext.js';
-import { indicatorTheme } from '../../indicator/indicatorConfig.js';
+import { indicatorTheme, indicatorTargetRate } from '../../indicator/indicatorConfig.js';
 import {
   HEADER_VOLUME,
   HEADER_COMPARE_N1,
@@ -72,6 +72,7 @@ export default function F13V2DaySummaryTable({
   const cardRef = useRef(null);
   const indicator = useIndicator();
   const theme = indicatorTheme(indicator);
+  const targetRate = indicatorTargetRate(indicator);
 
   const [sort, setSort] = useState({ field: 'rank', direction: 'asc' });
 
@@ -126,7 +127,7 @@ export default function F13V2DaySummaryTable({
           <BlockCaptureButton
             targetRef={cardRef}
             blockTitle="Bảng BCVH theo ngày"
-            period={periodLabel}
+            dateOrPeriod={periodLabel}
           />
         </div>
       </div>
@@ -331,7 +332,7 @@ export default function F13V2DaySummaryTable({
                     {formatVolume(row.failed)}
                   </td>
                   <td className="px-3 py-2 text-center border-r border-slate-100">
-                    <RateBadge rate={row.rate} />
+                    <RateBadge rate={row.rate} target={targetRate} />
                   </td>
 
                   <td className="px-2.5 py-2 text-right font-medium text-slate-700">
@@ -384,7 +385,7 @@ export default function F13V2DaySummaryTable({
                     {formatVolume(totalRow.failed)}
                   </td>
                   <td className="px-3 py-2.5 text-center border-r border-slate-200">
-                    <RateBadge rate={totalRow.rate} />
+                    <RateBadge rate={totalRow.rate} target={targetRate} />
                   </td>
 
                   <td className="px-2.5 py-2.5 text-right font-bold text-slate-800">

@@ -116,21 +116,39 @@ export function SidebarNavigation({ isOpen, onClose, isCollapsed, onToggleCollap
         name: 'F1.3 (mới)',
         icon: <Target size={18} />,
         roles: ['admin'],
-        subItems: f13V2Layout.pages.map((p) => ({
-          name: p.title,
-          path: p.path || (p.blocks?.[0]?.path ?? '/f13/v2/ngay'),
-          subtitle: p.subtitle,
-          icon:
-            p.id === 'ngay' ? (
-              <CalendarDays size={18} />
-            ) : p.id === 'tuan' ? (
-              <BarChart2 size={18} />
-            ) : p.id === 'thang' ? (
-              <Activity size={18} />
-            ) : (
-              <BookOpen size={18} />
-            ),
-        })),
+        subItems: f13V2Layout.pages.map((p) => {
+          if (p.id === 'chuyen-de' && Array.isArray(p.blocks) && p.blocks.length > 0) {
+            return {
+              name: p.title,
+              title: p.title,
+              subtitle: p.subtitle,
+              icon: <BookOpen size={18} />,
+              subItems: p.blocks
+                .filter((b) => b.path)
+                .map((b) => ({
+                  name: b.title,
+                  path: b.path,
+                  subtitle: p.subtitle,
+                  icon: <BookOpen size={14} />,
+                })),
+            };
+          }
+          return {
+            name: p.title,
+            path: p.path || (p.blocks?.[0]?.path ?? '/f13/v2/ngay'),
+            subtitle: p.subtitle,
+            icon:
+              p.id === 'ngay' ? (
+                <CalendarDays size={18} />
+              ) : p.id === 'tuan' ? (
+                <BarChart2 size={18} />
+              ) : p.id === 'thang' ? (
+                <Activity size={18} />
+              ) : (
+                <BookOpen size={18} />
+              ),
+          };
+        }),
       };
 
       items = items.map((group) => {

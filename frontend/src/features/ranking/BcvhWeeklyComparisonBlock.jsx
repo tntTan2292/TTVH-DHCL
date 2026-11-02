@@ -139,10 +139,24 @@ function WeekNoteBadge({ week }) {
   );
 }
 
+function findPrecedingOption(options, currentValue) {
+  if (!Array.isArray(options) || options.length === 0) return null;
+  const index = options.findIndex((opt) => (opt?.value ?? opt) === currentValue);
+  if (index === -1) {
+    return options.length > 1 ? options[1] : options[0];
+  }
+  if (index + 1 < options.length) {
+    return options[index + 1];
+  }
+  return options[index];
+}
+
 export default function BcvhWeeklyComparisonBlock({
   controlledPeriodMode,
   controlledPeriod,
   hidePeriodModeSwitch = false,
+  hideTrend = false,
+  maBcvh,
 } = {}) {
   const indicator = useIndicator();
   const isF41 = indicator?.id === 'f41';
@@ -173,15 +187,7 @@ export default function BcvhWeeklyComparisonBlock({
     }
   }, [controlledPeriodMode, periodMode]);
 
-  // Controlled period value sync (additive, design Section 6)
-  useEffect(() => {
-    if (!controlledPeriod) return;
-    if (periodMode === 'week') {
-      setSelection((prev) => (prev.current === controlledPeriod ? prev : { ...prev, current: controlledPeriod }));
-    } else if (periodMode === 'month') {
-      setMonthSelection((prev) => (prev.current === controlledPeriod ? prev : { ...prev, current: controlledPeriod }));
-    }
-  }, [controlledPeriod, periodMode]);
+  const [controlledError, setControlledError] = useState(null);
 
   const containerRef = useRef(null);
   const tableRef = useRef(null);
@@ -243,12 +249,9 @@ export default function BcvhWeeklyComparisonBlock({
       const validCompare = weekOptions.some((o) => o.value === prev.compare);
       if (validCurrent && validCompare) return prev;
 
-      const latest = weekOptions[0];
-      const previous = weekOptions.length > 1 ? weekOptions[1] : latest;
-      return {
-        current: validCurrent ? prev.current : latest.value,
-        compare: validCompare ? prev.compare : previous.value,
-      };
+      const current = validCurrent ? prev.current : weekOptions[0].value;
+      const compare = validCompare ? prev.compare : (findPrecedingOption(weekOptions, current)?.value || weekOptions[0].value);
+      return { current, compare };
     });
   }, [weekOptions]);
 
@@ -317,14 +320,41 @@ export default function BcvhWeeklyComparisonBlock({
       const validCurrent = monthOptions.some((o) => o.value === prev.current);
       const validCompare = monthOptions.some((o) => o.value === prev.compare);
       if (validCurrent && validCompare) return prev;
-      const latest = monthOptions[0];
-      const previous = monthOptions.length > 1 ? monthOptions[1] : latest;
-      return {
-        current: validCurrent ? prev.current : latest.value,
-        compare: validCompare ? prev.compare : previous.value,
-      };
+      const current = validCurrent ? prev.current : monthOptions[0].value;
+      const compare = validCompare ? prev.compare : (findPrecedingOption(monthOptions, current)?.value || monthOptions[0].value);
+      return { current, compare };
     });
   }, [monthOptions]);
+
+  // Controlled period value sync (additive, design Section 6 & B5)
+  useEffect(() => {
+    if (!controlledPeriod) return;
+    if (periodMode === 'week') {
+      const isValid = !weekOptions.length || weekOptions.some((o) => o.value === controlledPeriod);
+      if (!isValid && weekOptions.length > 0) {
+        setControlledError(`Tuần "${controlledPeriod}" không tìm thấy trong dữ liệu.`);
+      } else {
+        setControlledError(null);
+      }
+      setSelection((prev) => {
+        const nextCurrent = isValid ? controlledPeriod : (weekOptions[0]?.value || controlledPeriod);
+        const nextCompare = findPrecedingOption(weekOptions, nextCurrent)?.value || prev.compare;
+        return { current: nextCurrent, compare: nextCompare };
+      });
+    } else if (periodMode === 'month') {
+      const isValid = !monthOptions.length || monthOptions.some((o) => o.value === controlledPeriod);
+      if (!isValid && monthOptions.length > 0) {
+        setControlledError(`Tháng "${controlledPeriod}" không tìm thấy trong dữ liệu.`);
+      } else {
+        setControlledError(null);
+      }
+      setMonthSelection((prev) => {
+        const nextCurrent = isValid ? controlledPeriod : (monthOptions[0]?.value || controlledPeriod);
+        const nextCompare = findPrecedingOption(monthOptions, nextCurrent)?.value || prev.compare;
+        return { current: nextCurrent, compare: nextCompare };
+      });
+    }
+  }, [controlledPeriod, periodMode, weekOptions, monthOptions]);
 
   const fetchMonthComparisonRef = useRef(null);
   if (!fetchMonthComparisonRef.current) fetchMonthComparisonRef.current = createMonthlyComparisonFetcher(api, setMonthComparisonState);
@@ -365,15 +395,19 @@ export default function BcvhWeeklyComparisonBlock({
   // Sorting: Default order BCVH by current week KPI rate (tỉ lệ đạt KPI 2026 của Tuần kỳ này) descending
   const [sortConfig, setSortConfig] = useState({ field: 'current_rate', direction: 'desc' });
 
-  const totalRow = comparisonState.data?.total_row || null;
+  const totalRow = (maBcvh && maBcvh !== 'all') ? null : (comparisonState.data?.total_row || null);
 
   // Order BCVH rows according to current week KPI rate (default descending)
   const rows = useMemo(() => {
-    return sortBcvhWeeklyRows(comparisonState.data?.rows, {
+    const rawRows = comparisonState.data?.rows || [];
+    const scopedRows = (maBcvh && maBcvh !== 'all')
+      ? rawRows.filter((r) => r.ma_bcvh === maBcvh)
+      : rawRows;
+    return sortBcvhWeeklyRows(scopedRows, {
       sortField: sortConfig.field,
       direction: sortConfig.direction,
     });
-  }, [comparisonState.data?.rows, sortConfig]);
+  }, [comparisonState.data?.rows, sortConfig, maBcvh]);
 
   const handleSort = (field) => {
     setSortConfig((prev) => {
@@ -464,7 +498,8 @@ export default function BcvhWeeklyComparisonBlock({
     <div className="w-full space-y-5">
     <section className="bcvh-weekly-operation-card w-full rounded-2xl border border-slate-200/90 bg-white p-3 sm:p-5 shadow-sm hover:shadow-md transition-[box-shadow,border-color] duration-150 motion-reduce:transition-none">
       {/* PO Requirement 2: Dedicated, Independent Filter Toolbar (đưa lên trên cùng để không cản trở chụp ảnh bảng dữ liệu) */}
-      <div className="mb-5 rounded-xl border border-slate-200/90 bg-slate-50/80 p-3.5 sm:p-4 shadow-2xs">
+      {!controlledPeriod && (
+        <div className="mb-5 rounded-xl border border-slate-200/90 bg-slate-50/80 p-3.5 sm:p-4 shadow-2xs">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200/80 pb-3">
           <div className="flex items-center gap-2">
             <SlidersHorizontal className="h-4 w-4 text-blue-700" />
@@ -503,7 +538,10 @@ export default function BcvhWeeklyComparisonBlock({
                 options={monthOptions}
                 emptyText="Chưa có dữ liệu tháng"
                 disabled={monthsState.status !== 'success'}
-                onChange={(value) => setMonthSelection((prev) => ({ ...prev, current: value }))}
+                onChange={(value) => {
+                  const nextCompare = findPrecedingOption(monthOptions, value)?.value;
+                  setMonthSelection((prev) => ({ ...prev, current: value, compare: nextCompare || prev.compare }));
+                }}
               />
               <WeekNoteBadge week={currentMonth} />
             </div>
@@ -561,7 +599,8 @@ export default function BcvhWeeklyComparisonBlock({
               options={weekOptions}
               disabled={weeksState.status !== 'success'}
               onChange={(value) => {
-                setSelection((prev) => ({ ...prev, current: value }));
+                const nextCompare = findPrecedingOption(weekOptions, value)?.value;
+                setSelection((prev) => ({ ...prev, current: value, compare: nextCompare || prev.compare }));
                 const chosen = weekOptions.find((o) => o.value === value)?.week;
                 if (chosen?.week_start) setAnchorDate(chosen.week_start);
                 setAnchorNotice(null);
@@ -662,6 +701,14 @@ export default function BcvhWeeklyComparisonBlock({
           </div>
         ) : null}
       </div>
+      )}
+
+      {controlledError && (
+        <div className="mb-4 flex items-center gap-2 rounded-xl border border-amber-300 bg-amber-50 px-3.5 py-2 text-xs font-semibold text-amber-900 shadow-2xs">
+          <AlertTriangle className="h-4 w-4 shrink-0 text-amber-600" />
+          <span>{controlledError} Đang hiển thị kỳ gần nhất.</span>
+        </div>
+      )}
 
       {isMonth && monthsState.status === 'error' ? (
         <ErrorState title="Không thể tải danh sách tháng" description={monthsState.error} />
@@ -996,7 +1043,9 @@ export default function BcvhWeeklyComparisonBlock({
     </section>
 
     {/* Biểu đồ diễn biến theo tuần: chỉ phụ thuộc mốc tuần hiện tại (selection.current) + bộ lọc đơn vị riêng */}
-    <BcvhWeeklyTrendBlock anchorWeekId={selection.current} anchorWeek={currentWeek} />
+    {!hideTrend && (
+      <BcvhWeeklyTrendBlock anchorWeekId={selection.current} anchorWeek={currentWeek} />
+    )}
     </div>
   );
 }

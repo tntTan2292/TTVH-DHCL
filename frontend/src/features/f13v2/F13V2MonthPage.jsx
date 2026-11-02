@@ -1,11 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import api from '../../api/client.js';
 import { PageContainer } from '../../components/common/Containers.jsx';
 import { useIndicator } from '../indicator/IndicatorContext.js';
 import { indicatorTheme, F13_INDICATOR } from '../indicator/indicatorConfig.js';
 import { BcvhUnitsProvider } from '../indicator/BcvhUnitsContext.js';
-import { fetchLayout } from './api/f13v2Api.js';
+import { fetchLayout, resolvePeriod } from './api/f13v2Api.js';
 import { isBlockVisible } from './f13v2Helpers.js';
 import F13V2FilterBar from './components/F13V2FilterBar.jsx';
 
@@ -23,6 +23,7 @@ export default function F13V2MonthPage() {
   const [layout, setLayout] = useState(null);
   const [months, setMonths] = useState([]);
   const [latestDate, setLatestDate] = useState(null);
+  const [metaUnits, setMetaUnits] = useState([]);
 
   // URL parameters: month, bcvh
   const monthParam = searchParams.get('month') || '';
@@ -38,7 +39,7 @@ export default function F13V2MonthPage() {
         console.error('[F13V2MonthPage] fetchLayout error:', e);
         return null;
       }),
-      api.get('/f13/months').catch((e) => {
+      api.get('/f13/ranking/bcvh/months').catch((e) => {
         console.error('[F13V2MonthPage] fetchMonths error:', e);
         return null;
       }),
@@ -56,6 +57,9 @@ export default function F13V2MonthPage() {
 
       const meta = metaRes?.data?.data || {};
       setLatestDate(meta.max_date || null);
+      if (meta.bcvh_units && Array.isArray(meta.bcvh_units)) {
+        setMetaUnits(meta.bcvh_units);
+      }
     });
 
     return () => {
@@ -64,20 +68,45 @@ export default function F13V2MonthPage() {
   }, []);
 
   // Synchronize default month if missing from searchParams
+  // PO Rule: if no month in URL, resolve default anchor via GET /api/f13/v2/period/resolve?kind=latest
   useEffect(() => {
-    if (months.length > 0 && !monthParam) {
-      setSearchParams(
-        (prev) => {
-          const next = new URLSearchParams(prev);
-          if (!next.get('month')) {
-            next.set('month', months[0].month_id);
-          }
-          return next;
-        },
-        { replace: true }
-      );
-    }
-  }, [months, monthParam, setSearchParams]);
+    if (monthParam) return;
+    let active = true;
+
+    resolvePeriod({ kind: 'latest' })
+      .then((res) => {
+        if (!active || !res?.month?.month_id) return;
+        setSearchParams(
+          (prev) => {
+            const next = new URLSearchParams(prev);
+            if (!next.get('month')) {
+              next.set('month', res.month.month_id);
+            }
+            return next;
+          },
+          { replace: true }
+        );
+      })
+      .catch((err) => {
+        console.warn('[F13V2MonthPage] resolvePeriod latest failed, fallback to months[0]:', err);
+        if (months.length > 0 && active) {
+          setSearchParams(
+            (prev) => {
+              const next = new URLSearchParams(prev);
+              if (!next.get('month')) {
+                next.set('month', months[0].month_id);
+              }
+              return next;
+            },
+            { replace: true }
+          );
+        }
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [monthParam, months, setSearchParams]);
 
   const effectiveMonthId = monthParam || (months[0]?.month_id ?? '');
   const activeMonthObj = months.find((m) => m.month_id === effectiveMonthId) || months[0] || null;
@@ -88,7 +117,7 @@ export default function F13V2MonthPage() {
       ? latestDate
       : activeMonthObj?.month_end || latestDate || '';
 
-  // Fetch overview data for BcvhMonthlyTrendBlock
+  // Fetch overview data for BcvhMonthlyTrendBlock (driven by ?month= via anchorDateForMonth)
   useEffect(() => {
     if (!anchorDateForMonth) return;
     let active = true;
@@ -122,8 +151,17 @@ export default function F13V2MonthPage() {
     };
   }, [anchorDateForMonth]);
 
+  // Scoped units for BcvhUnitsProvider (B2)
+  const isScoped = layout?.units?.allow_all === false;
+  const scopedUnits = useMemo(() => {
+    if (!metaUnits.length) return null;
+    if (!isScoped) return metaUnits;
+    const allowed = new Set(layout?.units?.bcvh || []);
+    return metaUnits.filter((u) => allowed.has(u.ma_bcvh));
+  }, [isScoped, layout, metaUnits]);
+
   return (
-    <BcvhUnitsProvider>
+    <BcvhUnitsProvider units={scopedUnits} scoped={isScoped}>
       <PageContainer
         accentClassName={theme.accentBar}
         badge={<span className={`rounded-full border px-3 py-0.5 text-sm font-black ${theme.chip}`}>F1.3</span>}
@@ -137,18 +175,21 @@ export default function F13V2MonthPage() {
             layout={layout}
             latestDate={latestDate}
             availableMonths={months}
+            bcvhUnits={metaUnits}
           />
 
-          {/* Block 1: month.compare */}
+          {/* Block 1: month.compare (hideTrend = true, maBcvh applied) */}
           {isBlockVisible(layout, 'thang', 'month.compare') && (
             <BcvhWeeklyComparisonBlock
               controlledPeriodMode="month"
               controlledPeriod={effectiveMonthId}
               hidePeriodModeSwitch={true}
+              hideTrend={true}
+              maBcvh={bcvhParam}
             />
           )}
 
-          {/* Block 2: month.trend */}
+          {/* Block 2: month.trend (controlledUnit applied, driven by ?month=) */}
           {isBlockVisible(layout, 'thang', 'month.trend') && (
             <div>
               {overviewState.loading ? (
@@ -159,12 +200,15 @@ export default function F13V2MonthPage() {
                   </div>
                 </div>
               ) : overviewState.processed ? (
-                <BcvhMonthlyTrendBlock data={overviewState.processed} />
+                <BcvhMonthlyTrendBlock
+                  data={overviewState.processed}
+                  controlledUnit={bcvhParam}
+                />
               ) : null}
             </div>
           )}
 
-          {/* Block 3: month.pattern */}
+          {/* Block 3: month.pattern (driven by ?month= and ?bcvh=) */}
           {isBlockVisible(layout, 'thang', 'month.pattern') && (
             <OperatingPatternTabsCard
               fromDate={activeMonthObj?.month_start || ''}

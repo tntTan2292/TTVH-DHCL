@@ -17,8 +17,15 @@ Same-time-axis structure for one indicator, starting with F1.3, without touching
 
 ## 3. Current Status
 
-- State: `D1-D3 APPROVED / BACKEND DELIVERED / U1 DELIVERED / R1 REVIEW: NOT PASSED (5 blockers)`. Backend blocker B1 and the rank/total/test findings fixed 2026-11-02; UI blockers B2-B5 open with Antigravity (design Section 11). PO decisions 2026-11-02 recorded (design Section 12): six-BCVH ranking; each page opens the latest period, unit kept; backend `kind=latest` added. Backend restart still needed to serve `/api/f13/v2`.
-- PO UI Check Required: `Yes`, after U1.
+- State: `D1-D3 APPROVED / BACKEND DELIVERED / U1 REMEDIATED (B2-B5 FIXED) / READY FOR PO UI CHECK`.
+  - Item 0: Đã cập nhật quy tắc chuyển trang không suy kỳ chéo ngày/tuần/tháng; mỗi trang tải kỳ gần nhất qua `resolvePeriod({ kind: 'latest' })`; bộ lọc giữ `bcvh`.
+  - Item B2: Loại bỏ hardcode mã BCVH giả trong filter bar; lấy danh sách đơn vị từ `layout` và tên từ metadata; không mặc định "Tất cả BCVH" khi lỗi tải layout; truyền scoped units cho `BcvhUnitsProvider` ở cả 3 trang; áp dụng `bcvh` lọc bảng và biểu đồ tuần/tháng.
+  - Item B3: Sửa endpoint gọi tháng từ `/f13/months` thành `/f13/ranking/bcvh/months`; tham số `?month=` điều khiển cả khối xu hướng tháng và quy luật vận hành.
+  - Item B4: Thêm prop `hideTrend` tùy chọn cho `BcvhWeeklyComparisonBlock` (mặc định false). Trang Tuần có đúng 2 khối: So sánh BCVH (hideTrend) và 1 khối Diễn biến chất lượng theo tuần. Trang Tháng hiển thị So sánh BCVH theo tháng (hideTrend) và không hiển thị biểu đồ tuần.
+  - Item B5: Kỳ so sánh tự động là kỳ liền trước kỳ đang chọn (`findPrecedingOption`); kiểm tra mềm `?week=` không hợp lệ (cảnh báo nhẹ, không làm trống ô chọn); ẩn toolbar bộ chọn riêng của khối khi có `controlledPeriod`.
+  - Làm luôn: Menu "Chuyên đề" trong nhóm F1.3 (mới) liên kết đầy đủ cả 3 khối (`/f13/ranking/route`, `/f13/ranking/bcvh`, `/f13/evidence`); thẻ quy luật trang Ngày khóa tab "theo thứ"; nút camera truyền chuẩn prop `dateOrPeriod`; ngưỡng màu đọc đúng `indicatorTargetRate(indicator)`.
+  - Kiểm thử: 79/79 test suite liên quan pass; frontend build & lint pass.
+- PO UI Check Required: `Yes`, tiến hành kiểm tra giao diện trước khi quyết định thay thế module cũ.
 
 ## 4. Required Reading
 

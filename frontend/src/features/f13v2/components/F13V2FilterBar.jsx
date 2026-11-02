@@ -1,8 +1,6 @@
-import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { CalendarDays, BarChart2, Activity, Filter, RefreshCw } from 'lucide-react';
-import { resolvePeriod } from '../api/f13v2Api.js';
-import { resolveTargetPageParams } from '../f13v2Helpers.js';
+import { CalendarDays, BarChart2, Activity, Filter, RefreshCw, AlertCircle } from 'lucide-react';
+import { resolveTargetPageParams, buildScopedUnitOptions } from '../f13v2Helpers.js';
 
 const TABS = [
   { id: 'ngay', label: 'Theo ngày', icon: CalendarDays },
@@ -16,11 +14,11 @@ export default function F13V2FilterBar({
   latestDate,
   availableWeeks = [],
   availableMonths = [],
+  bcvhUnits = [],
   onRefresh,
 }) {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const [switching, setSwitching] = useState(false);
 
   // URL parameters
   const fromParam = searchParams.get('from') || '';
@@ -29,43 +27,22 @@ export default function F13V2FilterBar({
   const monthParam = searchParams.get('month') || '';
   const bcvhParam = searchParams.get('bcvh') || 'all';
 
-  // Allowed units from layout
-  const allowAllUnits = layout?.units?.allow_all ?? true;
-  const userBcvhCodes = layout?.units?.bcvh || [];
+  // Allowed units from layout contract: strict check, do NOT default to allow_all if layout failed
+  const allowAllUnits = layout?.units?.allow_all === true;
+  const unitOptions = buildScopedUnitOptions({ layout, metaUnits: bcvhUnits });
 
-  const handleTabSwitch = async (targetPageId) => {
-    if (targetPageId === activePage || switching) return;
-    setSwitching(true);
+  // PO Rule: switching pages does NOT convert date/week/month across pages;
+  // it carries over ONLY `bcvh`. The destination page opens its own latest period.
+  const handleTabSwitch = (targetPageId) => {
+    if (targetPageId === activePage) return;
 
-    try {
-      let kind = 'day';
-      let value = toParam || latestDate || new Date().toISOString().slice(0, 10);
+    const target = resolveTargetPageParams({
+      currentPage: activePage,
+      targetPage: targetPageId,
+      currentParams: searchParams,
+    });
 
-      if (activePage === 'tuan') {
-        kind = 'week';
-        value = weekParam || (availableWeeks[0]?.week_id ?? '');
-      } else if (activePage === 'thang') {
-        kind = 'month';
-        value = monthParam || (availableMonths[0]?.month_id ?? '');
-      }
-
-      const resolveData = await resolvePeriod({ kind, value, latestDate });
-
-      const target = resolveTargetPageParams({
-        currentPage: activePage,
-        targetPage: targetPageId,
-        currentParams: searchParams,
-        resolveData,
-      });
-
-      navigate(target.fullPath);
-    } catch (err) {
-      console.error('[F13V2FilterBar] Tab switch resolve failed:', err);
-      // Fallback navigation with existing params
-      navigate(`/f13/v2/${targetPageId}?${searchParams.toString()}`);
-    } finally {
-      setSwitching(false);
-    }
+    navigate(target.fullPath);
   };
 
   const updateParam = (key, value) => {
@@ -84,6 +61,21 @@ export default function F13V2FilterBar({
   const handleMonthChange = (val) => updateParam('month', val);
   const handleBcvhChange = (val) => updateParam('bcvh', val);
 
+  // Soft validation: ?week= or ?month= invalid does NOT leave the filter select empty
+  const isWeekInvalid = Boolean(
+    weekParam && availableWeeks.length > 0 && !availableWeeks.some((w) => w.week_id === weekParam)
+  );
+  const selectWeekValue = isWeekInvalid
+    ? availableWeeks[0]?.week_id || ''
+    : weekParam || availableWeeks[0]?.week_id || '';
+
+  const isMonthInvalid = Boolean(
+    monthParam && availableMonths.length > 0 && !availableMonths.some((m) => m.month_id === monthParam)
+  );
+  const selectMonthValue = isMonthInvalid
+    ? availableMonths[0]?.month_id || ''
+    : monthParam || availableMonths[0]?.month_id || '';
+
   return (
     <div className="rounded-2xl border border-slate-200/90 bg-white p-3 sm:p-4 shadow-sm transition-[box-shadow,border-color] duration-150">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
@@ -97,12 +89,11 @@ export default function F13V2FilterBar({
                 key={tab.id}
                 type="button"
                 onClick={() => handleTabSwitch(tab.id)}
-                disabled={switching}
                 className={`flex items-center gap-2 rounded-lg px-3.5 py-1.5 text-xs font-bold transition-all duration-150 cursor-pointer ${
                   isActive
                     ? 'bg-blue-600 text-white shadow-xs'
                     : 'text-slate-600 hover:bg-white hover:text-slate-900'
-                } ${switching ? 'opacity-60 cursor-not-allowed' : ''}`}
+                }`}
               >
                 <Icon size={14} />
                 <span>{tab.label}</span>
@@ -143,37 +134,55 @@ export default function F13V2FilterBar({
 
           {/* Mốc thời gian theo trang (Tuần) */}
           {activePage === 'tuan' && (
-            <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-700">
-              <span className="text-slate-500">Tuần</span>
-              <select
-                value={weekParam}
-                onChange={(e) => handleWeekChange(e.target.value)}
-                className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-800 shadow-2xs outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-              >
-                {availableWeeks.map((w) => (
-                  <option key={w.week_id} value={w.week_id}>
-                    {w.label || w.week_id}
-                  </option>
-                ))}
-              </select>
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-700">
+                <span className="text-slate-500">Tuần</span>
+                <select
+                  value={selectWeekValue}
+                  onChange={(e) => handleWeekChange(e.target.value)}
+                  className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-800 shadow-2xs outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                >
+                  {availableWeeks.map((w) => (
+                    <option key={w.week_id} value={w.week_id}>
+                      {w.label || w.week_id}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {isWeekInvalid && (
+                <span className="inline-flex items-center gap-1 rounded-md border border-amber-300 bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-800">
+                  <AlertCircle size={12} className="text-amber-600" />
+                  <span>Tuần {weekParam} không tồn tại</span>
+                </span>
+              )}
             </div>
           )}
 
           {/* Mốc thời gian theo trang (Tháng) */}
           {activePage === 'thang' && (
-            <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-700">
-              <span className="text-slate-500">Tháng</span>
-              <select
-                value={monthParam}
-                onChange={(e) => handleMonthChange(e.target.value)}
-                className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-800 shadow-2xs outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-              >
-                {availableMonths.map((m) => (
-                  <option key={m.month_id} value={m.month_id}>
-                    {m.label || `Tháng ${m.month_id}`}
-                  </option>
-                ))}
-              </select>
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-700">
+                <span className="text-slate-500">Tháng</span>
+                <select
+                  value={selectMonthValue}
+                  onChange={(e) => handleMonthChange(e.target.value)}
+                  className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-800 shadow-2xs outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                >
+                  {availableMonths.map((m) => (
+                    <option key={m.month_id} value={m.month_id}>
+                      {m.label || `Tháng ${m.month_id}`}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {isMonthInvalid && (
+                <span className="inline-flex items-center gap-1 rounded-md border border-amber-300 bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-800">
+                  <AlertCircle size={12} className="text-amber-600" />
+                  <span>Tháng {monthParam} không tồn tại</span>
+                </span>
+              )}
             </div>
           )}
 
@@ -186,21 +195,14 @@ export default function F13V2FilterBar({
               className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-800 shadow-2xs outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
             >
               {allowAllUnits && <option value="all">Tất cả BCVH</option>}
-              {userBcvhCodes.length > 0 ? (
-                userBcvhCodes.map((code) => (
-                  <option key={code} value={code}>
-                    BCVH {code}
+              {unitOptions.length > 0 ? (
+                unitOptions.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
                   </option>
                 ))
               ) : (
-                <>
-                  <option value="530000">BCVH Huế (530000)</option>
-                  <option value="533140">BCVH Hương Thủy (533140)</option>
-                  <option value="532800">BCVH Phong Điền (532800)</option>
-                  <option value="533800">BCVH Phú Lộc (533800)</option>
-                  <option value="532200">BCVH Quảng Điền (532200)</option>
-                  <option value="534600">BCVH A Lưới (534600)</option>
-                </>
+                !allowAllUnits && <option value="" disabled>Chưa có đơn vị được cấp quyền</option>
               )}
             </select>
           </div>
