@@ -15,6 +15,9 @@ import SystemInformation from './pages/SystemInformation';
 import ChangePasswordPage from './pages/ChangePasswordPage';
 import UserManagementPage from './pages/UserManagementPage';
 
+import F13V2DayPage from './features/f13v2/F13V2DayPage';
+import F13V2WeekPage from './features/f13v2/F13V2WeekPage';
+import F13V2MonthPage from './features/f13v2/F13V2MonthPage';
 import DashboardPage from './features/dashboard/DashboardPage';
 import F11DashboardPage from './features/f11/F11DashboardPage';
 import F11BcvhRankingPage from './features/f11/F11BcvhRankingPage';
@@ -149,6 +152,13 @@ function App() {
               <Route path="message" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN]}><PlaceholderPage title="Message Center" /></ProtectedRoute>} />
             </Route>
 
+            <Route path="f13/v2">
+              <Route index element={<Navigate to="ngay" replace />} />
+              <Route path="ngay" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN]}><F13V2DayPage /></ProtectedRoute>} />
+              <Route path="tuan" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN]}><F13V2WeekPage /></ProtectedRoute>} />
+              <Route path="thang" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN]}><F13V2MonthPage /></ProtectedRoute>} />
+            </Route>
+
             <Route path="network-map">
               <Route path="service-points" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN, ROLE_VIEWER]}><ServicePointsPage /></ProtectedRoute>} />
               <Route path="level2-routes" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN, ROLE_VIEWER]}><Level2RoutesPage /></ProtectedRoute>} />
@@ -157,6 +167,7 @@ function App() {
               <Route path="postman-catalog" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN, ROLE_VIEWER]}><PostmanCatalogPage /></ProtectedRoute>} />
             </Route>
           </Route>
+
 
           <Route
             path="*"

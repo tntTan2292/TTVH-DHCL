@@ -462,8 +462,13 @@ function ModePanel({ activeTab, model }) {
   return <ComboChartPanel rows={rows} mode="weekday" />;
 }
 
-export default function OperatingPatternTabsCard({ fromDate, toDate, maBcvh }) {
+export default function OperatingPatternTabsCard({ fromDate, toDate, maBcvh, defaultTab, allowedTabs, hideTabs = false }) {
   const [activeTab, setActiveTab] = useState(DEFAULT_OPERATING_PATTERN_TAB);
+  useEffect(() => {
+    if (defaultTab && defaultTab !== DEFAULT_OPERATING_PATTERN_TAB) {
+      setActiveTab(defaultTab);
+    }
+  }, [defaultTab]);
   const [state, setState] = useState({ loading: true, error: null, data: null });
   const requestSeqRef = useRef(0);
 
@@ -523,9 +528,10 @@ export default function OperatingPatternTabsCard({ fromDate, toDate, maBcvh }) {
     [activeTab, fromDate, maBcvh, state.data, toDate],
   );
 
-  const action = (
+  const visibleTabs = allowedTabs ? OPERATING_PATTERN_TABS.filter((tab) => allowedTabs.includes(tab.id)) : OPERATING_PATTERN_TABS;
+  const action = hideTabs || visibleTabs.length <= 1 ? null : (
     <div className="flex flex-wrap items-center gap-1 rounded-xl bg-slate-100/90 p-1 border border-slate-200/80 shadow-2xs" role="tablist" aria-label="Chọn quy luật vận hành">
-      {OPERATING_PATTERN_TABS.map((tab) => {
+      {visibleTabs.map((tab) => {
         const Icon = TAB_ICON[tab.id];
         return (
           <button

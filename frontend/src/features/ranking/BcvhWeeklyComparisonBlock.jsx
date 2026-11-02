@@ -139,7 +139,11 @@ function WeekNoteBadge({ week }) {
   );
 }
 
-export default function BcvhWeeklyComparisonBlock() {
+export default function BcvhWeeklyComparisonBlock({
+  controlledPeriodMode,
+  controlledPeriod,
+  hidePeriodModeSwitch = false,
+} = {}) {
   const indicator = useIndicator();
   const isF41 = indicator?.id === 'f41';
   const unitsInfo = useBcvhUnits();
@@ -153,7 +157,7 @@ export default function BcvhWeeklyComparisonBlock() {
   const [weekComparisonState, setComparisonState] = useState({ status: 'idle', data: null, error: null });
 
   // Monthly mode (PO 2026-10-05): calendar months, optional "cùng kỳ" (same first-N-days) comparison.
-  const [periodMode, setPeriodMode] = useState('week');
+  const [periodMode, setPeriodMode] = useState(controlledPeriodMode || 'week');
   const isMonth = periodMode === 'month';
   const [monthsState, setMonthsState] = useState({ status: 'idle', months: [], error: null });
   const [monthSelection, setMonthSelection] = useState({ current: '', compare: '' });
@@ -161,6 +165,23 @@ export default function BcvhWeeklyComparisonBlock() {
   const [monthComparisonState, setMonthComparisonState] = useState({ status: 'idle', data: null, error: null });
   const comparisonState = isMonth ? monthComparisonState : weekComparisonState;
   const [fitMode, setFitMode] = useState(true);
+
+  // Controlled period mode sync (additive, design Section 6)
+  useEffect(() => {
+    if (controlledPeriodMode && controlledPeriodMode !== periodMode) {
+      setPeriodMode(controlledPeriodMode);
+    }
+  }, [controlledPeriodMode, periodMode]);
+
+  // Controlled period value sync (additive, design Section 6)
+  useEffect(() => {
+    if (!controlledPeriod) return;
+    if (periodMode === 'week') {
+      setSelection((prev) => (prev.current === controlledPeriod ? prev : { ...prev, current: controlledPeriod }));
+    } else if (periodMode === 'month') {
+      setMonthSelection((prev) => (prev.current === controlledPeriod ? prev : { ...prev, current: controlledPeriod }));
+    }
+  }, [controlledPeriod, periodMode]);
 
   const containerRef = useRef(null);
   const tableRef = useRef(null);
@@ -452,7 +473,7 @@ export default function BcvhWeeklyComparisonBlock() {
             </span>
           </div>
           <div className="flex flex-wrap items-center gap-3">
-            <div role="group" aria-label="Chọn kiểu kỳ so sánh" className="inline-flex rounded-lg border border-slate-200 bg-white p-0.5 shadow-2xs">
+            <div role="group" aria-label="Chọn kiểu kỳ so sánh" className={`inline-flex rounded-lg border border-slate-200 bg-white p-0.5 shadow-2xs ${hidePeriodModeSwitch ? 'hidden' : ''}`}>
               {[['week', 'Tuần'], ['month', 'Tháng']].map(([mode, text]) => (
                 <button
                   key={mode}

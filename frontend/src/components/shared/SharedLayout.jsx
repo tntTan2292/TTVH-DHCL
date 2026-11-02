@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
-import { ChevronDown, ChevronLeft, ChevronRight, Search, CalendarDays, Filter, LoaderCircle, AlertTriangle, Pin } from 'lucide-react';
+import { ChevronDown, ChevronLeft, ChevronRight, Search, CalendarDays, Filter, LoaderCircle, AlertTriangle, Pin, Target, BarChart2, BookOpen, Activity } from 'lucide-react';
 import Topbar from '../Topbar';
 import WelcomeToast from '../welcome/WelcomeToast.jsx';
 import CollapsedFlyout from '../CollapsedFlyout';
 import { useAuth } from '../../auth/AuthContext';
 import { getNavigationForRole, getMyTasksNavItem } from '../../navigation/appNavigation.jsx';
 import opsJournalAdapter from '../../features/ops-journal/api/opsJournalApi.js';
+import api from '../../api/client.js';
 import { buildPreservedPath } from '../../navigation/urlPreservation';
 import { createSearchCommitController } from './searchCommitController.js';
 
@@ -49,6 +50,7 @@ export function SidebarNavigation({ isOpen, onClose, isCollapsed, onToggleCollap
     'F1.1 – Chất lượng toàn trình nội tỉnh': true,
     'F1.2 – Thu gom liên tỉnh': true,
     'F1.3 – Chất lượng phát liên tỉnh': true,
+    'F1.3 (mới)': true,
     'F4.1 – Chất lượng phát thành công bưu cục': true,
     'F4.2 – Chất lượng phát giao bưu tá': true,
     'Chỉ số rà soát Hàng tồn': true,
@@ -74,12 +76,87 @@ export function SidebarNavigation({ isOpen, onClose, isCollapsed, onToggleCollap
       .catch(() => { if (current) setHasMyTasks(false); });
     return () => { current = false; };
   }, [userId]);
+
+  // F13-V2-STRUCTURE-01: Admin-only trial menu group for time-axis F1.3 populated from GET /api/f13/v2/layout
+  const isAdmin = user?.role === 'admin';
+  const [f13V2Layout, setF13V2Layout] = useState(null);
+  useEffect(() => {
+    if (!isAdmin) {
+      setF13V2Layout(null);
+      return undefined;
+    }
+    let current = true;
+    api.get('/f13/v2/layout')
+      .then((res) => {
+        if (current && res?.data?.success && res.data?.data) {
+          setF13V2Layout(res.data.data);
+        }
+      })
+      .catch(() => {
+        if (current) setF13V2Layout(null);
+      });
+    return () => {
+      current = false;
+    };
+  }, [isAdmin]);
+
   const navGroups = useMemo(() => {
     const base = getNavigationForRole(user?.role, user?.access);
-    if (!hasMyTasks || !Array.isArray(base)) return base;
-    const homeIndex = base.findIndex((item) => item.path === '/');
-    return [...base.slice(0, homeIndex + 1), getMyTasksNavItem(), ...base.slice(homeIndex + 1)];
-  }, [user?.role, user?.access, hasMyTasks]);
+    if (!Array.isArray(base)) return base;
+
+    let items = base;
+    if (hasMyTasks) {
+      const homeIndex = items.findIndex((item) => item.path === '/');
+      items = [...items.slice(0, homeIndex + 1), getMyTasksNavItem(), ...items.slice(homeIndex + 1)];
+    }
+
+    if (isAdmin && f13V2Layout?.pages?.length) {
+      const f13V2Group = {
+        title: 'F1.3 (mới)',
+        name: 'F1.3 (mới)',
+        icon: <Target size={18} />,
+        roles: ['admin'],
+        subItems: f13V2Layout.pages.map((p) => ({
+          name: p.title,
+          path: p.path || (p.blocks?.[0]?.path ?? '/f13/v2/ngay'),
+          subtitle: p.subtitle,
+          icon:
+            p.id === 'ngay' ? (
+              <CalendarDays size={18} />
+            ) : p.id === 'tuan' ? (
+              <BarChart2 size={18} />
+            ) : p.id === 'thang' ? (
+              <Activity size={18} />
+            ) : (
+              <BookOpen size={18} />
+            ),
+        })),
+      };
+
+      items = items.map((group) => {
+        if (!group.title?.toLowerCase().includes('quản lý chất lượng') || !Array.isArray(group.subItems)) {
+          return group;
+        }
+        const f13Index = group.subItems.findIndex((sub) => sub.title?.includes('F1.3') || sub.name?.includes('F1.3'));
+        if (f13Index >= 0) {
+          return {
+            ...group,
+            subItems: [
+              ...group.subItems.slice(0, f13Index + 1),
+              f13V2Group,
+              ...group.subItems.slice(f13Index + 1),
+            ],
+          };
+        }
+        return {
+          ...group,
+          subItems: [...group.subItems, f13V2Group],
+        };
+      });
+    }
+
+    return items;
+  }, [user?.role, user?.access, hasMyTasks, isAdmin, f13V2Layout]);
 
   const togglePinGroup = (groupTitle) => {
     setPinnedGroups((prev) => ({
@@ -391,7 +468,12 @@ export function SidebarNavigation({ isOpen, onClose, isCollapsed, onToggleCollap
                                         }
                                       >
                                         <div className="shrink-0 opacity-70 scale-75">{nested.icon}</div>
-                                        <span className="truncate">{nested.name}</span>
+                                        <div className="min-w-0 flex-1 truncate">
+                                          <span className="truncate block">{nested.name}</span>
+                                          {nested.subtitle ? (
+                                            <span className="text-[9px] text-blue-200/50 block truncate">{nested.subtitle}</span>
+                                          ) : null}
+                                        </div>
                                       </NavLink>
                                     </li>
                                   ))}
@@ -493,8 +575,15 @@ export function SidebarNavigation({ isOpen, onClose, isCollapsed, onToggleCollap
                                               }`
                                             }
                                           >
-                                            <div className="flex-shrink-0 scale-75 opacity-70">{nested.icon}</div>
-                                            <span className="ml-2 whitespace-nowrap text-[12px]">{nested.name}</span>
+                                            <div className="flex-shrink-0 scale-75 opacity-70 mt-0.5">{nested.icon}</div>
+                                            <div className="ml-2 min-w-0 flex-1">
+                                              <div className="whitespace-nowrap text-[12px]">{nested.name}</div>
+                                              {nested.subtitle ? (
+                                                <div className="text-[10px] text-blue-200/60 leading-tight truncate" title={nested.subtitle}>
+                                                  {nested.subtitle}
+                                                </div>
+                                              ) : null}
+                                            </div>
                                           </NavLink>
                                         </li>
                                       ))}
@@ -550,6 +639,10 @@ const BREADCRUMB_LABELS = {
   'delivery-routes': 'Sơ đồ tuyến phát',
   integrated: 'Bản đồ tích hợp',
   'postman-catalog': 'Rà soát danh mục bưu tá',
+  v2: 'F1.3 (mới)',
+  ngay: 'Theo ngày',
+  tuan: 'Theo tuần',
+  thang: 'Theo tháng',
 };
 
 export function Breadcrumb() {
