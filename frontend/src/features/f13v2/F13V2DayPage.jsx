@@ -6,9 +6,10 @@ import { useIndicator } from '../indicator/IndicatorContext.js';
 import { indicatorTheme, indicatorTargetRate, F13_INDICATOR } from '../indicator/indicatorConfig.js';
 import { BcvhUnitsProvider } from '../indicator/BcvhUnitsContext.js';
 import { fetchLayout, resolvePeriod, fetchDaySummary } from './api/f13v2Api.js';
-import { isBlockVisible } from './f13v2Helpers.js';
+import { isBlockVisible, isDateRange } from './f13v2Helpers.js';
 import F13V2FilterBar from './components/F13V2FilterBar.jsx';
 import F13V2DaySummaryTable from './components/F13V2DaySummaryTable.jsx';
+import F13V2RangeCompareTable from './components/F13V2RangeCompareTable.jsx';
 
 import UnifiedCommandSummary from '../dashboard/components/UnifiedCommandSummary.jsx';
 import BcvhOperationTableAdapter from '../dashboard/components/BcvhOperationTableAdapter.jsx';
@@ -120,10 +121,14 @@ export default function F13V2DayPage() {
     return metaUnits.filter((u) => allowed.has(u.ma_bcvh));
   }, [isScoped, layout, metaUnits]);
 
-  // Fetch Day Summary table data (only a BCVH-mode account gets this table; city-wide accounts get the operation table)
-  const showOwnDayTable = isBlockVisible(layout, 'ngay', 'day.table');
+  // Fetch Day Summary data. One day: only a BCVH-mode account needs it (a city-wide account has the operation table).
+  // A range (PO 2026-11-02): every account gets the same-period comparison table.
+  const isRange = isDateRange(effectiveFrom, effectiveTo);
+  const showOwnDayTable = !isRange && isBlockVisible(layout, 'ngay', 'day.table');
+  const showRangeTable = isRange && isBlockVisible(layout, 'ngay', 'day.range');
+  const needsDaySummary = showOwnDayTable || showRangeTable;
   useEffect(() => {
-    if (!showOwnDayTable || !effectiveFrom || !effectiveTo) return;
+    if (!needsDaySummary || !effectiveFrom || !effectiveTo) return;
     let active = true;
 
     setDaySummaryState((prev) => ({ ...prev, loading: true, error: null }));
@@ -144,7 +149,7 @@ export default function F13V2DayPage() {
     return () => {
       active = false;
     };
-  }, [showOwnDayTable, effectiveFrom, effectiveTo, bcvhParam]);
+  }, [needsDaySummary, effectiveFrom, effectiveTo, bcvhParam]);
 
   // Fetch KPI data for UnifiedCommandSummary
   useEffect(() => {
@@ -265,11 +270,29 @@ export default function F13V2DayPage() {
 
           {/* Block 2: day.operation (the table the PO sends every day, same as the old Bảng điều hành; scope: city) */}
           {isBlockVisible(layout, 'ngay', 'day.operation') && (
-            <BcvhOperationTableAdapter
+            <div className="space-y-2">
+              {isRange ? (
+                <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-900">
+                  Bảng tổng hợp bên dưới hiện ngày cuối của khoảng đã chọn ({effectiveTo.split('-').reverse().join('/')}) và lũy kế tháng đến ngày đó; số của cả khoảng nằm ở bảng so sánh tiếp theo.
+                </p>
+              ) : null}
+              <BcvhOperationTableAdapter
+                fromDate={effectiveFrom}
+                toDate={effectiveTo}
+                interval="daily"
+                maBcvh={bcvhParam}
+              />
+            </div>
+          )}
+
+          {/* Range only: day.range, compared with the same period (PO 2026-11-02) */}
+          {showRangeTable && (
+            <F13V2RangeCompareTable
+              data={daySummaryState.data}
+              loading={daySummaryState.loading}
+              error={daySummaryState.error}
               fromDate={effectiveFrom}
               toDate={effectiveTo}
-              interval="daily"
-              maBcvh={bcvhParam}
             />
           )}
 

@@ -2,6 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   isBlockVisible,
+  isDateRange,
+  buildRangeCompareModel,
   formatVolume,
   formatRate,
   formatRateDelta,
@@ -19,6 +21,41 @@ import {
   NOTE_N_DAY,
   rateHeader,
 } from './f13v2Helpers.js';
+
+test('isDateRange: only two different days make a range', () => {
+  assert.equal(isDateRange('2026-11-01', '2026-11-15'), true);
+  assert.equal(isDateRange('2026-11-01', '2026-11-01'), false);
+  assert.equal(isDateRange('', '2026-11-01'), false);
+  assert.equal(isDateRange(null, null), false);
+});
+
+test('buildRangeCompareModel: same-period columns, best rate first, missing values last, total apart', () => {
+  const compare = (volume, rate, rate_delta) => ({ same_period: { volume, rate, rate_delta, volume_delta: 0 } });
+  const data = {
+    rows: [
+      { ma_bcvh: 'A', ten_bcvh: 'BCVH A', volume: 10, rate: 50, compare: compare(20, 40, 10) },
+      { ma_bcvh: 'B', ten_bcvh: 'BCVH B', volume: 30, rate: 90, compare: compare(null, null, null) },
+    ],
+    meta: {
+      total_row: { ten_bcvh: 'TỔNG CỘNG', volume: 40, rate: 80, compare: compare(20, 40, 40) },
+      compare: { same_period: { from_date: '2026-10-01', to_date: '2026-10-15' } },
+    },
+  };
+  const model = buildRangeCompareModel(data);
+  assert.deepEqual(model.rows.map((r) => [r.stt, r.ma_bcvh]), [[1, 'B'], [2, 'A']]);
+  assert.equal(model.rows[1].same_period_rate, 40);
+  assert.equal(model.rows[1].same_period_delta, 10);
+  assert.equal(model.totalRow.same_period_volume, 20);
+  assert.deepEqual(model.samePeriod, { from_date: '2026-10-01', to_date: '2026-10-15' });
+
+  const byDelta = buildRangeCompareModel(data, { field: 'same_period_delta', direction: 'asc' });
+  assert.deepEqual(byDelta.rows.map((r) => r.ma_bcvh), ['A', 'B']); // no value goes last in either direction
+  const byDeltaDesc = buildRangeCompareModel(data, { field: 'same_period_delta', direction: 'desc' });
+  assert.deepEqual(byDeltaDesc.rows.map((r) => r.ma_bcvh), ['A', 'B']);
+
+  assert.equal(buildRangeCompareModel({ rows: [], meta: {} }).totalRow, null); // a BCVH-mode account has no total
+  assert.deepEqual(buildRangeCompareModel(null).rows, []);
+});
 
 test('columnHeaders integration: standard vocabulary for F1.3 report tables', () => {
   assert.equal(HEADER_VOLUME, 'Sản lượng');

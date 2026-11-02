@@ -22,6 +22,7 @@ const BLOCKS = Object.freeze([
     { id: 'day.overview', page: 'ngay', title: 'Tổng quan điều hành', scope: SCOPES.UNIT },
     { id: 'day.operation', page: 'ngay', title: 'Bảng tổng hợp số liệu tại các BCVH', scope: SCOPES.CITY },
     { id: 'day.table', page: 'ngay', title: 'Bảng BCVH theo ngày', scope: SCOPES.OWN },
+    { id: 'day.range', page: 'ngay', title: 'Bảng so sánh khoảng ngày', scope: SCOPES.UNIT },
     { id: 'day.trend', page: 'ngay', title: 'Xu hướng 7–30 ngày', scope: SCOPES.UNIT },
     { id: 'day.pattern', page: 'ngay', title: 'Quy luật vận hành theo thứ', scope: SCOPES.UNIT },
     { id: 'week.compare', page: 'tuan', title: 'So sánh BCVH theo tuần', scope: SCOPES.UNIT },

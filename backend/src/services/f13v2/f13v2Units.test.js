@@ -4,7 +4,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const { layoutFor, BLOCKS, SCOPES } = require('./blockRegistry');
 const { resolvePeriod } = require('./periodResolve');
-const { DaySummaryService, comparisonWindows } = require('./DaySummaryService');
+const { DaySummaryService, comparisonWindows, samePeriodWindow } = require('./DaySummaryService');
 
 // ---- blockRegistry ---------------------------------------------------------------------------------------------
 
@@ -116,6 +116,31 @@ test('comparison windows: one day is yesterday and last week, a range shifts by 
         n1: { from_date: '2026-10-07', to_date: '2026-10-09' },
         n7: { from_date: '2026-10-03', to_date: '2026-10-05' },
     });
+});
+
+test('same period: back by as many months as the range touches (PO 2026-11-02)', () => {
+    const window = (from_date, to_date) => ({ from_date, to_date });
+    assert.deepEqual(samePeriodWindow('2026-11-01', '2026-11-15'), window('2026-10-01', '2026-10-15'));
+    assert.deepEqual(samePeriodWindow('2026-09-01', '2026-10-15'), window('2026-07-01', '2026-08-15')); // 2 months, no overlap
+    assert.deepEqual(samePeriodWindow('2026-08-20', '2026-10-05'), window('2026-05-20', '2026-07-05')); // 3 months
+    assert.deepEqual(samePeriodWindow('2026-10-31', '2026-11-01'), window('2026-08-31', '2026-09-01')); // two days, two months
+    assert.deepEqual(samePeriodWindow('2026-01-10', '2026-01-20'), window('2025-12-10', '2025-12-20')); // over a new year
+    assert.deepEqual(samePeriodWindow('2026-03-01', '2026-03-31'), window('2026-02-01', '2026-02-28')); // no 31/02
+    assert.deepEqual(samePeriodWindow('2024-03-29', '2024-03-31'), window('2024-02-29', '2024-02-29')); // leap year
+});
+
+test('day summary: the range table compares each unit and the total with the same-period window', async () => {
+    const service = serviceWith({
+        '2026-09-01|2026-10-15': [metric('537015', 'BCVH Thuận An', 100, 90), metric('535790', 'BCVH A Lưới', 100, 50)],
+        '2026-07-01|2026-08-15': [metric('537015', 'BCVH Thuận An', 200, 100)],
+    });
+    const { rows, meta } = await service.getSummary('2026-09-01', '2026-10-15');
+    assert.deepEqual(meta.compare.same_period, { from_date: '2026-07-01', to_date: '2026-08-15' });
+    const thuanAn = rows.find((r) => r.ma_bcvh === '537015');
+    assert.deepEqual(thuanAn.compare.same_period, { volume: 200, rate: 50, volume_delta: -100, rate_delta: 40 });
+    assert.equal(rows.find((r) => r.ma_bcvh === '535790').compare.same_period.rate, null); // nothing in that window
+    assert.equal(meta.total_row.compare.same_period.volume, 200);
+    assert.equal(meta.total_row.compare.same_period.rate_delta, 20); // 140/200 against 100/200, summed then divided
 });
 
 const dashboardStub = {

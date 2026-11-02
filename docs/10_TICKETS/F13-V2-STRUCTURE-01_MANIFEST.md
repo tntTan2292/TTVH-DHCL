@@ -26,7 +26,7 @@ Same-time-axis structure for one indicator, starting with F1.3, without touching
   - Làm luôn: Menu "Chuyên đề" trong nhóm F1.3 (mới) liên kết đầy đủ cả 3 khối (`/f13/ranking/route`, `/f13/ranking/bcvh`, `/f13/evidence`); thẻ quy luật trang Ngày khóa tab "theo thứ"; nút camera truyền chuẩn prop `dateOrPeriod`; ngưỡng màu đọc đúng `indicatorTargetRate(indicator)`.
   - Kiểm thử: 79/79 test suite liên quan pass; frontend build & lint pass.
   - Sửa sau bàn giao (Claude Code, 2026-11-02): `BcvhRankingOverviewBlocks.jsx` dùng `useEffect` mà thiếu import, làm hỏng khối xu hướng tháng ở trang Theo tháng và trang Phân tích BCVH cũ của mọi chỉ tiêu; phát hiện bằng `oxlint -D no-undef` (gate của `report_block_ui_standard.md` Mục 4).
-  - PO khi kiểm tra UI (2026-11-02): bảng đầu trang Theo ngày dùng đúng "BẢNG TỔNG HỢP SỐ LIỆU CHỈ SỐ F1.3 TẠI CÁC BCVH"; bỏ Trung tâm hành động khỏi trang này (thiết kế Mục 12, điểm 3-4).
+  - PO khi kiểm tra UI (2026-11-02): bảng đầu trang Theo ngày dùng đúng "BẢNG TỔNG HỢP SỐ LIỆU CHỈ SỐ F1.3 TẠI CÁC BCVH"; bỏ Trung tâm hành động khỏi trang này; chọn từ hai ngày trở lên thì có thêm bảng so sánh khoảng ngày theo cùng kỳ (thiết kế Mục 12, điểm 3-5).
 - PO UI Check Required: `Yes`, tiến hành kiểm tra giao diện trước khi quyết định thay thế module cũ.
 
 ## 4. Required Reading

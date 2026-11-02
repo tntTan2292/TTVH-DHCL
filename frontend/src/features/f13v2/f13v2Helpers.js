@@ -12,6 +12,7 @@ import {
   rateHeader,
   monthCompareHeader,
 } from '../indicator/columnHeaders.js';
+import { sortRowsBy } from '../../components/common/tableSort.js';
 
 export {
   HEADER_VOLUME,
@@ -22,6 +23,40 @@ export {
   rateHeader,
   monthCompareHeader,
 };
+
+/** A range table is drawn only when the filter holds at least two days. */
+export function isDateRange(fromDate, toDate) {
+  return Boolean(fromDate && toDate && fromDate !== toDate);
+}
+
+function rangeCompareRow(row) {
+  const samePeriod = row?.compare?.same_period || {};
+  return {
+    ma_bcvh: row?.ma_bcvh,
+    ten_bcvh: row?.ten_bcvh,
+    volume: row?.volume ?? null,
+    rate: row?.rate ?? null,
+    same_period_volume: samePeriod.volume ?? null,
+    same_period_rate: samePeriod.rate ?? null,
+    same_period_delta: samePeriod.rate_delta ?? null,
+  };
+}
+
+/**
+ * Rows of the range comparison table from GET /f13/v2/day/summary: best rate first, or the clicked column; missing
+ * values last, the total apart so it never moves (a BCVH-mode account gets no total).
+ */
+export function buildRangeCompareModel(data, sort = null) {
+  const rows = (data?.rows || []).map(rangeCompareRow);
+  const ordered = sort
+    ? sortRowsBy(rows, sort.field, sort.direction)
+    : sortRowsBy(rows, 'rate', 'desc');
+  return {
+    rows: ordered.map((row, index) => ({ ...row, stt: index + 1 })),
+    totalRow: data?.meta?.total_row ? rangeCompareRow(data.meta.total_row) : null,
+    samePeriod: data?.meta?.compare?.same_period || null,
+  };
+}
 
 /**
  * Check if a block ID is included in a page's layout configuration for the current caller.
