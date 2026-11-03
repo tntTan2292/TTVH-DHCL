@@ -21,14 +21,6 @@ import F13V2DayPage from './features/f13v2/F13V2DayPage';
 import F13V2WeekPage from './features/f13v2/F13V2WeekPage';
 import F13V2MonthPage from './features/f13v2/F13V2MonthPage';
 import F13V2JourneyPage from './features/f13v2/F13V2JourneyPage';
-import F11DashboardPage from './features/f11/F11DashboardPage';
-import F11BcvhRankingPage from './features/f11/F11BcvhRankingPage';
-import F12DashboardPage from './features/f12/F12DashboardPage';
-import F12BcvhRankingPage from './features/f12/F12BcvhRankingPage';
-import F41DashboardPage from './features/f41/F41DashboardPage';
-import F41BcvhRankingPage from './features/f41/F41BcvhRankingPage';
-import F42DashboardPage from './features/f42/F42DashboardPage';
-import F42BcvhRankingPage from './features/f42/F42BcvhRankingPage';
 import HangTonPage from './features/hangton/HangTonPage';
 import BcvhRankingPage from './features/ranking/BcvhRankingPage';
 import RoutePerformancePage from './features/route/RoutePerformancePage';
@@ -87,7 +79,7 @@ function LegacyRouteViolationsRedirect() {
   return <Navigate to={`/f13/evidence${translated ? `?${translated}` : ''}`} replace />;
 }
 
-// TIME-AXIS-TEMPLATE-01: Theo ngày / tuần / tháng of the other indicators, admin only until the PO accepts each one.
+// TIME-AXIS-TEMPLATE-01: Theo ngày / tuần / tháng of the other indicators (PO accepted 2026-11-03).
 const TIME_AXIS_INDICATORS = [F11_INDICATOR, F12_INDICATOR, F41_INDICATOR, F42_INDICATOR];
 const TIME_AXIS_PAGES = [['ngay', F13V2DayPage], ['tuan', F13V2WeekPage], ['thang', F13V2MonthPage]];
 
@@ -95,6 +87,12 @@ const TIME_AXIS_PAGES = [['ngay', F13V2DayPage], ['tuan', F13V2WeekPage], ['than
 function LegacyF13DashboardRedirect() {
   const location = useLocation();
   return <Navigate to={`/f13/v2/ngay${translateLegacyF13DashboardSearch(location.search)}`} replace />;
+}
+
+// The old Bảng điều hành and Phân tích pages of F1.1, F1.2, F4.1, F4.2 are retired (PO 2026-11-03): old links keep the day and unit.
+function LegacyTimeAxisRedirect({ to }) {
+  const location = useLocation();
+  return <Navigate to={`${to}${translateLegacyF13DashboardSearch(location.search)}`} replace />;
 }
 
 function App() {
@@ -131,18 +129,18 @@ function App() {
           >
             <Route index element={<HomeRoute />} />
 
-            <Route path="f11" element={<Navigate to="/f11/dashboard" replace />} />
-            <Route path="f11/dashboard" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN, ROLE_VIEWER]}><F11DashboardPage /></ProtectedRoute>} />
-            <Route path="f11/ranking/bcvh" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN, ROLE_VIEWER]}><F11BcvhRankingPage /></ProtectedRoute>} />
-            <Route path="f12" element={<Navigate to="/f12/dashboard" replace />} />
-            <Route path="f12/dashboard" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN, ROLE_VIEWER]}><F12DashboardPage /></ProtectedRoute>} />
-            <Route path="f12/ranking/bcvh" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN, ROLE_VIEWER]}><F12BcvhRankingPage /></ProtectedRoute>} />
-            <Route path="f41" element={<Navigate to="/f41/dashboard" replace />} />
-            <Route path="f41/dashboard" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN, ROLE_VIEWER]}><F41DashboardPage /></ProtectedRoute>} />
-            <Route path="f41/ranking/bcvh" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN, ROLE_VIEWER]}><F41BcvhRankingPage /></ProtectedRoute>} />
-            <Route path="f42" element={<Navigate to="/f42/dashboard" replace />} />
-            <Route path="f42/dashboard" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN, ROLE_VIEWER]}><F42DashboardPage /></ProtectedRoute>} />
-            <Route path="f42/ranking/bcvh" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN, ROLE_VIEWER]}><F42BcvhRankingPage /></ProtectedRoute>} />
+            <Route path="f11" element={<Navigate to="/f11/v2/ngay" replace />} />
+            <Route path="f11/dashboard" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN, ROLE_VIEWER]}><LegacyTimeAxisRedirect to="/f11/v2/ngay" /></ProtectedRoute>} />
+            <Route path="f11/ranking/bcvh" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN, ROLE_VIEWER]}><LegacyTimeAxisRedirect to="/f11/v2/tuan" /></ProtectedRoute>} />
+            <Route path="f12" element={<Navigate to="/f12/v2/ngay" replace />} />
+            <Route path="f12/dashboard" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN, ROLE_VIEWER]}><LegacyTimeAxisRedirect to="/f12/v2/ngay" /></ProtectedRoute>} />
+            <Route path="f12/ranking/bcvh" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN, ROLE_VIEWER]}><LegacyTimeAxisRedirect to="/f12/v2/tuan" /></ProtectedRoute>} />
+            <Route path="f41" element={<Navigate to="/f41/v2/ngay" replace />} />
+            <Route path="f41/dashboard" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN, ROLE_VIEWER]}><LegacyTimeAxisRedirect to="/f41/v2/ngay" /></ProtectedRoute>} />
+            <Route path="f41/ranking/bcvh" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN, ROLE_VIEWER]}><LegacyTimeAxisRedirect to="/f41/v2/tuan" /></ProtectedRoute>} />
+            <Route path="f42" element={<Navigate to="/f42/v2/ngay" replace />} />
+            <Route path="f42/dashboard" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN, ROLE_VIEWER]}><LegacyTimeAxisRedirect to="/f42/v2/ngay" /></ProtectedRoute>} />
+            <Route path="f42/ranking/bcvh" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN, ROLE_VIEWER]}><LegacyTimeAxisRedirect to="/f42/v2/tuan" /></ProtectedRoute>} />
             <Route path="hangton" element={<Navigate to="/hangton/overview" replace />} />
             <Route path="hangton/:tab" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN, ROLE_VIEWER]}><HangTonPage /></ProtectedRoute>} />
             <Route path="ops-journal" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN, ROLE_VIEWER]}><OpsJournalPage /></ProtectedRoute>} />
@@ -180,7 +178,7 @@ function App() {
                   <Route
                     key={path}
                     path={path}
-                    element={<ProtectedRoute allowedRoles={[ROLE_ADMIN]}><IndicatorProvider indicator={indicator}><Page /></IndicatorProvider></ProtectedRoute>}
+                    element={<ProtectedRoute allowedRoles={[ROLE_ADMIN, ROLE_VIEWER]}><IndicatorProvider indicator={indicator}><Page /></IndicatorProvider></ProtectedRoute>}
                   />
                 ))}
               </Route>

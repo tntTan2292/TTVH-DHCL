@@ -1,13 +1,14 @@
-import { Activity, BarChart2, BookOpen, CalendarDays, CheckSquare, ClipboardCheck, Database, FileSpreadsheet, Info, LayoutDashboard, MapPin, Package, Settings, Target, Users } from 'lucide-react';
+import { Activity, BarChart2, BookOpen, CheckSquare, ClipboardCheck, Database, FileSpreadsheet, Info, LayoutDashboard, MapPin, Package, Settings, Target, Users } from 'lucide-react';
 import { ROLE_ADMIN, normalizeRole } from '../auth/roles';
 
-// TIME-AXIS-TEMPLATE-01: the new pages of an indicator, shown beside its old ones to the admin only until the PO accepts them.
-function timeAxisItems(indicatorId) {
-  return [
-    { name: 'Theo ngày (mới)', path: `/${indicatorId}/v2/ngay`, icon: <CalendarDays size={18} />, roles: [ROLE_ADMIN], adminOnly: true },
-    { name: 'Theo tuần (mới)', path: `/${indicatorId}/v2/tuan`, icon: <BarChart2 size={18} />, roles: [ROLE_ADMIN], adminOnly: true },
-    { name: 'Theo tháng (mới)', path: `/${indicatorId}/v2/thang`, icon: <Activity size={18} />, roles: [ROLE_ADMIN], adminOnly: true },
-  ];
+// One menu item per indicator (PO 2026-11-03): Theo ngày / tuần / tháng are the tabs of the page, so the item stays lit on all three.
+function qualityResultItem(indicatorId) {
+  return {
+    name: 'Kết quả chất lượng',
+    path: `/${indicatorId}/v2/ngay`,
+    activePaths: [`/${indicatorId}/v2/tuan`, `/${indicatorId}/v2/thang`],
+    icon: <Target size={18} />,
+  };
 }
 
 const F11_GROUP = {
@@ -15,9 +16,7 @@ const F11_GROUP = {
   name: 'F1.1 – Chất lượng toàn trình nội tỉnh',
   icon: <Activity size={18} />,
   subItems: [
-    ...timeAxisItems('f11'),
-    { name: 'Bảng điều hành', path: '/f11/dashboard', icon: <Target size={18} /> },
-    { name: 'Phân tích BCVH', path: '/f11/ranking/bcvh', icon: <BarChart2 size={18} /> },
+    qualityResultItem('f11'),
   ],
 };
 
@@ -26,9 +25,7 @@ const F12_GROUP = {
   name: 'F1.2 – Thu gom liên tỉnh',
   icon: <Activity size={18} />,
   subItems: [
-    ...timeAxisItems('f12'),
-    { name: 'Bảng điều hành', path: '/f12/dashboard', icon: <Target size={18} /> },
-    { name: 'Phân tích đơn vị chấp nhận', path: '/f12/ranking/bcvh', icon: <BarChart2 size={18} /> },
+    qualityResultItem('f12'),
   ],
 };
 
@@ -37,9 +34,7 @@ const F13_GROUP = {
   name: 'F1.3 – Chất lượng phát liên tỉnh',
   icon: <Target size={18} />,
   subItems: [
-    { name: 'Theo ngày', path: '/f13/v2/ngay', icon: <CalendarDays size={18} /> },
-    { name: 'Theo tuần', path: '/f13/v2/tuan', icon: <BarChart2 size={18} /> },
-    { name: 'Theo tháng', path: '/f13/v2/thang', icon: <Activity size={18} /> },
+    qualityResultItem('f13'),
     { name: 'Hành trình bưu gửi', path: '/f13/v2/hanh-trinh', subtitle: 'Chuyên đề', icon: <BookOpen size={18} /> },
     { name: 'Phân tích tuyến phát', path: '/f13/ranking/route', subtitle: 'Chuyên đề', icon: <BarChart2 size={18} /> },
     { name: 'Năng lực và chất lượng tuyến', path: '/f13/ranking/bcvh', subtitle: 'Chuyên đề', icon: <BarChart2 size={18} /> },
@@ -52,9 +47,7 @@ const F41_GROUP = {
   name: 'F4.1 – Chất lượng phát thành công bưu cục',
   icon: <Activity size={18} />,
   subItems: [
-    ...timeAxisItems('f41'),
-    { name: 'Bảng điều hành', path: '/f41/dashboard', icon: <Target size={18} /> },
-    { name: 'Phân tích BCVH', path: '/f41/ranking/bcvh', icon: <BarChart2 size={18} /> },
+    qualityResultItem('f41'),
   ],
 };
 
@@ -63,9 +56,7 @@ const F42_GROUP = {
   name: 'F4.2 – Chất lượng phát giao bưu tá',
   icon: <Activity size={18} />,
   subItems: [
-    ...timeAxisItems('f42'),
-    { name: 'Bảng điều hành', path: '/f42/dashboard', icon: <Target size={18} /> },
-    { name: 'Phân tích BCVH', path: '/f42/ranking/bcvh', icon: <BarChart2 size={18} /> },
+    qualityResultItem('f42'),
   ],
 };
 
@@ -169,8 +160,8 @@ export function getNavigationForRole(role, access = null) {
 
 export function getDashboardQuickLinks(role, access = null) {
   const items = [
-    { label: 'F1.3 – Theo ngày', path: '/f13/v2/ngay', color: 'bg-vnpost-blue', description: 'KPI chất lượng phát liên tỉnh' },
-    { label: 'F1.3 – Theo tuần', path: '/f13/v2/tuan', color: 'bg-green-600', description: 'So sánh hiệu quả theo bưu cục' },
+    { label: 'F1.3 – Kết quả chất lượng', path: '/f13/v2/ngay', color: 'bg-vnpost-blue', description: 'KPI chất lượng phát liên tỉnh' },
+    { label: 'F1.3 – So sánh theo tuần', path: '/f13/v2/tuan', color: 'bg-green-600', description: 'So sánh hiệu quả theo bưu cục' },
     { label: 'Trung tâm nạp dữ liệu', path: '/import', color: 'bg-vnpost-orange', description: 'Nạp & quản lý dữ liệu Excel', roles: [ROLE_ADMIN] },
   ];
 

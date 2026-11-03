@@ -18,17 +18,11 @@ test('T5: F41BcvhRankingPage wraps BcvhRankingPage in IndicatorProvider with F41
   assert.match(source, /<BcvhRankingPage \/>/);
 });
 
-test('App.jsx registers f41/dashboard and f41/ranking/bcvh for admin and viewer and /f41 redirects to the dashboard (T6)', () => {
+test('App.jsx: /f41 opens its time-axis pages and the old routes redirect there (PO 2026-11-03)', () => {
   const appSource = fs.readFileSync(new URL('../../App.jsx', import.meta.url), 'utf8');
-  assert.match(appSource, /import F41DashboardPage from '\.\/features\/f41\/F41DashboardPage'/);
-  assert.match(appSource, /import F41BcvhRankingPage from '\.\/features\/f41\/F41BcvhRankingPage'/);
-
-  // The old placeholder route now redirects (F41-DASHBOARD-RANKING-01 T6)
-  assert.match(appSource, /<Route path="f41" element=\{<Navigate to="\/f41\/dashboard" replace \/>\} \/>/);
-
-  // New F4.1 routes registered for admin and viewer
-  assert.match(appSource, /<Route path="f41\/dashboard" element=\{<ProtectedRoute allowedRoles=\{\[ROLE_ADMIN, ROLE_VIEWER\]\}><F41DashboardPage \/><\/ProtectedRoute>\} \/>/);
-  assert.match(appSource, /<Route path="f41\/ranking\/bcvh" element=\{<ProtectedRoute allowedRoles=\{\[ROLE_ADMIN, ROLE_VIEWER\]\}><F41BcvhRankingPage \/><\/ProtectedRoute>\} \/>/);
+  assert.ok(appSource.includes('<Route path="f41" element={<Navigate to="/f41/v2/ngay" replace />} />'));
+  assert.ok(appSource.includes('<Route path="f41/dashboard" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN, ROLE_VIEWER]}><LegacyTimeAxisRedirect to="/f41/v2/ngay" />'));
+  assert.ok(appSource.includes('<Route path="f41/ranking/bcvh" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN, ROLE_VIEWER]}><LegacyTimeAxisRedirect to="/f41/v2/tuan" />'));
 });
 
 test('T8-F41-NB1: Shared report blocks avoid hardcoded KPI 2026 and use indicator-aware labels', () => {

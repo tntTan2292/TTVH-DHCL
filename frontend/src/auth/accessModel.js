@@ -216,9 +216,6 @@ export function canAccessPath(access, pathname, legacyRole = null) {
 export function filterNavigationByAccess(items = [], access = null, legacyRole = null) {
   return items
     .filter((item) => {
-      if (item.adminOnly && !(access && typeof access.admin === 'boolean' ? access.admin : String(legacyRole || '').trim().toLowerCase() === 'admin')) {
-        return false;
-      }
       // If flat item with path, check path access
       if (item.path) {
         return canAccessPath(access, item.path, legacyRole);

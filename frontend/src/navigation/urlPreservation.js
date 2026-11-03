@@ -4,6 +4,11 @@ export const F13_CROSS_MODULE_PATHS = [
   '/f13/ranking/route',
 ];
 
+// A menu item is lit on its own path and on the tabs of its page (Kết quả chất lượng: Theo ngày / tuần / tháng).
+export function isNavItemActive(item, pathname) {
+  return pathname === item?.path || Boolean(item?.activePaths?.includes(pathname));
+}
+
 // The old F1.3 Bảng điều hành is retired (PO 2026-11-03): an old link or bookmark opens Theo ngày on the same day and unit.
 export function translateLegacyF13DashboardSearch(search) {
   const params = new URLSearchParams(search);

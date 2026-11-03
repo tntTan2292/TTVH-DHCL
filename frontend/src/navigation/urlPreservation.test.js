@@ -1,6 +1,14 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { translateLegacyF13DashboardSearch } from './urlPreservation.js';
+import { isNavItemActive, translateLegacyF13DashboardSearch } from './urlPreservation.js';
+
+test('Kết quả chất lượng stays lit on its three tabs and nowhere else', () => {
+  const item = { path: '/f41/v2/ngay', activePaths: ['/f41/v2/tuan', '/f41/v2/thang'] };
+  for (const path of ['/f41/v2/ngay', '/f41/v2/tuan', '/f41/v2/thang']) assert.equal(isNavItemActive(item, path), true, path);
+  assert.equal(isNavItemActive(item, '/f11/v2/tuan'), false);
+  assert.equal(isNavItemActive({ path: '/f13/evidence' }, '/f13/evidence'), true);
+  assert.equal(isNavItemActive({ path: '/f13/evidence' }, '/f13/v2/ngay'), false);
+});
 
 test('an old F1.3 Bảng điều hành link opens Theo ngày on the same day and unit', () => {
   assert.equal(

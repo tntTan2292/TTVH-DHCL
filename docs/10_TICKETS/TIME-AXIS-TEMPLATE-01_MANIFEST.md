@@ -17,7 +17,7 @@ In: the three time pages for the four indicators. Out: any Chuyên đề of thes
 
 - The F1.3 pages are now a template: `frontend/src/features/f13v2/F13V2{Day,Week,Month}Page.jsx` read the indicator from `IndicatorProvider`. Routes `/f11|f12|f41|f42/v2/{ngay,tuan,thang}`. F1.3 itself: same blocks, its active tab now uses its theme colour.
 - Backend: `/api/<indicator>/v2/{layout,period/resolve,day/summary}` from `backend/src/routes/timeAxisRoutes.js`; block lists per indicator in `services/f13v2/blockRegistry.js`; range table `F41RankingService.compareSamePeriod` (same same-period rule as F1.3). No existing endpoint changed, no schema change.
-- During the check the new pages are in the menu of the admin only, as "Theo ngày / tuần / tháng (mới)" above the old items. This is a menu gate: a non-admin who types the address gets their own permitted data, as on the indicator's other pages.
+- **PO accepted all four on 2026-11-03.** Open to every account allowed that indicator. PO, same day: the three pages are one module, so the menu has one item per indicator, **Kết quả chất lượng**, and Theo ngày / tuần / tháng are the tabs at the top of the page (F1.3 as well; its Chuyên đề items stay below). The item stays lit on all three tabs. Old links: `/<indicator>/dashboard` goes to Theo ngày, `/<indicator>/ranking/bcvh` to Theo tuần, keeping the unit and any date range.
 
 | Page | All four | F1.1 | F1.2 | F4.2 |
 | --- | --- | --- | --- | --- |
@@ -40,4 +40,6 @@ In: the three time pages for the four indicators. Out: any Chuyên đề of thes
 
 ## 6. Status
 
-`IMPLEMENTED / READY FOR PO UI CHECK`. PO UI Check Required: `Yes`, one indicator at a time. After acceptance: open to every account, remove "(mới)", remove `adminOnly`, redirect the indicator's old `/dashboard` as F1.3 did, decide the old `/ranking/bcvh`.
+`CLOSED / PO UI PASS (2026-11-03)`.
+
+Residual: the old page components (`F1xDashboardPage`, `F1xBcvhRankingPage`, `F4xDashboardPage`, `F4xBcvhRankingPage`, `features/dashboard/DashboardPage.jsx`) are no longer routed but stay in the repository because their blocks and tests still read them; they can be removed in a clean-up ticket. These blocks of the old analysis page have no place on the new pages: the day ranking table with ranks and the F1.2 accepting-office ranking table (`/f12/ranking/offices`; the offices remain in the Theo ngày table).

@@ -94,15 +94,11 @@ test('F12BcvhRankingPage wraps BcvhRankingPage in IndicatorProvider with F12_IND
   assert.match(source, /<BcvhRankingPage \/>/);
 });
 
-test('App.jsx registers /f12 redirect and /f12/dashboard, /f12/ranking/bcvh for admin and viewer', () => {
+test('App.jsx: /f12 opens its time-axis pages and the old routes redirect there (PO 2026-11-03)', () => {
   const appSource = fs.readFileSync(new URL('../../App.jsx', import.meta.url), 'utf8');
-  assert.match(appSource, /import F12DashboardPage from '\.\/features\/f12\/F12DashboardPage'/);
-  assert.match(appSource, /import F12BcvhRankingPage from '\.\/features\/f12\/F12BcvhRankingPage'/);
-  assert.doesNotMatch(appSource, /import F12Quality/);
-
-  assert.match(appSource, /<Route path="f12" element=\{<Navigate to="\/f12\/dashboard" replace \/>\} \/>/);
-  assert.match(appSource, /<Route path="f12\/dashboard" element=\{<ProtectedRoute allowedRoles=\{\[ROLE_ADMIN, ROLE_VIEWER\]\}><F12DashboardPage \/><\/ProtectedRoute>\} \/>/);
-  assert.match(appSource, /<Route path="f12\/ranking\/bcvh" element=\{<ProtectedRoute allowedRoles=\{\[ROLE_ADMIN, ROLE_VIEWER\]\}><F12BcvhRankingPage \/><\/ProtectedRoute>\} \/>/);
+  assert.ok(appSource.includes('<Route path="f12" element={<Navigate to="/f12/v2/ngay" replace />} />'));
+  assert.ok(appSource.includes('<Route path="f12/dashboard" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN, ROLE_VIEWER]}><LegacyTimeAxisRedirect to="/f12/v2/ngay" />'));
+  assert.ok(appSource.includes('<Route path="f12/ranking/bcvh" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN, ROLE_VIEWER]}><LegacyTimeAxisRedirect to="/f12/v2/tuan" />'));
 });
 
 test('DashboardPage mounts only the F12Cumulative12Block (no whole-BĐTP / office block)', () => {

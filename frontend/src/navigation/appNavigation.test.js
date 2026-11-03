@@ -43,21 +43,13 @@ test('Module 1 (Quản lý chất lượng) contains F1.1, F1.2, F1.3, F4.1, F4.
 
   assert.equal(f11.title, 'F1.1 – Chất lượng toàn trình nội tỉnh');
   assert.deepEqual(toPlain(f11.subItems.map((item) => [item.name, item.path])), [
-    ['Theo ngày (mới)', '/f11/v2/ngay'],
-    ['Theo tuần (mới)', '/f11/v2/tuan'],
-    ['Theo tháng (mới)', '/f11/v2/thang'],
-    ['Bảng điều hành', '/f11/dashboard'],
-    ['Phân tích BCVH', '/f11/ranking/bcvh'],
+    ['Kết quả chất lượng', '/f11/v2/ngay'],
   ]);
   assert.equal(f11.roles, undefined);
 
   assert.equal(f12.title, 'F1.2 – Thu gom liên tỉnh');
   assert.deepEqual(toPlain(f12.subItems.map((item) => [item.name, item.path])), [
-    ['Theo ngày (mới)', '/f12/v2/ngay'],
-    ['Theo tuần (mới)', '/f12/v2/tuan'],
-    ['Theo tháng (mới)', '/f12/v2/thang'],
-    ['Bảng điều hành', '/f12/dashboard'],
-    ['Phân tích đơn vị chấp nhận', '/f12/ranking/bcvh'],
+    ['Kết quả chất lượng', '/f12/v2/ngay'],
   ]);
   assert.equal(f12.roles, undefined);
 
@@ -66,21 +58,13 @@ test('Module 1 (Quản lý chất lượng) contains F1.1, F1.2, F1.3, F4.1, F4.
 
   assert.equal(f41.title, 'F4.1 – Chất lượng phát thành công bưu cục');
   assert.deepEqual(toPlain(f41.subItems.map((item) => [item.name, item.path])), [
-    ['Theo ngày (mới)', '/f41/v2/ngay'],
-    ['Theo tuần (mới)', '/f41/v2/tuan'],
-    ['Theo tháng (mới)', '/f41/v2/thang'],
-    ['Bảng điều hành', '/f41/dashboard'],
-    ['Phân tích BCVH', '/f41/ranking/bcvh'],
+    ['Kết quả chất lượng', '/f41/v2/ngay'],
   ]);
   assert.equal(f41.roles, undefined);
 
   assert.equal(f42.title, 'F4.2 – Chất lượng phát giao bưu tá');
   assert.deepEqual(toPlain(f42.subItems.map((item) => [item.name, item.path])), [
-    ['Theo ngày (mới)', '/f42/v2/ngay'],
-    ['Theo tuần (mới)', '/f42/v2/tuan'],
-    ['Theo tháng (mới)', '/f42/v2/thang'],
-    ['Bảng điều hành', '/f42/dashboard'],
-    ['Phân tích BCVH', '/f42/ranking/bcvh'],
+    ['Kết quả chất lượng', '/f42/v2/ngay'],
   ]);
   assert.equal(f42.roles, undefined);
 
@@ -180,9 +164,7 @@ test('F1.3 navigation shows the time axis and the Chuyên đề pages (old Bản
   assert.ok(f13GroupMatch, 'F13_GROUP must be defined with subItems');
   const f13SubItemsText = f13GroupMatch[1];
 
-  assert.match(f13SubItemsText, /name: 'Theo ngày',\s*path: '\/f13\/v2\/ngay'/);
-  assert.match(f13SubItemsText, /name: 'Theo tuần',\s*path: '\/f13\/v2\/tuan'/);
-  assert.match(f13SubItemsText, /name: 'Theo tháng',\s*path: '\/f13\/v2\/thang'/);
+  assert.match(f13SubItemsText, /qualityResultItem\('f13'\)/);
   assert.match(f13SubItemsText, /name: 'Hành trình bưu gửi',\s*path: '\/f13\/v2\/hanh-trinh'/);
   assert.equal(f13SubItemsText.includes("'/f13/dashboard'"), false, 'the old Bảng điều hành is retired');
   assert.match(f13SubItemsText, /name: 'Năng lực và chất lượng tuyến',\s*path: '\/f13\/ranking\/bcvh'/);

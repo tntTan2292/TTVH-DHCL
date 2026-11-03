@@ -22,23 +22,11 @@ test('F42BcvhRankingPage wraps BcvhRankingPage in IndicatorProvider with F42_IND
   assert.match(source, /<BcvhRankingPage \/>/);
 });
 
-test('App.jsx registers /f42/dashboard and /f42/ranking/bcvh for admin and viewer, and /f42 redirects to dashboard', () => {
+test('App.jsx: /f42 opens its time-axis pages and the old routes redirect there (PO 2026-11-03)', () => {
   const appSource = readSource('../../App.jsx');
-  assert.match(appSource, /import F42DashboardPage from '\.\/features\/f42\/F42DashboardPage'/);
-  assert.match(appSource, /import F42BcvhRankingPage from '\.\/features\/f42\/F42BcvhRankingPage'/);
-
-  // Redirect
-  assert.match(appSource, /<Route path="f42" element=\{<Navigate to="\/f42\/dashboard" replace \/>\} \/>/);
-
-  // Protected routes
-  assert.match(
-    appSource,
-    /<Route path="f42\/dashboard" element=\{<ProtectedRoute allowedRoles=\{\[ROLE_ADMIN, ROLE_VIEWER\]\}><F42DashboardPage \/><\/ProtectedRoute>\} \/>/
-  );
-  assert.match(
-    appSource,
-    /<Route path="f42\/ranking\/bcvh" element=\{<ProtectedRoute allowedRoles=\{\[ROLE_ADMIN, ROLE_VIEWER\]\}><F42BcvhRankingPage \/><\/ProtectedRoute>\} \/>/
-  );
+  assert.ok(appSource.includes('<Route path="f42" element={<Navigate to="/f42/v2/ngay" replace />} />'));
+  assert.ok(appSource.includes('<Route path="f42/dashboard" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN, ROLE_VIEWER]}><LegacyTimeAxisRedirect to="/f42/v2/ngay" />'));
+  assert.ok(appSource.includes('<Route path="f42/ranking/bcvh" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN, ROLE_VIEWER]}><LegacyTimeAxisRedirect to="/f42/v2/tuan" />'));
 });
 
 test('UserManagementPage.jsx registers F4.2 in INDICATOR_LIST with code F4.2', () => {

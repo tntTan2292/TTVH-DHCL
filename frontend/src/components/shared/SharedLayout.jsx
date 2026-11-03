@@ -7,7 +7,7 @@ import CollapsedFlyout from '../CollapsedFlyout';
 import { useAuth } from '../../auth/AuthContext';
 import { getNavigationForRole, getMyTasksNavItem } from '../../navigation/appNavigation.jsx';
 import opsJournalAdapter from '../../features/ops-journal/api/opsJournalApi.js';
-import { buildPreservedPath } from '../../navigation/urlPreservation';
+import { buildPreservedPath, isNavItemActive } from '../../navigation/urlPreservation';
 import { createSearchCommitController } from './searchCommitController.js';
 
 function normalizeNavText(text = '') {
@@ -119,7 +119,7 @@ export function SidebarNavigation({ isOpen, onClose, isCollapsed, onToggleCollap
       if (!group.subItems) return;
       const hasActiveChild = group.subItems.some((sub) => {
         if (sub.subItems) {
-          return sub.subItems.some((nested) => location.pathname === nested.path);
+          return sub.subItems.some((nested) => isNavItemActive(nested, location.pathname));
         }
         return location.pathname === sub.path;
       });
@@ -128,7 +128,7 @@ export function SidebarNavigation({ isOpen, onClose, isCollapsed, onToggleCollap
         setPinnedGroups((prev) => {
           const next = { ...prev, [group.title]: true };
           group.subItems.forEach((sub) => {
-            if (sub.subItems && sub.subItems.some((nested) => location.pathname === nested.path)) {
+            if (sub.subItems && sub.subItems.some((nested) => isNavItemActive(nested, location.pathname))) {
               next[sub.title || sub.name] = true;
             }
           });
@@ -294,7 +294,7 @@ export function SidebarNavigation({ isOpen, onClose, isCollapsed, onToggleCollap
               const isExpanded = isSearching ? true : (isPinned || isHovered);
               const isGroupActive = item.subItems.some((sub) => {
                 if (sub.subItems) {
-                  return sub.subItems.some((nested) => location.pathname === nested.path);
+                  return sub.subItems.some((nested) => isNavItemActive(nested, location.pathname));
                 }
                 return location.pathname === sub.path;
               });
@@ -391,7 +391,7 @@ export function SidebarNavigation({ isOpen, onClose, isCollapsed, onToggleCollap
                                         to={buildPreservedPath(nested.path, location.search)}
                                         className={({ isActive }) =>
                                           `flex items-center gap-2 py-1 px-2 rounded-md text-[11px] transition-all ${
-                                            isActive
+                                            isActive || isNavItemActive(nested, location.pathname)
                                               ? 'bg-white/20 text-white font-bold'
                                               : 'text-blue-200/70 hover:text-white hover:bg-white/10'
                                           }`
@@ -448,7 +448,7 @@ export function SidebarNavigation({ isOpen, onClose, isCollapsed, onToggleCollap
                             const isSubPinned = Boolean(pinnedGroups[subKey]);
                             const isSubHovered = Boolean(hoveredGroups[subKey]);
                             const isSubExpanded = isSearching ? true : (isSubPinned || isSubHovered);
-                            const isSubActive = sub.subItems.some((nested) => location.pathname === nested.path);
+                            const isSubActive = sub.subItems.some((nested) => isNavItemActive(nested, location.pathname));
 
                             return (
                               <li
@@ -499,7 +499,7 @@ export function SidebarNavigation({ isOpen, onClose, isCollapsed, onToggleCollap
                                             to={buildPreservedPath(nested.path, location.search)}
                                             className={({ isActive }) =>
                                               `relative flex items-center py-1.5 pl-6 pr-3 rounded-md transition-all duration-200 text-xs ${
-                                                isActive
+                                                isActive || isNavItemActive(nested, location.pathname)
                                                   ? 'bg-gradient-to-r from-white/20 via-white/12 to-white/5 text-white font-bold backdrop-blur-xs border border-white/15 shadow-[0_0_10px_rgba(245,130,32,0.15)] before:absolute before:left-2 before:top-1.5 before:bottom-1.5 before:w-1 before:rounded-r before:bg-gradient-to-b before:from-amber-400 before:to-[var(--color-vnpost-orange)] before:shadow-[0_0_5px_rgba(245,130,32,0.5)]'
                                                   : 'text-blue-200/70 hover:bg-white/10 hover:text-white'
                                               }`
