@@ -118,7 +118,7 @@ export default function F13V2DaySummaryTable({
               </span>
             </div>
             <p className="text-xs text-slate-500 font-medium mt-0.5">
-              Tổng hợp sản lượng, tỷ lệ đạt KPI 2026, tiền trễ và so sánh đối ứng N-1 / N-7 theo bưu cục vận hành.
+              Tổng hợp sản lượng, tỷ lệ đạt KPI 2026 và so sánh đối ứng N-1 / N-7 theo bưu cục vận hành.
             </p>
           </div>
         </div>
@@ -162,9 +162,6 @@ export default function F13V2DaySummaryTable({
                 </th>
                 <th colSpan={4} className="px-3 py-2 text-center border-r border-slate-200 bg-blue-50/60 text-blue-900">
                   Kỳ báo cáo ({periodLabel})
-                </th>
-                <th colSpan={2} className="px-3 py-2 text-center border-r border-slate-200 bg-amber-50/60 text-amber-900">
-                  Tiền trễ
                 </th>
                 <th colSpan={2} className="px-3 py-2 text-center border-r border-slate-200 bg-emerald-50/40 text-emerald-900">
                   {HEADER_COMPARE_N1}
@@ -244,26 +241,6 @@ export default function F13V2DaySummaryTable({
                   {rateHeader(indicator)}
                 </SortableTh>
 
-                {/* Tiền trễ */}
-                <SortableTh
-                  field="late_cash.count"
-                  sort={sort}
-                  onSort={handleSort}
-                  activeClassName={theme.sortActive}
-                  className="px-2.5 py-2 text-right bg-amber-50/30"
-                >
-                  Số BG
-                </SortableTh>
-                <SortableTh
-                  field="late_cash.rate"
-                  sort={sort}
-                  onSort={handleSort}
-                  activeClassName={theme.sortActive}
-                  className="px-2.5 py-2 text-center border-r border-slate-200 bg-amber-50/30"
-                >
-                  Tỷ lệ
-                </SortableTh>
-
                 {/* So sánh N-1 */}
                 <SortableTh
                   field="compare.n1.rate"
@@ -335,13 +312,6 @@ export default function F13V2DaySummaryTable({
                     <RateBadge rate={row.rate} target={targetRate} />
                   </td>
 
-                  <td className="px-2.5 py-2 text-right font-medium text-slate-700">
-                    {formatVolume(row.late_cash?.count)}
-                  </td>
-                  <td className="px-2.5 py-2 text-center font-medium text-slate-700 border-r border-slate-100">
-                    {formatRate(row.late_cash?.rate)}
-                  </td>
-
                   <td className="px-2.5 py-2 text-center font-medium text-slate-700">
                     {formatRate(row.compare?.n1?.rate)}
                   </td>
@@ -386,13 +356,6 @@ export default function F13V2DaySummaryTable({
                   </td>
                   <td className="px-3 py-2.5 text-center border-r border-slate-200">
                     <RateBadge rate={totalRow.rate} target={targetRate} />
-                  </td>
-
-                  <td className="px-2.5 py-2.5 text-right font-bold text-slate-800">
-                    {formatVolume(totalRow.late_cash?.count)}
-                  </td>
-                  <td className="px-2.5 py-2.5 text-center font-bold text-slate-800 border-r border-slate-200">
-                    {formatRate(totalRow.late_cash?.rate)}
                   </td>
 
                   <td className="px-2.5 py-2.5 text-center font-bold text-slate-800">

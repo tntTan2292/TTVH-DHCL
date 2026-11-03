@@ -107,7 +107,7 @@ test('T8-F41-NB2: Expanded-row analysis text for F4.1 strips late-cash and route
   const f13Row = f13Mapped.rows[0];
   assert.ok(f13Row.analysis, 'analysis text exists');
   assert.match(f13Row.analysis, /KPI ngày 85,0%/);
-  assert.match(f13Row.analysis, /Chậm nộp tiền/);
+  assert.doesNotMatch(f13Row.analysis, /Chậm nộp tiền/); // no longer measured (PO 2026-11-03)
   assert.match(f13Row.analysis, /Tuyến tham gia/);
   assert.deepEqual(f13Row.action, {
     route: '/f13/ranking/route',

@@ -116,24 +116,19 @@ export function SidebarNavigation({ isOpen, onClose, isCollapsed, onToggleCollap
         name: 'F1.3 (mới)',
         icon: <Target size={18} />,
         roles: ['admin'],
-        subItems: f13V2Layout.pages.map((p) => {
-          if (p.id === 'chuyen-de' && Array.isArray(p.blocks) && p.blocks.length > 0) {
-            return {
-              name: p.title,
-              title: p.title,
-              subtitle: p.subtitle,
-              icon: <BookOpen size={18} />,
-              subItems: p.blocks
-                .filter((b) => b.path)
-                .map((b) => ({
-                  name: b.title,
-                  path: b.path,
-                  subtitle: p.subtitle,
-                  icon: <BookOpen size={14} />,
-                })),
-            };
+        // The menu draws two levels under a group, so the Chuyên đề blocks are listed directly (a third level had no link).
+        subItems: f13V2Layout.pages.flatMap((p) => {
+          if (p.id === 'chuyen-de') {
+            return (p.blocks || [])
+              .filter((b) => b.path)
+              .map((b) => ({
+                name: b.title,
+                path: b.path,
+                subtitle: 'Chuyên đề',
+                icon: <BookOpen size={18} />,
+              }));
           }
-          return {
+          return [{
             name: p.title,
             path: p.path || (p.blocks?.[0]?.path ?? '/f13/v2/ngay'),
             subtitle: p.subtitle,
@@ -147,7 +142,7 @@ export function SidebarNavigation({ isOpen, onClose, isCollapsed, onToggleCollap
               ) : (
                 <BookOpen size={18} />
               ),
-          };
+          }];
         }),
       };
 

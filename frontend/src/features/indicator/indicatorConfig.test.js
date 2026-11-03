@@ -121,9 +121,9 @@ test('indicatorLabel and the monthly legend use the given indicator wording', ()
   ]);
 });
 
-test('F4.1 hides every block that needs data F4.1 does not have; F1.3 keeps them all', () => {
+test('F4.1 hides every block that needs data F4.1 does not have; F1.3 keeps them all but late cash (PO 2026-11-03)', () => {
   assert.deepEqual({ ...F41_INDICATOR.features }, { routes: false, lateCash: false, operatingPattern: false, actionCenter: false });
-  assert.deepEqual({ ...F13_INDICATOR.features }, { routes: true, lateCash: true, operatingPattern: true, actionCenter: true });
+  assert.deepEqual({ ...F13_INDICATOR.features }, { routes: true, lateCash: false, operatingPattern: true, actionCenter: true });
   assert.equal(F41_INDICATOR.routes.ranking, '/f41/ranking/bcvh');
   assert.equal(F13_INDICATOR.routes.ranking, '/f13/ranking/bcvh');
 });

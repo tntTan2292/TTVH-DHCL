@@ -166,7 +166,8 @@ export const F13_INDICATOR = Object.freeze({
   heatmapFloors: Object.freeze([70, 60, 50]),
   heatmapBands: buildHeatmapBands([70, 60, 50]),
   kpiStatusBands: buildKpiStatusBands([70, 60, 50]),
-  features: Object.freeze({ routes: true, lateCash: true, operatingPattern: true, actionCenter: true }),
+  // lateCash off (PO 2026-11-03): since mid-September 2026 the handover time mostly equals the delivery time, so it is no longer measured.
+  features: Object.freeze({ routes: true, lateCash: false, operatingPattern: true, actionCenter: true }),
 });
 
 export const F41_INDICATOR = Object.freeze({
