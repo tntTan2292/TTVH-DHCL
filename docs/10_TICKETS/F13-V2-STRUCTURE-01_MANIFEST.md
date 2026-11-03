@@ -27,7 +27,8 @@ Same-time-axis structure for one indicator, starting with F1.3, without touching
   - Kiểm thử: 79/79 test suite liên quan pass; frontend build & lint pass.
   - Sửa sau bàn giao (Claude Code, 2026-11-02): `BcvhRankingOverviewBlocks.jsx` dùng `useEffect` mà thiếu import, làm hỏng khối xu hướng tháng ở trang Theo tháng và trang Phân tích BCVH cũ của mọi chỉ tiêu; phát hiện bằng `oxlint -D no-undef` (gate của `report_block_ui_standard.md` Mục 4).
   - PO khi kiểm tra UI (2026-11-02): bảng đầu trang Theo ngày dùng đúng "BẢNG TỔNG HỢP SỐ LIỆU CHỈ SỐ F1.3 TẠI CÁC BCVH"; bỏ Trung tâm hành động khỏi trang này; chọn từ hai ngày trở lên thì có thêm bảng so sánh khoảng ngày theo cùng kỳ (thiết kế Mục 12, điểm 3-5).
-- PO UI Check Required: `Yes`, tiến hành kiểm tra giao diện trước khi quyết định thay thế module cũ.
+- **PO 2026-11-03: Theo ngày / tuần / tháng accepted, the old F1.3 is replaced.** Menu F1.3 now holds Theo ngày, Theo tuần, Theo tháng and the Chuyên đề pages, for every account allowed F1.3 (the admin-only trial gate and the "F1.3 (mới)" group are gone). `/f13/dashboard` redirects to Theo ngày with the same day and unit (old links, login default, Home cards). `/f13/ranking/bcvh` stays only as Chuyên đề "Năng lực và chất lượng tuyến", `/f13/ranking/route` and `/f13/evidence` stay as they are: the PO wants a separate plan to rebuild these three. Checked in a browser on an isolated stack with an admin, a leader and a BCVH account.
+- PO UI Check Required: `No` for Ngày / Tuần / Tháng (accepted). The three Chuyên đề pages: separate plan.
 
 ## 4. Required Reading
 

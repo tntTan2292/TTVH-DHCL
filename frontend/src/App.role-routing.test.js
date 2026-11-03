@@ -6,7 +6,10 @@ test('viewer routing keeps only the approved completed F1.3 surfaces and blocks 
   const source = fs.readFileSync(new URL('./App.jsx', import.meta.url), 'utf8');
 
   assert.match(source, /allowedRoles=\{\[ROLE_ADMIN, ROLE_VIEWER\]\}>\s*<MainLayout/);
-  assert.match(source, /path="dashboard" element=\{<ProtectedRoute allowedRoles=\{\[ROLE_ADMIN, ROLE_VIEWER\]\}><DashboardPage/);
+  assert.match(source, /path="dashboard" element=\{<ProtectedRoute allowedRoles=\{\[ROLE_ADMIN, ROLE_VIEWER\]\}><LegacyF13DashboardRedirect/);
+  for (const page of ['F13V2DayPage', 'F13V2WeekPage', 'F13V2MonthPage', 'F13V2JourneyPage']) {
+    assert.ok(source.includes(`allowedRoles={[ROLE_ADMIN, ROLE_VIEWER]}><${page}`), page);
+  }
   assert.match(source, /path="ranking\/bcvh" element=\{<ProtectedRoute allowedRoles=\{\[ROLE_ADMIN, ROLE_VIEWER\]\}><BcvhRankingPage/);
   assert.match(source, /path="ranking\/route" element=\{<ProtectedRoute allowedRoles=\{\[ROLE_ADMIN, ROLE_VIEWER\]\}><RoutePerformancePage/);
   assert.match(source, /path="import" element=\{<ProtectedRoute allowedRoles=\{\[ROLE_ADMIN\]\}><DataImportCenter/);

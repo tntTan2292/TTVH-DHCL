@@ -1,13 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
-import { ChevronDown, ChevronLeft, ChevronRight, Search, CalendarDays, Filter, LoaderCircle, AlertTriangle, Pin, Target, BarChart2, BookOpen, Activity } from 'lucide-react';
+import { ChevronDown, ChevronLeft, ChevronRight, Search, CalendarDays, Filter, LoaderCircle, AlertTriangle, Pin } from 'lucide-react';
 import Topbar from '../Topbar';
 import WelcomeToast from '../welcome/WelcomeToast.jsx';
 import CollapsedFlyout from '../CollapsedFlyout';
 import { useAuth } from '../../auth/AuthContext';
 import { getNavigationForRole, getMyTasksNavItem } from '../../navigation/appNavigation.jsx';
 import opsJournalAdapter from '../../features/ops-journal/api/opsJournalApi.js';
-import api from '../../api/client.js';
 import { buildPreservedPath } from '../../navigation/urlPreservation';
 import { createSearchCommitController } from './searchCommitController.js';
 
@@ -50,7 +49,6 @@ export function SidebarNavigation({ isOpen, onClose, isCollapsed, onToggleCollap
     'F1.1 – Chất lượng toàn trình nội tỉnh': true,
     'F1.2 – Thu gom liên tỉnh': true,
     'F1.3 – Chất lượng phát liên tỉnh': true,
-    'F1.3 (mới)': true,
     'F4.1 – Chất lượng phát thành công bưu cục': true,
     'F4.2 – Chất lượng phát giao bưu tá': true,
     'Chỉ số rà soát Hàng tồn': true,
@@ -77,29 +75,6 @@ export function SidebarNavigation({ isOpen, onClose, isCollapsed, onToggleCollap
     return () => { current = false; };
   }, [userId]);
 
-  // F13-V2-STRUCTURE-01: Admin-only trial menu group for time-axis F1.3 populated from GET /api/f13/v2/layout
-  const isAdmin = user?.role === 'admin';
-  const [f13V2Layout, setF13V2Layout] = useState(null);
-  useEffect(() => {
-    if (!isAdmin) {
-      setF13V2Layout(null);
-      return undefined;
-    }
-    let current = true;
-    api.get('/f13/v2/layout')
-      .then((res) => {
-        if (current && res?.data?.success && res.data?.data) {
-          setF13V2Layout(res.data.data);
-        }
-      })
-      .catch(() => {
-        if (current) setF13V2Layout(null);
-      });
-    return () => {
-      current = false;
-    };
-  }, [isAdmin]);
-
   const navGroups = useMemo(() => {
     const base = getNavigationForRole(user?.role, user?.access);
     if (!Array.isArray(base)) return base;
@@ -110,66 +85,8 @@ export function SidebarNavigation({ isOpen, onClose, isCollapsed, onToggleCollap
       items = [...items.slice(0, homeIndex + 1), getMyTasksNavItem(), ...items.slice(homeIndex + 1)];
     }
 
-    if (isAdmin && f13V2Layout?.pages?.length) {
-      const f13V2Group = {
-        title: 'F1.3 (mới)',
-        name: 'F1.3 (mới)',
-        icon: <Target size={18} />,
-        roles: ['admin'],
-        // The menu draws two levels under a group, so the Chuyên đề blocks are listed directly (a third level had no link).
-        subItems: f13V2Layout.pages.flatMap((p) => {
-          if (p.id === 'chuyen-de') {
-            return (p.blocks || [])
-              .filter((b) => b.path)
-              .map((b) => ({
-                name: b.title,
-                path: b.path,
-                subtitle: 'Chuyên đề',
-                icon: <BookOpen size={18} />,
-              }));
-          }
-          return [{
-            name: p.title,
-            path: p.path || (p.blocks?.[0]?.path ?? '/f13/v2/ngay'),
-            subtitle: p.subtitle,
-            icon:
-              p.id === 'ngay' ? (
-                <CalendarDays size={18} />
-              ) : p.id === 'tuan' ? (
-                <BarChart2 size={18} />
-              ) : p.id === 'thang' ? (
-                <Activity size={18} />
-              ) : (
-                <BookOpen size={18} />
-              ),
-          }];
-        }),
-      };
-
-      items = items.map((group) => {
-        if (!group.title?.toLowerCase().includes('quản lý chất lượng') || !Array.isArray(group.subItems)) {
-          return group;
-        }
-        const f13Index = group.subItems.findIndex((sub) => sub.title?.includes('F1.3') || sub.name?.includes('F1.3'));
-        if (f13Index >= 0) {
-          return {
-            ...group,
-            subItems: [
-              ...group.subItems.slice(0, f13Index + 1),
-              f13V2Group,
-              ...group.subItems.slice(f13Index + 1),
-            ],
-          };
-        }
-        return {
-          ...group,
-          subItems: [...group.subItems, f13V2Group],
-        };
-      });
-    }
-
     return items;
-  }, [user?.role, user?.access, hasMyTasks, isAdmin, f13V2Layout]);
+  }, [user?.role, user?.access, hasMyTasks]);
 
   const togglePinGroup = (groupTitle) => {
     setPinnedGroups((prev) => ({
@@ -652,10 +569,10 @@ const BREADCRUMB_LABELS = {
   'delivery-routes': 'Sơ đồ tuyến phát',
   integrated: 'Bản đồ tích hợp',
   'postman-catalog': 'Rà soát danh mục bưu tá',
-  v2: 'F1.3 (mới)',
   ngay: 'Theo ngày',
   tuan: 'Theo tuần',
   thang: 'Theo tháng',
+  'hanh-trinh': 'Hành trình bưu gửi',
 };
 
 export function Breadcrumb() {
@@ -673,6 +590,7 @@ export function Breadcrumb() {
           </Link>
         </li>
         {pathnames.map((value, index) => {
+          if (value === 'v2') return null; // part of the F1.3 address only, not a level for the user
           const to = `/${pathnames.slice(0, index + 1).join('/')}`;
           const isLast = index === pathnames.length - 1;
           const title = BREADCRUMB_LABELS[value] || value.charAt(0).toUpperCase() + value.slice(1);

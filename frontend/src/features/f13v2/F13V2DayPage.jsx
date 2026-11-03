@@ -31,7 +31,9 @@ export default function F13V2DayPage() {
   // URL parameters: from, to, bcvh
   const fromParam = searchParams.get('from');
   const toParam = searchParams.get('to');
-  const bcvhParam = searchParams.get('bcvh') || 'all';
+  // An account limited to one BCVH has no "all units": its page reads and says its own unit.
+  const ownBcvh = layout?.units?.allow_all === false && layout.units.bcvh?.length === 1 ? layout.units.bcvh[0] : null;
+  const bcvhParam = searchParams.get('bcvh') || ownBcvh || 'all';
 
   const [daySummaryState, setDaySummaryState] = useState({ loading: true, data: null, error: null });
   const [kpiState, setKpiState] = useState({ loading: true, data: null, error: null });

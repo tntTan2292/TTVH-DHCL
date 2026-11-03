@@ -3,6 +3,7 @@ export const ROLE_VIEWER = 'viewer';
 
 export const VIEWER_ALLOWED_PATH_PREFIXES = [
   '/f13/dashboard',
+  '/f13/v2',
   '/f13/ranking/bcvh',
   '/f13/ranking/route',
   '/network-map/service-points',

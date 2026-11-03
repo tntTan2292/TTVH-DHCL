@@ -161,15 +161,19 @@ test('dashboard quick links preserve import access for admin only', () => {
   assert.equal(viewerLinks.some((l) => l.path === '/import'), false);
 });
 
-test('F1.3 navigation only displays complete surfaces (Operation Dashboard, BCVH Ranking, Tuyến Ranking, Evidence) and hides incomplete Pareto / RCA and Message Center', () => {
+test('F1.3 navigation shows the time axis and the Chuyên đề pages (old Bảng điều hành retired) and hides incomplete Pareto / RCA and Message Center', () => {
   const source = fs.readFileSync(new URL('./appNavigation.jsx', import.meta.url), 'utf8');
 
   const f13GroupMatch = source.match(/const F13_GROUP = \{[\s\S]*?title:\s*'F1.3 – Chất lượng phát liên tỉnh'[\s\S]*?subItems:\s*\[([\s\S]*?)\]/);
   assert.ok(f13GroupMatch, 'F13_GROUP must be defined with subItems');
   const f13SubItemsText = f13GroupMatch[1];
 
-  assert.match(f13SubItemsText, /name: 'Bảng điều hành',\s*path: '\/f13\/dashboard'/);
-  assert.match(f13SubItemsText, /name: 'Phân tích BCVH',\s*path: '\/f13\/ranking\/bcvh'/);
+  assert.match(f13SubItemsText, /name: 'Theo ngày',\s*path: '\/f13\/v2\/ngay'/);
+  assert.match(f13SubItemsText, /name: 'Theo tuần',\s*path: '\/f13\/v2\/tuan'/);
+  assert.match(f13SubItemsText, /name: 'Theo tháng',\s*path: '\/f13\/v2\/thang'/);
+  assert.match(f13SubItemsText, /name: 'Hành trình bưu gửi',\s*path: '\/f13\/v2\/hanh-trinh'/);
+  assert.equal(f13SubItemsText.includes("'/f13/dashboard'"), false, 'the old Bảng điều hành is retired');
+  assert.match(f13SubItemsText, /name: 'Năng lực và chất lượng tuyến',\s*path: '\/f13\/ranking\/bcvh'/);
   assert.match(f13SubItemsText, /name: 'Phân tích tuyến phát',\s*path: '\/f13\/ranking\/route'/);
   assert.match(f13SubItemsText, /name: 'Dữ liệu minh chứng',\s*path: '\/f13\/evidence'/);
 

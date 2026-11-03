@@ -19,7 +19,6 @@ import F13V2DayPage from './features/f13v2/F13V2DayPage';
 import F13V2WeekPage from './features/f13v2/F13V2WeekPage';
 import F13V2MonthPage from './features/f13v2/F13V2MonthPage';
 import F13V2JourneyPage from './features/f13v2/F13V2JourneyPage';
-import DashboardPage from './features/dashboard/DashboardPage';
 import F11DashboardPage from './features/f11/F11DashboardPage';
 import F11BcvhRankingPage from './features/f11/F11BcvhRankingPage';
 import F12DashboardPage from './features/f12/F12DashboardPage';
@@ -32,6 +31,7 @@ import HangTonPage from './features/hangton/HangTonPage';
 import BcvhRankingPage from './features/ranking/BcvhRankingPage';
 import RoutePerformancePage from './features/route/RoutePerformancePage';
 import { translateLegacyViolationsSearch } from './features/route/routeViolationEvidenceData';
+import { translateLegacyF13DashboardSearch } from './navigation/urlPreservation';
 import ShipmentPerformancePage from './features/shipment/ShipmentPerformancePage';
 import ServicePointsPage from './features/networkMap/ServicePointsPage';
 import Level2RoutesPage from './features/networkMap/Level2RoutesPage';
@@ -83,6 +83,12 @@ function LegacyRouteViolationsRedirect() {
   const location = useLocation();
   const translated = translateLegacyViolationsSearch(location.search);
   return <Navigate to={`/f13/evidence${translated ? `?${translated}` : ''}`} replace />;
+}
+
+// The old F1.3 Bảng điều hành is retired (PO 2026-11-03): its path stays for old links, the login default and the Home cards.
+function LegacyF13DashboardRedirect() {
+  const location = useLocation();
+  return <Navigate to={`/f13/v2/ngay${translateLegacyF13DashboardSearch(location.search)}`} replace />;
 }
 
 function App() {
@@ -142,8 +148,8 @@ function App() {
             <Route path="system-info" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN]}><SystemInformation /></ProtectedRoute>} />
 
             <Route path="f13">
-              <Route index element={<Navigate to="dashboard" replace />} />
-              <Route path="dashboard" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN, ROLE_VIEWER]}><DashboardPage /></ProtectedRoute>} />
+              <Route index element={<Navigate to="v2/ngay" replace />} />
+              <Route path="dashboard" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN, ROLE_VIEWER]}><LegacyF13DashboardRedirect /></ProtectedRoute>} />
               <Route path="ranking/bcvh" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN, ROLE_VIEWER]}><BcvhRankingPage /></ProtectedRoute>} />
               <Route path="ranking/route" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN, ROLE_VIEWER]}><RoutePerformancePage /></ProtectedRoute>} />
               <Route path="ranking/route/violations" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN, ROLE_VIEWER]}><LegacyRouteViolationsRedirect /></ProtectedRoute>} />
@@ -155,10 +161,10 @@ function App() {
 
             <Route path="f13/v2">
               <Route index element={<Navigate to="ngay" replace />} />
-              <Route path="ngay" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN]}><F13V2DayPage /></ProtectedRoute>} />
-              <Route path="tuan" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN]}><F13V2WeekPage /></ProtectedRoute>} />
-              <Route path="thang" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN]}><F13V2MonthPage /></ProtectedRoute>} />
-              <Route path="hanh-trinh" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN]}><F13V2JourneyPage /></ProtectedRoute>} />
+              <Route path="ngay" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN, ROLE_VIEWER]}><F13V2DayPage /></ProtectedRoute>} />
+              <Route path="tuan" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN, ROLE_VIEWER]}><F13V2WeekPage /></ProtectedRoute>} />
+              <Route path="thang" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN, ROLE_VIEWER]}><F13V2MonthPage /></ProtectedRoute>} />
+              <Route path="hanh-trinh" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN, ROLE_VIEWER]}><F13V2JourneyPage /></ProtectedRoute>} />
             </Route>
 
             <Route path="network-map">

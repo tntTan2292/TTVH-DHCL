@@ -1,4 +1,4 @@
-import { Activity, BarChart2, BookOpen, CheckSquare, ClipboardCheck, Database, FileSpreadsheet, Info, LayoutDashboard, MapPin, Package, Settings, Target, Users } from 'lucide-react';
+import { Activity, BarChart2, BookOpen, CalendarDays, CheckSquare, ClipboardCheck, Database, FileSpreadsheet, Info, LayoutDashboard, MapPin, Package, Settings, Target, Users } from 'lucide-react';
 import { ROLE_ADMIN, normalizeRole } from '../auth/roles';
 
 const F11_GROUP = {
@@ -26,10 +26,13 @@ const F13_GROUP = {
   name: 'F1.3 – Chất lượng phát liên tỉnh',
   icon: <Target size={18} />,
   subItems: [
-    { name: 'Bảng điều hành', path: '/f13/dashboard', icon: <Target size={18} /> },
-    { name: 'Phân tích BCVH', path: '/f13/ranking/bcvh', icon: <BarChart2 size={18} /> },
-    { name: 'Phân tích tuyến phát', path: '/f13/ranking/route', icon: <BarChart2 size={18} /> },
-    { name: 'Dữ liệu minh chứng', path: '/f13/evidence', icon: <Database size={18} /> },
+    { name: 'Theo ngày', path: '/f13/v2/ngay', icon: <CalendarDays size={18} /> },
+    { name: 'Theo tuần', path: '/f13/v2/tuan', icon: <BarChart2 size={18} /> },
+    { name: 'Theo tháng', path: '/f13/v2/thang', icon: <Activity size={18} /> },
+    { name: 'Hành trình bưu gửi', path: '/f13/v2/hanh-trinh', subtitle: 'Chuyên đề', icon: <BookOpen size={18} /> },
+    { name: 'Phân tích tuyến phát', path: '/f13/ranking/route', subtitle: 'Chuyên đề', icon: <BarChart2 size={18} /> },
+    { name: 'Năng lực và chất lượng tuyến', path: '/f13/ranking/bcvh', subtitle: 'Chuyên đề', icon: <BarChart2 size={18} /> },
+    { name: 'Dữ liệu minh chứng', path: '/f13/evidence', subtitle: 'Chuyên đề', icon: <Database size={18} /> },
   ],
 };
 
@@ -153,8 +156,8 @@ export function getNavigationForRole(role, access = null) {
 
 export function getDashboardQuickLinks(role, access = null) {
   const items = [
-    { label: 'F1.3 – Bảng điều hành', path: '/f13/dashboard', color: 'bg-vnpost-blue', description: 'KPI chất lượng phát liên tỉnh' },
-    { label: 'Phân tích BCVH', path: '/f13/ranking/bcvh', color: 'bg-green-600', description: 'So sánh hiệu quả theo bưu cục' },
+    { label: 'F1.3 – Theo ngày', path: '/f13/v2/ngay', color: 'bg-vnpost-blue', description: 'KPI chất lượng phát liên tỉnh' },
+    { label: 'F1.3 – Theo tuần', path: '/f13/v2/tuan', color: 'bg-green-600', description: 'So sánh hiệu quả theo bưu cục' },
     { label: 'Trung tâm nạp dữ liệu', path: '/import', color: 'bg-vnpost-orange', description: 'Nạp & quản lý dữ liệu Excel', roles: [ROLE_ADMIN] },
   ];
 
