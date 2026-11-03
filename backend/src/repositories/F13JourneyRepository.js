@@ -21,6 +21,24 @@ class F13JourneyRepository {
         );
     }
 
+    // Every F1.3 parcel around the day: a lot's other parcels can be measured on other days.
+    getF13LotScans(fromDate, toDate) {
+        return all(
+            `SELECT ma_bg, ma_bcvh, danh_gia_2026, thoi_gian_bd10_quet_tms
+             FROM fact_f13 WHERE ngay_do_kiem BETWEEN ? AND ?`,
+            [fromDate, toDate],
+        );
+    }
+
+    // The lot number of a parcel is only in the delivery batch file (BF Phát).
+    getBfLots(fromDate, toDate) {
+        return all(
+            `SELECT lading_code, ma_lo FROM fact_bf_phat
+             WHERE ngay_bf BETWEEN ? AND ? AND ma_lo IS NOT NULL AND ma_lo <> ''`,
+            [fromDate, toDate],
+        );
+    }
+
     getF41Arrivals(fromDate, toDate) {
         return all(
             `SELECT ma_bg, ngay_do_kiem, so_hieu_bd10_xnd_bcp, thoi_gian_xnd_bd1

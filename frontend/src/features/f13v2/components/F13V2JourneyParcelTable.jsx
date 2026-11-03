@@ -40,10 +40,11 @@ export default function F13V2JourneyParcelTable({ data, loading, error, date, ro
         <div className="flex h-24 items-center justify-center rounded-xl border border-dashed border-slate-200 text-sm text-slate-500">Không có bưu gửi phù hợp.</div>
       ) : (
         <div className="w-full overflow-x-auto">
-          <table className="w-full min-w-[1320px] border-collapse text-left text-sm">
+          <table className="w-full min-w-[1600px] border-collapse text-left text-sm">
             <thead>
               <tr className="border-b border-slate-300 bg-slate-100 text-xs font-black uppercase text-slate-700">
                 <th colSpan={3} className="border-r border-slate-300 px-2 py-1.5 text-center">Bưu gửi</th>
+                <th colSpan={3} className="border-r border-slate-300 px-2 py-1.5 text-center">Lô (BF Phát)</th>
                 <th colSpan={JOURNEY_MILESTONES.length} className={`border-r px-2 py-1.5 text-center ${theme.headerBg} ${theme.headerText} ${theme.headerBorder}`}>Các mốc</th>
                 <th colSpan={JOURNEY_LEGS.length + 1} className={`px-2 py-1.5 text-center ${theme.header2Bg} ${theme.header2Text}`}>Số giờ giữa các mốc</th>
               </tr>
@@ -51,6 +52,9 @@ export default function F13V2JourneyParcelTable({ data, loading, error, date, ro
                 {title('ma_bg', 'Số hiệu', 'whitespace-nowrap')}
                 {title('ten_buu_ta', 'Bưu tá')}
                 {title('danh_gia', 'Đánh giá', 'border-r border-slate-300')}
+                {title('ma_lo', 'Mã lô', 'whitespace-nowrap')}
+                <th className="px-2 py-2 text-center align-middle text-xs font-bold leading-snug" title="Số đợt quét TMS của các bưu gửi Không đạt / của cả lô">Số đợt TMS</th>
+                <th className="border-r border-slate-300 px-2 py-2 text-center align-middle text-xs font-bold leading-snug" title="Giờ quét TMS đợt cuối của lô: từ giờ này lô mới trọn">TMS đợt cuối</th>
                 {JOURNEY_MILESTONES.map((item, index) => title(item.key, item.label, index === JOURNEY_MILESTONES.length - 1 ? 'border-r border-slate-300' : ''))}
                 {JOURNEY_LEGS.map((leg) => title(leg.key, leg.label))}
                 <th className="px-2 py-2 text-center align-middle text-xs font-bold leading-snug" title="Số giờ do TCT tính, khác với tổng theo đồng hồ">Số giờ TCT</th>
@@ -61,7 +65,17 @@ export default function F13V2JourneyParcelTable({ data, loading, error, date, ro
                 <tr key={parcel.ma_bg} className="hover:bg-slate-50">
                   <td className="whitespace-nowrap px-2 py-1.5 font-mono text-xs font-semibold text-slate-800">{parcel.ma_bg}</td>
                   <td className="px-2 py-1.5 text-slate-700">{parcel.ten_buu_ta || '—'}</td>
-                  <td className="whitespace-nowrap border-r border-slate-300 px-2 py-1.5 text-center text-slate-700">{parcel.danh_gia || 'Chưa có'}</td>
+                  <td className="whitespace-nowrap border-r border-slate-300 px-2 py-1.5 text-center text-slate-700">
+                    {parcel.danh_gia || 'Chưa có'}
+                    {parcel.khong_tron_lo ? (
+                      <span className={`mt-0.5 block rounded border px-1 text-[11px] font-bold ${theme.chip}`} title="Nguyên nhân khách quan: lô không về trọn một đợt">Không trọn lô</span>
+                    ) : null}
+                  </td>
+                  <td className="whitespace-nowrap px-2 py-1.5 font-mono text-xs text-slate-700">{parcel.ma_lo || '—'}</td>
+                  <td className="whitespace-nowrap px-2 py-1.5 text-center tabular-nums text-slate-700">
+                    {parcel.lot ? `${parcel.lot.failed_tms_batches} / ${parcel.lot.tms_batches}` : '—'}
+                  </td>
+                  <td className="whitespace-nowrap border-r border-slate-300 px-2 py-1.5 text-center tabular-nums text-slate-700">{formatMilestone(parcel.lot?.last_tms)}</td>
                   {JOURNEY_MILESTONES.map((item, index) => (
                     <td key={item.key} className={`whitespace-nowrap px-2 py-1.5 text-center tabular-nums text-slate-700 ${index === JOURNEY_MILESTONES.length - 1 ? 'border-r border-slate-300' : ''}`}>
                       {formatMilestone(parcel.milestones?.[item.key])}

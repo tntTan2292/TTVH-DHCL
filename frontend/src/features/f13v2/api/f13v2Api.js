@@ -19,10 +19,11 @@ export async function fetchJourneyRoutes({ date, maBcvh }) {
   return response?.data?.data || null;
 }
 
-export async function fetchJourneyParcels({ date, maBcvh, route, search, sort, order, page }) {
+export async function fetchJourneyParcels({ date, maBcvh, route, search, onlyKhongTronLo, sort, order, page }) {
   const params = { date, sort, order, page };
   if (maBcvh && maBcvh !== 'all') params.ma_bcvh = maBcvh;
   if (route) params.route = route;
+  if (onlyKhongTronLo) params.khong_tron_lo = '1';
   if (search) params.search = search;
   const response = await api.get('/f13/v2/journey/parcels', { params });
   return response?.data?.data || null;

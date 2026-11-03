@@ -8,6 +8,10 @@
 //   4 Handed to the postman       fact_f42.thoi_gian_gbt
 //   5 Delivered                   fact_f13.thoi_gian_ptc
 // Legs are clock hours, shown as they are: what counts as a fault also depends on the level-2 mail route of each BCVH.
+//
+// The one cause shown is objective, whatever the milestones say: "Không trọn lô" (the lot did not reach Huế in one piece, not
+// Huế's fault). Same rule as the weekly report (Cách A): the failed parcels of a lot carry 2 TMS batches or more. The lot number
+// comes from BF Phát; a lot with one batch gets no cause here, because the delivery leg cannot be judged yet.
 
 const { CANONICAL_BCVH_UNITS } = require('../../config/canonicalBcvhUnits');
 const { isRealDate } = require('./periodResolve');
@@ -18,7 +22,8 @@ const DAYS_AFTER = 5;
 const DEFAULT_PAGE_SIZE = 50;
 const MAX_PAGE_SIZE = 200;
 const LEGS = ['tms_depart', 'depart_arrive', 'tms_arrive', 'arrive_gbt', 'gbt_ptc', 'tms_ptc'];
-const TEXT_SORT_FIELDS = new Set(['ma_bg', 'ten_tuyen', 'ten_bcvh', 'ten_buu_ta', 'danh_gia']);
+const TEXT_SORT_FIELDS = new Set(['ma_bg', 'ten_tuyen', 'ten_bcvh', 'ten_buu_ta', 'danh_gia', 'ma_lo']);
+const FAILED = 'Không đạt';
 
 function fail(code, message) {
     const error = new Error(message);
@@ -80,6 +85,49 @@ function pickHandover(rows, ptc) {
     return chosen ? chosen.row : rows[rows.length - 1];
 }
 
+/**
+ * Per lot: its parcels and TMS batches. The batches decide for every account (a lot is one lot), the parcel counts only cover
+ * the units the account may see, so a BCVH account never learns another unit's volume.
+ */
+function buildLots(lotRows, scanRows, allowed) {
+    const lotOf = new Map();
+    for (const row of lotRows) if (!lotOf.has(row.lading_code)) lotOf.set(row.lading_code, row.ma_lo);
+    const lots = new Map();
+    const counted = new Set();
+    for (const row of scanRows) {
+        const code = lotOf.get(row.ma_bg);
+        if (!code || counted.has(row.ma_bg)) continue;
+        counted.add(row.ma_bg);
+        const lot = lots.get(code) || { volume: 0, failed: 0, scans: new Set(), failedScans: new Set() };
+        const scan = row.thoi_gian_bd10_quet_tms;
+        const isFailed = row.danh_gia_2026 === FAILED;
+        if (scan) lot.scans.add(scan);
+        if (scan && isFailed) lot.failedScans.add(scan);
+        if (!allowed || allowed.has(String(row.ma_bcvh))) {
+            lot.volume += 1;
+            if (isFailed) lot.failed += 1;
+        }
+        lots.set(code, lot);
+    }
+    return { lotOf, lots };
+}
+
+function lotOfParcel(code, lots) {
+    const lot = code ? lots.get(code) : null;
+    if (!lot) return null;
+    const times = [...lot.scans].map(parseTime).filter((value) => value !== null);
+    return {
+        ma_lo: code,
+        volume: lot.volume,
+        failed: lot.failed,
+        tms_batches: lot.scans.size,
+        failed_tms_batches: lot.failedScans.size,
+        first_tms: times.length ? formatTime(Math.min(...times)) : null,
+        last_tms: times.length ? formatTime(Math.max(...times)) : null,
+        incomplete: lot.failedScans.size > 1,
+    };
+}
+
 function groupByParcel(rows, wanted) {
     const map = new Map();
     for (const row of rows) {
@@ -116,11 +164,14 @@ class JourneyService {
 
         const fromDate = shiftIsoDate(date, -DAYS_BEFORE);
         const toDate = shiftIsoDate(date, DAYS_AFTER);
-        const [f41Rows, f42Rows, f11Rows] = await Promise.all([
+        const [f41Rows, f42Rows, f11Rows, lotRows, scanRows] = await Promise.all([
             this.repository.getF41Arrivals(fromDate, toDate),
             this.repository.getF42Handovers(fromDate, toDate),
             this.repository.getF11Departures(fromDate, toDate),
+            this.repository.getBfLots(fromDate, shiftIsoDate(toDate, 1)), // BF Phát can be dated the day after delivery
+            this.repository.getF13LotScans(fromDate, toDate),
         ]);
+        const { lotOf, lots } = buildLots(lotRows, scanRows, allowed);
         const arrivals = groupByParcel(f41Rows, seen);
         const handovers = groupByParcel(f42Rows, seen);
         const departures = new Map(f11Rows.map((row) => [cleanBagNumber(row.so_bd10_dong_di_kttinh), row.thoi_gian_bd10_dong_di_kttinh]));
@@ -134,7 +185,11 @@ class JourneyService {
             const depart = arrival ? parseTime(departures.get(cleanBagNumber(arrival.so_hieu_bd10_xnd_bcp))) : null;
             const arrive = arrival ? parseTime(arrival.thoi_gian_xnd_bd1) : null;
             const gbt = handover ? parseTime(handover.thoi_gian_gbt) : null;
+            const lot = lotOfParcel(lotOf.get(row.ma_bg), lots);
             return {
+                lot,
+                ma_lo: lot?.ma_lo ?? null,
+                khong_tron_lo: Boolean(lot?.incomplete && row.danh_gia_2026 === FAILED),
                 ma_bg: row.ma_bg,
                 ma_bcvh: row.ma_bcvh,
                 ten_bcvh: row.ten_bcvh,
@@ -169,6 +224,17 @@ class JourneyService {
         };
     }
 
+    _lotSummary(parcels) {
+        const failed = parcels.filter((parcel) => parcel.danh_gia === FAILED);
+        const incomplete = failed.filter((parcel) => parcel.khong_tron_lo);
+        return {
+            failed: failed.length,
+            failed_in_lot: failed.filter((parcel) => parcel.ma_lo).length,
+            khong_tron_lo: incomplete.length,
+            khong_tron_lo_lots: new Set(incomplete.map((parcel) => parcel.ma_lo)).size,
+        };
+    }
+
     _routes(parcels) {
         const groups = new Map();
         for (const parcel of parcels) {
@@ -198,6 +264,7 @@ class JourneyService {
                 passed,
                 failed: list.length - passed,
                 rate: Number(((passed / list.length) * 100).toFixed(1)),
+                khong_tron_lo: list.filter((item) => item.khong_tron_lo).length,
                 postmen: [...postmen.values()].sort((a, b) => b.volume - a.volume),
                 legs,
             };
@@ -206,13 +273,18 @@ class JourneyService {
 
     async getRoutes(date, options) {
         const parcels = await this._parcels(date, options);
-        return { routes: this._routes(parcels), meta: { date, has_data: parcels.length > 0, coverage: this._coverage(parcels) } };
+        return {
+            routes: this._routes(parcels),
+            meta: { date, has_data: parcels.length > 0, coverage: this._coverage(parcels), lots: this._lotSummary(parcels) },
+        };
     }
 
-    async getParcels(date, { route = null, search = null, sort = 'tms_ptc', order = 'desc', page = 1, pageSize = DEFAULT_PAGE_SIZE, ...scope } = {}) {
+    async getParcels(date, { route = null, search = null, onlyKhongTronLo = false, sort = 'tms_ptc', order = 'desc', page = 1, pageSize = DEFAULT_PAGE_SIZE, ...scope } = {}) {
         const parcels = await this._parcels(date, scope);
         const needle = search ? String(search).trim().toUpperCase() : '';
-        const kept = parcels.filter((parcel) => (!route || parcel.ma_tuyen === String(route)) && (!needle || parcel.ma_bg.toUpperCase().includes(needle)));
+        const kept = parcels.filter((parcel) => (!route || parcel.ma_tuyen === String(route))
+            && (!onlyKhongTronLo || parcel.khong_tron_lo)
+            && (!needle || parcel.ma_bg.toUpperCase().includes(needle) || (parcel.ma_lo || '').toUpperCase().includes(needle)));
 
         const direction = order === 'asc' ? 1 : -1;
         const valueOf = (parcel) => {

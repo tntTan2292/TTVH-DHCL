@@ -93,11 +93,12 @@ class F13V2Controller {
     async getJourneyParcels(req, res) {
         try {
             const { date, scope } = journeyScope(req);
-            const { route, search, sort, order, page, page_size: pageSize } = req.query;
+            const { route, search, khong_tron_lo: khongTronLo, sort, order, page, page_size: pageSize } = req.query;
             const result = await journeyService.getParcels(date, {
                 ...scope,
                 route: route ? String(route) : null,
                 search: search ? String(search) : null,
+                onlyKhongTronLo: khongTronLo === '1',
                 sort: sort ? String(sort) : undefined,
                 order: order ? String(order) : undefined,
                 page,

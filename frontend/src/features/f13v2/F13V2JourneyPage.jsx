@@ -22,6 +22,7 @@ export default function F13V2JourneyPage() {
   const bcvh = searchParams.get('bcvh') || 'all';
   const route = searchParams.get('route') || '';
   const search = searchParams.get('search') || '';
+  const onlyKhongTronLo = searchParams.get('khong_tron_lo') === '1';
 
   const [layout, setLayout] = useState(null);
   const [metaUnits, setMetaUnits] = useState([]);
@@ -92,18 +93,19 @@ export default function F13V2JourneyPage() {
     if (!date) return undefined;
     let active = true;
     setParcelState((previous) => ({ ...previous, loading: true, error: null }));
-    fetchJourneyParcels({ date, maBcvh: bcvh, route, search, sort: parcelSort.field, order: parcelSort.direction, page })
+    fetchJourneyParcels({ date, maBcvh: bcvh, route, search, onlyKhongTronLo, sort: parcelSort.field, order: parcelSort.direction, page })
       .then((data) => { if (active) setParcelState({ loading: false, data, error: null }); })
       .catch((error) => {
         if (active) setParcelState({ loading: false, data: null, error: error?.response?.data?.error?.message || error?.message || 'Không tải được bưu gửi.' });
       });
     return () => { active = false; };
-  }, [date, bcvh, route, search, parcelSort, page]);
+  }, [date, bcvh, route, search, onlyKhongTronLo, parcelSort, page]);
 
   const unitOptions = useMemo(() => buildScopedUnitOptions({ layout, metaUnits }), [layout, metaUnits]);
   const allowAll = layout?.units?.allow_all === true;
   const routes = routeState.data?.routes;
   const coverage = routeState.data?.meta?.coverage;
+  const lotSummary = routeState.data?.meta?.lots;
   const routeName = route ? routes?.find((item) => item.ma_tuyen === route)?.ten_tuyen || route : '';
 
   return (
@@ -139,7 +141,7 @@ export default function F13V2JourneyPage() {
             onSubmit={(event) => { event.preventDefault(); updateParams({ search: searchText.trim() }); }}
             className="text-xs font-bold text-slate-600"
           >
-            Tìm số hiệu trong ngày
+            Tìm số hiệu hoặc mã lô trong ngày
             <input
               type="search"
               value={searchText}
@@ -149,6 +151,15 @@ export default function F13V2JourneyPage() {
               className="mt-1 block w-56 rounded-lg border border-slate-300 px-2 py-1.5 text-sm font-semibold text-slate-800"
             />
           </form>
+          <label className="flex items-center gap-1.5 pb-2 text-xs font-bold text-slate-700">
+            <input
+              type="checkbox"
+              checked={onlyKhongTronLo}
+              onChange={(event) => updateParams({ khong_tron_lo: event.target.checked ? '1' : '' })}
+              className="h-4 w-4 cursor-pointer"
+            />
+            Chỉ bưu gửi không trọn lô
+          </label>
           {route ? (
             <button
               type="button"
@@ -169,6 +180,16 @@ export default function F13V2JourneyPage() {
                 <div className="text-[11px] text-slate-500">{coverage[item.key].toLocaleString('vi-VN')} / {coverage.parcels.toLocaleString('vi-VN')} bưu gửi có mốc này</div>
               </div>
             ))}
+          </div>
+        ) : null}
+
+        {lotSummary ? (
+          <div className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 shadow-sm">
+            <span className="font-black">Nguyên nhân khách quan, không trọn lô: {lotSummary.khong_tron_lo.toLocaleString('vi-VN')} bưu gửi</span>
+            {' '}({lotSummary.khong_tron_lo_lots.toLocaleString('vi-VN')} lô), trên {lotSummary.failed.toLocaleString('vi-VN')} bưu gửi Không đạt của ngày.
+            <span className="block text-xs text-slate-500">
+              Lô có bưu gửi Không đạt về từ 2 đợt quét TMS trở lên. Mã lô lấy từ BF Phát: {lotSummary.failed_in_lot.toLocaleString('vi-VN')} bưu gửi Không đạt có mã lô.
+            </span>
           </div>
         ) : null}
 

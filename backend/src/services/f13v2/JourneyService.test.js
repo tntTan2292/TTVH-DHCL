@@ -23,7 +23,7 @@ function f13(ma_bg, overrides = {}) {
     };
 }
 
-function serviceWith({ parcels = [], f41 = [], f42 = [], f11 = [] }) {
+function serviceWith({ parcels = [], f41 = [], f42 = [], f11 = [], lots = [], scans = [] }) {
     const calls = {};
     return {
         calls,
@@ -33,6 +33,8 @@ function serviceWith({ parcels = [], f41 = [], f42 = [], f11 = [] }) {
                 getF41Arrivals: async (from, to) => { calls.window = [from, to]; return f41; },
                 getF42Handovers: async () => f42,
                 getF11Departures: async () => f11,
+                getBfLots: async () => lots,
+                getF13LotScans: async () => scans,
             },
         }),
     };
@@ -142,6 +144,74 @@ test('parcels: filter by route and number, order with missing values last, pages
     const paged = await service.getParcels(DATE, { pageSize: 2, page: 2 });
     assert.deepEqual(paged.parcels.map((p) => p.ma_bg), ['EC3']);
     assert.deepEqual(paged.meta, { date: DATE, total: 3, page: 2, page_size: 2, total_pages: 2 });
+});
+
+function scan(ma_bg, tms, danh_gia_2026 = 'Không đạt', ma_bcvh = OWN) {
+    return { ma_bg, ma_bcvh, danh_gia_2026, thoi_gian_bd10_quet_tms: tms };
+}
+
+test('Không trọn lô (weekly report rule): failed parcels of a lot in 2 TMS batches or more, on failed parcels only', async () => {
+    const { service } = serviceWith({
+        parcels: [
+            f13('BROKEN1', { danh_gia_2026: 'Không đạt' }),
+            f13('BROKEN2', { danh_gia_2026: 'Đạt' }),
+            f13('ONEBATCH', { danh_gia_2026: 'Không đạt' }),
+            f13('PASSEDSPLIT', { danh_gia_2026: 'Không đạt' }),
+            f13('NOLOT', { danh_gia_2026: 'Không đạt' }),
+        ],
+        lots: [
+            { lading_code: 'BROKEN1', ma_lo: 'L1' }, { lading_code: 'BROKEN2', ma_lo: 'L1' }, { lading_code: 'OTHERDAY', ma_lo: 'L1' },
+            { lading_code: 'ONEBATCH', ma_lo: 'L2' },
+            { lading_code: 'PASSEDSPLIT', ma_lo: 'L3' }, { lading_code: 'L3PASS', ma_lo: 'L3' },
+        ],
+        scans: [
+            scan('BROKEN1', '23/10/2026 04:34:08'),
+            scan('OTHERDAY', '28/10/2026 09:39:09'), // measured on another day, same lot
+            scan('BROKEN2', '23/10/2026 10:37:05', 'Đạt'),
+            scan('ONEBATCH', '27/10/2026 16:41:28'),
+            scan('PASSEDSPLIT', '27/10/2026 08:00:00'),
+            scan('L3PASS', '27/10/2026 09:00:00', 'Đạt'), // a second batch only among passed parcels does not count
+        ],
+    });
+    const { parcels } = await service.getParcels(DATE, {});
+    const byId = Object.fromEntries(parcels.map((p) => [p.ma_bg, p]));
+    assert.equal(byId.BROKEN1.khong_tron_lo, true);
+    assert.equal(byId.BROKEN2.khong_tron_lo, false); // the lot is split, but a passed parcel needs no cause
+    assert.equal(byId.BROKEN2.lot.incomplete, true);
+    assert.equal(byId.ONEBATCH.khong_tron_lo, false);
+    assert.equal(byId.PASSEDSPLIT.khong_tron_lo, false);
+    assert.equal(byId.NOLOT.lot, null);
+    assert.deepEqual(byId.BROKEN1.lot, {
+        ma_lo: 'L1',
+        volume: 3,
+        failed: 2,
+        tms_batches: 3,
+        failed_tms_batches: 2,
+        first_tms: '2026-10-23 04:34:08',
+        last_tms: '2026-10-28 09:39:09',
+        incomplete: true,
+    });
+
+    const { meta, routes } = await service.getRoutes(DATE, {});
+    assert.deepEqual(meta.lots, { failed: 4, failed_in_lot: 3, khong_tron_lo: 1, khong_tron_lo_lots: 1 });
+    assert.equal(routes[0].khong_tron_lo, 1);
+
+    const only = await service.getParcels(DATE, { onlyKhongTronLo: true });
+    assert.deepEqual(only.parcels.map((p) => p.ma_bg), ['BROKEN1']);
+    const byLot = await service.getParcels(DATE, { search: 'l2' });
+    assert.deepEqual(byLot.parcels.map((p) => p.ma_bg), ['ONEBATCH']);
+});
+
+test('a lot shared with another unit: the batches still count, the other unit volume is not shown to a BCVH account', async () => {
+    const { service } = serviceWith({
+        parcels: [f13('MINE', { danh_gia_2026: 'Không đạt' })],
+        lots: [{ lading_code: 'MINE', ma_lo: 'L1' }, { lading_code: 'THEIRS', ma_lo: 'L1' }],
+        scans: [scan('MINE', '23/10/2026 04:34:08'), scan('THEIRS', '24/10/2026 04:34:08', 'Không đạt', OTHER)],
+    });
+    const { parcels } = await service.getParcels(DATE, { allowedCodes: [OWN] });
+    assert.equal(parcels[0].khong_tron_lo, true);
+    assert.equal(parcels[0].lot.volume, 1);
+    assert.equal(parcels[0].lot.failed, 1);
 });
 
 test('a bad date or an unknown unit is rejected', async () => {

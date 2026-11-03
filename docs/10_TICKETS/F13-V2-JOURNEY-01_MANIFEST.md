@@ -24,6 +24,10 @@
 | 4 | Handed to the postman | `fact_f42.thoi_gian_gbt` | Several rows: the one with this delivery time, else the last before it |
 | 5 | Delivered | `fact_f13.thoi_gian_ptc` | |
 
+**Không trọn lô is shown on every parcel whatever the milestones say (PO 2026-11-03: an objective cause, not Huế's fault).** Lot number: `fact_bf_phat.ma_lo` by `lading_code`. Rule, same as the weekly report (Cách A): the Không đạt parcels of a lot carry 2 TMS batches or more (`fact_f13.thoi_gian_bd10_quet_tms`), looked up over the day -10 / +5 days so a lot measured over several days stays whole. Only a Không đạt parcel gets the cause; a lot with one batch gets none, because the delivery leg cannot be judged yet. Checked on week 43 (22-28/10): 282 parcels / 34 lots, the weekly report says 285 / 35 (its source is the BF files, and F1.3 of that week has changed since). Route Ô tô Nam giữa on 28/10: 112 of 114 failed parcels belong to lot C810011464207 (4 TMS batches, 23/10 to 28/10).
+
+**Always the latest data (PO 2026-11-03):** the page reads the fact tables on every request. The response cache is keyed on the max rowid of the fact tables (`fact_bf_phat` added), so any import or re-import shows at once.
+
 Hours are clock hours between milestones, so they can differ from TCT's figure (`thoi_gian_thuc_hien_thuc_te_gio`, shown beside them). A leg whose milestones are out of order is left empty.
 
 ## 3. Delivered
@@ -34,7 +38,7 @@ Hours are clock hours between milestones, so they can differ from TCT's figure (
 
 ## 4. Known data limits
 
-- **Milestone 2:** F1.1 BD10 numbers imported before about 25/10/2026 are rounded (every value ends in 0; an 18-digit number stored as a number), so they do not match F4.1. From 25/10 about 60 % of parcels find it; earlier days almost none. Re-importing the old F1.1 days may restore them only if the source now exports the number as text; not attempted.
+- **Milestone 2:** F1.1 BD10 numbers imported before about 25/10/2026 are rounded (every value ends in 0; an 18-digit number stored as a number), so they do not match F4.1. From 25/10 about 60 % of parcels find it; earlier days almost none. The PO will re-import F1.1 of October; check afterwards that the numbers no longer end in 0 (the parser keeps a text cell as it is but cannot restore an 18-digit numeric cell, so old saved files will not help).
 - **Milestone 4:** F4.2 data starts in April 2026.
 - **Latest days:** F4.1 / F4.2 of the latest days may not be complete yet, so milestones 3 and 4 show fewer parcels until they are imported.
 - The route and evidence pages of Chuyên đề still show the late-cash figures (design `F13-V2-STRUCTURE-01` Section 12, point 6).

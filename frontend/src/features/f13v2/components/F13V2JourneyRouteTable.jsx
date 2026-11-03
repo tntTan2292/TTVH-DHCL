@@ -75,7 +75,8 @@ export default function F13V2JourneyRouteTable({ routes = [], date, selectedRout
               {title('ten_tuyen', 'Tuyến phát')}
               {title('postmen', 'Bưu tá trong ngày')}
               {title('volume', HEADER_VOLUME)}
-              {title('rate', rateHeader(indicator), 'border-r border-slate-300')}
+              {title('rate', rateHeader(indicator))}
+              {title('khong_tron_lo', 'BG không trọn lô', 'border-r border-slate-300')}
               {JOURNEY_LEGS.map((leg) => (
                 <SortableTh key={leg.key} field={`legs.${leg.key}`} sort={headerSort} onSort={handleSort} activeClassName={theme.sortActive} className={`px-2 py-2 text-center align-middle text-xs font-bold leading-snug ${leg.key === 'tms_ptc' ? theme.headerBg : ''}`}>
                   {leg.label}
@@ -100,10 +101,13 @@ export default function F13V2JourneyRouteTable({ routes = [], date, selectedRout
                   </td>
                   <td className="px-2 py-1.5 text-slate-700">{formatPostmen(row.postmen)}</td>
                   <td className="px-2 py-1.5 text-right font-bold tabular-nums">{formatVolume(row.volume)}</td>
-                  <td className="border-r border-slate-300 px-2 py-1.5 text-center">
+                  <td className="px-2 py-1.5 text-center">
                     <span className={`inline-flex min-w-[56px] justify-center rounded-md border px-1.5 py-0.5 font-bold tabular-nums ${F13_HEATMAP_TONE_CLASS[band.tone] || F13_HEATMAP_TONE_CLASS.unavailable}`}>
                       {formatRate(row.rate)}
                     </span>
+                  </td>
+                  <td className={`border-r border-slate-300 px-2 py-1.5 text-right tabular-nums ${row.khong_tron_lo ? 'font-bold text-slate-900' : 'text-slate-400'}`}>
+                    {row.khong_tron_lo ? formatVolume(row.khong_tron_lo) : '—'}
                   </td>
                   {JOURNEY_LEGS.map((leg) => (
                     <td key={leg.key} className={`px-2 py-1.5 text-center tabular-nums ${leg.key === 'tms_ptc' ? 'font-bold text-slate-900' : 'text-slate-700'}`}>

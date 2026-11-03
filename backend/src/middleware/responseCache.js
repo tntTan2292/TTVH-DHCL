@@ -22,6 +22,7 @@ const GROWING_TABLES = [
     'fact_f11', 'fact_f11_national',
     'fact_f12', 'fact_f12_national',
     'fact_f42', 'fact_f42_national',
+    'fact_bf_phat',
     'import_log',
     'agg_f13_day', 'agg_f41_day', 'agg_f11_day', 'agg_f12_day',
     'dm_buu_ta', 'dm_buu_ta_event',

@@ -47,6 +47,7 @@ async function insertDay(date, code, index) {
 
 test.before(async () => {
     await exec(fs.readFileSync(path.join(__dirname, '../db/schema.sql'), 'utf8'));
+    await exec('CREATE TABLE IF NOT EXISTS fact_bf_phat (ngay_bf TEXT, lading_code TEXT, ma_lo TEXT)'); // created by migrate_bf_phat_01_schema.js, not schema.sql
     const codes = [OWN, SECOND, OTHER];
     const days = [];
     for (let d = 1; d <= 20; d += 1) days.push(`2026-10-${String(d).padStart(2, '0')}`);
