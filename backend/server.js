@@ -7,6 +7,12 @@ const envLoadResult = loadLocalEnv();
 
 const f13Routes = require('./src/routes/f13Routes');
 const f13v2Routes = require('./src/routes/f13v2Routes');
+const { createTimeAxisRoutes } = require('./src/routes/timeAxisRoutes');
+const { f41RankingService } = require('./src/services/F41RankingService');
+const { f11RankingService } = require('./src/services/F11RankingService');
+const { f12RankingService } = require('./src/services/F12RankingService');
+const { f42RankingService } = require('./src/services/F42RankingService');
+const { get: dbGet } = require('./src/config/db');
 const importRoutes = require('./src/routes/importRoutes');
 const authRoutes = require('./src/routes/authRoutes');
 const adminUserRoutes = require('./src/routes/adminUserRoutes');
@@ -137,6 +143,16 @@ app.use('/api/f13/v2', f13v2Routes);
 app.use('/api/f13', f13Routes);
 app.use('/api/import', importRoutes);
 app.use('/api/network-map', networkMapRoutes);
+// TIME-AXIS-TEMPLATE-01: the F1.3 Theo ngày / tuần / tháng template for the other indicators.
+for (const [indicatorId, table, service] of [
+    ['f41', 'fact_f41', f41RankingService],
+    ['f11', 'fact_f11', f11RankingService],
+    ['f12', 'fact_f12', f12RankingService],
+    ['f42', 'fact_f42', f42RankingService],
+]) {
+    const getLatestDate = async () => (await dbGet(`SELECT MAX(ngay_do_kiem) AS latest FROM ${table}`))?.latest || null;
+    app.use(`/api/${indicatorId}/v2`, createTimeAxisRoutes({ indicatorId, service, getLatestDate }));
+}
 app.use('/api/f41', f41Routes);
 app.use('/api/f11', f11Routes);
 app.use('/api/f12', f12Routes);

@@ -43,6 +43,9 @@ test('Module 1 (Quản lý chất lượng) contains F1.1, F1.2, F1.3, F4.1, F4.
 
   assert.equal(f11.title, 'F1.1 – Chất lượng toàn trình nội tỉnh');
   assert.deepEqual(toPlain(f11.subItems.map((item) => [item.name, item.path])), [
+    ['Theo ngày (mới)', '/f11/v2/ngay'],
+    ['Theo tuần (mới)', '/f11/v2/tuan'],
+    ['Theo tháng (mới)', '/f11/v2/thang'],
     ['Bảng điều hành', '/f11/dashboard'],
     ['Phân tích BCVH', '/f11/ranking/bcvh'],
   ]);
@@ -50,6 +53,9 @@ test('Module 1 (Quản lý chất lượng) contains F1.1, F1.2, F1.3, F4.1, F4.
 
   assert.equal(f12.title, 'F1.2 – Thu gom liên tỉnh');
   assert.deepEqual(toPlain(f12.subItems.map((item) => [item.name, item.path])), [
+    ['Theo ngày (mới)', '/f12/v2/ngay'],
+    ['Theo tuần (mới)', '/f12/v2/tuan'],
+    ['Theo tháng (mới)', '/f12/v2/thang'],
     ['Bảng điều hành', '/f12/dashboard'],
     ['Phân tích đơn vị chấp nhận', '/f12/ranking/bcvh'],
   ]);
@@ -60,6 +66,9 @@ test('Module 1 (Quản lý chất lượng) contains F1.1, F1.2, F1.3, F4.1, F4.
 
   assert.equal(f41.title, 'F4.1 – Chất lượng phát thành công bưu cục');
   assert.deepEqual(toPlain(f41.subItems.map((item) => [item.name, item.path])), [
+    ['Theo ngày (mới)', '/f41/v2/ngay'],
+    ['Theo tuần (mới)', '/f41/v2/tuan'],
+    ['Theo tháng (mới)', '/f41/v2/thang'],
     ['Bảng điều hành', '/f41/dashboard'],
     ['Phân tích BCVH', '/f41/ranking/bcvh'],
   ]);
@@ -67,6 +76,9 @@ test('Module 1 (Quản lý chất lượng) contains F1.1, F1.2, F1.3, F4.1, F4.
 
   assert.equal(f42.title, 'F4.2 – Chất lượng phát giao bưu tá');
   assert.deepEqual(toPlain(f42.subItems.map((item) => [item.name, item.path])), [
+    ['Theo ngày (mới)', '/f42/v2/ngay'],
+    ['Theo tuần (mới)', '/f42/v2/tuan'],
+    ['Theo tháng (mới)', '/f42/v2/thang'],
     ['Bảng điều hành', '/f42/dashboard'],
     ['Phân tích BCVH', '/f42/ranking/bcvh'],
   ]);

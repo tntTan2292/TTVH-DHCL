@@ -183,6 +183,7 @@ export function resolveTargetPageParams({
   _currentPage,
   targetPage,
   currentParams,
+  basePath = '/f13/v2',
 }) {
   const bcvh = currentParams?.get?.('bcvh') || currentParams?.get?.('ma_bcvh') || currentParams?.get?.('bcvh_id') || 'all';
   const nextParams = new URLSearchParams();
@@ -193,9 +194,9 @@ export function resolveTargetPageParams({
 
   const query = nextParams.toString();
   return {
-    path: `/f13/v2/${targetPage}`,
+    path: `${basePath}/${targetPage}`,
     search: query ? `?${query}` : '',
-    fullPath: `/f13/v2/${targetPage}${query ? `?${query}` : ''}`,
+    fullPath: `${basePath}/${targetPage}${query ? `?${query}` : ''}`,
   };
 }
 

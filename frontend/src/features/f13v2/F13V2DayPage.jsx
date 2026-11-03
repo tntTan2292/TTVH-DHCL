@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import api from '../../api/client.js';
+import { useIndicatorApi } from '../indicator/useIndicatorApi.js';
 import { PageContainer } from '../../components/common/Containers.jsx';
 import { useIndicator } from '../indicator/IndicatorContext.js';
 import { indicatorTheme, indicatorTargetRate, F13_INDICATOR } from '../indicator/indicatorConfig.js';
@@ -15,12 +15,16 @@ import UnifiedCommandSummary from '../dashboard/components/UnifiedCommandSummary
 import BcvhOperationTableAdapter from '../dashboard/components/BcvhOperationTableAdapter.jsx';
 import IntegratedTrendRiskWorkspace from '../dashboard/components/IntegratedTrendRiskWorkspace.jsx';
 import OperatingPatternTabsCard from '../dashboard/components/OperatingPatternTabsCard.jsx';
+import F11PairTableBlock from '../f11/components/F11PairTableBlock.jsx';
+import F42SixBcvhStripBlock from '../f42/components/F42SixBcvhStripBlock.jsx';
+import F42PostmanDashboardBlocks from '../f42/components/F42PostmanDashboardBlocks.jsx';
 import { buildTrendlineRequestParams } from '../dashboard/components/qualityTrendlineWindow.js';
 import { normalizeComboTrendlineItems } from '../dashboard/components/comboTrendlineData.js';
 
 export default function F13V2DayPage() {
   const indicator = useIndicator() || F13_INDICATOR;
   const theme = indicatorTheme(indicator);
+  const api = useIndicatorApi(); // the F1.3 report paths, rewritten to this indicator's endpoints
 
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -45,7 +49,7 @@ export default function F13V2DayPage() {
     let active = true;
 
     Promise.all([
-      fetchLayout().catch((e) => {
+      fetchLayout(indicator.apiBase).catch((e) => {
         console.error('[F13V2DayPage] fetchLayout error:', e);
         return null;
       }),
@@ -77,7 +81,7 @@ export default function F13V2DayPage() {
     if (fromParam && toParam) return;
     let active = true;
 
-    resolvePeriod({ kind: 'latest' })
+    resolvePeriod({ kind: 'latest' }, indicator.apiBase)
       .then((res) => {
         if (!active || !res?.day) return;
         setSearchParams(
@@ -134,7 +138,7 @@ export default function F13V2DayPage() {
     let active = true;
 
     setDaySummaryState((prev) => ({ ...prev, loading: true, error: null }));
-    fetchDaySummary({ from: effectiveFrom, to: effectiveTo, maBcvh: bcvhParam })
+    fetchDaySummary({ from: effectiveFrom, to: effectiveTo, maBcvh: bcvhParam }, indicator.apiBase)
       .then((data) => {
         if (!active) return;
         setDaySummaryState({ loading: false, data, error: null });
@@ -245,8 +249,8 @@ export default function F13V2DayPage() {
     <BcvhUnitsProvider units={scopedUnits} scoped={isScoped}>
       <PageContainer
         accentClassName={theme.accentBar}
-        badge={<span className={`rounded-full border px-3 py-0.5 text-sm font-black ${theme.chip}`}>F1.3</span>}
-        title="F1.3 – Chất lượng phát liên tỉnh (Theo ngày)"
+        badge={<span className={`rounded-full border px-3 py-0.5 text-sm font-black ${theme.chip}`}>{indicator.moduleLabel}</span>}
+        title={`${indicator.fullTitle} (Theo ngày)`}
         subtitle="Dữ liệu và chỉ số điều hành theo khoảng ngày đo kiểm trên trục thời gian."
       >
         <div className="space-y-4">
@@ -269,6 +273,9 @@ export default function F13V2DayPage() {
               bcvhLabel={selectedBcvhLabel}
             />
           )}
+
+          {/* F4.2: the six BCVH of the day */}
+          {isBlockVisible(layout, 'ngay', 'day.strip') && <F42SixBcvhStripBlock anchorDate={effectiveTo} />}
 
           {/* Block 2: day.operation (the table the PO sends every day, same as the old Bảng điều hành; scope: city) */}
           {isBlockVisible(layout, 'ngay', 'day.operation') && (
@@ -343,6 +350,10 @@ export default function F13V2DayPage() {
               hideTabs={true}
             />
           )}
+
+          {/* The indicator's own blocks, as on its Bảng điều hành */}
+          {isBlockVisible(layout, 'ngay', 'day.pair') && <F11PairTableBlock anchorDate={effectiveTo} toDate={effectiveTo} />}
+          {isBlockVisible(layout, 'ngay', 'day.postman') && <F42PostmanDashboardBlocks anchorDate={effectiveTo} maBcvh={bcvhParam} />}
         </div>
       </PageContainer>
     </BcvhUnitsProvider>

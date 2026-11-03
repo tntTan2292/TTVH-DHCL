@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import api from '../../api/client.js';
+import { useIndicatorApi } from '../indicator/useIndicatorApi.js';
 import { PageContainer } from '../../components/common/Containers.jsx';
 import { useIndicator } from '../indicator/IndicatorContext.js';
 import { indicatorTheme, F13_INDICATOR } from '../indicator/indicatorConfig.js';
@@ -13,10 +13,12 @@ import BcvhWeeklyComparisonBlock from '../ranking/BcvhWeeklyComparisonBlock.jsx'
 import { BcvhMonthlyTrendBlock } from '../ranking/BcvhRankingOverviewBlocks.jsx';
 import OperatingPatternTabsCard from '../dashboard/components/OperatingPatternTabsCard.jsx';
 import { processOverviewData } from '../ranking/bcvhOverviewData.js';
+import F12Cumulative12Block from '../f12/components/F12Cumulative12Block.jsx';
 
 export default function F13V2MonthPage() {
   const indicator = useIndicator() || F13_INDICATOR;
   const theme = indicatorTheme(indicator);
+  const api = useIndicatorApi(); // the F1.3 report paths, rewritten to this indicator's endpoints
 
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -35,7 +37,7 @@ export default function F13V2MonthPage() {
     let active = true;
 
     Promise.all([
-      fetchLayout().catch((e) => {
+      fetchLayout(indicator.apiBase).catch((e) => {
         console.error('[F13V2MonthPage] fetchLayout error:', e);
         return null;
       }),
@@ -73,7 +75,7 @@ export default function F13V2MonthPage() {
     if (monthParam) return;
     let active = true;
 
-    resolvePeriod({ kind: 'latest' })
+    resolvePeriod({ kind: 'latest' }, indicator.apiBase)
       .then((res) => {
         if (!active || !res?.month?.month_id) return;
         setSearchParams(
@@ -128,7 +130,7 @@ export default function F13V2MonthPage() {
         if (!active) return;
         const rawData = res?.data?.data || {};
         const rawMeta = rawData.meta || {};
-        const processed = processOverviewData(rawData, rawMeta);
+        const processed = processOverviewData(rawData, rawMeta, { dynamicUnits: Boolean(indicator.dynamicUnits) });
         setOverviewState({
           loading: false,
           data: rawData,
@@ -149,7 +151,7 @@ export default function F13V2MonthPage() {
     return () => {
       active = false;
     };
-  }, [anchorDateForMonth]);
+  }, [anchorDateForMonth, api, indicator.dynamicUnits]);
 
   // Scoped units for BcvhUnitsProvider (B2)
   const isScoped = layout?.units?.allow_all === false;
@@ -164,9 +166,9 @@ export default function F13V2MonthPage() {
     <BcvhUnitsProvider units={scopedUnits} scoped={isScoped}>
       <PageContainer
         accentClassName={theme.accentBar}
-        badge={<span className={`rounded-full border px-3 py-0.5 text-sm font-black ${theme.chip}`}>F1.3</span>}
-        title="F1.3 – Chất lượng phát liên tỉnh (Theo tháng)"
-        subtitle="So sánh BCVH theo tháng (lũy kế, cùng kỳ / cả tháng trước), xu hướng năm và quy luật vận hành theo tháng."
+        badge={<span className={`rounded-full border px-3 py-0.5 text-sm font-black ${theme.chip}`}>{indicator.moduleLabel}</span>}
+        title={`${indicator.fullTitle} (Theo tháng)`}
+        subtitle={`So sánh ${indicator.unitLabel} theo tháng (lũy kế, cùng kỳ / cả tháng trước) và xu hướng năm${indicator.features?.operatingPattern ? ', quy luật vận hành theo tháng' : ''}.`}
       >
         <div className="space-y-4">
           {/* 3-Tier Filter Bar */}
@@ -218,6 +220,9 @@ export default function F13V2MonthPage() {
               allowedTabs={['month', 'heatmap']}
             />
           )}
+
+          {/* F1.2: its cumulative block, as on its Bảng điều hành */}
+          {isBlockVisible(layout, 'thang', 'month.cumulative12') && <F12Cumulative12Block anchorDate={anchorDateForMonth} />}
         </div>
       </PageContainer>
     </BcvhUnitsProvider>

@@ -164,6 +164,7 @@ class F12RankingService extends F41RankingService {
     async trendWeeks(week, options) { await this._syncUnits(); return super.trendWeeks(week, options); }
     async listMonths() { await this._syncUnits(); return super.listMonths(); }
     async compareMonths(month, compareMonth, options) { await this._syncUnits(); return super.compareMonths(month, compareMonth, options); }
+    async compareSamePeriod(fromDate, toDate, options) { await this._syncUnits(); return super.compareSamePeriod(fromDate, toDate, options); }
     async getSummary(fromDate, toDate, filters) { await this._syncUnits(); return super.getSummary(fromDate, toDate, filters); }
     async getDailyTrend(fromDate, toDate, filters) { await this._syncUnits(); return super.getDailyTrend(fromDate, toDate, filters); }
     async getBcvhRanking(fromDate, toDate, page, pageSize) { await this._syncUnits(); return super.getBcvhRanking(fromDate, toDate, page, pageSize); }

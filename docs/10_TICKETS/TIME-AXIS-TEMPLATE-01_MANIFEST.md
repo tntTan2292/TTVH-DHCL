@@ -1,0 +1,43 @@
+# TIME-AXIS-TEMPLATE-01 Manifest
+
+## 1. Ticket Information
+
+- Ticket ID: `TIME-AXIS-TEMPLATE-01`
+- Ticket Name: `Theo ngày / Theo tuần / Theo tháng of F1.1, F1.2, F4.1, F4.2 on the F1.3 template`
+- Owner: `Claude Code`, on PO request in chat 2026-11-03
+- Governance Version: `V2 Active`
+- Branch: `codex/da-impl-006`
+- Does not change Current Ticket. Follows `F13-V2-STRUCTURE-01`.
+
+## 2. Scope (PO 2026-11-03)
+
+In: the three time pages for the four indicators. Out: any Chuyên đề of these indicators. Each is calculated differently, so the PO explains it first. The old pages of each indicator stay until the PO accepts its new pages.
+
+## 3. Delivered
+
+- The F1.3 pages are now a template: `frontend/src/features/f13v2/F13V2{Day,Week,Month}Page.jsx` read the indicator from `IndicatorProvider`. Routes `/f11|f12|f41|f42/v2/{ngay,tuan,thang}`. F1.3 itself: same blocks, its active tab now uses its theme colour.
+- Backend: `/api/<indicator>/v2/{layout,period/resolve,day/summary}` from `backend/src/routes/timeAxisRoutes.js`; block lists per indicator in `services/f13v2/blockRegistry.js`; range table `F41RankingService.compareSamePeriod` (same same-period rule as F1.3). No existing endpoint changed, no schema change.
+- During the check the new pages are in the menu of the admin only, as "Theo ngày / tuần / tháng (mới)" above the old items. This is a menu gate: a non-admin who types the address gets their own permitted data, as on the indicator's other pages.
+
+| Page | All four | F1.1 | F1.2 | F4.2 |
+| --- | --- | --- | --- | --- |
+| Theo ngày | Tổng quan, Bảng tổng hợp (city accounts), Bảng so sánh khoảng ngày (2 days or more), Xu hướng | Bảng bưu cục chấp nhận × BCVH phát | | Sáu BCVH trong ngày, Bảng bưu tá |
+| Theo tuần | So sánh theo tuần, Diễn biến theo tuần | | | |
+| Theo tháng | So sánh theo tháng, Xu hướng + heatmap tháng | | Khối lũy kế | |
+
+## 4. Validation
+
+- Backend: `timeAxisRoutes.test.js`, `compareSamePeriod.test.js`, plus the F1.3 module tests. Frontend suite and build.
+- Real data, read only, range 01-15/10/2026 against 01-15/09/2026: every unit of `compareSamePeriod` equals the indicator's existing `getBcvhRanking` for both periods, 0 mismatches (F4.1 79,492 / 61.7 %, F1.1 20,991 / 86.5 %, F1.2 18,091 / 90 % over 38 units, F4.2 94,147 / 79.5 %).
+- Browser on an isolated stack (admin, leader, BCVH account, sample data): all 12 pages open with no page error and no 5xx.
+
+## 5. Known points for the PO check
+
+- F1.1 pair table and the F4.2 postman blocks keep their own behaviour as on the old Bảng điều hành.
+- A BCVH-mode account has no own-row day table on these indicators (only F1.3 has one): as on their old Bảng điều hành it has no day table, and it gets the range table for 2 days or more.
+- The range table of F4.1 shows the main rate only, not "Không đo TMS".
+- F1.2: the long title of the month comparison table runs under the camera button (same block as the old page).
+
+## 6. Status
+
+`IMPLEMENTED / READY FOR PO UI CHECK`. PO UI Check Required: `Yes`, one indicator at a time. After acceptance: open to every account, remove "(mới)", remove `adminOnly`, redirect the indicator's old `/dashboard` as F1.3 did, decide the old `/ranking/bcvh`.

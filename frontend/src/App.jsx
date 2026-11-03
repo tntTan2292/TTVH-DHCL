@@ -7,6 +7,8 @@ import SharedComponentsDemo from './pages/SharedComponentsDemo';
 import SharedLayoutDemo from './pages/SharedLayoutDemo';
 import ProtectedRoute from './components/ProtectedRoute';
 import { AuthProvider, useAuth } from './auth/AuthContext';
+import { IndicatorProvider } from './features/indicator/IndicatorContext.js';
+import { F11_INDICATOR, F12_INDICATOR, F41_INDICATOR, F42_INDICATOR } from './features/indicator/indicatorConfig.js';
 import { ROLE_ADMIN, ROLE_VIEWER, getDefaultRouteForRole } from './auth/roles';
 
 import DataImportCenter from './pages/DataImportCenter';
@@ -84,6 +86,10 @@ function LegacyRouteViolationsRedirect() {
   const translated = translateLegacyViolationsSearch(location.search);
   return <Navigate to={`/f13/evidence${translated ? `?${translated}` : ''}`} replace />;
 }
+
+// TIME-AXIS-TEMPLATE-01: Theo ngày / tuần / tháng of the other indicators, admin only until the PO accepts each one.
+const TIME_AXIS_INDICATORS = [F11_INDICATOR, F12_INDICATOR, F41_INDICATOR, F42_INDICATOR];
+const TIME_AXIS_PAGES = [['ngay', F13V2DayPage], ['tuan', F13V2WeekPage], ['thang', F13V2MonthPage]];
 
 // The old F1.3 Bảng điều hành is retired (PO 2026-11-03): its path stays for old links, the login default and the Home cards.
 function LegacyF13DashboardRedirect() {
@@ -166,6 +172,19 @@ function App() {
               <Route path="thang" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN, ROLE_VIEWER]}><F13V2MonthPage /></ProtectedRoute>} />
               <Route path="hanh-trinh" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN, ROLE_VIEWER]}><F13V2JourneyPage /></ProtectedRoute>} />
             </Route>
+
+            {TIME_AXIS_INDICATORS.map((indicator) => (
+              <Route key={indicator.id} path={`${indicator.id}/v2`}>
+                <Route index element={<Navigate to="ngay" replace />} />
+                {TIME_AXIS_PAGES.map(([path, Page]) => (
+                  <Route
+                    key={path}
+                    path={path}
+                    element={<ProtectedRoute allowedRoles={[ROLE_ADMIN]}><IndicatorProvider indicator={indicator}><Page /></IndicatorProvider></ProtectedRoute>}
+                  />
+                ))}
+              </Route>
+            ))}
 
             <Route path="network-map">
               <Route path="service-points" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN, ROLE_VIEWER]}><ServicePointsPage /></ProtectedRoute>} />

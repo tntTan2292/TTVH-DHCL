@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import api from '../../api/client.js';
+import { useIndicatorApi } from '../indicator/useIndicatorApi.js';
 import { PageContainer } from '../../components/common/Containers.jsx';
 import { useIndicator } from '../indicator/IndicatorContext.js';
 import { indicatorTheme, F13_INDICATOR } from '../indicator/indicatorConfig.js';
@@ -15,6 +15,7 @@ import BcvhWeeklyTrendBlock from '../ranking/BcvhWeeklyTrendBlock.jsx';
 export default function F13V2WeekPage() {
   const indicator = useIndicator() || F13_INDICATOR;
   const theme = indicatorTheme(indicator);
+  const api = useIndicatorApi(); // the F1.3 report paths, rewritten to this indicator's endpoints
 
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -31,7 +32,7 @@ export default function F13V2WeekPage() {
     let active = true;
 
     Promise.all([
-      fetchLayout().catch((e) => {
+      fetchLayout(indicator.apiBase).catch((e) => {
         console.error('[F13V2WeekPage] fetchLayout error:', e);
         return null;
       }),
@@ -69,7 +70,7 @@ export default function F13V2WeekPage() {
     if (weekParam) return;
     let active = true;
 
-    resolvePeriod({ kind: 'latest' })
+    resolvePeriod({ kind: 'latest' }, indicator.apiBase)
       .then((res) => {
         if (!active || !res?.week?.week_id) return;
         setSearchParams(
@@ -120,9 +121,9 @@ export default function F13V2WeekPage() {
     <BcvhUnitsProvider units={scopedUnits} scoped={isScoped}>
       <PageContainer
         accentClassName={theme.accentBar}
-        badge={<span className={`rounded-full border px-3 py-0.5 text-sm font-black ${theme.chip}`}>F1.3</span>}
-        title="F1.3 – Chất lượng phát liên tỉnh (Theo tuần)"
-        subtitle="So sánh hiệu quả các bưu cục vận hành và diễn biến chất lượng theo chu kỳ tuần (Thứ Năm → Thứ Tư)."
+        badge={<span className={`rounded-full border px-3 py-0.5 text-sm font-black ${theme.chip}`}>{indicator.moduleLabel}</span>}
+        title={`${indicator.fullTitle} (Theo tuần)`}
+        subtitle={`So sánh các ${indicator.unitLabel} và diễn biến chất lượng theo chu kỳ tuần (Thứ Năm → Thứ Tư).`}
       >
         <div className="space-y-4">
           {/* 3-Tier Filter Bar */}

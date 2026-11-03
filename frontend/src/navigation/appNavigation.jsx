@@ -1,11 +1,21 @@
 import { Activity, BarChart2, BookOpen, CalendarDays, CheckSquare, ClipboardCheck, Database, FileSpreadsheet, Info, LayoutDashboard, MapPin, Package, Settings, Target, Users } from 'lucide-react';
 import { ROLE_ADMIN, normalizeRole } from '../auth/roles';
 
+// TIME-AXIS-TEMPLATE-01: the new pages of an indicator, shown beside its old ones to the admin only until the PO accepts them.
+function timeAxisItems(indicatorId) {
+  return [
+    { name: 'Theo ngày (mới)', path: `/${indicatorId}/v2/ngay`, icon: <CalendarDays size={18} />, roles: [ROLE_ADMIN], adminOnly: true },
+    { name: 'Theo tuần (mới)', path: `/${indicatorId}/v2/tuan`, icon: <BarChart2 size={18} />, roles: [ROLE_ADMIN], adminOnly: true },
+    { name: 'Theo tháng (mới)', path: `/${indicatorId}/v2/thang`, icon: <Activity size={18} />, roles: [ROLE_ADMIN], adminOnly: true },
+  ];
+}
+
 const F11_GROUP = {
   title: 'F1.1 – Chất lượng toàn trình nội tỉnh',
   name: 'F1.1 – Chất lượng toàn trình nội tỉnh',
   icon: <Activity size={18} />,
   subItems: [
+    ...timeAxisItems('f11'),
     { name: 'Bảng điều hành', path: '/f11/dashboard', icon: <Target size={18} /> },
     { name: 'Phân tích BCVH', path: '/f11/ranking/bcvh', icon: <BarChart2 size={18} /> },
   ],
@@ -16,6 +26,7 @@ const F12_GROUP = {
   name: 'F1.2 – Thu gom liên tỉnh',
   icon: <Activity size={18} />,
   subItems: [
+    ...timeAxisItems('f12'),
     { name: 'Bảng điều hành', path: '/f12/dashboard', icon: <Target size={18} /> },
     { name: 'Phân tích đơn vị chấp nhận', path: '/f12/ranking/bcvh', icon: <BarChart2 size={18} /> },
   ],
@@ -41,6 +52,7 @@ const F41_GROUP = {
   name: 'F4.1 – Chất lượng phát thành công bưu cục',
   icon: <Activity size={18} />,
   subItems: [
+    ...timeAxisItems('f41'),
     { name: 'Bảng điều hành', path: '/f41/dashboard', icon: <Target size={18} /> },
     { name: 'Phân tích BCVH', path: '/f41/ranking/bcvh', icon: <BarChart2 size={18} /> },
   ],
@@ -51,6 +63,7 @@ const F42_GROUP = {
   name: 'F4.2 – Chất lượng phát giao bưu tá',
   icon: <Activity size={18} />,
   subItems: [
+    ...timeAxisItems('f42'),
     { name: 'Bảng điều hành', path: '/f42/dashboard', icon: <Target size={18} /> },
     { name: 'Phân tích BCVH', path: '/f42/ranking/bcvh', icon: <BarChart2 size={18} /> },
   ],

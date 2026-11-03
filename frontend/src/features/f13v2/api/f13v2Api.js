@@ -1,14 +1,14 @@
 import api from '../../../api/client.js';
 
-export async function fetchLayout() {
-  const response = await api.get('/f13/v2/layout');
+export async function fetchLayout(apiBase = '/f13') {
+  const response = await api.get(`${apiBase}/v2/layout`);
   return response?.data?.data || null;
 }
 
-export async function resolvePeriod({ kind, value, latestDate }) {
+export async function resolvePeriod({ kind, value, latestDate }, apiBase = '/f13') {
   const params = { kind, value };
   if (latestDate) params.latest_date = latestDate;
-  const response = await api.get('/f13/v2/period/resolve', { params });
+  const response = await api.get(`${apiBase}/v2/period/resolve`, { params });
   return response?.data?.data || null;
 }
 
@@ -29,11 +29,11 @@ export async function fetchJourneyParcels({ date, maBcvh, route, search, onlyKho
   return response?.data?.data || null;
 }
 
-export async function fetchDaySummary({ from, to, maBcvh }) {
+export async function fetchDaySummary({ from, to, maBcvh }, apiBase = '/f13') {
   const params = { from, to };
   if (maBcvh && maBcvh !== 'all') {
     params.ma_bcvh = maBcvh;
   }
-  const response = await api.get('/f13/v2/day/summary', { params });
+  const response = await api.get(`${apiBase}/v2/day/summary`, { params });
   return response?.data?.data || null;
 }

@@ -21,6 +21,7 @@ const { f41NationalRankService } = require('./F41NationalRankService');
 const { BcvhOverviewService } = require('./bcvhOverviewService');
 const { BcvhWeeklyComparisonService } = require('./bcvhWeeklyComparisonService');
 const { CANONICAL_BCVH_UNITS } = require('../config/canonicalBcvhUnits');
+const { samePeriodWindow } = require('./f13v2/DaySummaryService');
 
 const CANONICAL_CODES = CANONICAL_BCVH_UNITS.map((unit) => unit.ma_bcvh);
 const CANONICAL_SET = new Set(CANONICAL_CODES);
@@ -314,6 +315,68 @@ class F41RankingService {
     // ---- single-day / range BCVH ranking -------------------------------------
     // Rows always come back in rank order (best first), exactly like the F1.3 endpoint, which accepts
     // sort/order but orders by rank; the UI sorts the page client-side.
+    // TIME-AXIS-TEMPLATE-01: the range table of Theo ngày, same rule as F1.3 (samePeriodWindow). Totals are summed, never averaged.
+    async compareSamePeriod(fromDate, toDate, { bcvhId = null } = {}) {
+        this._validateRange(fromDate, toDate);
+        if (bcvhId && !this.canonicalSet.has(bcvhId)) throw codedError('INVALID_BCVH', 'Mã BCVH không hợp lệ.');
+        const window = samePeriodWindow(fromDate, toDate);
+        const [currentRows, previousRows] = await Promise.all([
+            this.repository.getBcvhOperationMetricsBetween(fromDate, toDate, this.canonicalCodes),
+            this.repository.getBcvhOperationMetricsBetween(window.from_date, window.to_date, this.canonicalCodes),
+        ]);
+        const keep = (rows) => rows.filter((row) => !bcvhId || row.ma_bcvh === bcvhId);
+        const current = keep(currentRows);
+        const previous = keep(previousRows);
+        const previousMap = indexByBcvh(previous);
+        const block = (volume, passed, earlier) => {
+            if (!earlier) return { volume: null, rate: null, volume_delta: null, rate_delta: null };
+            const earlierVolume = Number(earlier.sl_bg_ptc || 0);
+            const earlierPassed = Number(earlier.dat_kpi_2026 || 0);
+            return {
+                volume: earlierVolume,
+                rate: rate1(earlierPassed, earlierVolume),
+                volume_delta: volume - earlierVolume,
+                rate_delta: nullableDelta(passed, volume, earlierPassed, earlierVolume),
+            };
+        };
+        const sum = (rows, key) => rows.reduce((total, row) => total + Number(row[key] || 0), 0);
+        const totalVolume = sum(current, 'sl_bg_ptc');
+        const totalPassed = sum(current, 'dat_kpi_2026');
+        return {
+            rows: current.map((row) => {
+                const volume = Number(row.sl_bg_ptc || 0);
+                const passed = Number(row.dat_kpi_2026 || 0);
+                return {
+                    ma_bcvh: row.ma_bcvh,
+                    ten_bcvh: row.ten_bcvh,
+                    volume,
+                    passed,
+                    failed: Number(row.khong_dat_kpi_2026 || 0),
+                    rate: rate1(passed, volume),
+                    compare: { same_period: block(volume, passed, previousMap[row.ma_bcvh]) },
+                };
+            }),
+            meta: {
+                from_date: fromDate,
+                to_date: toDate,
+                has_data: current.length > 0,
+                compare: { same_period: window },
+                total_row: {
+                    ten_bcvh: 'TỔNG CỘNG',
+                    volume: totalVolume,
+                    passed: totalPassed,
+                    failed: sum(current, 'khong_dat_kpi_2026'),
+                    rate: rate1(totalPassed, totalVolume),
+                    compare: {
+                        same_period: block(totalVolume, totalPassed, previous.length
+                            ? { sl_bg_ptc: sum(previous, 'sl_bg_ptc'), dat_kpi_2026: sum(previous, 'dat_kpi_2026') }
+                            : null),
+                    },
+                },
+            },
+        };
+    }
+
     async getBcvhRanking(fromDate, toDate, page = 1, pageSize = 20) {
         this._validateRange(fromDate, toDate);
         const monthStart = monthStartOf(toDate);

@@ -1,5 +1,7 @@
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { CalendarDays, BarChart2, Activity, Filter, RefreshCw, AlertCircle } from 'lucide-react';
+import { useIndicator } from '../../indicator/IndicatorContext.js';
+import { indicatorTheme } from '../../indicator/indicatorConfig.js';
 import { resolveTargetPageParams, buildScopedUnitOptions } from '../f13v2Helpers.js';
 
 const TABS = [
@@ -17,6 +19,8 @@ export default function F13V2FilterBar({
   bcvhUnits = [],
   onRefresh,
 }) {
+  const indicator = useIndicator();
+  const theme = indicatorTheme(indicator);
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -40,6 +44,7 @@ export default function F13V2FilterBar({
       currentPage: activePage,
       targetPage: targetPageId,
       currentParams: searchParams,
+      basePath: `${indicator.apiBase}/v2`,
     });
 
     navigate(target.fullPath);
@@ -91,7 +96,7 @@ export default function F13V2FilterBar({
                 onClick={() => handleTabSwitch(tab.id)}
                 className={`flex items-center gap-2 rounded-lg px-3.5 py-1.5 text-xs font-bold transition-all duration-150 cursor-pointer ${
                   isActive
-                    ? 'bg-blue-600 text-white shadow-xs'
+                    ? `${theme.button} shadow-xs`
                     : 'text-slate-600 hover:bg-white hover:text-slate-900'
                 }`}
               >
@@ -194,7 +199,7 @@ export default function F13V2FilterBar({
               onChange={(e) => handleBcvhChange(e.target.value)}
               className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-800 shadow-2xs outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
             >
-              {allowAllUnits && <option value="all">Tất cả BCVH</option>}
+              {allowAllUnits && <option value="all">Tất cả {indicator.unitLabel}</option>}
               {unitOptions.length > 0 ? (
                 unitOptions.map((opt) => (
                   <option key={opt.value} value={opt.value}>

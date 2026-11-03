@@ -36,10 +36,41 @@ const BLOCKS = Object.freeze([
     { id: 'topic.evidence', page: 'chuyen-de', title: 'Dữ liệu minh chứng', scope: SCOPES.DRILL, path: '/f13/evidence' },
 ]);
 
+// TIME-AXIS-TEMPLATE-01: the other indicators have the three time pages only. Each Chuyên đề waits for the PO's explanation of
+// how that indicator is calculated (PO 2026-11-03).
+const COMMON_TIME_BLOCKS = Object.freeze([
+    { id: 'day.overview', page: 'ngay', title: 'Tổng quan điều hành', scope: SCOPES.UNIT },
+    { id: 'day.operation', page: 'ngay', title: 'Bảng tổng hợp số liệu', scope: SCOPES.CITY },
+    { id: 'day.range', page: 'ngay', title: 'Bảng so sánh khoảng ngày', scope: SCOPES.UNIT },
+    { id: 'day.trend', page: 'ngay', title: 'Xu hướng 7–30 ngày', scope: SCOPES.UNIT },
+    { id: 'week.compare', page: 'tuan', title: 'So sánh theo tuần', scope: SCOPES.UNIT },
+    { id: 'week.trend', page: 'tuan', title: 'Diễn biến chất lượng theo tuần', scope: SCOPES.UNIT },
+    { id: 'month.compare', page: 'thang', title: 'So sánh theo tháng', scope: SCOPES.UNIT },
+    { id: 'month.trend', page: 'thang', title: 'Xu hướng theo tháng + heatmap tháng', scope: SCOPES.UNIT },
+]);
+
+const BLOCKS_BY_INDICATOR = Object.freeze({
+    f13: BLOCKS,
+    f41: COMMON_TIME_BLOCKS,
+    f11: Object.freeze([
+        ...COMMON_TIME_BLOCKS,
+        { id: 'day.pair', page: 'ngay', title: 'Bưu cục chấp nhận × BCVH phát', scope: SCOPES.UNIT },
+    ]),
+    f12: Object.freeze([
+        ...COMMON_TIME_BLOCKS,
+        { id: 'month.cumulative12', page: 'thang', title: 'Lũy kế F1.2', scope: SCOPES.UNIT },
+    ]),
+    f42: Object.freeze([
+        ...COMMON_TIME_BLOCKS,
+        { id: 'day.strip', page: 'ngay', title: 'Sáu BCVH trong ngày', scope: SCOPES.UNIT },
+        { id: 'day.postman', page: 'ngay', title: 'Bảng bưu tá', scope: SCOPES.UNIT },
+    ]),
+});
+
 /** Blocks a scope mode may see: 'all' sees all but the own-row stand-ins, 'bcvh' never sees a city block, anything else sees nothing. */
-function visibleBlocks(mode) {
-    if (mode === 'all') return BLOCKS.filter((block) => block.scope !== SCOPES.OWN);
-    if (mode === 'bcvh') return BLOCKS.filter((block) => block.scope !== SCOPES.CITY);
+function visibleBlocks(mode, blocks = BLOCKS) {
+    if (mode === 'all') return blocks.filter((block) => block.scope !== SCOPES.OWN);
+    if (mode === 'bcvh') return blocks.filter((block) => block.scope !== SCOPES.CITY);
     return [];
 }
 
@@ -47,9 +78,9 @@ function visibleBlocks(mode) {
  * Layout for a caller. `scope` is req.scope from requireModule('f13') ({ mode, bcvh }).
  * Pages without a visible block are left out; the sub-title lists the visible block titles.
  */
-function layoutFor(scope) {
+function layoutFor(scope, indicatorId = 'f13') {
     const mode = scope?.mode;
-    const blocks = visibleBlocks(mode);
+    const blocks = visibleBlocks(mode, BLOCKS_BY_INDICATOR[indicatorId] || BLOCKS);
     const pages = PAGES
         .map((page) => {
             const own = blocks.filter((block) => block.page === page.id);
@@ -69,7 +100,7 @@ function layoutFor(scope) {
         .filter((page) => page.blocks.length > 0);
 
     return {
-        indicator: 'f13',
+        indicator: indicatorId,
         scope: { mode: mode || 'none', bcvh: mode === 'bcvh' ? [...(scope.bcvh || [])] : [] },
         units: { allow_all: mode === 'all', bcvh: mode === 'bcvh' ? [...(scope.bcvh || [])] : [] },
         pages,

@@ -103,7 +103,7 @@ export default function F13V2RangeCompareTable({ data, loading = false, error = 
               <tr className="border-b border-slate-300">
                 <th colSpan={3} className="whitespace-nowrap border-r border-slate-300 bg-slate-100/90 px-1.5 py-2.5 text-center align-middle text-xs font-black uppercase tracking-wider text-slate-800 sm:text-sm md:text-base">
                   <div>ĐƠN VỊ</div>
-                  <div className="mt-0.5 text-[11px] font-bold tracking-normal text-slate-500 sm:text-xs">6 BƯU CỤC VẬN HÀNH</div>
+                  {indicator.dynamicUnits ? null : <div className="mt-0.5 text-[11px] font-bold tracking-normal text-slate-500 sm:text-xs">6 BƯU CỤC VẬN HÀNH</div>}
                 </th>
                 <th colSpan={2} className={`whitespace-nowrap border-r px-2 py-2.5 text-center align-middle text-sm font-black uppercase tracking-wider md:text-base ${theme.headerBg} ${theme.headerText} ${theme.headerBorder}`}>
                   <div>KHOẢNG ĐANG CHỌN</div>
