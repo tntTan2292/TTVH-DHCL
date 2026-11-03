@@ -1456,7 +1456,10 @@ class DkclHueF13PortalClient {
     }
 
     async readDetailTableTotal() {
-        await this.page.locator('form[action$="/export/sp_TT_Phat_LienTinh_ChiTiet/all"]').waitFor({ timeout: 30000 });
+        await this.page.locator('form[action$="/export/sp_TT_Phat_LienTinh_ChiTiet/all"]').waitFor({ timeout: 30000 }).catch((error) => {
+            if (!isPlaywrightTimeout(error)) throw error;
+            throw portalError('DKCL F1.3 detail table did not open within 30 seconds.', 'F13_DETAIL_TABLE_TIMEOUT');
+        });
         const text = await this.page.evaluate(() => {
             const isVisible = (element) => {
                 const rect = element.getBoundingClientRect();

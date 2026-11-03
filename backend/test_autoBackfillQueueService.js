@@ -1377,6 +1377,44 @@ test('AB-AUTH-05 SESSION_PENDING_HUMAN_ACTION retries without exhausting attempt
     }
 });
 
+test('checks stopped on a login in progress do not spend the retries of a later real failure', async () => {
+    let calls = 0;
+    const transientError = (message, code) => {
+        const error = new Error(message);
+        error.code = code;
+        error.autoBackfill = { classification: 'TRANSIENT' };
+        return error;
+    };
+    const fixture = await createFixture({
+        now: '2026-01-03T01:00:00.000Z',
+        indicators: (statuses) => [
+            createIndicator({ code: 'F9.A', priority: 10, startDate: '2026-01-02', laneCodes: ['HUE'], statuses }),
+        ],
+        execute: async () => {
+            calls += 1;
+            if (calls <= 3) throw transientError('manual login in progress', 'SESSION_PENDING_HUMAN_ACTION');
+            throw transientError('export not generated', 'EXPORT_TIMEOUT');
+        },
+    });
+    try {
+        const created = await fixture.service.createRun({ actor: 'admin', roles: ['admin'] });
+        // Three pending checks, then real attempts 1 and 2: each one still has a retry left.
+        for (let i = 0; i < 5; i += 1) {
+            const result = await fixture.service.processNext();
+            assert.equal(result.state, 'RETRY_WAIT', `call ${i + 1} must schedule a retry`);
+            fixture.clockState.now = new Date(result.retryAt);
+        }
+        // Real attempt 3 of 3 ends the job: the limit still holds for real attempts.
+        await fixture.service.processNext();
+        assert.equal(calls, 6);
+        const persisted = await fixture.service.store.getRun(created.run.id);
+        assert.equal(persisted.jobs[0].state, 'FAILED_TERMINAL');
+        assert.match(persisted.jobs[0].action_required, /limit of 3 attempts/);
+    } finally {
+        fixture.cleanup();
+    }
+});
+
 test('a lane whose session is valid again resumes its WAITING_AUTH runs and only those (keep-alive hook, 2026-10-27)', async () => {
     const fixture = await laneBlockedFixture();
     try {

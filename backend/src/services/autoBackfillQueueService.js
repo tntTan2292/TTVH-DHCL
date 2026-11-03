@@ -765,7 +765,8 @@ class AutoBackfillQueueService {
                 const { lane } = this.findRegistration(job.indicator, job.source_lane);
                 const failure = this.safetyCoordinator.classify(error, { lane, job });
                 const maxAttempts = this.safetyCoordinator.maxAttempts(lane.retryPolicy);
-                const retryAt = failure.retryable && Number(job.attempt_number) < maxAttempts
+                // recordLeasedFailure() decides whether a retry is left; it uses this time only then.
+                const retryAt = failure.retryable
                     ? new Date(this.store.clock().getTime() + Math.max(this.safetyCoordinator.retryDelayMs(lane.retryPolicy, job.attempt_number), Number(failure.minRetryDelayMs) || 0)).toISOString()
                     : null;
                 const result = await this.store.recordLeasedFailure(job.id, job.lease_token, {

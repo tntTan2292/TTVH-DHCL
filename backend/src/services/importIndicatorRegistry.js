@@ -43,6 +43,8 @@ const DEFAULT_ERROR_MAP = Object.freeze({
     // previously dropped en route from dkclHueF13SyncService.js through awaitHueResult(), so
     // this entry was unreachable; both are fixed together.
     EXPORT_TIMEOUT: 'TRANSIENT',
+    // The F1.3 detail table not opening in time is the same slow portal (HUE 2026-10-21).
+    F13_DETAIL_TABLE_TIMEOUT: 'TRANSIENT',
     // IMPORT-TCT-TIMEOUT-01: a slow F4.1 portal report/export/detail request (Playwright timeout).
     F41_PORTAL_REQUEST_TIMEOUT: 'TRANSIENT',
     // F11-PHASE-3: same condition for the F1.1 portal requests.

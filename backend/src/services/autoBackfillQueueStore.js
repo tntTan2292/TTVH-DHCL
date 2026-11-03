@@ -668,6 +668,16 @@ class AutoBackfillQueueStore {
             const attempt = await get(db, "SELECT * FROM auto_backfill_attempt WHERE job_id = ? AND lease_token = ? AND status = 'RUNNING'", [jobId, leaseToken]);
             if (!attempt) throw queueError('AUTO_BACKFILL_ATTEMPT_LOST', 'The running attempt is no longer available.', 409);
             const now = this.nowIso();
+            // A check that stopped on a login in progress never reached the portal, so only real
+            // attempts spend maxAttempts (F1.3 HUE 2026-10-08: three such checks left the first real
+            // attempt no retry).
+            const earlierRealAttempts = await get(
+                db,
+                `SELECT COUNT(*) AS n FROM auto_backfill_attempt
+                 WHERE job_id = ? AND id <> ? AND COALESCE(result_code, '') <> 'SESSION_PENDING_HUMAN_ACTION'`,
+                [jobId, attempt.id],
+            );
+            const realAttemptNumber = Number(earlierRealAttempts.n) + 1;
 
             let circuit = null;
             let circuitSequenceReset = false;
@@ -752,12 +762,12 @@ class AutoBackfillQueueStore {
                 outcome = 'CIRCUIT_OPEN';
                 actionRequired = 'Investigate the exact adapter/source/resource scope, then Admin must reset the circuit.';
                 eventType = 'CIRCUIT_OPENED';
-            } else if (failure.retryable && Number(attempt.attempt_number) < maxAttempts) {
+            } else if (failure.retryable && realAttemptNumber < maxAttempts) {
                 jobState = 'QUEUED';
                 safetyState = 'RETRY_WAIT';
                 nextAttemptAt = retryAt;
                 outcome = 'RETRY_SCHEDULED';
-                actionRequired = `Automatic retry ${Number(attempt.attempt_number) + 1}/${maxAttempts} is scheduled.`;
+                actionRequired = `Automatic retry ${realAttemptNumber + 1}/${maxAttempts} is scheduled.`;
                 eventType = 'JOB_RETRY_SCHEDULED';
             } else if (failure.retryable) {
                 actionRequired = `Automatic retry limit of ${maxAttempts} attempts was exhausted; Product Owner review is required.`;

@@ -22,6 +22,7 @@ const { AutoBackfillQueueStore } = require('./src/services/autoBackfillQueueStor
 const { AutoBackfillWorkerCoordinator } = require('./src/services/autoBackfillWorkerCoordinator');
 const { HueF13Adapter, TctF13Adapter } = require('./src/services/f13Adapters');
 const { DkclHueF13SyncService } = require('./src/services/dkclHueF13SyncService');
+const { DkclHueF13PortalClient } = require('./src/services/dkclHueF13PortalClient');
 const {
     DEFAULT_PERMISSIONS,
     DEFAULT_RETRY_POLICY,
@@ -517,6 +518,27 @@ test('AB-AUTH-05 SESSION_PENDING_HUMAN_ACTION is mapped to TRANSIENT and retryab
     error.code = 'SESSION_PENDING_HUMAN_ACTION';
     error.autoBackfill = { classification: 'TRANSIENT' };
     const failure = coordinator.classify(error, {
+        lane: { errorMap: DEFAULT_ERROR_MAP, retryPolicy: DEFAULT_RETRY_POLICY },
+        job: { executor_id: 'X', source_lane: 'HUE', resource_identity: 'R' },
+    });
+    assert.equal(failure.classification, 'TRANSIENT');
+    assert.equal(failure.retryable, true);
+});
+
+test('a F1.3 detail table that does not open in time is a coded, retryable portal timeout', async () => {
+    const client = new DkclHueF13PortalClient();
+    client.page = {
+        locator: () => ({
+            waitFor: async () => {
+                const timeout = new Error('locator.waitFor: Timeout 30000ms exceeded.');
+                timeout.name = 'TimeoutError';
+                throw timeout;
+            },
+        }),
+    };
+    const error = await client.readDetailTableTotal().catch((caught) => caught);
+    assert.equal(error.code, 'F13_DETAIL_TABLE_TIMEOUT');
+    const failure = new AutoBackfillSafetyCoordinator().classify(error, {
         lane: { errorMap: DEFAULT_ERROR_MAP, retryPolicy: DEFAULT_RETRY_POLICY },
         job: { executor_id: 'X', source_lane: 'HUE', resource_identity: 'R' },
     });
