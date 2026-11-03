@@ -30,6 +30,7 @@ const BLOCKS = Object.freeze([
     { id: 'month.compare', page: 'thang', title: 'So sánh BCVH theo tháng', scope: SCOPES.UNIT },
     { id: 'month.trend', page: 'thang', title: 'Xu hướng theo tháng + heatmap tháng', scope: SCOPES.UNIT },
     { id: 'month.pattern', page: 'thang', title: 'Quy luật vận hành theo tháng + heatmap ngày', scope: SCOPES.UNIT },
+    { id: 'topic.journey', page: 'chuyen-de', title: 'Hành trình bưu gửi', scope: SCOPES.DRILL, path: '/f13/v2/hanh-trinh' },
     { id: 'topic.routes', page: 'chuyen-de', title: 'Phân tích tuyến phát', scope: SCOPES.DRILL, path: '/f13/ranking/route' },
     { id: 'topic.capacity', page: 'chuyen-de', title: 'Năng lực và chất lượng tuyến', scope: SCOPES.DRILL, path: '/f13/ranking/bcvh' },
     { id: 'topic.evidence', page: 'chuyen-de', title: 'Dữ liệu minh chứng', scope: SCOPES.DRILL, path: '/f13/evidence' },

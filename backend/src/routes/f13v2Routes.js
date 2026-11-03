@@ -16,7 +16,7 @@ router.use(
     requireAuth,
     requireRole(['admin', 'viewer']),
     requireModule('f13'),
-    cachedRead({ shouldCache: (req) => req.path === '/day/summary' }),
+    cachedRead({ shouldCache: (req) => req.path === '/day/summary' || req.path.startsWith('/journey/') }),
 );
 router.use(scopeBcvhResponse());
 
@@ -28,5 +28,7 @@ router.get(
     scopeBcvhResponse({ drop: ['data.meta.total_row', 'data.rows[].rank'] }),
     controller.getDaySummary,
 );
+router.get('/journey/routes', controller.getJourneyRoutes);
+router.get('/journey/parcels', controller.getJourneyParcels);
 
 module.exports = router;

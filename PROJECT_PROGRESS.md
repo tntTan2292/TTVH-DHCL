@@ -2532,3 +2532,4 @@ Opus review found no scope leak but 5 blockers: a heap crash on long ranges (bac
 ## 2026-11-02 - F13-V2-STRUCTURE-01 PO decisions after review R1
 
 PO confirmed: ranks count the six BCVH only (the old F1.3 may differ on days with a stray code such as 531120), and switching between Ngày / Tuần / Tháng carries no period: each page opens the latest period with data (e.g. latest day 01/11/2026 -> Tuần W44, Tháng 11); the selected unit is kept. Design Sections 3, 5.2, 12 updated; backend `period/resolve?kind=latest` added (28 tests pass). UI round for Antigravity adjusted accordingly.
+2026-11-03 F13-V2-JOURNEY-01 implemented (Claude Code / Opus 5.5): F1.3 Chuyên đề "Hành trình bưu gửi" with the five PO milestones (TMS scan, KTC1 closes, arrival XND BD1, postman handover, delivery), by route and by parcel, postmen from F4.2, no fault judged. READY FOR PO UI CHECK. Manifest: docs/10_TICKETS/F13-V2-JOURNEY-01_MANIFEST.md.

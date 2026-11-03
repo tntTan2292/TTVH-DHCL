@@ -152,6 +152,29 @@ test('BCVH-mode account: day table (one day and a range) has its own row only, n
     }
 });
 
+test('journey: a BCVH-mode account gets its own routes, parcels and figures only; another unit is refused', async () => {
+    const sid = session('STAFF', { bcvh: [OWN] });
+    const routes = await get(sid, `/v2/journey/routes?date=${ANCHOR}`);
+    assert.equal(routes.status, 200);
+    assert.ok(routes.body.data.routes.length > 0);
+    assert.ok(routes.body.data.routes.every((r) => r.ma_bcvh === OWN));
+    assert.equal(routes.body.data.meta.coverage.parcels, 6);
+    assert.deepEqual(foreignHits(routes.text, [OWN]), []);
+    const parcels = await get(sid, `/v2/journey/parcels?date=${ANCHOR}&ma_bcvh=all`);
+    assert.equal(parcels.body.data.meta.total, 6);
+    assert.deepEqual(foreignHits(parcels.text, [OWN]), []);
+    const refused = await get(sid, `/v2/journey/routes?date=${ANCHOR}&ma_bcvh=${OTHER}`);
+    assert.equal(refused.status, 403);
+});
+
+test('journey: a city-wide account sees every canonical unit and the stray code is left out; date is required', async () => {
+    const sid = session('LEADER');
+    const { body } = await get(sid, `/v2/journey/routes?date=${ANCHOR}`);
+    assert.deepEqual([...new Set(body.data.routes.map((r) => r.ma_bcvh))].sort(), [OTHER, SECOND, OWN].sort());
+    assert.equal(body.data.meta.coverage.parcels, 18);
+    assert.equal((await get(sid, '/v2/journey/routes')).status, 400);
+});
+
 test('BCVH-mode account asking for another unit is refused', async () => {
     const sid = session('STAFF', { bcvh: [OWN] });
     const { status, body } = await get(sid, `${DAY}&ma_bcvh=${OTHER}`);

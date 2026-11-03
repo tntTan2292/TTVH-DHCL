@@ -8,9 +8,28 @@ const f13DashboardService = require('../services/F13DashboardService');
 const { layoutFor } = require('../services/f13v2/blockRegistry');
 const { resolvePeriod } = require('../services/f13v2/periodResolve');
 const { DaySummaryService } = require('../services/f13v2/DaySummaryService');
-const { resolveBcvh, sendIfOutOfScope } = require('../middleware/accessScope');
+const { JourneyService } = require('../services/f13v2/JourneyService');
+const f13JourneyRepo = require('../repositories/F13JourneyRepository');
+const { resolveBcvh, scopedBcvhList, sendIfOutOfScope } = require('../middleware/accessScope');
 
 const daySummaryService = new DaySummaryService({ repository: factBuuGuiRepo, dashboardService: f13DashboardService });
+const journeyService = new JourneyService({ repository: f13JourneyRepo });
+
+function journeyScope(req) {
+    const { date, ma_bcvh: maBcvh } = req.query;
+    if (!date) {
+        const error = new Error('Yêu cầu date');
+        error.code = 'MISSING_PARAM';
+        throw error;
+    }
+    return {
+        date: String(date),
+        scope: {
+            bcvhId: resolveBcvh(req, maBcvh && maBcvh !== 'all' ? String(maBcvh) : null),
+            allowedCodes: scopedBcvhList(req),
+        },
+    };
+}
 
 const BAD_REQUEST_CODES = new Set([
     'NO_DATA', 'INVALID_KIND', 'INVALID_DATE', 'INVALID_RANGE', 'RANGE_TOO_LONG', 'INVALID_BCVH', 'INVALID_WEEK_ID', 'INVALID_MONTH_ID', 'MISSING_PARAM',
@@ -56,6 +75,34 @@ class F13V2Controller {
             }
             const bcvhId = resolveBcvh(req, maBcvh && maBcvh !== 'all' ? String(maBcvh) : null);
             const result = await daySummaryService.getSummary(String(from), String(to), { bcvhId });
+            res.status(200).json({ success: true, data: result });
+        } catch (error) {
+            sendError(res, error);
+        }
+    }
+
+    async getJourneyRoutes(req, res) {
+        try {
+            const { date, scope } = journeyScope(req);
+            res.status(200).json({ success: true, data: await journeyService.getRoutes(date, scope) });
+        } catch (error) {
+            sendError(res, error);
+        }
+    }
+
+    async getJourneyParcels(req, res) {
+        try {
+            const { date, scope } = journeyScope(req);
+            const { route, search, sort, order, page, page_size: pageSize } = req.query;
+            const result = await journeyService.getParcels(date, {
+                ...scope,
+                route: route ? String(route) : null,
+                search: search ? String(search) : null,
+                sort: sort ? String(sort) : undefined,
+                order: order ? String(order) : undefined,
+                page,
+                pageSize,
+            });
             res.status(200).json({ success: true, data: result });
         } catch (error) {
             sendError(res, error);

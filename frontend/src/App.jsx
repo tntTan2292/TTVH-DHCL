@@ -18,6 +18,7 @@ import UserManagementPage from './pages/UserManagementPage';
 import F13V2DayPage from './features/f13v2/F13V2DayPage';
 import F13V2WeekPage from './features/f13v2/F13V2WeekPage';
 import F13V2MonthPage from './features/f13v2/F13V2MonthPage';
+import F13V2JourneyPage from './features/f13v2/F13V2JourneyPage';
 import DashboardPage from './features/dashboard/DashboardPage';
 import F11DashboardPage from './features/f11/F11DashboardPage';
 import F11BcvhRankingPage from './features/f11/F11BcvhRankingPage';
@@ -157,6 +158,7 @@ function App() {
               <Route path="ngay" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN]}><F13V2DayPage /></ProtectedRoute>} />
               <Route path="tuan" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN]}><F13V2WeekPage /></ProtectedRoute>} />
               <Route path="thang" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN]}><F13V2MonthPage /></ProtectedRoute>} />
+              <Route path="hanh-trinh" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN]}><F13V2JourneyPage /></ProtectedRoute>} />
             </Route>
 
             <Route path="network-map">
