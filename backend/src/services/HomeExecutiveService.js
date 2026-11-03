@@ -271,8 +271,11 @@ class HomeExecutiveService {
             } catch { /* a missing table only means no earlier day is known */ }
         }
         // Each indicator reads its own latest period (its data can lag the others by a day or two), so around a
-        // week / month boundary the cards may stand in different periods: the page says so (`mixed`).
-        const froms = new Set(ranges.filter(Boolean).map((range) => range.from));
+        // week / month boundary the cards may stand in different periods, and inside one running week / month they
+        // may be read up to different days: the page says so (`mixed`) when either end of the range differs.
+        const known = ranges.filter(Boolean);
+        const froms = new Set(known.map((range) => range.from));
+        const tos = new Set(known.map((range) => range.to));
         return {
             ...this._periodFields(ref, period),
             offset,
@@ -280,7 +283,7 @@ class HomeExecutiveService {
             has_previous: Boolean(ref && earliest && earliest < ref.from) && offset > -MAX_BACK,
             has_next: offset < 0,
             max_back: MAX_BACK,
-            mixed: froms.size > 1,
+            mixed: froms.size > 1 || tos.size > 1,
         };
     }
 

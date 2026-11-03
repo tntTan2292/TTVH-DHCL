@@ -386,6 +386,20 @@ test('period_info.mixed tells when the indicators stand in different weeks (data
     assert.equal(same.period_info.mixed, false);
 });
 
+test('period_info.mixed also tells when the indicators share the period start but are read to different days', async () => {
+    const a = periodAdapter();
+    // all five start Thursday 15/10 (week 42); F1.2 is loaded to Wednesday 21/10, the others only to Tuesday 20/10
+    const adapters = { f11: a, f12: Object.assign(periodAdapter(), { localTable: 'fact_y' }), f13: a, f41: a, f42: a };
+    const out = await new HomeExecutiveService({ adapters, db: fakeDb({ fact_x: '2026-10-20', fact_y: '2026-10-21' }) }).getExecutive({ period: 'week' });
+    assert.equal(out.indicators[0].period_from, out.indicators[1].period_from);
+    assert.notEqual(out.indicators[0].period_to, out.indicators[1].period_to);
+    assert.equal(out.period_info.mixed, true);
+    const month = await new HomeExecutiveService({ adapters, db: fakeDb({ fact_x: '2026-10-20', fact_y: '2026-10-21' }) }).getExecutive({ period: 'month' });
+    assert.equal(month.period_info.mixed, true);
+    const day = await new HomeExecutiveService({ adapters, db: fakeDb({ fact_x: '2026-10-20', fact_y: '2026-10-20' }) }).getExecutive({ period: 'day' });
+    assert.equal(day.period_info.mixed, false);
+});
+
 test('monthly series rounds like the card: two decimals first, then one', async () => {
     const a = periodAdapter();
     a.trend = async () => ({ items: [

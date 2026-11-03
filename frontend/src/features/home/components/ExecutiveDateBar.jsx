@@ -113,9 +113,9 @@ export default function ExecutiveDateBar({
           {periodInfo?.mixed && (
             <span
               className="rounded-lg border border-amber-200 bg-amber-50 px-2 py-1 text-[11px] font-bold text-amber-800"
-              title="Dữ liệu các chỉ tiêu về lệch ngày nên đang ở kỳ khác nhau; xem kỳ ghi trên từng thẻ."
+              title="Dữ liệu các chỉ tiêu về lệch ngày nên đang đọc đến ngày khác nhau (hoặc ở kỳ khác nhau); xem ngày ghi trên từng thẻ."
             >
-              Các chỉ tiêu ở kỳ khác nhau
+              Các chỉ tiêu có ngày dữ liệu khác nhau
             </span>
           )}
           {offset < 0 && (
