@@ -11,6 +11,8 @@ import F13V2FilterBar from './components/F13V2FilterBar.jsx';
 
 import BcvhWeeklyComparisonBlock from '../ranking/BcvhWeeklyComparisonBlock.jsx';
 import BcvhWeeklyTrendBlock from '../ranking/BcvhWeeklyTrendBlock.jsx';
+import F11PairTableBlock from '../f11/components/F11PairTableBlock.jsx';
+import F42PostmanDashboardBlocks from '../f42/components/F42PostmanDashboardBlocks.jsx';
 
 export default function F13V2WeekPage() {
   const indicator = useIndicator() || F13_INDICATOR;
@@ -153,6 +155,14 @@ export default function F13V2WeekPage() {
               anchorWeek={activeWeekObj}
               controlledUnit={bcvhParam}
             />
+          )}
+
+          {/* The indicator's own blocks, on the week of the page */}
+          {activeWeekObj?.week_start && isBlockVisible(layout, 'tuan', 'week.pair') && (
+            <F11PairTableBlock anchorDate={activeWeekObj.week_start} controlledPeriod="week" />
+          )}
+          {activeWeekObj?.week_start && isBlockVisible(layout, 'tuan', 'week.postman') && (
+            <F42PostmanDashboardBlocks anchorDate={activeWeekObj.week_start} maBcvh={bcvhParam} controlledPeriod="week" />
           )}
         </div>
       </PageContainer>

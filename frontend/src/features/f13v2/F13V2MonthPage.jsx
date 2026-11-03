@@ -14,6 +14,8 @@ import { BcvhMonthlyTrendBlock } from '../ranking/BcvhRankingOverviewBlocks.jsx'
 import OperatingPatternTabsCard from '../dashboard/components/OperatingPatternTabsCard.jsx';
 import { processOverviewData } from '../ranking/bcvhOverviewData.js';
 import F12Cumulative12Block from '../f12/components/F12Cumulative12Block.jsx';
+import F11PairTableBlock from '../f11/components/F11PairTableBlock.jsx';
+import F42PostmanDashboardBlocks from '../f42/components/F42PostmanDashboardBlocks.jsx';
 
 export default function F13V2MonthPage() {
   const indicator = useIndicator() || F13_INDICATOR;
@@ -221,6 +223,13 @@ export default function F13V2MonthPage() {
             />
           )}
 
+          {/* The indicator's own blocks, on the month of the page */}
+          {activeMonthObj?.month_start && isBlockVisible(layout, 'thang', 'month.pair') && (
+            <F11PairTableBlock anchorDate={activeMonthObj.month_start} controlledPeriod="month" />
+          )}
+          {activeMonthObj?.month_start && isBlockVisible(layout, 'thang', 'month.postman') && (
+            <F42PostmanDashboardBlocks anchorDate={activeMonthObj.month_start} maBcvh={bcvhParam} controlledPeriod="month" />
+          )}
           {/* F1.2: its cumulative block, as on its Bảng điều hành */}
           {isBlockVisible(layout, 'thang', 'month.cumulative12') && <F12Cumulative12Block anchorDate={anchorDateForMonth} />}
         </div>

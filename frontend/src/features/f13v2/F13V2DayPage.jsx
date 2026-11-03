@@ -352,8 +352,8 @@ export default function F13V2DayPage() {
           )}
 
           {/* The indicator's own blocks, as on its Bảng điều hành */}
-          {isBlockVisible(layout, 'ngay', 'day.pair') && <F11PairTableBlock anchorDate={effectiveTo} toDate={effectiveTo} />}
-          {isBlockVisible(layout, 'ngay', 'day.postman') && <F42PostmanDashboardBlocks anchorDate={effectiveTo} maBcvh={bcvhParam} />}
+          {isBlockVisible(layout, 'ngay', 'day.pair') && <F11PairTableBlock anchorDate={effectiveTo} toDate={effectiveTo} fromDate={effectiveFrom} controlledPeriod="day" />}
+          {isBlockVisible(layout, 'ngay', 'day.postman') && <F42PostmanDashboardBlocks anchorDate={effectiveTo} fromDate={effectiveFrom} maBcvh={bcvhParam} controlledPeriod="day" />}
         </div>
       </PageContainer>
     </BcvhUnitsProvider>

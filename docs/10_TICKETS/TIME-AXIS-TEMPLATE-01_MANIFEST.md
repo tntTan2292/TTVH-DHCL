@@ -22,8 +22,8 @@ In: the three time pages for the four indicators. Out: any Chuyên đề of thes
 | Page | All four | F1.1 | F1.2 | F4.2 |
 | --- | --- | --- | --- | --- |
 | Theo ngày | Tổng quan, Bảng tổng hợp (city accounts), Bảng so sánh khoảng ngày (2 days or more), Xu hướng | Bảng bưu cục chấp nhận × BCVH phát | | Sáu BCVH trong ngày, Bảng bưu tá |
-| Theo tuần | So sánh theo tuần, Diễn biến theo tuần | | | |
-| Theo tháng | So sánh theo tháng, Xu hướng + heatmap tháng | | Khối lũy kế | |
+| Theo tuần | So sánh theo tuần, Diễn biến theo tuần | Same matrix, on the page's week | | Bảng bưu tá, on the page's week |
+| Theo tháng | So sánh theo tháng, Xu hướng + heatmap tháng | Same matrix, on the page's month | Khối lũy kế | Bảng bưu tá, on the page's month |
 
 ## 4. Validation
 
@@ -33,7 +33,7 @@ In: the three time pages for the four indicators. Out: any Chuyên đề of thes
 
 ## 5. Known points for the PO check
 
-- F1.1 pair table and the F4.2 postman blocks keep their own behaviour as on the old Bảng điều hành.
+- PO 2026-11-03: the F1.1 matrix belongs on all three pages. It and the F4.2 postman blocks follow the page's period there and hide their own period controls; on Theo ngày a range uses the whole range. Their old Bảng điều hành behaviour is unchanged.
 - A BCVH-mode account has no own-row day table on these indicators (only F1.3 has one): as on their old Bảng điều hành it has no day table, and it gets the range table for 2 days or more.
 - The range table of F4.1 shows the main rate only, not "Không đo TMS".
 - F1.2: the long title of the month comparison table runs under the camera button (same block as the old page).

@@ -63,13 +63,17 @@ export const PAIR_CAPTURE_CSS = `
 .pair-capturing .pair-legend, .pair-capturing .pair-foot { width: 0; min-width: 100%; }
 `;
 
-export default function F11PairTableBlock({ anchorDate, toDate }) {
+// controlledPeriod (time-axis pages): the page decides the period and the block's own period controls are hidden. On Theo ngày
+// fromDate + anchorDate may form a range. Without it the block behaves as on the old Bảng điều hành.
+export default function F11PairTableBlock({ anchorDate, toDate, controlledPeriod = null, fromDate = null }) {
   const indicator = useIndicator();
   const theme = indicatorTheme(indicator);
   const api = useIndicatorApi();
   const effectiveAnchor = anchorDate || toDate;
 
-  const [period, setPeriod] = useState('day');
+  const [ownPeriod, setPeriod] = useState('day');
+  const period = controlledPeriod || ownPeriod;
+  const isRange = controlledPeriod === 'day' && Boolean(fromDate && effectiveAnchor && fromDate !== effectiveAnchor);
   const [selectedDay, setSelectedDay] = useState(effectiveAnchor || '');
   const [selectedWeek, setSelectedWeek] = useState('');
   const [selectedMonth, setSelectedMonth] = useState('');
@@ -84,11 +88,12 @@ export default function F11PairTableBlock({ anchorDate, toDate }) {
   const monthOptions = useMemo(() => generateRecentMonths(effectiveAnchor, 12), [effectiveAnchor]);
 
   const activeAnchorDate = useMemo(() => {
+    if (controlledPeriod) return effectiveAnchor;
     if (period === 'day') return selectedDay || effectiveAnchor;
     if (period === 'week') return selectedWeek || weekOptions[0]?.value || effectiveAnchor;
     if (period === 'month') return selectedMonth || monthOptions[0]?.value || effectiveAnchor;
     return effectiveAnchor;
-  }, [period, selectedDay, selectedWeek, selectedMonth, weekOptions, monthOptions, effectiveAnchor]);
+  }, [controlledPeriod, period, selectedDay, selectedWeek, selectedMonth, weekOptions, monthOptions, effectiveAnchor]);
 
   const [searchTerm, setSearchTerm] = useState('');
   const [sort, setSort] = useState({ field: 'total:volume', direction: 'desc' });
@@ -122,7 +127,7 @@ export default function F11PairTableBlock({ anchorDate, toDate }) {
     });
 
     api.get('/f11/dashboard/pair-table', {
-      params: { period, anchor_date: activeAnchorDate },
+      params: isRange ? { from_date: fromDate, to_date: effectiveAnchor } : { period, anchor_date: activeAnchorDate },
     })
       .then((res) => {
         if (!active) return;
@@ -152,7 +157,7 @@ export default function F11PairTableBlock({ anchorDate, toDate }) {
     return () => {
       active = false;
     };
-  }, [api, activeAnchorDate, period]);
+  }, [api, activeAnchorDate, period, isRange, fromDate, effectiveAnchor]);
 
   const rows = state.data?.rows;
   const columns = useMemo(() => state.data?.columns || [], [state.data]);
@@ -190,7 +195,9 @@ export default function F11PairTableBlock({ anchorDate, toDate }) {
     setHighlightedCol((prev) => (prev === colCode ? null : colCode));
   };
 
-  const periodLabel = period === 'day'
+  const periodLabel = isRange
+    ? `${meta.from_date || fromDate} đến ${meta.to_date || effectiveAnchor}`
+    : period === 'day'
     ? `Ngày ${meta.from_date || activeAnchorDate}`
     : period === 'week'
       ? `Tuần (${meta.from_date || ''} đến ${meta.to_date || ''})`
@@ -223,6 +230,7 @@ export default function F11PairTableBlock({ anchorDate, toDate }) {
 
         <div className="flex flex-wrap items-center gap-2">
           {/* Period switcher */}
+          {controlledPeriod ? null : (
           <div data-no-capture="true" className="flex flex-wrap items-center gap-1.5 rounded-xl border border-slate-300 bg-white p-1 shadow-2xs">
             <button
               type="button"
@@ -258,8 +266,10 @@ export default function F11PairTableBlock({ anchorDate, toDate }) {
               Theo tháng
             </button>
           </div>
+          )}
 
           {/* Dynamic Period Filter: Day, Week, or Month */}
+          {controlledPeriod ? null : (
           <div data-no-capture="true" className="flex items-center">
             {period === 'day' && (
               <label className="flex items-center gap-1.5 rounded-xl border border-slate-300 bg-white px-2.5 py-1 text-xs font-semibold text-slate-700 shadow-2xs">
@@ -307,6 +317,7 @@ export default function F11PairTableBlock({ anchorDate, toDate }) {
               </label>
             )}
           </div>
+          )}
 
           <div data-no-capture="true" className="flex items-center gap-1.5">
             <label className="flex items-center gap-1 text-[11px] font-semibold text-slate-600">

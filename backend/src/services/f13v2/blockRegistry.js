@@ -55,6 +55,8 @@ const BLOCKS_BY_INDICATOR = Object.freeze({
     f11: Object.freeze([
         ...COMMON_TIME_BLOCKS,
         { id: 'day.pair', page: 'ngay', title: 'Bưu cục chấp nhận × BCVH phát', scope: SCOPES.UNIT },
+        { id: 'week.pair', page: 'tuan', title: 'Bưu cục chấp nhận × BCVH phát', scope: SCOPES.UNIT },
+        { id: 'month.pair', page: 'thang', title: 'Bưu cục chấp nhận × BCVH phát', scope: SCOPES.UNIT },
     ]),
     f12: Object.freeze([
         ...COMMON_TIME_BLOCKS,
@@ -64,6 +66,8 @@ const BLOCKS_BY_INDICATOR = Object.freeze({
         ...COMMON_TIME_BLOCKS,
         { id: 'day.strip', page: 'ngay', title: 'Sáu BCVH trong ngày', scope: SCOPES.UNIT },
         { id: 'day.postman', page: 'ngay', title: 'Bảng bưu tá', scope: SCOPES.UNIT },
+        { id: 'week.postman', page: 'tuan', title: 'Bảng bưu tá', scope: SCOPES.UNIT },
+        { id: 'month.postman', page: 'thang', title: 'Bảng bưu tá', scope: SCOPES.UNIT },
     ]),
 });
 

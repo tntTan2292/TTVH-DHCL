@@ -31,6 +31,14 @@ test('layout for a BCVH-mode account has no city block and no "all units" choice
     assert.ok(!layout.pages[0].subtitle.includes('Bảng tổng hợp'));
 });
 
+test('the indicator matrix and postman blocks are on all three time pages, only for their indicator', () => {
+    const ids = (indicator) => layoutFor({ mode: 'all', bcvh: [] }, indicator).pages.flatMap((p) => p.blocks).map((b) => b.id);
+    for (const id of ['day.pair', 'week.pair', 'month.pair']) assert.ok(ids('f11').includes(id), id);
+    for (const id of ['day.postman', 'week.postman', 'month.postman']) assert.ok(ids('f42').includes(id), id);
+    assert.ok(!ids('f41').some((id) => id.endsWith('.pair') || id.endsWith('.postman')));
+    assert.ok(!ids('f13').some((id) => id.endsWith('.pair') || id.endsWith('.postman')));
+});
+
 test('layout for a mode with no access is empty', () => {
     assert.deepEqual(layoutFor({ mode: 'none', bcvh: [] }).pages, []);
     assert.deepEqual(layoutFor(undefined).pages, []);

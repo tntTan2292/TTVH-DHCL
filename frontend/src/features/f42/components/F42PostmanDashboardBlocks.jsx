@@ -9,10 +9,15 @@ import F42PostmanTrendModal from './F42PostmanTrendModal.jsx';
 export default function F42PostmanDashboardBlocks({
   anchorDate = null,
   maBcvh = 'all',
+  // Time-axis pages: the page decides the period and the table's own period controls are hidden. On Theo ngày fromDate + anchorDate may form a range.
+  controlledPeriod = null,
+  fromDate = null,
 }) {
   const api = useIndicatorApi();
 
-  const [period, setPeriod] = useState('day'); // 'day' | 'week' | 'month'
+  const [ownPeriod, setPeriod] = useState('day'); // 'day' | 'week' | 'month'
+  const period = controlledPeriod || ownPeriod;
+  const isRange = controlledPeriod === 'day' && Boolean(fromDate && anchorDate && fromDate !== anchorDate);
   const [selectedDay, setSelectedDay] = useState(anchorDate || '');
   const [selectedWeek, setSelectedWeek] = useState('');
   const [selectedMonth, setSelectedMonth] = useState('');
@@ -31,11 +36,12 @@ export default function F42PostmanDashboardBlocks({
   const monthOptions = useMemo(() => generateRecentMonths(anchorDate, 12), [anchorDate]);
 
   const activeAnchor = useMemo(() => {
+    if (controlledPeriod) return anchorDate;
     if (period === 'day') return selectedDay || anchorDate;
     if (period === 'week') return selectedWeek || weekOptions[0]?.value || anchorDate;
     if (period === 'month') return selectedMonth || monthOptions[0]?.value || anchorDate;
     return anchorDate;
-  }, [period, selectedDay, selectedWeek, selectedMonth, weekOptions, monthOptions, anchorDate]);
+  }, [controlledPeriod, period, selectedDay, selectedWeek, selectedMonth, weekOptions, monthOptions, anchorDate]);
 
   useEffect(() => {
     let active = true;
@@ -46,8 +52,7 @@ export default function F42PostmanDashboardBlocks({
         setError(null);
 
         const params = {
-          period,
-          ...(activeAnchor ? { anchor_date: activeAnchor } : {}),
+          ...(isRange ? { from_date: fromDate, to_date: anchorDate } : { period, ...(activeAnchor ? { anchor_date: activeAnchor } : {}) }),
           ...(maBcvh && maBcvh !== 'all' ? { ma_bcvh: maBcvh } : {}),
         };
 
@@ -72,15 +77,16 @@ export default function F42PostmanDashboardBlocks({
     return () => {
       active = false;
     };
-  }, [api, period, activeAnchor, maBcvh]);
+  }, [api, period, activeAnchor, maBcvh, isRange, fromDate, anchorDate]);
 
   const periodLabel = useMemo(() => {
+    if (isRange) return `${fromDate.split('-').reverse().join('/')} – ${anchorDate.split('-').reverse().join('/')}`;
     return formatPeriodHeader(period, {
       anchorDate: activeAnchor,
       fromDate: tableData?.meta?.from_date,
       toDate: tableData?.meta?.to_date,
     });
-  }, [period, activeAnchor, tableData?.meta?.from_date, tableData?.meta?.to_date]);
+  }, [isRange, fromDate, anchorDate, period, activeAnchor, tableData?.meta?.from_date, tableData?.meta?.to_date]);
 
   const units = tableData?.units || [];
   const totalRow = tableData?.total_row || null;
@@ -119,13 +125,13 @@ export default function F42PostmanDashboardBlocks({
         units={units}
         totalRow={totalRow}
         period={period}
-        onPeriodChange={setPeriod}
+        onPeriodChange={controlledPeriod ? null : setPeriod}
         selectedDay={selectedDay}
-        onSelectDay={setSelectedDay}
+        onSelectDay={controlledPeriod ? null : setSelectedDay}
         selectedWeek={selectedWeek}
-        onSelectWeek={setSelectedWeek}
+        onSelectWeek={controlledPeriod ? null : setSelectedWeek}
         selectedMonth={selectedMonth}
-        onSelectMonth={setSelectedMonth}
+        onSelectMonth={controlledPeriod ? null : setSelectedMonth}
         weekOptions={weekOptions}
         monthOptions={monthOptions}
         periodLabel={periodLabel}
