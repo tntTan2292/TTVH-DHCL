@@ -246,7 +246,7 @@ export default function F13V2DayPage() {
   }, [metaUnits]);
 
   return (
-    <BcvhUnitsProvider units={scopedUnits} scoped={isScoped}>
+    <BcvhUnitsProvider units={isScoped || indicator.dynamicUnits ? scopedUnits : null} scoped={isScoped}>
       <PageContainer
         accentClassName={theme.accentBar}
         badge={<span className={`rounded-full border px-3 py-0.5 text-sm font-black ${theme.chip}`}>{indicator.moduleLabel}</span>}
