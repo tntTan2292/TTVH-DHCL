@@ -463,8 +463,8 @@ test('HOME-ATTENTION-01: a BCVH unusually low for itself is marked, a steady one
     const out = await service(all4(a)).getExecutive();
     const byCode = Object.fromEntries(out.indicators[2].focus_units.items.map((item) => [item.ma_bcvh, item]));
     assert.equal(byCode[CANONICAL_CODES[0]].attention.basis, 'weekday');
-    assert.equal(byCode[CANONICAL_CODES[0]].attention.baseline, 60);
-    assert.equal(byCode[CANONICAL_CODES[0]].attention.shortfall, 15);
+    assert.equal(byCode[CANONICAL_CODES[0]].attention.baseline, 60.3); // the level of the 4 most recent weeks
+    assert.equal(byCode[CANONICAL_CODES[0]].attention.shortfall, 15.3);
     assert.equal(byCode[CANONICAL_CODES[1]].attention, null); // as usual
     assert.equal(byCode[CANONICAL_CODES[2]].attention, null); // under 4 % of the volume: not judged
     assert.equal(byCode[CANONICAL_CODES[3]].attention, null); // no history: no verdict
