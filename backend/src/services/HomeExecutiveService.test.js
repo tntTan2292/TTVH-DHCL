@@ -446,3 +446,39 @@ test('F4.2 is the fifth card: own label and target 90, its own rate and rank, si
     // each indicator is its own measure: F4.1 keeps its own rate
     assert.equal(out.indicators.find((i) => i.id === 'f41').rate, 70);
 });
+
+test('HOME-ATTENTION-01: a BCVH unusually low for itself is marked, a steady one, a small one and a missing history are not', async () => {
+    const usual = [60, 62, 58, 61, 59, 60, 63, 57]; // the same weekday of the previous 8 weeks
+    const history = new Map(); // from-date -> k (1 = one week earlier than the data day 2026-10-11)
+    for (let k = 1; k <= 8; k += 1) history.set(new Date(Date.UTC(2026, 9, 11 - 7 * k)).toISOString().slice(0, 10), k - 1);
+    const unit = (index, rate, volume) => ({ ma_bcvh: CANONICAL_CODES[index], ten_bcvh: `Unit ${index}`, total_bg: volume, passed_rate: rate, total_failed: 1 });
+    const a = adapter();
+    a.ranking = async (from, to) => {
+        assert.equal(from, to); // day mode compares day with day
+        if (from === '2026-10-11') return { data: [unit(0, 45, 100), unit(1, 60, 100), unit(2, 30, 3), unit(3, 45, 100), unit(4, 61, 100), unit(5, 59, 100)] };
+        const k = history.get(from);
+        const rows = [unit(0, usual[k], 100), unit(1, usual[k], 100), unit(2, 60, 3), unit(4, usual[k], 100), unit(5, usual[k], 100)]; // Unit 3 has no history
+        return { data: rows };
+    };
+    const out = await service(all4(a)).getExecutive();
+    const byCode = Object.fromEntries(out.indicators[2].focus_units.items.map((item) => [item.ma_bcvh, item]));
+    assert.equal(byCode[CANONICAL_CODES[0]].attention.basis, 'weekday');
+    assert.equal(byCode[CANONICAL_CODES[0]].attention.baseline, 60);
+    assert.equal(byCode[CANONICAL_CODES[0]].attention.shortfall, 15);
+    assert.equal(byCode[CANONICAL_CODES[1]].attention, null); // as usual
+    assert.equal(byCode[CANONICAL_CODES[2]].attention, null); // under 4 % of the volume: not judged
+    assert.equal(byCode[CANONICAL_CODES[3]].attention, null); // no history: no verdict
+    assert.equal(byCode[CANONICAL_CODES[0]].rate, 45); // the figure itself is untouched
+    // F1.1 / F1.2 lists are not BCVH: no attention key
+    assert.equal(out.indicators[0].focus_units.items.every((item) => !('attention' in item)), true);
+});
+
+test('HOME-ATTENTION-01: a failing history query leaves the rows unmarked, not the block empty', async () => {
+    const a = adapter();
+    const rows = [99, 50, 80, 91, 70, 60].map((r, i) => ({ ma_bcvh: CANONICAL_CODES[i], ten_bcvh: `Unit ${i}`, total_bg: 10, passed_rate: r, total_failed: 1 }));
+    a.ranking = async (from, to) => { if (from !== '2026-10-11') throw new Error('boom'); return { data: rows }; };
+    const out = await service(all4(a)).getExecutive();
+    const items = out.indicators[2].focus_units.items;
+    assert.equal(items.length, 6);
+    assert.equal(items.every((item) => item.attention === null), true);
+});

@@ -1,9 +1,10 @@
 import React, { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ExternalLink } from 'lucide-react';
+import { ExternalLink, TrendingDown } from 'lucide-react';
 import SortableTh from '../../../components/common/SortableTh.jsx';
 import { shortBcvhName } from '../homeNames.js';
 import { timeAxisPath } from '../homePeriod.js';
+import { ATTENTION_LEGEND, attentionTitle } from '../homeAttention.js';
 import { INDICATORS, indicatorTheme } from '../../indicator/indicatorConfig.js';
 import { IndicatorProvider } from '../../indicator/IndicatorContext.js';
 import {
@@ -94,6 +95,7 @@ export default function ActionUnitsBlock({
   // A click opens the page of the period on screen (Ngày / Tuần / Tháng) for the same indicator, on the same
   // day / week / month; a BCVH row also narrows it to that BCVH (pairs and offices are not BCVH, so no narrowing).
   const detailPath = (maBcvh = null) => timeAxisPath(indConfig.id, indicatorData, kind === 'bcvh' ? maBcvh : null);
+  const hasAttention = sortedUnits.some((u) => u.attention);
   const badge = typeof spec.badge === 'function' ? spec.badge(threshold, sortedUnits.length) : spec.badge;
   const emptyText = kind === 'bcvh'
     ? 'Chưa có dữ liệu phân rã đơn vị cho kỳ này.'
@@ -132,6 +134,11 @@ export default function ActionUnitsBlock({
           <span className="inline-flex items-center rounded-md border border-rose-200 bg-rose-50 px-2 py-0.5 text-[11px] font-bold text-rose-700">
             {badge}
           </span>
+          {hasAttention && (
+            <span className="inline-flex items-center gap-1 rounded-md border border-amber-300 bg-amber-50 px-2 py-0.5 text-[11px] font-bold text-amber-800">
+              <TrendingDown size={12} /> {ATTENTION_LEGEND}
+            </span>
+          )}
         </div>
 
         {/* The table sits in an absolutely placed box: its rows never push the block taller than the ranking table */}
@@ -180,10 +187,21 @@ export default function ActionUnitsBlock({
                       ref={index === 0 ? rowRef : undefined}
                       key={u.key || u.ma_bcvh}
                       onClick={() => navigate(detailPath(u.ma_bcvh))}
-                      className="cursor-pointer transition-colors hover:bg-slate-50/80"
+                      className={`cursor-pointer transition-colors ${u.attention ? 'bg-amber-50/70 hover:bg-amber-100/60' : 'hover:bg-slate-50/80'}`}
                       title="Xem chi tiết đơn vị này trong đúng kỳ đang xem"
                     >
-                      <td className="px-2.5 py-2 font-bold text-slate-900">{u.ten_bcvh}</td>
+                      <td className="px-2.5 py-2 font-bold text-slate-900">
+                        {u.attention && (
+                          <span
+                            className="mr-1.5 inline-flex align-middle text-amber-600"
+                            title={attentionTitle(u.attention, indicatorData?.period, indicatorData?.period_to)}
+                            aria-label={ATTENTION_LEGEND}
+                          >
+                            <TrendingDown size={15} strokeWidth={2.5} />
+                          </span>
+                        )}
+                        {u.ten_bcvh}
+                      </td>
                       {kind === 'pairs' && (
                         <td className="px-2.5 py-2 font-bold text-slate-900">{shortBcvhName(u.ten_phat)}</td>
                       )}

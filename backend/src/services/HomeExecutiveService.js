@@ -12,6 +12,7 @@
 
 const { F11NationalRankService, F11_RANK_SOURCE } = require('./F11NationalRankService');
 const { resolvePeriod, CANONICAL_CODES } = require('./F11RankingService');
+const { historyRanges, judgeUnit } = require('./HomeUnitAttention');
 const defaultDb = require('../config/db').db;
 
 const TARGETS = Object.freeze({ f11: 95, f12: 95, f13: 90, f41: 90, f42: 90 }); // = frontend indicatorConfig.js
@@ -346,7 +347,7 @@ class HomeExecutiveService {
         const nationalRank = summary.national_rank?.available ? summary.national_rank : null;
         const previousRate = previousItem ? previousItem.rate : null;
 
-        const focusUnits = await this._focusUnits(id, adapter, dataDate, dataDate, ranking, target);
+        const focusUnits = await this._focusUnits(id, adapter, dataDate, dataDate, ranking, target, 'day');
 
         return {
             ...periodFields,
@@ -430,7 +431,7 @@ class HomeExecutiveService {
             failed: Number(summary.total_failed || 0),
             trend: this._periodSeries(period, trend?.items || [], from, rate),
             monthly_rank: await this._monthlyRank(adapter, to),
-            focus_units: await this._focusUnits(id, adapter, from, to, ranking, target),
+            focus_units: await this._focusUnits(id, adapter, from, to, ranking, target, period),
         };
     }
 
@@ -461,9 +462,31 @@ class HomeExecutiveService {
         return period === 'week' ? points.slice(-SERIES_WEEKS) : points;
     }
 
+    // HOME-ATTENTION-01: marks the BCVH whose rate is unusually low for that BCVH (see HomeUnitAttention). Any failure
+    // here leaves the rows exactly as they were, with `attention: null`.
+    async _withAttention(adapter, items, period, from, to) {
+        const plain = items.map((item) => ({ ...item, attention: null }));
+        try {
+            const ranges = historyRanges(period, from, to);
+            if (!ranges.length) return plain;
+            const past = await Promise.all(ranges.map((range) => adapter.ranking(range.from, range.to).catch(() => null)));
+            const totalVolume = items.reduce((sum, item) => sum + Number(item.volume || 0), 0);
+            return items.map((item) => {
+                const history = past.map((result) => {
+                    const row = (result?.data || []).find((entry) => String(entry.ma_bcvh) === String(item.ma_bcvh));
+                    const volume = Number(row?.total_bg ?? row?.sl_bg_ptc ?? 0);
+                    return row && volume > 0 && row.passed_rate !== null && row.passed_rate !== undefined ? Number(row.passed_rate) : null;
+                });
+                return { ...item, attention: judgeUnit({ period, rate: item.rate, volume: item.volume, totalVolume, history }) };
+            });
+        } catch {
+            return plain;
+        }
+    }
+
     // The "units to act on" of one indicator (see FOCUS). A failure here must not hide the card: the list is
     // simply empty and the block says there is nothing to show.
-    async _focusUnits(id, adapter, from, to, ranking, target) {
+    async _focusUnits(id, adapter, from, to, ranking, target, period = 'day') {
         const { kind, threshold } = FOCUS[id];
         const gap = (rate) => round1(rate - target);
         const biggestBelow = (items) => items
@@ -523,7 +546,7 @@ class HomeExecutiveService {
                     // F41-TMS-COMPARE-01: only the F4.1 ranking rows carry these (other indicators: no extra keys)
                     ...(row.rate_no_tms !== undefined ? { rate_no_tms: row.rate_no_tms, rate_blank_tms: row.rate_blank_tms } : {}),
                 }));
-            return { kind, threshold, items };
+            return { kind, threshold, items: await this._withAttention(adapter, items, period, from, to) };
         } catch {
             return { kind, threshold, items: [] };
         }
