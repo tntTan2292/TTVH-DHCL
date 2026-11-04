@@ -151,4 +151,4 @@ function expireFingerprintMemo() {
 // A response computed from the aggregate must not outlive the fuse that allowed it (and the other way round).
 aggReadPolicy.onFuseChange(() => clearResponseCache());
 
-module.exports = { cachedRead, clearResponseCache, computeFingerprint, expireFingerprintMemo };
+module.exports = { cachedRead, clearResponseCache, computeFingerprint, getFingerprint, expireFingerprintMemo };

@@ -482,3 +482,52 @@ test('HOME-ATTENTION-01: a failing history query leaves the rows unmarked, not t
     assert.equal(items.length, 6);
     assert.equal(items.every((item) => item.attention === null), true);
 });
+
+test('HOME-WARMUP-01: a finished answer is reused while the data version is the same, recomputed when it moves', async () => {
+    const a = periodAdapter();
+    let computed = 0;
+    const baseSummary = a.summary;
+    a.summary = async (...args) => { computed += 1; return baseSummary(...args); };
+    let version = 'v1';
+    const svc = new HomeExecutiveService({ adapters: all4(a), db: fakeDb({ fact_x: '2026-10-20' }), versionProvider: async () => version });
+    const first = await svc.getExecutive({ period: 'week', offset: 0 });
+    const afterFirst = computed;
+    assert.ok(afterFirst > 0);
+    const second = await svc.getExecutive({ anchorDate: null, period: 'week', offset: 0 });
+    assert.equal(computed, afterFirst); // reused
+    assert.equal(second, first);
+    await svc.getExecutive({ period: 'week', offset: -1 }); // another view is its own answer
+    assert.ok(computed > afterFirst);
+    const before = computed;
+    version = 'v2'; // a load changed the data
+    await svc.getExecutive({ period: 'week', offset: 0 });
+    assert.ok(computed > before);
+});
+
+test('HOME-WARMUP-01: requests that arrive while the same answer is computed share it; a failure is not kept', async () => {
+    const a = periodAdapter();
+    let computed = 0;
+    const baseSummary = a.summary;
+    a.summary = async (...args) => { computed += 1; await new Promise((resolve) => setTimeout(resolve, 5)); return baseSummary(...args); };
+    const svc = new HomeExecutiveService({ adapters: all4(a), db: fakeDb({ fact_x: '2026-10-20' }), versionProvider: async () => 'v1' });
+    const [x, y] = await Promise.all([svc.getExecutive({ period: 'month' }), svc.getExecutive({ period: 'month' })]);
+    assert.equal(x, y);
+    const once = computed;
+    await svc.getExecutive({ period: 'month' });
+    assert.equal(computed, once);
+
+    await assert.rejects(svc.getExecutive({ period: 'year' }), /period must be/);
+    await assert.rejects(svc.getExecutive({ period: 'year' }), /period must be/); // the error was not remembered as an answer
+});
+
+test('HOME-WARMUP-01: without a version provider every call is computed, as before', async () => {
+    const a = periodAdapter();
+    let computed = 0;
+    const baseSummary = a.summary;
+    a.summary = async (...args) => { computed += 1; return baseSummary(...args); };
+    const svc = service(all4(a), { fact_x: '2026-10-20' });
+    await svc.getExecutive({ period: 'week' });
+    const once = computed;
+    await svc.getExecutive({ period: 'week' });
+    assert.equal(computed, once * 2);
+});

@@ -22,6 +22,10 @@ const TREND_DAYS = 30;
 const SERIES_WEEKS = 12;
 const PERIODS = Object.freeze(['day', 'week', 'month']);
 const MAX_BACK = 120; // how many periods the back button may go
+// HOME-WARMUP-01: a finished answer is kept for as long as the data fingerprint is the same (an import / backfill
+// changes it at once); this age is only a safety net, as in the response cache.
+const MEMO_MAX_AGE_MS = 6 * 60 * 60 * 1000;
+const MEMO_MAX_ENTRIES = 300;
 // The block fills the height it is given, so the server sends up to this many below-threshold units (biggest
 // volume first) and the screen shows as many as fit (PO 2026-10-22).
 const FOCUS_UNITS = 10;
@@ -185,9 +189,37 @@ function buildDefaultAdapters(db = defaultDb) {
 }
 
 class HomeExecutiveService {
-    constructor({ adapters, db = defaultDb } = {}) {
+    // versionProvider (HOME-WARMUP-01): async () => string that changes whenever the loaded data changes. Without
+    // it every call is computed from scratch (unit tests); with it a finished answer is reused until the version moves.
+    constructor({ adapters, db = defaultDb, versionProvider = null } = {}) {
         this.db = db;
         this.adapters = adapters || null;
+        this.versionProvider = versionProvider;
+        this._memo = new Map();
+    }
+
+    clearMemo() {
+        this._memo.clear();
+    }
+
+    // The answers are only serialised by the controller, never changed, so one object can serve every caller. A request
+    // that arrives while the same answer is being computed waits for it instead of starting a second computation.
+    async _memoized(key, compute) {
+        if (!this.versionProvider) return compute();
+        let version;
+        try {
+            version = await this.versionProvider();
+        } catch {
+            return compute();
+        }
+        const hit = this._memo.get(key);
+        if (hit && hit.version === version && Date.now() - hit.at < MEMO_MAX_AGE_MS) return hit.promise;
+        const entry = { version, at: Date.now(), promise: compute() };
+        this._memo.delete(key);
+        this._memo.set(key, entry);
+        while (this._memo.size > MEMO_MAX_ENTRIES) this._memo.delete(this._memo.keys().next().value);
+        entry.promise.catch(() => { if (this._memo.get(key) === entry) this._memo.delete(key); });
+        return entry.promise;
     }
 
     _adapters() {
@@ -576,7 +608,11 @@ class HomeExecutiveService {
     }
 
     // GET /api/home/executive?period=day|week|month&offset=0|-1|-2...  (offset 0 = the latest period with data)
-    async getExecutive({ anchorDate, period = 'day', offset = 0 } = {}) {
+    getExecutive({ anchorDate, period = 'day', offset = 0 } = {}) {
+        return this._memoized(JSON.stringify(['executive', anchorDate || null, period, offset]), () => this._computeExecutive({ anchorDate, period, offset }));
+    }
+
+    async _computeExecutive({ anchorDate, period = 'day', offset = 0 } = {}) {
         if (anchorDate && !isIsoDate(anchorDate)) throw codedError('INVALID_DATE', 'anchor_date must be a valid ISO date in YYYY-MM-DD format');
         if (!PERIODS.includes(period)) throw codedError('MISSING_PARAM', 'period must be one of day, week, month');
         if (!Number.isInteger(offset) || offset > 0 || offset < -MAX_BACK) throw codedError('INVALID_RANGE', `offset must be an integer from -${MAX_BACK} to 0`);
@@ -599,7 +635,12 @@ class HomeExecutiveService {
     }
 
     // GET /api/home/national-ranking?indicator=&period=&anchor_date=
-    async getNationalRanking({ indicator, period = 'day', anchorDate, fromDate, toDate, offset = 0 } = {}) {
+    getNationalRanking({ indicator, period = 'day', anchorDate, fromDate, toDate, offset = 0 } = {}) {
+        const key = JSON.stringify(['ranking', indicator, period, anchorDate || null, fromDate || null, toDate || null, offset]);
+        return this._memoized(key, () => this._computeNationalRanking({ indicator, period, anchorDate, fromDate, toDate, offset }));
+    }
+
+    async _computeNationalRanking({ indicator, period = 'day', anchorDate, fromDate, toDate, offset = 0 } = {}) {
         if (!ORDER.includes(indicator)) throw codedError('INVALID_INDICATOR', 'indicator must be one of f11, f12, f13, f41, f42');
         const adapter = this._adapters()[indicator];
 
@@ -705,9 +746,21 @@ class HomeExecutiveService {
     }
 }
 
+// The running instance keeps finished answers while the loaded data is unchanged (HOME-WARMUP-01); the data
+// fingerprint is the one the response cache already uses, and an aggregate fuse change forgets everything.
+function createRunningService() {
+    const instance = new HomeExecutiveService({
+        versionProvider: () => require('../middleware/responseCache').getFingerprint(),
+    });
+    try {
+        require('./aggReadPolicy').onFuseChange(() => instance.clearMemo());
+    } catch { /* the memo then only follows the data fingerprint */ }
+    return instance;
+}
+
 module.exports = {
     HomeExecutiveService,
-    homeExecutiveService: new HomeExecutiveService(),
+    homeExecutiveService: createRunningService(),
     F13_RANK_SOURCE,
     F41_RANK_SOURCE,
     TARGETS,

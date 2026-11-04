@@ -86,6 +86,7 @@ async function shutdown(signal, exitCode = 0) {
             const { stopAutoBackfillQueueRuntime } = require('./src/services/autoBackfillQueueRuntime');
             hangtonScheduler?.stop();
             bfPhatScheduler?.stop();
+            homeWarmup?.stop();
             autoImportSchedule?.stop();
             sessionKeepAlive?.stop();
             await stopAutoBackfillQueueRuntime();
@@ -216,6 +217,19 @@ function startBfPhatScheduler() {
     bfPhatScheduler.start();
 }
 
+// HOME-WARMUP-01: computes the Home page in the background after a load and after a start, so the first visit is fast.
+// Off in tests or with HOME_WARMUP=off.
+let homeWarmup = null;
+function startHomeWarmup() {
+    if (process.env.NODE_ENV === 'test' || String(process.env.HOME_WARMUP || 'on').toLowerCase() === 'off') return;
+    const { HomeWarmup } = require('./src/services/HomeWarmup');
+    homeWarmup = new HomeWarmup({
+        service: require('./src/services/HomeExecutiveService').homeExecutiveService,
+        getVersion: () => require('./src/middleware/responseCache').getFingerprint(),
+    });
+    homeWarmup.start();
+}
+
 // AUTO-IMPORT-SCHEDULE-01: scheduled automatic import (off unless AUTO_IMPORT_SCHEDULE_ENABLED=true) and DKCL session
 // keep-alive (on unless DKCL_KEEPALIVE_ENABLED=false). Neither signs in: the DKCL sign-in has a captcha.
 let autoImportSchedule = null;
@@ -274,6 +288,7 @@ function startServer() {
             startAutoImportSchedule();
             startHangtonScheduler();
             startBfPhatScheduler();
+            startHomeWarmup();
         })
         .then(() => {
             const server = app.listen(PORT, HOST, () => {
