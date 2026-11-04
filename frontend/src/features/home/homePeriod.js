@@ -82,6 +82,30 @@ export function periodChipTitle(info) {
   return formatDayMonth(info.period_to);
 }
 
+/**
+ * Where a click on the Home page leads: the same indicator, on the page of the period being viewed (Ngày / Tuần /
+ * Tháng), with that very day / week / month open, so the leader keeps tracing what he was looking at. `info` is the
+ * indicator's own period fields; `ma_bcvh` (optional) narrows the page to that unit.
+ *  day   -> /f41/v2/ngay?from=2026-10-20&to=2026-10-20
+ *  week  -> /f41/v2/tuan?week=2026-W42
+ *  month -> /f41/v2/thang?month=2026-10
+ */
+export function timeAxisPath(indicatorId, info, maBcvh = null) {
+  const base = `/${indicatorId}/v2`;
+  const unit = maBcvh && maBcvh !== 'all' ? `bcvh=${encodeURIComponent(maBcvh)}` : '';
+  const join = (query) => [query, unit].filter(Boolean).join('&');
+  const to = info?.period_to;
+  if (info?.period === 'week' && info.period_week && info.period_year) {
+    const week = `${info.period_year}-W${String(info.period_week).padStart(2, '0')}`;
+    return `${base}/tuan?${join(`week=${week}`)}`;
+  }
+  if (info?.period === 'month' && (info.period_from || to)) {
+    return `${base}/thang?${join(`month=${String(info.period_from || to).slice(0, 7)}`)}`;
+  }
+  if (to) return `${base}/ngay?${join(`from=${to}&to=${to}`)}`;
+  return unit ? `${base}/ngay?${unit}` : `${base}/ngay`;
+}
+
 /** Caption of the small line chart inside a card. */
 export function sparkCaption(trendKind) {
   if (trendKind === 'week') return '12 tuần gần nhất';

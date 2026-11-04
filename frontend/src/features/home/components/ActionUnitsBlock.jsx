@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ExternalLink } from 'lucide-react';
 import SortableTh from '../../../components/common/SortableTh.jsx';
 import { shortBcvhName } from '../homeNames.js';
+import { timeAxisPath } from '../homePeriod.js';
 import { INDICATORS, indicatorTheme } from '../../indicator/indicatorConfig.js';
 import { IndicatorProvider } from '../../indicator/IndicatorContext.js';
 import {
@@ -90,7 +91,9 @@ export default function ActionUnitsBlock({
   );
   const sortedUnits = useMemo(() => sortLowestUnits(shownUnits, sort), [shownUnits, sort]);
 
-  const rankingUrl = indConfig.routes?.ranking || `/${selectedIndicator}/ranking/bcvh`;
+  // A click opens the page of the period on screen (Ngày / Tuần / Tháng) for the same indicator, on the same
+  // day / week / month; a BCVH row also narrows it to that BCVH (pairs and offices are not BCVH, so no narrowing).
+  const detailPath = (maBcvh = null) => timeAxisPath(indConfig.id, indicatorData, kind === 'bcvh' ? maBcvh : null);
   const badge = typeof spec.badge === 'function' ? spec.badge(threshold, sortedUnits.length) : spec.badge;
   const emptyText = kind === 'bcvh'
     ? 'Chưa có dữ liệu phân rã đơn vị cho kỳ này.'
@@ -115,9 +118,9 @@ export default function ActionUnitsBlock({
           <div data-no-capture="true" className="flex shrink-0 items-center gap-2">
             <button
               type="button"
-              onClick={() => navigate(rankingUrl)}
+              onClick={() => navigate(detailPath())}
               className="inline-flex cursor-pointer items-center gap-1 text-xs font-bold text-blue-600 hover:text-blue-800 hover:underline"
-              title={`Xem đầy đủ bảng xếp hạng ${indConfig.moduleLabel}`}
+              title={`Xem đầy đủ ${indConfig.moduleLabel} theo ${indicatorData?.period === 'week' ? 'tuần' : indicatorData?.period === 'month' ? 'tháng' : 'ngày'}`}
             >
               <span>Xem đầy đủ</span>
               <ExternalLink size={12} />
@@ -176,9 +179,9 @@ export default function ActionUnitsBlock({
                     <tr
                       ref={index === 0 ? rowRef : undefined}
                       key={u.key || u.ma_bcvh}
-                      onClick={() => navigate(rankingUrl)}
+                      onClick={() => navigate(detailPath(u.ma_bcvh))}
                       className="cursor-pointer transition-colors hover:bg-slate-50/80"
-                      title="Đi tới bảng xếp hạng chi tiết"
+                      title="Xem chi tiết đơn vị này trong đúng kỳ đang xem"
                     >
                       <td className="px-2.5 py-2 font-bold text-slate-900">{u.ten_bcvh}</td>
                       {kind === 'pairs' && (

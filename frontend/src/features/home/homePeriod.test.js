@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { navState, periodChipTitle, periodShortTitle, periodTitle, previousBasisLabel, sparkCaption } from './homePeriod.js';
+import { navState, periodChipTitle, periodShortTitle, periodTitle, previousBasisLabel, sparkCaption, timeAxisPath } from './homePeriod.js';
 
 test('previousBasisLabel names what the change is read against', () => {
   assert.equal(previousBasisLabel('day'), 'hôm trước');
@@ -38,6 +38,22 @@ test('navState: back needs earlier data and a free request, forward only when no
   assert.equal(navState({ periodInfo: info, offset: -120, loading: false }).canGoBack, false);
   assert.equal(navState({ periodInfo: { has_previous: false }, offset: 0, loading: false }).canGoBack, false);
   assert.equal(navState({ periodInfo: null, offset: 0, loading: false }).canGoBack, false);
+});
+
+test('timeAxisPath opens the page of the period on screen, with that day / week / month', () => {
+  assert.equal(timeAxisPath('f41', { period: 'day', period_from: '2026-10-20', period_to: '2026-10-20' }), '/f41/v2/ngay?from=2026-10-20&to=2026-10-20');
+  assert.equal(timeAxisPath('f13', { period: 'week', period_week: 42, period_year: 2026, period_from: '2026-10-15', period_to: '2026-10-20' }), '/f13/v2/tuan?week=2026-W42');
+  assert.equal(timeAxisPath('f12', { period: 'week', period_week: 3, period_year: 2027, period_from: '2027-01-14', period_to: '2027-01-20' }), '/f12/v2/tuan?week=2027-W03');
+  assert.equal(timeAxisPath('f11', { period: 'month', period_from: '2026-10-01', period_to: '2026-10-20' }), '/f11/v2/thang?month=2026-10');
+});
+
+test('timeAxisPath adds the unit when a row was clicked and falls back to the day page without a period', () => {
+  const day = { period: 'day', period_from: '2026-10-20', period_to: '2026-10-20' };
+  assert.equal(timeAxisPath('f13', day, '531000'), '/f13/v2/ngay?from=2026-10-20&to=2026-10-20&bcvh=531000');
+  assert.equal(timeAxisPath('f13', { period: 'month', period_from: '2026-10-01', period_to: '2026-10-20' }, '531000'), '/f13/v2/thang?month=2026-10&bcvh=531000');
+  assert.equal(timeAxisPath('f13', day, 'all'), '/f13/v2/ngay?from=2026-10-20&to=2026-10-20');
+  assert.equal(timeAxisPath('f13', null), '/f13/v2/ngay');
+  assert.equal(timeAxisPath('f13', null, '531000'), '/f13/v2/ngay?bcvh=531000');
 });
 
 test('periodChipTitle is the shortest name of the period', () => {
