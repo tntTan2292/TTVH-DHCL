@@ -7,6 +7,7 @@ import { periodTitle } from '../features/home/homePeriod.js';
 import { computeHomeZoom, isAutoTv } from '../features/home/homeFit.js';
 import ActionUnitsBlock from '../features/home/components/ActionUnitsBlock.jsx';
 import MonthlyRankProgressionBlock from '../features/home/components/MonthlyRankProgressionBlock.jsx';
+import ExecutiveSummaryStrip from '../features/home/components/ExecutiveSummaryStrip.jsx';
 
 /**
  * DashboardHome — Trang chủ điều hành chất lượng (HOME-BI-01)
@@ -206,6 +207,8 @@ export default function DashboardHome() {
           </button>
         </div>
       )}
+
+      <ExecutiveSummaryStrip indicators={indicators} period={executiveData?.period || period} loading={loadingExecutive} />
 
       {/* Indicator cards (F1.1, F1.2, F1.3, F4.1, F4.2): rate, national rank, gap to target, change, own 30-day line */}
       <section aria-label="Thẻ chỉ tiêu điều hành" aria-busy={loadingExecutive} className={loadingExecutive ? "opacity-60 transition-opacity" : "transition-opacity"}>
