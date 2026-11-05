@@ -7,7 +7,7 @@
 - Programme: F1.3 cause rebuild. Predecessor `F13-WHY-DATA-01` (CLOSED / PO UI PASS, commits `c8b24977`, `7ae159d2`). Next tickets in the agreed order (PO + ChatGPT, 2026-11-05): Hành trình page (cause, flags, hints, filters; UI by Antigravity), Phân tích tuyến phát, Năng lực và chất lượng tuyến (needs a PO definition first), Dữ liệu minh chứng, NARRATIVE, RETIRE.
 - Owner: `Claude Code` (backend, data, tests, documentation, Git). Model discipline: Sonnet 5.5 implements; **Opus reviews independently** (high risk: new derived table, background job); the same model does not self-approve.
 - Branch: `codex/da-impl-006` (as `PROJECT_SNAPSHOT.md`).
-- **Status: `ACTIVE - P1 ACCEPTED BY OPUS REVIEW (section 14); P2 IMPLEMENTED, FOR OPUS REVIEW (section 15); P3 next`** (activated 2026-11-05, section 10). The Design of Record v2 (with section 6A and Appendix D) was approved by the PO on 2026-11-05; the Opus pre-implementation review (section 12) found no SSOT or PO issue.
+- **Status: `ACTIVE - P1 and P2 ACCEPTED BY OPUS REVIEW (sections 14, 16); WAITING FOR F13-WHY-DATA-02 (cause rules v5) before P3`** (activated 2026-11-05, section 10). The Design of Record v2 (with section 6A and Appendix D) was approved by the PO on 2026-11-05; the Opus pre-implementation review (section 12) found no SSOT or PO issue.
 - Relation to `PROJECT_SNAPSHOT.md`: Current Ticket is `F13-ROUTE-POSTMAN-IDENTITY-01` (PAUSED by PO decision). This ticket does **not** replace it and does **not** reactivate it (the same arrangement as `F13-WHY-DATA-01`: "does not change Current Ticket"). On activation the snapshot only receives a "Previous update" line; the PAUSED state of the postman-identity ticket is untouched.
 
 ## 2. Authority and sources
@@ -153,3 +153,16 @@ Acceptance (a)-(f): (a) partition of N, Đạt, KĐ, unrated and `shortfall_x10`
 - `parcels` does not return the five milestones (the table does not store them); Hành trình keeps reading `JourneyService` for those.
 - `rate` is a percent rounded to one decimal for display; shares are ratios 0..1 without rounding; both come from integer counters.
 - The controller reads through the shared `config/db` connection (reads only); the builder's own writer connection is the P3 rule P1-R1.
+
+## 16. Opus review of P2 (2026-11-05, Claude Code / Opus 5.5; commit `10e75a9b`)
+
+**Verdict: P2 ACCEPTED - acceptance (a)-(f) met, no blocker, no SSOT issue in P2 itself.**
+
+Repeated independently on the DB copy (not taken from the executor's report): all suites green one file at a time (`CauseAggQueryService` 17/17, `f13v2WhyRoutes.scope` 5/5, `CauseAggBuilder` 21/21, `tctIntervals` 45/45, `CauseClassifier` 27/27, `JourneyService` 19/19, `f13v2Units` 20/20, `f13v2Routes.scope` 13/13); October 2026 per BCVH equals raw `fact_f13` (0 differences; 113 235 rows, 68 499 Đạt, 38 820 KĐ, 60,5 %); routes (incl. NON_POSTMAN / OTHER buckets) and postmen (incl. "Chưa có bưu tá") add up to each BCVH for N, Đạt, KĐ, unrated and `shortfall_x10`, shortfall shares add up to 1; cause lines + chưa đủ căn cứ = KĐ, `unclassified` 0; Thuận Hóa 28/10 route Ô tô Nam giữa 141 BG, 19,1 %, own shortfall 99,9, Không trọn lô 112 and its parcel list returns exactly 112; a BCVH-mode account receives its own unit only, no total, another unit -> `OUT_OF_SCOPE`. Code read: one WHERE builder for figures and lists, whitelisted sort, parameterised filters, integer counters.
+
+| ID | Level | Finding | Resolution |
+|---|---|---|---|
+| P2-R1 | PO (business) | With rules v4, "chưa đủ căn cứ" is 41-88 % of failed parcels from January to August 2026 (TCT hours not reproducible, F4.1 arrival missing), 7-11 % from September. | PO decided rules v5 on 2026-11-05: `F13-WHY-DATA-02` (TCT verdict as given, arrival from BatchFile, Phát details, "Chờ Chuyên quản phân tích"). P3 waits for it; the table is rebuilt with the new `classifier_version`. |
+| P2-R2 | Low (UI ticket) | The default route order mixes the NON_POSTMAN bucket with ranked routes (Thuận Hóa 28/10: the bucket is 3rd). | The page ranks `POSTMAN` routes and shows the buckets as "Tuyến khác" (Design section 4); the API already filters by `route_scope`. |
+| P2-R3 | Low | After the next backend restart the endpoints are live with an empty table until the P4 build; `meta.freshness` then lists every day as missing. No screen calls them. | Accepted; production build after P4 with PO agreement. |
+| P2-R4 | Low (UI ticket) | `by_flag` counts a parcel once per flag, so its sum can exceed the "chưa đủ căn cứ" count. | To be labelled on the page. |
