@@ -17,6 +17,9 @@ const { weekBoundsForWeekId } = require('../bcvhWeeklyComparisonService');
 const { monthBounds, isRealDate } = require('./periodResolve');
 const { CAUSES, PHAT_DETAILS } = require('./CauseClassifier');
 const { REMAINING_BUCKET_MS } = require('../../config/f13CauseConfig');
+const { computeDaySignature, computeClassifierVersion } = require('./CauseAggBuilder');
+
+const SIGNATURE_TTL_MS = 60 * 1000;
 
 const FAILED = 'Không đạt';
 const PASSED = 'Đạt';
@@ -194,9 +197,13 @@ function sourceOf(row, failed) {
 
 class CauseAggQueryService {
     /** @param {{db: sqlite3.Database|{all: Function}}} options db must offer all(sql, params) (callback or promise style) */
-    constructor({ db } = {}) {
+    constructor({ db, classifierVersion = null, signatureTtlMs = SIGNATURE_TTL_MS, now = () => Date.now() } = {}) {
         if (!db) throw new Error('CauseAggQueryService needs a db');
         this.db = wrapDb(db);
+        this.classifierVersion = classifierVersion;
+        this.signatureTtlMs = signatureTtlMs;
+        this.now = now;
+        this.signatureCache = new Map();
     }
 
     // ---- filter -> WHERE, shared by the figures and the parcel list
@@ -304,23 +311,49 @@ class CauseAggQueryService {
         return { ...echo, ...keys };
     }
 
-    // ---- freshness: the stored state of every day with data in the range
+    // ---- freshness (P3): for every day with data the stored input signature and classifier version are compared with the CURRENT ones
+    // (signature cached SIGNATURE_TTL_MS per day); a moved signature or an old classifier version is stale, never complete.
+    async _currentSignature(day) {
+        const cached = this.signatureCache.get(day);
+        const at = this.now();
+        if (cached && at - cached.at < this.signatureTtlMs) return cached.value;
+        const value = await computeDaySignature({ get: async (sql, params) => (await this.db.all(sql, params))[0] }, day);
+        this.signatureCache.set(day, { value, at });
+        return value;
+    }
+
+    _currentClassifierVersion() {
+        if (!this.classifierVersion) this.classifierVersion = computeClassifierVersion();
+        return this.classifierVersion;
+    }
+
     async freshness(period) {
         const factDays = (await this.db.all('SELECT DISTINCT ngay_do_kiem AS d FROM fact_f13 WHERE ngay_do_kiem BETWEEN ? AND ? ORDER BY 1', [period.from, period.to])).map((row) => row.d);
-        const dayRows = await this.db.all('SELECT ngay_do_kiem AS d, state, built_at, error FROM f13_cause_day WHERE ngay_do_kiem BETWEEN ? AND ? ORDER BY 1', [period.from, period.to]);
+        const dayRows = await this.db.all('SELECT ngay_do_kiem AS d, state, built_at, error, input_signature, classifier_version FROM f13_cause_day WHERE ngay_do_kiem BETWEEN ? AND ? ORDER BY 1', [period.from, period.to]);
         const byDay = new Map(dayRows.map((row) => [row.d, row]));
-        const staleDays = dayRows.filter((row) => row.state === 'STALE').map((row) => row.d);
-        const buildingDays = dayRows.filter((row) => row.state === 'BUILDING').map((row) => row.d);
+        const version = this._currentClassifierVersion();
+        const staleDays = [];
+        const staleReasons = {};
+        const buildingDays = [];
+        for (const row of dayRows) {
+            if (row.state === 'BUILDING') { buildingDays.push(row.d); continue; }
+            let reason = null;
+            if (row.state === 'STALE') reason = 'STORED_STALE';
+            else if (row.classifier_version !== version) reason = 'CLASSIFIER_VERSION';
+            else if (row.input_signature !== await this._currentSignature(row.d)) reason = 'SIGNATURE_MOVED';
+            if (reason) { staleDays.push(row.d); staleReasons[row.d] = reason; }
+        }
         const missingDays = factDays.filter((day) => !byDay.has(day));
         const builtTo = await this.db.all("SELECT MAX(ngay_do_kiem) AS d FROM f13_cause_day WHERE state = 'FRESH'");
         return {
             complete: staleDays.length === 0 && buildingDays.length === 0 && missingDays.length === 0,
             stale_days: staleDays,
+            stale_reasons: staleReasons,
             building_days: buildingDays,
             missing_days: missingDays,
             built_to: builtTo[0]?.d ?? null,
             days_with_data: factDays.length,
-            check: 'STORED_STATE', // the signature check against the current sources is P3
+            check: 'SIGNATURE', // stored signature and classifier version against the current sources (cached SIGNATURE_TTL_MS)
         };
     }
 

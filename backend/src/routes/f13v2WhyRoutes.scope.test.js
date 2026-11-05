@@ -19,7 +19,8 @@ process.env.NODE_ENV = 'test';
 process.env.QIS_TEST_DB_PATH = path.join(tmpDir, 'f13v2_why.sqlite');
 process.env.QIS_TEST_DATA_ROOT = path.join(tmpDir, 'data-root', 'F1.3');
 
-const { db, run } = require('../config/db');
+const { db, run, get: dbGet } = require('../config/db');
+const { computeDaySignature, computeClassifierVersion } = require('../services/f13v2/CauseAggBuilder');
 const authSessionStore = require('../services/auth/AuthSessionStore');
 const { resolveAccess } = require('../services/auth/access/resolveAccess');
 const { clearResponseCache } = require('../middleware/responseCache');
@@ -52,7 +53,7 @@ async function insertFact(date, code, i, { route, verdict, ptc = true }) {
 
 test.before(async () => {
     await exec(fs.readFileSync(path.join(__dirname, '../db/schema.sql'), 'utf8'));
-    await exec('CREATE TABLE IF NOT EXISTS fact_bf_phat (ngay_bf TEXT, lading_code TEXT, ma_lo TEXT, mabc_phat TEXT, xac_nhan_den_bcp TEXT)');
+    await exec('CREATE TABLE IF NOT EXISTS fact_bf_phat (id INTEGER PRIMARY KEY AUTOINCREMENT, ngay_bf TEXT, lading_code TEXT, ma_lo TEXT, mabc_phat TEXT, xac_nhan_den_bcp TEXT)');
     await exec(F13_WHY_AGG_01_SCHEMA_SQL);
     await run('BEGIN');
     for (const date of DAYS) {
@@ -81,7 +82,10 @@ test.before(async () => {
     );
     // the table as the v5 builder writes it: Phát is the cause PHAT with a detail
     await run("UPDATE f13_cause_parcel SET cause_code = 'PHAT', cause_detail = 'PHAT_CHAM_SAU_GIAO', basis = 'INTERVAL' WHERE cause_code = 'PHAT_MUON'");
-    for (const date of DAYS) await run("INSERT INTO f13_cause_day (ngay_do_kiem, input_signature, classifier_version, state, built_at, row_count) VALUES (?, 's', 'v1', 'FRESH', '2026-11-05T00:00:00.000Z', 0)", [date]);
+    for (const date of DAYS) {
+        const signature = await computeDaySignature({ get: dbGet }, date);
+        await run("INSERT INTO f13_cause_day (ngay_do_kiem, input_signature, classifier_version, state, built_at, row_count) VALUES (?, ?, ?, 'FRESH', '2026-11-05T00:00:00.000Z', 0)", [date, signature, computeClassifierVersion()]);
+    }
     await run('COMMIT');
 
     const app = express();

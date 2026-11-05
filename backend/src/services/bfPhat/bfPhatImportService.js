@@ -157,6 +157,10 @@ class BfPhatImportService {
                     await db.run(`${insertSql.slice(0, insertSql.indexOf('VALUES') + 6)} ${chunk.map(() => tuple).join(', ')}`, params);
                 }
                 await db.run('COMMIT');
+                // F13-WHY-AGG-01 P3: BF Phát lot numbers feed the cause table (off unless QIS_F13_CAUSE_REFRESH=on; never throws)
+                if (/^(on|1|true|yes)$/i.test(String(process.env.QIS_F13_CAUSE_REFRESH || ''))) {
+                    try { require('../f13v2/CauseRefresh').notifySourceImported('fact_bf_phat', date); } catch { /* import already committed */ }
+                }
                 return { date, file: fileName, status: 'SUCCESS', rows: parsed.rows.length, skipped: parsed.skipped, replaced: before };
             } catch (error) {
                 await db.run('ROLLBACK').catch(() => {});

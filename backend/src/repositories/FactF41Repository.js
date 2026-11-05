@@ -113,7 +113,13 @@ class FactF41Repository {
                                 rebuildAggForDate(runOnDb, getOnDb, 'F4.1', date)
                                     .then(() => this.db.run('COMMIT;', (commitErr) => {
                                         if (commitErr) reject(commitErr);
-                                        else resolve({ inserted: rows.length, ngay_do_kiem: date });
+                                        else {
+                                            // F13-WHY-AGG-01 P3: queue the cause refresh (off unless QIS_F13_CAUSE_REFRESH=on; never throws)
+                                            if (/^(on|1|true|yes)$/i.test(String(process.env.QIS_F13_CAUSE_REFRESH || ''))) {
+                                                try { require('../services/f13v2/CauseRefresh').notifySourceImported('fact_f41', date); } catch { /* import already committed */ }
+                                            }
+                                            resolve({ inserted: rows.length, ngay_do_kiem: date });
+                                        }
                                     }))
                                     .catch((aggErr) => this.db.run('ROLLBACK;', () => reject(aggErr)));
                             }

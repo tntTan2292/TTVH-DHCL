@@ -71,7 +71,8 @@ CREATE TABLE IF NOT EXISTS f13_cause_run (
     heartbeat_at TEXT NOT NULL,
     ended_at TEXT,
     status TEXT NOT NULL CHECK (status IN ('RUNNING', 'DONE', 'PARTIAL', 'FAILED', 'ABANDONED')),
-    last_error TEXT
+    last_error TEXT,
+    days_joined INTEGER NOT NULL DEFAULT 0
 );
 CREATE INDEX IF NOT EXISTS idx_f13_cause_run_status ON f13_cause_run(status, heartbeat_at);
 `;
@@ -84,6 +85,11 @@ const F13_WHY_AGG_01_ADDED_COLUMNS = [
     ['remaining_at_arrival_ms', 'INTEGER'], // limit - net T->A, reference only
     ['a_source', 'TEXT'], // F41 | BF | NULL
     ['basis', 'TEXT'], // INTERVAL | MILESTONES
+];
+
+// F13-WHY-AGG-01 P3: days that joined an active run (P1-R2).
+const F13_WHY_AGG_01_RUN_ADDED_COLUMNS = [
+    ['days_joined', 'INTEGER NOT NULL DEFAULT 0'],
 ];
 
 const F13_WHY_AGG_01_TABLE_NAMES = ['f13_cause_day', 'f13_cause_parcel', 'f13_cause_run'];
@@ -103,25 +109,32 @@ function applyF13WhyAgg01Schema(dbPath) {
                 if (execErr) return fail(execErr);
                 return db.all(`SELECT name FROM pragma_table_info('f13_cause_parcel')`, [], (infoErr, columns) => {
                     if (infoErr) return fail(infoErr);
-                    const present = new Set(columns.map((column) => column.name));
-                    const missing = F13_WHY_AGG_01_ADDED_COLUMNS.filter(([name]) => !present.has(name));
-                    const finish = () => db.all(
-                        `SELECT name FROM sqlite_master WHERE type='table' AND name IN (${F13_WHY_AGG_01_TABLE_NAMES.map(() => '?').join(',')}) ORDER BY name`,
-                        F13_WHY_AGG_01_TABLE_NAMES,
-                        (queryErr, rows) => {
-                            db.close((closeErr) => {
-                                if (queryErr) return reject(queryErr);
-                                if (closeErr) return reject(closeErr);
-                                return resolve(rows.map((row) => row.name));
-                            });
-                        },
-                    );
-                    const addNext = (index) => {
-                        if (index >= missing.length) return finish();
-                        const [name, type] = missing[index];
-                        return db.run(`ALTER TABLE f13_cause_parcel ADD COLUMN ${name} ${type}`, (alterErr) => (alterErr ? fail(alterErr) : addNext(index + 1)));
-                    };
-                    return addNext(0);
+                    return db.all(`SELECT name FROM pragma_table_info('f13_cause_run')`, [], (runInfoErr, runColumns) => {
+                        if (runInfoErr) return fail(runInfoErr);
+                        const present = new Set(columns.map((column) => `f13_cause_parcel.${column.name}`));
+                        for (const column of runColumns) present.add(`f13_cause_run.${column.name}`);
+                        const missing = [
+                            ...F13_WHY_AGG_01_ADDED_COLUMNS.map(([name, type]) => ['f13_cause_parcel', name, type]),
+                            ...F13_WHY_AGG_01_RUN_ADDED_COLUMNS.map(([name, type]) => ['f13_cause_run', name, type]),
+                        ].filter(([table, name]) => !present.has(`${table}.${name}`));
+                        const finish = () => db.all(
+                            `SELECT name FROM sqlite_master WHERE type='table' AND name IN (${F13_WHY_AGG_01_TABLE_NAMES.map(() => '?').join(',')}) ORDER BY name`,
+                            F13_WHY_AGG_01_TABLE_NAMES,
+                            (queryErr, rows) => {
+                                db.close((closeErr) => {
+                                    if (queryErr) return reject(queryErr);
+                                    if (closeErr) return reject(closeErr);
+                                    return resolve(rows.map((row) => row.name));
+                                });
+                            },
+                        );
+                        const addNext = (index) => {
+                            if (index >= missing.length) return finish();
+                            const [table, name, type] = missing[index];
+                            return db.run(`ALTER TABLE ${table} ADD COLUMN ${name} ${type}`, (alterErr) => (alterErr ? fail(alterErr) : addNext(index + 1)));
+                        };
+                        return addNext(0);
+                    });
                 });
             });
         });
@@ -137,4 +150,4 @@ if (require.main === module) {
         .catch((error) => { console.error('[FAIL]', error.message); process.exit(1); });
 }
 
-module.exports = { applyF13WhyAgg01Schema, F13_WHY_AGG_01_SCHEMA_SQL, F13_WHY_AGG_01_TABLE_NAMES, F13_WHY_AGG_01_ADDED_COLUMNS };
+module.exports = { applyF13WhyAgg01Schema, F13_WHY_AGG_01_SCHEMA_SQL, F13_WHY_AGG_01_TABLE_NAMES, F13_WHY_AGG_01_ADDED_COLUMNS, F13_WHY_AGG_01_RUN_ADDED_COLUMNS };

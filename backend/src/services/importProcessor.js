@@ -255,6 +255,12 @@ async function verifyPostWriteCount({ factTable, ngay_do_kiem, importLogId, hasI
  * @throws {Error} Re-throws after ROLLBACK + FAILED log write.
  *   SSOT: rollback only on database/system errors, never on duplicate rows.
  */
+// F13-WHY-AGG-01 P3: after an import COMMIT, queue the cause-table refresh. OFF unless QIS_F13_CAUSE_REFRESH=on; never throws, never awaited.
+function notifyCauseRefresh(table, ngay) {
+    if (!/^(on|1|true|yes)$/i.test(String(process.env.QIS_F13_CAUSE_REFRESH || ''))) return;
+    try { require('./f13v2/CauseRefresh').notifySourceImported(table, ngay); } catch { /* the import is already committed */ }
+}
+
 async function importParsedData({
     parsedData,
     ngay_do_kiem,
@@ -354,6 +360,7 @@ async function importParsedData({
 
         // ── Step 5: Commit ─────────────────────────────────────────────────────
         await run('COMMIT');
+        notifyCauseRefresh('fact_f13', ngay_do_kiem);
 
         return {
             success      : true,
@@ -540,6 +547,7 @@ async function importF41ParsedData({ parsedData, ngay_do_kiem, filename, forceRe
         // PERF-LOAD-01 Phase 2: refresh this day's pre-aggregated rows inside the same transaction.
         await rebuildAggForDate(run, get, 'F4.1', ngay_do_kiem);
         await run('COMMIT');
+        notifyCauseRefresh('fact_f41', ngay_do_kiem);
         return { success: true, total: totalParsed, inserted: totalInserted, skipped: skippedRecords, errors: 0, import_log_id };
     } catch (error) {
         try { await run('ROLLBACK'); } catch (e) {}
@@ -600,6 +608,7 @@ async function importF11ParsedData({ parsedData, ngay_do_kiem, filename, forceRe
         // PERF-LOAD-01 Phase 2: refresh this day's pre-aggregated rows inside the same transaction.
         await rebuildAggForDate(run, get, 'F1.1', ngay_do_kiem);
         await run('COMMIT');
+        notifyCauseRefresh('fact_f11', ngay_do_kiem);
         return { success: true, total: totalParsed, inserted: totalInserted, skipped: skippedRecords, errors: 0, import_log_id };
     } catch (error) {
         try { await run('ROLLBACK'); } catch (e) {}
@@ -717,6 +726,7 @@ async function importF12RowsIntoTable({ table, columns, sourceLane, parsedData, 
         // PERF-LOAD-01 Phase 2: only the Hue detail table has a day aggregate (the national table is small).
         if (table === 'fact_f12') await rebuildAggForDate(run, get, 'F1.2', ngay_do_kiem);
         await run('COMMIT');
+        if (table === 'fact_f42') notifyCauseRefresh('fact_f42', ngay_do_kiem);
         return { success: true, total: totalParsed, inserted: totalInserted, skipped: skippedRecords, errors: 0, import_log_id };
     } catch (error) {
         try { await run('ROLLBACK'); } catch { /* rollback failure must not mask the import error */ }

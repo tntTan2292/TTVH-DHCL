@@ -101,6 +101,24 @@ const ROW_COLUMNS = [
     'built_at', 'classifier_version', 'cause_detail', 'cause_reason', 'remaining_at_arrival_ms', 'a_source', 'basis',
 ];
 
+/** Signature of one day over a db offering get(sql, params). A source table that does not exist counts as 0 rows (a partial test or fresh database). */
+async function computeDaySignature(db, date) {
+    const { from, to, bfTo } = windowFor(date);
+    const parts = [];
+    for (const source of SOURCES) {
+        const upper = source.window === 'bf' ? bfTo : to;
+        let row;
+        try {
+            row = await db.get(`SELECT COUNT(*) AS c, MAX(id) AS m FROM ${source.table} WHERE ${source.dateColumn} BETWEEN ? AND ?`, [from, upper]);
+        } catch (error) {
+            if (!/no such table/i.test(String(error.message))) throw error;
+            row = { c: 0, m: null };
+        }
+        parts.push(`${source.key}:${row.c}:${row.m ?? 0}`);
+    }
+    return parts.join('|');
+}
+
 function wrapDb(db) {
     return {
         run: (sql, params = []) => new Promise((resolve, reject) => {
@@ -129,7 +147,7 @@ class CauseAggBuilder {
      *   db               sqlite3 Database used for the derived tables and the signature (the writer)
      *   journeyService   JourneyService over the source tables (reader); only _parcels(date) is called, without scope
      */
-    constructor({ db, journeyService, classifierVersion = null, now = () => new Date(), sleep = defaultSleep, retryPauseMs = 2000, logger = console } = {}) {
+    constructor({ db, journeyService, classifierVersion = null, now = () => new Date(), sleep = defaultSleep, retryPauseMs = 2000, logger = console, quietGate = null } = {}) {
         if (!db) throw new Error('CauseAggBuilder needs a db');
         if (!journeyService) throw new Error('CauseAggBuilder needs a journeyService');
         this.db = wrapDb(db);
@@ -139,6 +157,7 @@ class CauseAggBuilder {
         this.sleep = sleep;
         this.retryPauseMs = retryPauseMs;
         this.logger = logger;
+        this.quietGate = quietGate; // async () => resolves when no import transaction is open (Design 8 rule 2)
     }
 
     windowFor(date) {
@@ -147,17 +166,35 @@ class CauseAggBuilder {
 
     /** Input signature of a day: row count and MAX(id) of every source over the day's window (ids are never reused: delete + insert changes it). */
     async computeSignature(date) {
-        const { from, to, bfTo } = this.windowFor(date);
-        const parts = [];
-        for (const source of SOURCES) {
-            const upper = source.window === 'bf' ? bfTo : to;
-            const row = await this.db.get(
-                `SELECT COUNT(*) AS c, MAX(id) AS m FROM ${source.table} WHERE ${source.dateColumn} BETWEEN ? AND ?`,
-                [from, upper],
-            );
-            parts.push(`${source.key}:${row.c}:${row.m ?? 0}`);
+        return computeDaySignature(this.db, date);
+    }
+
+    /** Marks FRESH days in from..to STALE (reason in `error`) so a reader and the next run see them as pending; BUILDING days are left alone. */
+    async markStale(from, to, reason) {
+        const result = await this.db.run(
+            `UPDATE f13_cause_day SET state = 'STALE', error = ? WHERE ngay_do_kiem BETWEEN ? AND ? AND state = 'FRESH'`,
+            [reason, from, to],
+        );
+        return result.changes || 0;
+    }
+
+    /** Shadow check (P3 f): rebuilds the day on the fly with the same path and compares it with the stored rows (built_at ignored). */
+    async compareDay(date) {
+        const parcels = await this.journeyService._parcels(date);
+        const fresh = new Map(parcels.map((parcel) => [parcel.ma_bg, toRow(date, parcel, 'x', 'x')]));
+        const stored = await this.db.all('SELECT * FROM f13_cause_parcel WHERE ngay_do_kiem = ?', [date]);
+        const storedBy = new Map(stored.map((row) => [row.ma_bg, row]));
+        const differences = [];
+        for (const [maBg, expected] of fresh) {
+            const row = storedBy.get(maBg);
+            if (!row) { differences.push({ ma_bg: maBg, field: '(missing row)' }); continue; }
+            for (const column of ROW_COLUMNS) {
+                if (column === 'built_at' || column === 'classifier_version') continue;
+                if ((row[column] ?? null) !== (expected[column] ?? null)) differences.push({ ma_bg: maBg, field: column, stored: row[column] ?? null, onTheFly: expected[column] ?? null });
+            }
         }
-        return parts.join('|');
+        for (const maBg of storedBy.keys()) if (!fresh.has(maBg)) differences.push({ ma_bg: maBg, field: '(extra row)' });
+        return { date, rows: fresh.size, stored: stored.length, differences };
     }
 
     async _upsertDay(date, { signature, state, builtAt, error, rowCount, keepSignature = false }) {
@@ -185,6 +222,7 @@ class CauseAggBuilder {
      */
     async buildDay(date) {
         const started = Date.now();
+        if (this.quietGate) await this.quietGate();
         try {
             await this._upsertDay(date, { state: DAY_STATES.BUILDING, keepSignature: true });
             // The signature is taken BEFORE the parcels are read: an import landing in between leaves the stored signature older than the data,
@@ -286,14 +324,16 @@ class CauseAggBuilder {
             const days = await this.selectDays(from, to, mode);
             // Joining is only possible while the run still has a loop to pick the days up (check and push happen with no await between).
             if (activeRun === running && !running.closed) {
-                for (const day of days) if (!running.queue.includes(day)) running.queue.push(day);
+                for (const day of days) {
+                    if (!running.queue.includes(day)) { running.queue.push(day); running.joined += 1; }
+                }
                 const outcome = await running.promise;
                 return { ...outcome, joined: true };
             }
             await running.promise.catch(() => {});
             return this.run({ from, to, mode, trigger });
         }
-        const state = { queue: [], closed: false, promise: null };
+        const state = { queue: [], closed: false, promise: null, joined: 0 };
         activeRun = state;
         state.promise = this._execute({ from, to, mode, trigger }, state)
             .finally(() => { activeRun = null; });
@@ -324,20 +364,22 @@ class CauseAggBuilder {
                 lastError = `${day}: ${error.message}`;
                 results.push({ date: day, error: error.message });
             }
-            await this.db.run('UPDATE f13_cause_run SET days_done = ?, days_failed = ?, heartbeat_at = ?, last_error = ? WHERE id = ?',
-                [done, failed, this.now().toISOString(), lastError, runId]);
+            await this.db.run('UPDATE f13_cause_run SET days_done = ?, days_failed = ?, days_joined = ?, heartbeat_at = ?, last_error = ? WHERE id = ?',
+                [done, failed, state.joined, this.now().toISOString(), lastError, runId]);
         }
         state.closed = true; // synchronous with the loop's last check: a later request starts its own run
         const status = failed === 0 ? 'DONE' : (done === 0 ? 'FAILED' : 'PARTIAL');
-        await this.db.run('UPDATE f13_cause_run SET status = ?, ended_at = ?, heartbeat_at = ?, days_done = ?, days_failed = ?, last_error = ? WHERE id = ?',
-            [status, this.now().toISOString(), this.now().toISOString(), done, failed, lastError, runId]);
-        this.logger.log(`[f13-cause] run ${runId} ${status}: ${done} day(s) built, ${failed} failed (${from}..${to}, ${trigger})`);
-        return { runId, status, daysDone: done, daysFailed: failed, results };
+        await this.db.run('UPDATE f13_cause_run SET status = ?, ended_at = ?, heartbeat_at = ?, days_done = ?, days_failed = ?, days_joined = ?, last_error = ? WHERE id = ?',
+            [status, this.now().toISOString(), this.now().toISOString(), done, failed, state.joined, lastError, runId]);
+        this.logger.log(`[f13-cause] run ${runId} ${status}: ${done} day(s) built, ${failed} failed, ${state.joined} joined (${from}..${to}, ${trigger})`);
+        return { runId, status, daysDone: done, daysFailed: failed, daysJoined: state.joined, results };
     }
 }
 
 module.exports = {
     CauseAggBuilder,
+    computeDaySignature,
+    wrapDb,
     ROUTE_SCOPES,
     DAY_STATES,
     SOURCES,

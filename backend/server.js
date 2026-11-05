@@ -291,6 +291,11 @@ function startServer() {
             startHangtonScheduler();
             startBfPhatScheduler();
             startHomeWarmup();
+            // F13-WHY-AGG-01 P3: resume the missing / stale cause-table days. OFF by default (QIS_F13_CAUSE_REFRESH): nothing is written after a restart until P4 and the PO agree.
+            if (/^(on|1|true|yes)$/i.test(String(process.env.QIS_F13_CAUSE_REFRESH || ''))) {
+                void require('./src/services/f13v2/CauseRefresh').getCauseRefresh().resumeOnStartup()
+                    .catch((error) => console.error(`[f13-cause] startup resume failed: ${error.message}`));
+            }
         })
         .then(() => {
             const server = app.listen(PORT, HOST, () => {

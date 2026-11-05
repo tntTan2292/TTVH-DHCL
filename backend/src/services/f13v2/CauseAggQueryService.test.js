@@ -15,6 +15,7 @@ const sqlite3 = require('sqlite3');
 
 const { F13_WHY_AGG_01_SCHEMA_SQL } = require('../../../migrate_f13_why_agg_01_schema');
 const { weekIdFromDate } = require('../bcvhWeeklyComparisonService');
+const { computeDaySignature } = require('./CauseAggBuilder');
 const { CauseAggQueryService, resolvePeriod, CAUSE_ORDER, lineOf } = require('./CauseAggQueryService');
 
 const A = '533140';
@@ -29,6 +30,7 @@ let tmpDir;
 let database;
 let service;
 
+const all = (sql, params = []) => new Promise((resolve, reject) => database.all(sql, params, (e, rows) => (e ? reject(e) : resolve(rows))));
 const run = (sql, params = []) => new Promise((resolve, reject) => database.run(sql, params, (e) => (e ? reject(e) : resolve())));
 const exec = (sql) => new Promise((resolve, reject) => database.exec(sql, (e) => (e ? reject(e) : resolve())));
 
@@ -55,7 +57,7 @@ test.before(async () => {
     await exec(`${F13_WHY_AGG_01_SCHEMA_SQL}
         CREATE TABLE fact_f13 (id INTEGER PRIMARY KEY AUTOINCREMENT, ngay_do_kiem TEXT, ma_bg TEXT, ma_bcvh TEXT);
         CREATE TABLE agg_f13_day (ngay_do_kiem TEXT, ma_bcvh TEXT, ma_tuyen TEXT, ten_tuyen TEXT);`);
-    service = new CauseAggQueryService({ db: database });
+    service = new CauseAggQueryService({ db: database, classifierVersion: 'v1' });
 
     const R1 = '53314001';
     const R2 = '53314002';
@@ -102,6 +104,10 @@ test.before(async () => {
         await run("INSERT INTO f13_cause_day (ngay_do_kiem, input_signature, classifier_version, state, built_at, error, row_count) VALUES (?, 's', 'v1', ?, '2026-11-05T00:00:00.000Z', ?, 0)", [day, state, error]);
     }
     await seedV5();
+    // the stored signature of every fixture day is the real one of the fixture sources (P3 freshness compares it with the current one)
+    for (const row of await all('SELECT ngay_do_kiem AS d FROM f13_cause_day')) {
+        await run('UPDATE f13_cause_day SET input_signature = ? WHERE ngay_do_kiem = ?', [await computeDaySignature({ get: async (sql, p) => (await all(sql, p))[0] }, row.d), row.d]);
+    }
 });
 
 test.after(async () => {
@@ -378,7 +384,7 @@ test('freshness reports the stored state of each day with data: complete, stale,
     const complete = (await service.summary({ from: D1, to: D2 }, CITY)).meta.freshness;
     assert.equal(complete.complete, true);
     assert.deepEqual([complete.stale_days, complete.building_days, complete.missing_days], [[], [], []]);
-    assert.equal(complete.check, 'STORED_STATE');
+    assert.equal(complete.check, 'SIGNATURE');
     const mixed = (await service.summary({ from: D1, to: '2026-10-25' }, CITY)).meta.freshness;
     assert.equal(mixed.complete, false);
     assert.deepEqual(mixed.missing_days, ['2026-10-24']); // fact_f13 has the day, the cause table does not
@@ -439,7 +445,7 @@ async function seedV5() {
     await addV5({ status: 'CHO_CHUYEN_QUAN', reason: 'CHAM_DEN_HAY_CHAM_GIAO', step: 'T-G', basis: 'MILESTONES' });
     await addV5({ status: 'CHUA_DU_CAN_CU', reason: 'KHONG_CO_MOC', step: 'THOI_GIAN', flags: 'THIEU_F41', basis: null }, 3);
     await run("INSERT INTO fact_f13 (ngay_do_kiem, ma_bg, ma_bcvh) VALUES (?, 'F-v5', ?)", [V5_DAY, V5]);
-    await run("INSERT INTO f13_cause_day (ngay_do_kiem, input_signature, classifier_version, state, built_at, row_count) VALUES (?, 's', 'v5', 'FRESH', '2026-11-05T00:00:00.000Z', 30)", [V5_DAY]);
+    await run("INSERT INTO f13_cause_day (ngay_do_kiem, input_signature, classifier_version, state, built_at, row_count) VALUES (?, 's', 'v1', 'FRESH', '2026-11-05T00:00:00.000Z', 30)", [V5_DAY]);
 }
 
 const V5_QUERY = { from: V5_DAY, to: V5_DAY };

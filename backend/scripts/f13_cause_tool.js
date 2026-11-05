@@ -104,8 +104,8 @@ async function verifyRange(helpers, { from, to, canonicalCodes }) {
 async function main() {
     const args = parseArgs(process.argv.slice(2));
     const { command, values } = args;
-    if (!['build', 'rebuild', 'verify'].includes(command) || !isDate(values.from) || !isDate(values.to) || values.from > values.to) {
-        console.error('Usage: node scripts/f13_cause_tool.js <build|rebuild|verify> --from YYYY-MM-DD --to YYYY-MM-DD [--db path]');
+    if (!['build', 'rebuild', 'verify', 'shadow'].includes(command) || !isDate(values.from) || !isDate(values.to) || values.from > values.to) {
+        console.error('Usage: node scripts/f13_cause_tool.js <build|rebuild|verify|shadow> --from YYYY-MM-DD --to YYYY-MM-DD [--db path] [--sample N]');
         process.exit(2);
     }
     const defaultPath = path.resolve(__dirname, '../src/db/database.sqlite');
@@ -152,6 +152,32 @@ async function main() {
             if (!result.ok) exitCode = 1;
         } finally {
             await new Promise((resolve) => database.close(resolve));
+        }
+    } else if (command === 'shadow') {
+        // P3 (f): rebuilds each sampled day on the fly through the same path and compares it with the stored rows; reads only.
+        const reader = await open();
+        await exec(reader, 'PRAGMA busy_timeout = 60000; PRAGMA cache_size = -262144');
+        try {
+            const builder = new CauseAggBuilder({ db: reader, journeyService: new JourneyService({ repository: new F13JourneyRepository(reader) }) });
+            let days = (await builder.daysInRange(values.from, values.to)).filter((day) => day);
+            const sample = Number(values.sample);
+            if (Number.isInteger(sample) && sample > 0 && sample < days.length) {
+                const step = (days.length - 1) / Math.max(1, sample - 1);
+                days = [...new Set(Array.from({ length: sample }, (_, index) => days[Math.round(index * step)]))];
+            }
+            let rows = 0;
+            let differences = 0;
+            for (const day of days) {
+                const result = await builder.compareDay(day);
+                rows += result.rows;
+                differences += result.differences.length;
+                console.log(`  ${day}: ${result.rows} on-the-fly row(s), ${result.stored} stored, ${result.differences.length} difference(s)`);
+                result.differences.slice(0, 5).forEach((line) => console.log(`    DIFF ${JSON.stringify(line)}`));
+            }
+            console.log(`[shadow] ${values.from}..${values.to}: ${days.length} day(s) sampled, ${rows} row(s), ${differences} difference(s)`);
+            if (differences) exitCode = 1;
+        } finally {
+            await new Promise((resolve) => reader.close(resolve));
         }
     } else {
         await applyF13WhyAgg01Schema(dbPath);
