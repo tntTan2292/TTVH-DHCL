@@ -1,4 +1,3 @@
-/* oxlint-disable no-undef */
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { PageContainer } from '../../components/shared/SharedComponents.jsx';

@@ -7,7 +7,7 @@
 - Programme: F1.3 cause rebuild. Data from `F13-WHY-DATA-02` (rules v5, CLOSED) and `F13-WHY-AGG-01` (aggregation layer, P1-P4 accepted).
 - Owner: **Antigravity** (UI/UX, its strength: it designs and builds the screen). Claude Code: backend support only if a figure is missing from the API (ask, do not invent). Opus: independent review of the result.
 - **PO decision 2026-11-05:** Claude gives Antigravity the problem, not a screen design; Antigravity designs and builds; it must not reproduce the UI defects the PO has had to fix recently (section 6).
-- Status: `STEP 1 - PO CHECK FOUND A FILTER DEFECT (S1-PO1, section 9); fix by Antigravity` (two steps, section 2A; PO 2026-11-05). `PO UI Check Required = Yes`. Does not change the Current Ticket.
+- Status: `STEP 1 READY FOR PO RE-CHECK (S1-PO1 fixed in 9952b476, re-reviewed, section 9)` (two steps, section 2A; PO 2026-11-05). `PO UI Check Required = Yes`. Does not change the Current Ticket.
 
 ## 2. The problem (PO, in his words, 2026-11-05)
 
@@ -66,6 +66,7 @@ If a figure the design needs is not in the API, ask Claude Code; never compute a
 8. Colours: F1.3 blue family from `indicatorConfig.js`, light tones, no purple or dark tones; target line 90 % read from the config.
 9. Change only what the ticket asks: do not shorten or rewrite other notes, captions or titles on existing pages.
 10. Period buttons titled exactly "Theo ngày | Theo tuần | Theo tháng"; a missing number shows 0 where the table already does so.
+11. Never switch a lint rule off (`oxlint-disable`, `eslint-disable`) to make a gate pass: fix the code, or name the browser global in the report.
 
 ## 7. Acceptance
 
@@ -98,3 +99,5 @@ Outside this ticket (found by the `no-undef` gate): `frontend/src/features/netwo
 PO checklist (step 1): menu F1.3 > "Phân tích nguyên nhân"; from Kết quả chất lượng (Theo ngày / tuần / tháng) click BCVH Thuận Hóa; for 28/10/2026 the summary reads 72,6 %, 309,8 BG short of 90 %, five routes 26,7 % of volume, 42,3 %, 73,1 % of the shortfall; route Ô tô Nam giữa first with Không trọn lô; "Tuyến khác" below, not ranked; Chờ Chuyên quản reasons in Vietnamese; camera on both blocks; click-to-order titles; no horizontal scroll at 90 % zoom; Theo tuần / Theo tháng follow the filter.
 
 **PO check of step 1 (2026-11-05) - S1-PO1, unit filter (defect):** the filter has no "Tất cả" entry; on opening, the select shows BCVH A Lưới while the page state is "all", so the content does not match the filter (city figures and every unit's routes in one table); the A Lưới route list appears only after choosing another unit and A Lưới again. Cause (Claude Code, code read): `F13V2WhyPage` defaults `bcvh` to `'all'` for a city-wide account, but `buildScopedUnitOptions` returns only the unit codes, so the browser shows the first option for a value that is not in the list; the route request then runs without a unit and mixes all units. Expected (technical, within the problem of section 2): the select always shows the real state; a city-wide account gets a "Tất cả BCVH" entry (default) whose view is the whole BĐTP and which BCVH pulls it down (no flat list of every unit's routes mixed together; routes are shown per BCVH), a one-unit account opens on its unit; changing the unit reloads both blocks once; a test asserts the selected value is always one of the options.
+
+**Re-review of S1-PO1 (2026-11-05, commit `9952b476`):** fixed as asked - "Tất cả BCVH" first and default for a city-wide account, a one-unit account opens on its unit, `resolveEffectiveBcvh` keeps the selected value inside the options (tests), the city view tells which BCVH pulls BĐTP down (from the API `own_shortfall` and `share_of_parent_shortfall`) with a drill-down, routes grouped per BCVH (`groupRoutesByBcvh`), never one mixed list. Gates repeated: `f13WhyHelpers` 11/11, `f13WhyBlocksStandard` 4/4, `reportBlockStandard` 6/6, `appNavigation` 9/9, `f13v2Helpers` 11/11, build OK. **Defect found and fixed by Claude Code:** the commit added `/* oxlint-disable no-undef */` at the top of `F13V2WhyPage.jsx`, i.e. it switched off the gate of section 6 item 1; with the line removed the file reports only the browser global `URLSearchParams` (no real undefined name hidden). Line removed; rule 11 added to section 6. Step 1 back to the PO for the re-check of the filter.
