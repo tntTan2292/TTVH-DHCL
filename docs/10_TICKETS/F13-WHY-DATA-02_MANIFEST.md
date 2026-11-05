@@ -7,7 +7,7 @@
 - Programme: F1.3 cause rebuild. Predecessor `F13-WHY-DATA-01` (CLOSED; rules v4 locked there). Runs between `F13-WHY-AGG-01` P2 (accepted) and P3: the derived table is rebuilt with these rules before P3 / P4 (its `classifier_version` changes by itself).
 - Owner: `Claude Code`. Sonnet 5.5 implements; Opus 5.5 reviews independently (rule change on the cause of every failed parcel). Does not change the Current Ticket of `PROJECT_SNAPSHOT.md`.
 - Branch: `codex/da-impl-006`.
-- **Status: `R1 + R2 IMPLEMENTED - FOR OPUS REVIEW (section 8)`** (2026-11-05, Claude Code / Sonnet 5.5). Decisions E1-E7 of section 3 are implemented as written. `PO UI Check Required = No` (backend; the page that shows it is a later UI ticket).
+- **Status: `CLOSED - R1 + R2 ACCEPTED BY OPUS REVIEW (section 9)`** (2026-11-05, Claude Code / Sonnet 5.5). Decisions E1-E7 of section 3 are implemented as written. `PO UI Check Required = No` (backend; the page that shows it is a later UI ticket).
 
 ## 2. Why (evidence, read only, 2026 on a copy of the database)
 
@@ -91,3 +91,22 @@ Backend only; F1.3 only; no screen; no F4.1 indicator work; never write the live
 - `MOC_A_KHONG_HOP_LE` (A before T or after E) moves from "chưa đủ căn cứ" to "Chờ Chuyên quản" (E5); 739 in October.
 - A rebuild of 2026 takes 567 s (306 days); `classifier_version` changed, so every built day is stale until rebuilt (relevant for P3 of F13-WHY-AGG-01).
 - The weekly-report skill mapping of section 4 was written in the skill (outside git).
+
+## 9. Opus review of R1 + R2 (2026-11-05, Claude Code / Opus 5.5; commit `2cdf8b78`)
+
+**Verdict: ACCEPTED - E1-E7 implemented as decided, official numbers unchanged, no SSOT issue. One defect found outside the commit (weekly-report skill) and fixed in this review.**
+
+Repeated independently (not taken from the executor's report):
+- Suites one file at a time with `--experimental-sqlite`: `CauseClassifier` 29, `tctIntervals` 45, `JourneyService` 25, `f13v2Units` 20, `f13v2Routes.scope` 13, `CauseAggBuilder` 21, `CauseAggQueryService` 22, `f13v2WhyRoutes.scope` 5, `migrate_f13_why_agg_01_schema` 3, `server.startupMigrations` 1 - all pass, 0 fail.
+- `f13_cause_tool.js verify --from 2026-01-01 --to 2026-11-04` on the copy: OK, 306 days, 1 814 day x BCVH keys, table = `fact_f13` = `agg_f13_day` = 988 895 rows / 556 756 Đạt / 389 589 Không đạt / 42 550 unrated.
+- October 2026 by SQL on the copy equals section 8 (Phát: Chậm giao bưu tá 15 599, Phát chậm sau khi giao 14 934, no detail 708; Không trọn lô 2 328; Khai thác 1 769; Vận chuyển 197; chưa phân biệt 1 139; Chờ Chuyên quản 1 240 / 739 / 106 / 60 / 1 by reason). v4 -> v5 for October: every v4 Không trọn lô / Khai thác / Vận chuyển / chưa phân biệt cause is unchanged; Phát changes are only the E4 detail (13 745 + 12 131 kept, 3 253 Phát muộn -> Chậm giao bưu tá by the next-day rule); the 4 300 former "chưa đủ căn cứ" become a cause (2 154) or Chờ Chuyên quản (2 146). The three April samples are `CHO_CHUYEN_QUAN / TCT_DAI_HON_MOC`, basis MILESTONES. 0 Đạt or unrated rows with a cause, status, reason, basis or source.
+- Code read against E1-E7: basis INTERVAL when R is valid, MILESTONES (night rule C to the last known milestone) otherwise; A = F4.1 exact key else BatchFile of the same BCVH (earliest value, also when F4.1 is not unique); next-day handover by calendar day; A missing everywhere: T-G within -> Phát chậm sau khi giao, over -> Chờ Chuyên quản; remaining time only a hint (0 <= left < 6 h) and a distribution; thresholds in `f13CauseConfig.js`, part of the classifier version.
+
+| ID | Level | Finding | Resolution |
+|---|---|---|---|
+| D2-R1 | **Medium - fixed** | Section 8 says the weekly-report mapping was written in the skill, but `moc_thoi_gian.py` still mapped the v4 codes: every v5 `PHAT` parcel would have fallen into "Chưa đánh giá" in the week 44 report. | Fixed in the skill (outside git): `xuat_nguyen_nhan.js` exports `cause_sub`, `cause_reason`, `arrive_source`; `moc_thoi_gian.py` maps Phát / Chậm giao bưu tá -> group 2, Phát chậm sau khi giao or no detail -> group 3, Chờ Chuyên quản and chưa đủ căn cứ -> "Chưa đánh giá" (labelled with the reason). Re-run of weeks 42-43 in a scratch folder: week 43 groups 1 / 2 / 3 / Không trọn lô / Chưa đánh giá = 549 / 3 505 / 2 994 / 449 / 241 (= 7 738 failed); sections 2.1.1 and 2.2.1 still agree (449, Thuận Hóa 273; week 42 506 / 251). |
+| D2-R2 | Low (PO information) | The Hành trình page now also shows an arrival time taken from the BatchFile when F4.1 has none (`milestones.arrive_source = BF`): more parcels show the "đến BCVH" milestone (October +536 failed parcels). | Accepted (E2); to be shown with its source in the UI ticket. |
+| D2-R3 | Low | The BF Phát read of `_parcels` now also returns rows with an arrival confirmation, so a day takes about 1.85 s instead of 1.6 s (rebuild of 2026: 567 s). | Accepted. |
+| D2-R4 | Low (PO information) | The next-day rule is by calendar day: an arrival at 23:50 handed over at 06:30 counts as next-day. | As decided (E4); can be refined by the PO later. |
+
+**Next:** F13-WHY-AGG-01 continues with P3 (refresh) on rules v5; the stored `classifier_version` changed, so every built day is rebuilt.

@@ -7,7 +7,7 @@
 - Programme: F1.3 cause rebuild. Predecessor `F13-WHY-DATA-01` (CLOSED / PO UI PASS, commits `c8b24977`, `7ae159d2`). Next tickets in the agreed order (PO + ChatGPT, 2026-11-05): Hành trình page (cause, flags, hints, filters; UI by Antigravity), Phân tích tuyến phát, Năng lực và chất lượng tuyến (needs a PO definition first), Dữ liệu minh chứng, NARRATIVE, RETIRE.
 - Owner: `Claude Code` (backend, data, tests, documentation, Git). Model discipline: Sonnet 5.5 implements; **Opus reviews independently** (high risk: new derived table, background job); the same model does not self-approve.
 - Branch: `codex/da-impl-006` (as `PROJECT_SNAPSHOT.md`).
-- **Status: `ACTIVE - P1 and P2 ACCEPTED BY OPUS REVIEW (sections 14, 16); WAITING FOR F13-WHY-DATA-02 (cause rules v5) before P3`** (activated 2026-11-05, section 10). The Design of Record v2 (with section 6A and Appendix D) was approved by the PO on 2026-11-05; the Opus pre-implementation review (section 12) found no SSOT or PO issue.
+- **Status: `ACTIVE - P1 and P2 ACCEPTED BY OPUS REVIEW (sections 14, 16); F13-WHY-DATA-02 (cause rules v5) CLOSED 2026-11-05; P3 next`** (activated 2026-11-05, section 10). The Design of Record v2 (with section 6A and Appendix D) was approved by the PO on 2026-11-05; the Opus pre-implementation review (section 12) found no SSOT or PO issue.
 - Relation to `PROJECT_SNAPSHOT.md`: Current Ticket is `F13-ROUTE-POSTMAN-IDENTITY-01` (PAUSED by PO decision). This ticket does **not** replace it and does **not** reactivate it (the same arrangement as `F13-WHY-DATA-01`: "does not change Current Ticket"). On activation the snapshot only receives a "Previous update" line; the PAUSED state of the postman-identity ticket is untouched.
 
 ## 2. Authority and sources
