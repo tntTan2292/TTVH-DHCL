@@ -7,7 +7,7 @@
 - Programme: F1.3 cause rebuild. Predecessor `F13-WHY-DATA-01` (CLOSED / PO UI PASS, commits `c8b24977`, `7ae159d2`). Next tickets in the agreed order (PO + ChatGPT, 2026-11-05): Hành trình page (cause, flags, hints, filters; UI by Antigravity), Phân tích tuyến phát, Năng lực và chất lượng tuyến (needs a PO definition first), Dữ liệu minh chứng, NARRATIVE, RETIRE.
 - Owner: `Claude Code` (backend, data, tests, documentation, Git). Model discipline: Sonnet 5.5 implements; **Opus reviews independently** (high risk: new derived table, background job); the same model does not self-approve.
 - Branch: `codex/da-impl-006` (as `PROJECT_SNAPSHOT.md`).
-- **Status: `ACTIVE - P1 BUILT, AWAITING OPUS REVIEW` (activated 2026-11-05, section 10; results in section 13).** The Design of Record v2 (with section 6A and Appendix D) was approved by the PO on 2026-11-05; the Opus pre-implementation review (section 12) found no SSOT or PO issue.
+- **Status: `ACTIVE - P1 ACCEPTED BY OPUS REVIEW (section 14); P2 next` (activated 2026-11-05, section 10; P1 results in section 13).** The Design of Record v2 (with section 6A and Appendix D) was approved by the PO on 2026-11-05; the Opus pre-implementation review (section 12) found no SSOT or PO issue.
 - Relation to `PROJECT_SNAPSHOT.md`: Current Ticket is `F13-ROUTE-POSTMAN-IDENTITY-01` (PAUSED by PO decision). This ticket does **not** replace it and does **not** reactivate it (the same arrangement as `F13-WHY-DATA-01`: "does not change Current Ticket"). On activation the snapshot only receives a "Previous update" line; the PAUSED state of the postman-identity ticket is untouched.
 
 ## 2. Authority and sources
@@ -114,3 +114,24 @@ Nothing requires a PO decision.
 
 **Not done / open points.** No refresh hook after imports and no API (P3 and P2). The `Hành trình` response now includes `ma_buu_ta_first` / `ten_buu_ta_first` because the controller passes the service output through (same sensitivity as the shown postman name; Opus to confirm or ask for a strip). `verify` needs `agg_f13_day` filled for the range to compare against it (it reports a difference when the aggregate has no row for a day with fact rows). The BUILDING state is not cleaned by itself after a crash: `build` rebuilds any day that is not FRESH. Residual T4 (in-place UPDATE of a source row does not move the signature) is unchanged.
 
+## 14. Opus review of P1 (2026-11-05, Claude Code / Opus 5.5; commit `9e87ec89`)
+
+**Verdict: P1 ACCEPTED - acceptance (a)-(f) met, no blocker, no SSOT or PO issue.**
+
+Checks repeated independently (not taken from the executor's report):
+- Tests, one file at a time with `node --experimental-sqlite --test`: `CauseAggBuilder` 21/21, `migrate_f13_why_agg_01_schema` 2/2, `server.startupMigrations` 1/1, `tctIntervals` 45/45, `CauseClassifier` 27/27, `JourneyService` 19/19, `f13v2Units` 20/20, `f13v2Routes.scope` 13/13.
+- `f13_cause_tool.js verify --from 2026-10-22 --to 2026-10-28` on the copy: OK, 42 day x BCVH keys, table = `fact_f13` = `agg_f13_day` = 23 098 / 14 027 / 7 738 / 1 333; one row of another unit reported apart.
+- Direct SQL on the copy: cause counts equal F13-WHY-DATA-01 section 11 (3 375 / 2 778 / 449 / 353 / 147 / 40, chưa đủ căn cứ 555 + 41); 0 rows with a cause or an analysis status outside Không đạt; 0 duplicate keys; Thuận Hóa route scopes POSTMAN 11 132 / 8 007 / 3 033 / 92, NON_POSTMAN 466, OTHER 2 (= Design Appendix A); 7 days FRESH with one classifier version; run log DONE 7 / DONE 0 / DONE 1 (build, repeat build, rebuild).
+- Code read: one implementation of the rules (`_parcels` without scope), signature taken before the read, one transaction per day with rollback, window constants exported from `JourneyService`, classifier version covers the confirmed non-postman codes (T1), `verify` restricted to the six BCVH (T2), live file never opened for writing by the tool unless no `--db` is given.
+
+Findings (none blocks P1):
+
+| ID | Level | Finding | Resolution |
+|---|---|---|---|
+| P1-R1 | Medium (rule for P3) | `_writeDay` runs `BEGIN IMMEDIATE ... COMMIT` on the connection it is given. Inside the backend that must not be the shared `config/db` connection used by requests and imports (node-sqlite3 has no per-call isolation: other statements would run inside the transaction, and a second `BEGIN` would fail). | P3 gives the builder its own writer connection (as the tool already does) with `busy_timeout`; a test asserts it. |
+| P1-R2 | Low | Days that join an active run are built but `f13_cause_run.from_day/to_day` keep the first request's range. | P3: log the joined days (e.g. a `days_joined` count) so the run log reflects the work. |
+| P1-R3 | Low | `classifier_version` hashes the whole `JourneyService.js`, so any edit of that file (even paging code) marks every day stale: a full rebuild of 2026 is about 310 days x 1.6 s, roughly 9 minutes in the background. | Accepted (safe side); noted for operations. |
+| P1-R4 | Low | Section 13 explains 66 / 2 169 (rows) against Appendix B 61 / 2 180 (parcels) as rows versus parcels, but week 43 has no parcel on two days, so rows = parcels. The difference comes from the Appendix B prototype, not from the table. | P4 reconciliation recounts the postman figures from the table and records the reason; the Design appendix is evidence, not an acceptance figure. |
+| P1-R5 | Accepted | The Hành trình API now also returns `ma_buu_ta_first` / `ten_buu_ta_first`. | Same data class and the same scope as the postman already shown (PO rule: Chuyên quản and Giám đốc BCVH see the postman name); no strip needed. |
+
+The DB copy `aggcopy.sqlite` in the session scratchpad is kept for P2 and P4.
