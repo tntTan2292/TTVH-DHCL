@@ -7,7 +7,7 @@
 - Programme: F1.3 cause rebuild. Data from `F13-WHY-DATA-02` (rules v5, CLOSED) and `F13-WHY-AGG-01` (aggregation layer, P1-P4 accepted).
 - Owner: **Antigravity** (UI/UX, its strength: it designs and builds the screen). Claude Code: backend support only if a figure is missing from the API (ask, do not invent). Opus: independent review of the result.
 - **PO decision 2026-11-05:** Claude gives Antigravity the problem, not a screen design; Antigravity designs and builds; it must not reproduce the UI defects the PO has had to fix recently (section 6).
-- Status: `STEP 1 READY FOR ANTIGRAVITY` (two steps, section 2A; PO 2026-11-05). `PO UI Check Required = Yes`. Does not change the Current Ticket.
+- Status: `STEP 1 IMPLEMENTED (0f55278a) - OPUS REVIEW: 3 FIXES FOR ANTIGRAVITY (section 9), THEN PO CHECK` (two steps, section 2A; PO 2026-11-05). `PO UI Check Required = Yes`. Does not change the Current Ticket.
 
 ## 2. The problem (PO, in his words, 2026-11-05)
 
@@ -18,7 +18,7 @@ The quality results by day / week / month of every BCVH are already on "Kết qu
 
 That is the view to build: **not dry, unrelated figures, but one connected picture that answers the user's WHY questions.** The PO does not want the question itself as a menu name: the menu item gets a functional name proposed by Antigravity (PO approves).
 
-Real example the data already gives (Thuận Hóa, 28/10/2026): 72,6 % (1 294 / 1 782), 261 parcels short of 90 %; 5 postman routes = 26,7 % of the volume, 42,3 % on time, 87 % of the shortfall; route "Ô tô Nam giữa" 141 parcels, 19,1 %, 112 of them in one lot that came in several TMS batches (Không trọn lô, objective, before the BCVH).
+Real example the data already gives (Thuận Hóa, 28/10/2026): 72,6 % (1 294 / 1 782), 309,8 parcels short of 90 %; 5 postman routes = 26,7 % of the volume, 42,3 % on time, 73,1 % of the shortfall (corrected 2026-11-05: an earlier hand query left the 53 unrated rows out of the shortfall and gave 261 / 87 %); route "Ô tô Nam giữa" 141 parcels, 19,1 %, 112 of them in one lot that came in several TMS batches (Không trọn lô, objective, before the BCVH).
 
 ## 2A. Two steps and the programme order (PO approved 2026-11-05 on Claude's advice)
 
@@ -78,3 +78,17 @@ If a figure the design needs is not in the API, ask Claude Code; never compute a
 
 - 2026-11-05: problem written from the PO's own words; ready for Antigravity (Claude Code / Opus 5.5).
 - 2026-11-05: split into step 1 / step 2 and programme order recorded (section 2A), PO approved.
+
+## 9. Opus review of step 1 (2026-11-05, Claude Code / Opus 5.5; commit `0f55278a` by Antigravity)
+
+**Verdict: step 1 is sound - right data, right rules, gates green; three small wording fixes before the PO check (S1-R1..R3).**
+
+Repeated independently: `f13WhyHelpers` 6/6, `f13WhyBlocksStandard` 4/4, `reportBlockStandard` 6/6, `appNavigation` 9/9, `bcvhWeeklyComparisonBlock` 11/11, `f13v2Helpers` 11/11; `vite build` OK; `oxlint -D no-undef` on the new files and the two touched blocks: browser globals only. The links added to `F13V2DaySummaryTable` and `BcvhWeeklyComparisonBlock` are guarded by `indicator.id === 'f13'` (F1.1 / F1.2 / F4.1 / F4.2 pages unchanged). Field names read by the page exist in the live API (`cause_mix.phat.by_detail`, `cause_mix.cho_chuyen_quan.by_reason`, `own_shortfall_x10`, `arrival_remaining`). Thuận Hóa 28/10 through the live service: 72,6 %, 309,8 short, the five routes 26,7 % of volume / 42,3 % / 73,1 % of the shortfall, route Ô tô Nam giữa 112 Không trọn lô of 114 failed - what the narrative helper prints. The frontend only adds API counters of the shown routes and divides them for the sentence (no cause, rule or per-parcel figure computed): accepted as presentation; manifest section 3 is read that way.
+
+| ID | Level | Finding | Fix (Antigravity) |
+|---|---|---|---|
+| S1-R1 | Medium | "Chờ Chuyên quản" reasons are printed as raw codes (`TCT_DAI_HON_MOC`, `CHAM_DEN_HAY_CHAM_GIAO`, ...). | Vietnamese labels for every reason of `F13-WHY-DATA-02` section 8 (e.g. TCT_DAI_HON_MOC "Giờ TCT dài hơn mốc thực tế", CHAM_DEN_HAY_CHAM_GIAO "Không có xác nhận đến BCVH, chưa tách được đến muộn hay giao muộn", MOC_A_KHONG_HOP_LE "Mốc đến BCVH sai thứ tự", THIEU_MOC_G "Thiếu mốc giao bưu tá", MOC_G_KHONG_HOP_LE "Mốc giao bưu tá sai thứ tự", KHOANG_CAT_CHI_TIEU "Chưa đủ chắc chắn quá hạn hay còn hạn", KET_QUA_KHONG_KHOP_CHI_TIEU "Kết quả TCT không khớp chỉ tiêu", THIEU_PTC "Chưa có giờ phát"); unknown code -> the code itself. |
+| S1-R2 | Low | The "objective before the BCVH" sentence counts Khai thác - Vận chuyển chưa phân biệt in its total but does not list it, so the listed parts do not add up (Thuận Hóa week 43: 156 missing from the list). | List "Khai thác - Vận chuyển (chưa phân biệt)" too. |
+| S1-R3 | Low | The Phát sentence lists Chậm giao bưu tá and Phát chậm sau khi giao but not `KHONG_CHI_TIET` (28/10 Thuận Hóa: 123 + 164 of 289). | Add "x không có chi tiết" when it is above 0. |
+
+Outside this ticket (found by the `no-undef` gate): `frontend/src/features/networkMap/postmanCatalog/PostmanCatalogPage.jsx` calls `setLoadingMeta` that is never declared (from `32d67e56`, F13-ROUTE-POSTMAN-IDENTITY-01 Phase 3): the Postman Catalog page throws when it loads its metadata. Reported to the PO; not changed here.
