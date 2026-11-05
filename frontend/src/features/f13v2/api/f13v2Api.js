@@ -37,3 +37,44 @@ export async function fetchDaySummary({ from, to, maBcvh }, apiBase = '/f13') {
   const response = await api.get(`${apiBase}/v2/day/summary`, { params });
   return response?.data?.data || null;
 }
+
+// F13-WHY-AGG-01 / F13-WHY-UI-01: Cause aggregation API calls
+export async function fetchWhySummary(params = {}, apiBase = '/f13') {
+  const cleanParams = Object.fromEntries(
+    Object.entries(params).filter(([, v]) => v !== undefined && v !== null && v !== '' && v !== 'all')
+  );
+  const response = await api.get(`${apiBase}/v2/why/summary`, { params: cleanParams });
+  return response?.data?.data || null;
+}
+
+export async function fetchWhyBcvh(params = {}, apiBase = '/f13') {
+  const cleanParams = Object.fromEntries(
+    Object.entries(params).filter(([, v]) => v !== undefined && v !== null && v !== '' && v !== 'all')
+  );
+  const response = await api.get(`${apiBase}/v2/why/bcvh`, { params: cleanParams });
+  return response?.data?.data || null;
+}
+
+export async function fetchWhyRoutes(params = {}, apiBase = '/f13') {
+  const cleanParams = Object.fromEntries(
+    Object.entries(params).filter(([, v]) => v !== undefined && v !== null && v !== '' && v !== 'all')
+  );
+  const response = await api.get(`${apiBase}/v2/why/routes`, { params: cleanParams });
+  return response?.data?.data || null;
+}
+
+export async function fetchWhyPostmen(params = {}, apiBase = '/f13') {
+  const cleanParams = Object.fromEntries(
+    Object.entries(params).filter(([, v]) => v !== undefined && v !== null && v !== '' && v !== 'all')
+  );
+  const response = await api.get(`${apiBase}/v2/why/postmen`, { params: cleanParams });
+  return response?.data?.data || null;
+}
+
+export async function fetchWhyParcels(params = {}, apiBase = '/f13') {
+  const cleanParams = Object.fromEntries(
+    Object.entries(params).filter(([, v]) => v !== undefined && v !== null && v !== '' && v !== 'all')
+  );
+  const response = await api.get(`${apiBase}/v2/why/parcels`, { params: cleanParams });
+  return response?.data?.data || null;
+}

@@ -1,4 +1,5 @@
 import { useMemo, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Table, AlertCircle } from 'lucide-react';
 import BlockCaptureButton from '../../../components/common/BlockCaptureButton.jsx';
 import SortableTh from '../../../components/common/SortableTh.jsx';
@@ -296,7 +297,17 @@ export default function F13V2DaySummaryTable({
                     {row.ma_bcvh}
                   </td>
                   <td className="px-3 py-2 font-bold text-slate-900 border-r border-slate-100">
-                    {row.ten_bcvh}
+                    {indicator?.id === 'f13' ? (
+                      <Link
+                        to={`/f13/v2/why?from=${fromDate}&to=${toDate}&bcvh=${row.ma_bcvh}`}
+                        className="text-slate-900 hover:text-blue-600 hover:underline inline-flex items-center gap-1.5 transition-colors cursor-pointer"
+                        title={`Xem phân tích nguyên nhân ${row.ten_bcvh}`}
+                      >
+                        <span>{row.ten_bcvh}</span>
+                      </Link>
+                    ) : (
+                      row.ten_bcvh
+                    )}
                   </td>
 
                   <td className="px-2.5 py-2 text-right font-medium text-slate-800">

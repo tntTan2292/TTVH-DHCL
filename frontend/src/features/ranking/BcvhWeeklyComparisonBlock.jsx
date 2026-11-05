@@ -1,5 +1,6 @@
 import { HEADER_RATE_NO_TMS, HEADER_VOLUME, rateHeader as columnRateHeader } from '../indicator/columnHeaders.js';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import {
   AlertTriangle,
   ArrowDown,
@@ -988,7 +989,17 @@ export default function BcvhWeeklyComparisonBlock({
                       <td className="py-2 px-2 text-left font-black text-slate-900 border-r border-slate-300">
                         <div className="flex items-center gap-2 min-w-0">
                           <span className="h-3.5 w-1 rounded-full shrink-0" style={{ backgroundColor: color }} />
-                          <span className="whitespace-normal break-words leading-snug" title={row.ten_bcvh}>{row.ten_bcvh}</span>
+                          {indicator?.id === 'f13' ? (
+                            <Link
+                              to={isMonth ? `/f13/v2/why?month=${monthSelection.current}&bcvh=${row.ma_bcvh}` : `/f13/v2/why?week=${selection.current}&bcvh=${row.ma_bcvh}`}
+                              className="whitespace-normal break-words leading-snug hover:text-blue-600 hover:underline"
+                              title={`Xem phân tích nguyên nhân ${row.ten_bcvh}`}
+                            >
+                              {row.ten_bcvh}
+                            </Link>
+                          ) : (
+                            <span className="whitespace-normal break-words leading-snug" title={row.ten_bcvh}>{row.ten_bcvh}</span>
+                          )}
                         </div>
                       </td>
 

@@ -21,6 +21,7 @@ import F13V2DayPage from './features/f13v2/F13V2DayPage';
 import F13V2WeekPage from './features/f13v2/F13V2WeekPage';
 import F13V2MonthPage from './features/f13v2/F13V2MonthPage';
 import F13V2JourneyPage from './features/f13v2/F13V2JourneyPage';
+import F13V2WhyPage from './features/f13v2/F13V2WhyPage';
 import HangTonPage from './features/hangton/HangTonPage';
 import BcvhRankingPage from './features/ranking/BcvhRankingPage';
 import RoutePerformancePage from './features/route/RoutePerformancePage';
@@ -169,6 +170,8 @@ function App() {
               <Route path="tuan" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN, ROLE_VIEWER]}><F13V2WeekPage /></ProtectedRoute>} />
               <Route path="thang" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN, ROLE_VIEWER]}><F13V2MonthPage /></ProtectedRoute>} />
               <Route path="hanh-trinh" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN, ROLE_VIEWER]}><F13V2JourneyPage /></ProtectedRoute>} />
+              <Route path="why" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN, ROLE_VIEWER]}><F13V2WhyPage /></ProtectedRoute>} />
+              <Route path="nguyen-nhan" element={<Navigate to="../why" replace />} />
             </Route>
 
             {TIME_AXIS_INDICATORS.map((indicator) => (

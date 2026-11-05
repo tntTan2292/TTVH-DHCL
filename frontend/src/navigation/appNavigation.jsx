@@ -1,4 +1,4 @@
-import { Activity, BarChart2, BookOpen, CheckSquare, ClipboardCheck, Database, FileSpreadsheet, Info, LayoutDashboard, MapPin, Package, Settings, Target, Users } from 'lucide-react';
+import { Activity, BarChart2, BookOpen, CheckSquare, ClipboardCheck, Database, FileSpreadsheet, HelpCircle, Info, LayoutDashboard, MapPin, Package, Settings, Target, Users } from 'lucide-react';
 import { ROLE_ADMIN, normalizeRole } from '../auth/roles';
 
 // One menu item per indicator (PO 2026-11-03): Theo ngày / tuần / tháng are the tabs of the page, so the item stays lit on all three.
@@ -35,6 +35,7 @@ const F13_GROUP = {
   icon: <Target size={18} />,
   subItems: [
     qualityResultItem('f13'),
+    { name: 'Phân tích nguyên nhân', path: '/f13/v2/why', icon: <HelpCircle size={18} /> },
     { name: 'Hành trình bưu gửi', path: '/f13/v2/hanh-trinh', subtitle: 'Chuyên đề', icon: <BookOpen size={18} /> },
     { name: 'Phân tích tuyến phát', path: '/f13/ranking/route', subtitle: 'Chuyên đề', icon: <BarChart2 size={18} /> },
     { name: 'Năng lực và chất lượng tuyến', path: '/f13/ranking/bcvh', subtitle: 'Chuyên đề', icon: <BarChart2 size={18} /> },
