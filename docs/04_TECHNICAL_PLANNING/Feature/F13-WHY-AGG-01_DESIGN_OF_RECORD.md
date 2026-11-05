@@ -1,4 +1,4 @@
-# F13-WHY-AGG-01 - Design of Record (proposal for PO approval)
+# F13-WHY-AGG-01 - Design of Record (approved by the PO 2026-11-05)
 
 **Status:** `APPROVED BY PO (2026-11-05) - v2 including section 6A and Appendix D`. Approved: the derived per-parcel table and the query layer; denominator = all F1.3 rows; three route scopes; first-handover postman as the analysis dimension (the shown postman is stored beside; no personal blame); background refresh with single runner, safe re-run, freshness and log; shortfall and net contribution as in section 6; BG-day rows as the basis of every headline figure, distinct parcels for information only and always shown when repeats exist. Scope: F1.3 only, backend only. Implementation is governed by `docs/10_TICKETS/F13-WHY-AGG-01_MANIFEST.md` (not activated until the PO says so). Author: Claude Code / Sonnet 5.5. Predecessor: `F13-WHY-DATA-01` (CLOSED). Agreed order: AGG, Hành trình, Phân tích tuyến phát, Năng lực và chất lượng tuyến, Dữ liệu minh chứng, NARRATIVE and RETIRE.
 
@@ -136,7 +136,7 @@ Equality with the official figures:
 Operation:
 - Window constants equal those of `JourneyService`; lock/queue (second run does not start in parallel); crash and resume; failing day keeps old rows and is reported stale; freshness reports a source import after the build; classifier-version change marks all days stale; builder rows equal `_parcels` output.
 
-## 12. Decisions requested from the PO
+## 12. PO decisions (all approved as recommended, 2026-11-05; see the status line)
 
 1. **Approve** the derived per-parcel table and query layer (sections 3, 5, 8) and the corrected formulas (section 6, denominator = all rows).
 2. **Postman for aggregates:** `ma_buu_ta_first` (recommended, evidence in section 7) or the postman shown on Hành trình. Both are stored either way.

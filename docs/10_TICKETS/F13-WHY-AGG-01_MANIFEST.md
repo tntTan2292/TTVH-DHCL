@@ -7,7 +7,7 @@
 - Programme: F1.3 cause rebuild. Predecessor `F13-WHY-DATA-01` (CLOSED / PO UI PASS, commits `c8b24977`, `7ae159d2`). Next tickets in the agreed order (PO + ChatGPT, 2026-11-05): Hành trình page (cause, flags, hints, filters; UI by Antigravity), Phân tích tuyến phát, Năng lực và chất lượng tuyến (needs a PO definition first), Dữ liệu minh chứng, NARRATIVE, RETIRE.
 - Owner: `Claude Code` (backend, data, tests, documentation, Git). Model discipline: Sonnet 5.5 implements; **Opus reviews independently** (high risk: new derived table, background job); the same model does not self-approve.
 - Branch: `codex/da-impl-006` (as `PROJECT_SNAPSHOT.md`).
-- **Status: `PO-APPROVED DESIGN / NOT ACTIVATED`.** The Design of Record v2 (with section 6A and Appendix D) was approved by the PO on 2026-11-05. Implementation starts only after the PO activates this ticket (section 10). Until then no code, table, migration or commit.
+- **Status: `ACTIVE - P1 IN PROGRESS` (activated 2026-11-05, section 10).** The Design of Record v2 (with section 6A and Appendix D) was approved by the PO on 2026-11-05; the Opus pre-implementation review (section 12) found no SSOT or PO issue.
 - Relation to `PROJECT_SNAPSHOT.md`: Current Ticket is `F13-ROUTE-POSTMAN-IDENTITY-01` (PAUSED by PO decision). This ticket does **not** replace it and does **not** reactivate it (the same arrangement as `F13-WHY-DATA-01`: "does not change Current Ticket"). On activation the snapshot only receives a "Previous update" line; the PAUSED state of the postman-identity ticket is untouched.
 
 ## 2. Authority and sources
@@ -30,7 +30,8 @@ Files committed on the branch:
 - https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/backend/src/repositories/FactBuuGuiRepository.js
 - https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/backend/src/config/f13RouteClassificationCatalog.js
 
-Not yet on the branch (committed together with this manifest when the PO activates; until then read them from the workspace): `docs/04_TECHNICAL_PLANNING/Feature/F13-WHY-AGG-01_DESIGN_OF_RECORD.md` -> `https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/04_TECHNICAL_PLANNING/Feature/F13-WHY-AGG-01_DESIGN_OF_RECORD.md`.
+- https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/docs/04_TECHNICAL_PLANNING/Feature/F13-WHY-AGG-01_DESIGN_OF_RECORD.md (committed in `6cde9e5f`)
+- https://github.com/tntTan2292/TTVH-DHCL/blob/codex/da-impl-006/backend/migrate_perf_load_01_agg_schema.js (pattern for the additive schema at startup)
 
 ## 4. Scope
 
@@ -69,12 +70,32 @@ Not yet on the branch (committed together with this manifest when the PO activat
 
 ## 9. Blockers
 
-None for the design. One governance condition: activation by the PO (section 10).
+None.
 
 ## 10. Activation
 
-Requires, from the PO, in chat: "activate F13-WHY-AGG-01" (and, if the PO wants the Current Ticket of the snapshot changed instead of keeping it, an explicit decision on the paused `F13-ROUTE-POSTMAN-IDENTITY-01`). Without it, only this manifest and the Design exist.
+Activated on 2026-11-05 by the PO's instruction in chat: after an Opus review with no SSOT or PO issue, activate F13-WHY-AGG-01 and implement P1; keep the Current Ticket (parallel-ticket rule); no extension to F4.1; report per phase. `PROJECT_SNAPSHOT.md` receives a "Previous update" line only; `F13-ROUTE-POSTMAN-IDENTITY-01` stays PAUSED and Current.
 
 ## 11. Change log
 
 - 2026-11-05: manifest prepared after PO approval of the Design of Record v2 (not activated).
+- 2026-11-05: Opus pre-implementation review of `6cde9e5f` (section 12); technical clarifications T1-T6 added; ticket activated, P1 started.
+
+## 12. Opus pre-implementation review (2026-11-05, Claude Code / Opus 5.5, read-only checks against code and database)
+
+**Verdict: PASS - no SSOT, formula or PO-decision issue.** Checked: the official denominator (all F1.3 rows) and the 90 % target agree with `FactBuuGuiRepository` and `CLAUDE.md`; the window arithmetic of Design section 8 follows from `DAYS_BEFORE = 10`, `DAYS_AFTER = 5` and the BF Phát read `[D-10, D+6]` in `JourneyService._parcels` (import of X affects D in `[X-5, X+10]`, BF `[X-6, X+10]`); key `(ngay_do_kiem, ma_bg)` is unique in `fact_f13`; the five source tables have `id INTEGER PRIMARY KEY AUTOINCREMENT`, so a `COUNT + MAX(id)` signature changes on every delete-and-reinsert (ids are never reused); hot spots by `max(0, 0.9 N - Đạt)` match the PO rule of 2026-11-04; partitions by route scope and by first-handover postman are exact partitions of a BCVH (one value per row).
+
+Findings (all technical; fixed here or carried as implementation rules, none changes the Design's decisions):
+
+| ID | Level | Finding | Resolution |
+|---|---|---|---|
+| D1 | Low | Manifest section 3 said the Design was not yet on the branch; it is (`6cde9e5f`). Activation section still pending. | Fixed in this revision. |
+| D2 | Low | The Design title still read "proposal for PO approval" and section 12 "Decisions requested", although its status line records the PO approval of all five points. | Title and section 12 heading now record the decisions (no content change). |
+| T1 | Medium | `route_scope` stored at build time would go stale if `CONFIRMED_NON_POSTMAN_ROUTES` changes. | The catalog codes are part of the build version (`classifier_version` = SHA-256 of `CauseClassifier.js`, `tctIntervals.js`, `JourneyService.js` and the confirmed non-postman codes); a change marks every day stale (Design 8, P3 (e)). |
+| T2 | Medium | `JourneyService._parcels` keeps the six canonical BCVH only, while `fact_f13` / `agg_f13_day` also hold other units (e.g. "Khách hàng lớn"). | `verify` and every equality test compare the six canonical BCVH only and report rows of other units separately, never as a difference. |
+| T3 | Medium | The builder must call `_parcels(date)` without a scope (city-wide), otherwise lot volumes depend on the account. | Builder uses no `bcvhId` / `allowedCodes`; test asserts it. |
+| T4 | Low | The signature covers inserts and deletes; an in-place `UPDATE` of a source row would not change it. Imports replace rows (delete + insert), so this is accepted; `verify` and the classifier-version check remain the backstop. | Recorded as residual. |
+| T5 | Low | P1 asks for a run on a copy of the 4 GB database while the backend writes to it. | The copy is taken with `VACUUM INTO` (one read transaction on the live file, nothing written to it) into the session scratchpad, and used through `NODE_ENV=test` + `QIS_TEST_DB_PATH`. |
+| T6 | Low | P1 (b) "builder rows equal `_parcels`" is partly tautological because the builder calls `_parcels`. | Kept as a plumbing test (mapping of every stored field); the independent check is (e) against `fact_f13` / `agg_f13_day` and the F13-WHY-DATA-01 Phase 4 cause counts. |
+
+Nothing requires a PO decision.
