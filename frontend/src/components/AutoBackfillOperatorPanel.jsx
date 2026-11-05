@@ -642,7 +642,7 @@ export default function AutoBackfillOperatorPanel() {
     return summarizeOpenRuns({ runs: openRuns, total: openRunsTotal });
   }, [openRuns, openRunsTotal]);
 
-  const [openRunsStatusExpanded, setOpenRunsStatusExpanded] = useState(() => new Set(['RUNNING', 'ATTENTION']));
+  const [openRunsStatusExpanded, setOpenRunsStatusExpanded] = useState(() => new Set(['RUNNING', 'ATTENTION', 'FAILED']));
   const toggleStatusGroupExpand = (key) => {
     setOpenRunsStatusExpanded((prev) => {
       const next = new Set(prev);
@@ -867,6 +867,25 @@ export default function AutoBackfillOperatorPanel() {
       }
     } catch (err) {
       setRunError(getApiErrorMessage(err, 'Không thể tiếp tục.'));
+    } finally {
+      setRunActionLoading(false);
+    }
+  };
+
+  const handleCancelRun = async () => {
+    if (!isAdmin || !activeRunId) return;
+    if (!window.confirm('Hủy lần chạy này? Các ngày chưa chạy sẽ bị hủy (ngày đã xong giữ nguyên). Không hoàn tác được.')) return;
+    setRunActionLoading(true);
+    setRunError(null);
+    try {
+      const res = await api.post(`/import/auto-backfill/runs/${activeRunId}/cancel`);
+      if (res.data.success) {
+        fetchRunStatus(activeRunId);
+        fetchOpenRuns();
+        showToast('Đã hủy lần chạy.');
+      }
+    } catch (err) {
+      setRunError(getApiErrorMessage(err, 'Không thể hủy lần chạy.'));
     } finally {
       setRunActionLoading(false);
     }
@@ -1832,11 +1851,14 @@ export default function AutoBackfillOperatorPanel() {
                             const statusLabel =
                               job.realState === 'RUNNING' ? 'Đang chạy' :
                               job.realState === 'WAITING_AUTH' ? 'Chờ đăng nhập' :
-                              job.realState === 'RETRY_WAIT' ? 'Chờ thử lại' : 'Đang chờ';
+                              job.realState === 'RETRY_WAIT' ? 'Chờ thử lại' :
+                              job.realState === 'CIRCUIT_OPEN' ? 'Cầu dao mở' :
+                              job.realState === 'FAILED' ? 'Lỗi' : 'Đang chờ';
                             const badgeColor =
                               job.realState === 'RUNNING' ? 'bg-blue-100 text-blue-800 border-blue-200' :
                               job.realState === 'WAITING_AUTH' ? 'bg-amber-100 text-amber-900 border-amber-200' :
                               job.realState === 'RETRY_WAIT' ? 'bg-orange-100 text-orange-800 border-orange-200' :
+                              job.realState === 'FAILED' || job.realState === 'CIRCUIT_OPEN' ? 'bg-rose-100 text-rose-800 border-rose-200' :
                               'bg-slate-100 text-slate-700 border-slate-200';
 
                             return (
@@ -1976,6 +1998,16 @@ export default function AutoBackfillOperatorPanel() {
                   >
                     <RotateCcw className="h-3.5 w-3.5" />
                     <span>Khôi phục Mạch</span>
+                  </button>
+                )}
+
+                {isAdmin && actionButtons.canCancel && (
+                  <button
+                    onClick={handleCancelRun}
+                    disabled={runActionLoading}
+                    className="inline-flex items-center gap-1.5 rounded-xl border border-red-300 bg-white px-3 py-1.5 text-xs font-medium text-red-800 shadow-sm hover:bg-red-50"
+                  >
+                    <span>Hủy lần chạy</span>
                   </button>
                 )}
 

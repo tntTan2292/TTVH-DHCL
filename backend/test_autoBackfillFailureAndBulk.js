@@ -238,3 +238,98 @@ test('(2) the list request is validated: admin only, no mixing with other scope 
         assert.equal(first.bulk.job_count, 1);
     } finally { f.cleanup(); }
 });
+
+// ------------------------------------------------------------------ 2026-11-04: lost day and stuck run
+test('(4) a browser network failure while opening a portal page is transient and retried; a cancelled navigation is not', () => {
+    const http2 = classify(asError('page.goto: net::ERR_HTTP2_PROTOCOL_ERROR at https://dkcl.vnpost.vn/x Call log: - navigating'));
+    assert.equal(http2.classification, 'TRANSIENT');
+    assert.equal(http2.retryable, true);
+    assert.equal(classify(asError('page.goto: net::ERR_CONNECTION_RESET at https://x')).classification, 'TRANSIENT');
+    // a cancelled navigation is the portal redirecting, not a failure of the network
+    assert.equal(classify(asError('page.goto: net::ERR_ABORTED at https://x')).classification, 'SYSTEM');
+    // a lane that declares its own class keeps it
+    const declared = classify(asError('page.goto: net::ERR_HTTP2_PROTOCOL_ERROR', 'PORTAL_X'), { ...lane, errorMap: { PORTAL_X: 'SYSTEM' } });
+    assert.equal(declared.classification, 'SYSTEM');
+});
+
+test('(5) a success that closes a circuit also clears CIRCUIT_OPEN on the other jobs and the run of that scope', async () => {
+    const { DatabaseSync } = require('node:sqlite');
+    const f = await fixture();
+    try {
+        const created = await f.service.createRun({ indicator: 'F9.A', lane: 'HUE', fromDate: '2026-01-06', toDate: '2026-01-07', actor: 'x', roles: ['admin'] });
+        const runId = created.run.id;
+        const db = new DatabaseSync(f.dbPath);
+        const jobs = db.prepare('SELECT id, business_date, circuit_scope_key k, resource_identity FROM auto_backfill_job WHERE run_id = ? ORDER BY business_date').all(runId);
+        assert.equal(jobs.length, 2);
+        const scopeKey = jobs[0].k;
+        // the state a tripped circuit left behind on the day that was not yet processed, with the circuit already closed
+        db.prepare("INSERT INTO auto_backfill_circuit (scope_key, adapter_id, source_lane, resource_identity, error_signature, consecutive_count, state, last_error_code, opened_at, updated_at) VALUES (?, 'A', 'HUE', ?, 'S', 1, 'CLOSED', 'X', '2026-01-08T00:00:00Z', '2026-01-08T00:00:00Z')").run(scopeKey, jobs[0].resource_identity);
+        db.prepare("UPDATE auto_backfill_job SET safety_state = 'CIRCUIT_OPEN', action_required = 'reset' WHERE id = ?").run(jobs[0].id);
+        db.prepare("UPDATE auto_backfill_run SET safety_state = 'CIRCUIT_OPEN', action_required = 'reset' WHERE id = ?").run(runId);
+        // the other day succeeds in a later run on the same scope -> recordCircuitSuccess
+        await f.store.recordCircuitSuccess({ run_id: runId, id: jobs[1].id }, { key: scopeKey });
+        const after = db.prepare('SELECT business_date, safety_state, action_required FROM auto_backfill_job WHERE run_id = ? ORDER BY business_date').all(runId);
+        assert.equal(after[0].safety_state, null, 'the stuck day is released');
+        assert.equal(after[0].action_required, null);
+        const run = db.prepare('SELECT safety_state, action_required FROM auto_backfill_run WHERE id = ?').get(runId);
+        assert.equal(run.safety_state, null, 'and so is the run, so the worker takes the day again');
+        db.close();
+    } finally { f.cleanup(); }
+});
+
+test('(6) Opus review: other momentary failures are transient, waiting for a login does not count toward the circuit', () => {
+    for (const msg of ['F1.1 report request returned HTTP 503.', 'apiRequestContext.get: read ECONNRESET', 'socket hang up', 'Target page, context or browser has been closed', 'page.goto: Timeout 60000ms exceeded.']) {
+        assert.equal(classify(asError(msg)).classification, 'TRANSIENT', msg);
+    }
+    assert.equal(classify(asError('F1.1 report request returned HTTP 403.')).classification, 'SYSTEM');
+    assert.equal(classify(asError('page.goto: net::ERR_CERT_AUTHORITY_INVALID')).classification, 'SYSTEM');
+    assert.equal(classify(asError('broker down', 'HUE_BROKER_UNREACHABLE')).classification, 'TRANSIENT');
+    const pending = classify(asError('login in progress', 'SESSION_PENDING_HUMAN_ACTION'));
+    assert.equal(pending.systemic, false);
+});
+
+test('(7) Opus review C1/N6: an open circuit is not rewritten by another signature; orphan CIRCUIT_OPEN flags are released by resume and reset', async () => {
+    const { DatabaseSync } = require('node:sqlite');
+    const f = await fixture();
+    try {
+        const created = await f.service.createRun({ indicator: 'F9.A', lane: 'HUE', fromDate: '2026-01-06', toDate: '2026-01-07', actor: 'x', roles: ['admin'] });
+        const runId = created.run.id;
+        const db = new DatabaseSync(f.dbPath);
+        const job = db.prepare('SELECT id, circuit_scope_key k, resource_identity FROM auto_backfill_job WHERE run_id = ? ORDER BY business_date').get(runId);
+        // orphan: flag on job and run, circuit row closed
+        db.prepare("INSERT INTO auto_backfill_circuit (scope_key, adapter_id, source_lane, resource_identity, error_signature, consecutive_count, state, last_error_code, updated_at) VALUES (?, 'A', 'HUE', ?, 'S', 1, 'CLOSED', 'X', '2026-01-08T00:00:00Z')").run(job.k, job.resource_identity);
+        db.prepare("UPDATE auto_backfill_job SET safety_state = 'CIRCUIT_OPEN' WHERE id = ?").run(job.id);
+        db.prepare("UPDATE auto_backfill_run SET safety_state = 'CIRCUIT_OPEN' WHERE id = ?").run(runId);
+        // the admin reset used to answer 409 here; now it clears the leftover flag
+        await f.store.resetCircuitsForRun(runId, 'admin');
+        assert.equal(db.prepare('SELECT safety_state s FROM auto_backfill_job WHERE id = ?').get(job.id).s, null);
+        assert.equal(db.prepare('SELECT safety_state s FROM auto_backfill_run WHERE id = ?').get(runId).s, null);
+        // resume on a RUNNING run does the same
+        db.prepare("UPDATE auto_backfill_job SET safety_state = 'CIRCUIT_OPEN' WHERE id = ?").run(job.id);
+        db.prepare("UPDATE auto_backfill_run SET safety_state = 'CIRCUIT_OPEN' WHERE id = ?").run(runId);
+        await f.store.resumeRun(runId, 'admin');
+        assert.equal(db.prepare('SELECT safety_state s FROM auto_backfill_job WHERE id = ?').get(job.id).s, null);
+        db.close();
+    } finally { f.cleanup(); }
+});
+
+test('(8) Opus review C2: an admin can cancel a run stuck on BLOCKED_INTEGRITY; its days are freed and the block is lifted', async () => {
+    const { DatabaseSync } = require('node:sqlite');
+    const f = await fixture();
+    try {
+        const created = await f.service.createRun({ indicator: 'F9.A', lane: 'HUE', fromDate: '2026-01-06', toDate: '2026-01-07', actor: 'x', roles: ['admin'] });
+        const runId = created.run.id;
+        const db = new DatabaseSync(f.dbPath);
+        db.prepare("UPDATE auto_backfill_run SET safety_state = 'BLOCKED_INTEGRITY' WHERE id = ?").run(runId);
+        await assert.rejects(f.service.cancelRun(runId, { actor: 'x', roles: ['viewer'] }), (e) => e.code === 'AUTO_BACKFILL_ADMIN_REQUIRED');
+        const result = await f.service.cancelRun(runId, { actor: 'x', roles: ['admin'] });
+        assert.equal(result.run.status, 'CANCELLED');
+        assert.equal(result.run.safety_state, null);
+        assert.equal(db.prepare("SELECT COUNT(*) n FROM auto_backfill_job WHERE run_id = ? AND state = 'CANCELLED'").get(runId).n, 2);
+        await assert.rejects(f.service.cancelRun(runId, { actor: 'x', roles: ['admin'] }), (e) => e.code === 'AUTO_BACKFILL_RUN_ALREADY_ENDED');
+        // the same days can be queued again
+        const again = await f.service.createRun({ indicator: 'F9.A', lane: 'HUE', fromDate: '2026-01-06', toDate: '2026-01-07', actor: 'x', roles: ['admin'] });
+        assert.notEqual(again.run.id, runId);
+        db.close();
+    } finally { f.cleanup(); }
+});

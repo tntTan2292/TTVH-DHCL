@@ -149,6 +149,18 @@ class AutoBackfillQueueController {
         }
     }
 
+    async cancelRun(req, res) {
+        try {
+            const data = await this.getService().cancelRun(req.params.runId, {
+                actor: requestActor(req),
+                roles: requestRoles(req),
+            });
+            return res.status(200).json({ success: true, data });
+        } catch (error) {
+            return sendError(res, error);
+        }
+    }
+
     async resetCircuits(req, res) {
         try {
             const data = await this.getService().resetCircuits(req.params.runId, {

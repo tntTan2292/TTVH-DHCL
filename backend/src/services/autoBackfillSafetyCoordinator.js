@@ -42,6 +42,21 @@ const MIN_LOCK_RETRY_DELAY_MS = 15000;
 const DATA_NOT_READY_MESSAGE = /missing accepting province code|has no accepting province code/i;
 const DATA_NOT_READY_CODE = /(RECONCILIATION|OUTER_SUMMARY)/;
 
+// A browser-level network failure while opening a portal page (net::ERR_HTTP2_PROTOCOL_ERROR, ERR_CONNECTION_RESET,
+// ERR_TIMED_OUT ...): the portal dropped the connection before any data was read, so the day itself is fine. It is
+// TRANSIENT (retried within the lane budget, counted toward the circuit), not a terminal SYSTEM failure. 2026-11-03:
+// F1.1 TCT 21/07 was lost after one attempt for exactly this. net::ERR_ABORTED is a cancelled navigation, not a fault.
+const NETWORK_NAVIGATION_MESSAGE = /net::ERR_(?!ABORTED|CERT_|BLOCKED_BY_CLIENT)[A-Z0-9_]+/;
+
+// Other momentary failures that carry no error code of their own (Opus review N1, IMPORT-STUCK-RUN-01): a portal 5xx,
+// a dropped socket, a browser page closed under the run, a Playwright navigation timeout, the local broker or the
+// download not settling. All are TRANSIENT; HTTP 4xx is deliberately not in this list.
+const TRANSIENT_MESSAGE = /returned HTTP 5\d\d|\bECONNRESET\b|\bETIMEDOUT\b|\bEPIPE\b|socket hang up|Target page, context or browser has been closed|Execution context was destroyed|Timeout \d+ms exceeded/i;
+const TRANSIENT_CODES = new Set(['HUE_BROKER_UNREACHABLE', 'DOWNLOAD_NOT_STABLE']);
+// Waiting for the Product Owner's login or for another DKCL operation says nothing about the portal's health, so these
+// do not count toward the circuit (five re-checks during a manual login used to open it).
+const NON_CIRCUIT_CODES = new Set(['SESSION_PENDING_HUMAN_ACTION', 'DKCL_SOURCE_OPERATION_ACTIVE']);
+
 function sanitizeCode(value) {
     const code = String(value || 'QUEUE_EXECUTION_ERROR').toUpperCase().replace(/[^A-Z0-9_.-]/g, '_');
     return code.slice(0, 96) || 'QUEUE_EXECUTION_ERROR';
@@ -104,8 +119,15 @@ class AutoBackfillSafetyCoordinator {
         const message = String(error?.message || '');
         const lockContention = !declared && (LOCK_CODES.has(code) || LOCK_MESSAGE.test(message));
         const dataNotReady = !declared && !lockContention && (DATA_NOT_READY_MESSAGE.test(message) || DATA_NOT_READY_CODE.test(code));
+        const networkFailure = !declared && !lockContention && (
+            NETWORK_NAVIGATION_MESSAGE.test(message)
+            || TRANSIENT_MESSAGE.test(message)
+            || TRANSIENT_CODES.has(code)
+            || error?.name === 'TimeoutError'
+        );
         const classification = normalizeClass(declared)
             || (lockContention ? ERROR_CLASSES.TRANSIENT : null)
+            || (networkFailure ? ERROR_CLASSES.TRANSIENT : null)
             || (dataNotReady ? ERROR_CLASSES.DATA : null)
             || ERROR_CLASSES.SYSTEM;
         const reportedCode = dataNotReady && code === 'QUEUE_EXECUTION_ERROR' ? 'DATA_NOT_READY' : code;
@@ -114,7 +136,7 @@ class AutoBackfillSafetyCoordinator {
             .filter(Boolean);
         const retryable = classification === ERROR_CLASSES.TRANSIENT
             && declaredRetryable.includes(ERROR_CLASSES.TRANSIENT);
-        const systemic = lockContention ? false : (retryable || classification === ERROR_CLASSES.SYSTEM);
+        const systemic = (lockContention || NON_CIRCUIT_CODES.has(code)) ? false : (retryable || classification === ERROR_CLASSES.SYSTEM);
         return {
             code: reportedCode,
             classification,

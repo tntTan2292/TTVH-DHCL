@@ -169,6 +169,8 @@ export function resolveRunActionButtons(effectiveState) {
     canResume: ['PAUSED', 'WAITING_AUTH'].includes(effectiveState),
     canResetCircuit: effectiveState === 'CIRCUIT_OPEN',
     isBlockedIntegrity: effectiveState === 'BLOCKED_INTEGRITY',
+    // the only way out of an integrity stop, and a way to drop a paused run
+    canCancel: ['BLOCKED_INTEGRITY', 'PAUSED'].includes(effectiveState),
     isTerminal: ['COMPLETED', 'COMPLETED_WITH_ERRORS', 'CANCELLED'].includes(effectiveState),
   };
 }
@@ -1662,15 +1664,17 @@ export function summarizeOpenRuns(arg1 = {}, arg2 = null) {
     const run = entry?.run || {};
     const jobs = Array.isArray(entry?.jobs) ? entry.jobs : [];
     const firstJob = jobs[0] || {};
-    const state = run.safety_state || firstJob.state || run.status || 'RUNNING';
+    // The run's own state decides; the first job says nothing about a run that is PAUSED or has two lanes (Opus N5).
+    const state = run.safety_state || run.status || firstJob.state || 'RUNNING';
+    // For a two-lane run the blocked lane is the lane of the job that carries the flag, not of the first job.
+    const blockedJob = jobs.find((j) => j.safety_state === state) || firstJob;
+    const blockingLane = (run.requested_lane && run.requested_lane !== 'ALL') ? run.requested_lane : blockedJob.source_lane;
 
     if (state === 'WAITING_AUTH') {
       waitingAuthCount += 1;
-      const blockingLane = run.requested_lane || firstJob.source_lane;
       if (blockingLane && blockingLane !== 'ALL') blockedLanesSet.add(blockingLane);
     } else if (state === 'CIRCUIT_OPEN') {
       circuitOpenCount += 1;
-      const blockingLane = run.requested_lane || firstJob.source_lane;
       if (blockingLane && blockingLane !== 'ALL') blockedLanesSet.add(blockingLane);
     } else if (state === 'BLOCKED_INTEGRITY') {
       blockedIntegrityCount += 1;
@@ -1746,6 +1750,12 @@ export function normalizeJobLane(rawLane) {
 }
 
 export function classifyJobRealState(job = {}, run = {}) {
+  // A job that is over is never "waiting", whatever the run around it is doing: a 577-day run in WAITING_AUTH used to
+  // show all 577 as "chờ đăng nhập" (Opus review N3). The open-runs list returns every job of a run, finished included,
+  // so without this a run with 568 done days showed all 577 as "Đang chờ" (2026-11-04).
+  if (job.state === 'FAILED_TERMINAL') return 'FAILED';
+  if (['SUCCESS', 'SKIPPED_ALREADY_SUCCESS', 'CANCELLED'].includes(job.state)) return 'TERMINAL';
+  if (job.state !== 'RUNNING' && job.safety_state === 'CIRCUIT_OPEN') return 'CIRCUIT_OPEN';
   if (job.safety_state === 'WAITING_AUTH' || job.state === 'WAITING_AUTH' || run?.safety_state === 'WAITING_AUTH') {
     return 'WAITING_AUTH';
   }
@@ -1831,6 +1841,9 @@ export function resolveJobShortReason(job = {}) {
   if (job.safety_state === 'WAITING_AUTH' || job.state === 'WAITING_AUTH' || job.realState === 'WAITING_AUTH') {
     return 'Chờ phiên đăng nhập';
   }
+  if (job.realState === 'CIRCUIT_OPEN') {
+    return 'Cầu dao đang mở, chờ Admin reset';
+  }
   if (job.realState === 'RUNNING' || job.state === 'RUNNING') {
     if (job.started_at) {
       const timeStr = formatVietnamTime(job.started_at);
@@ -1846,7 +1859,7 @@ export function formatLaneStatus(lane, { jobs = [], runs = [], blockedLanes = []
   const laneJobs = jobs.filter((j) => normalizeJobLane(j.source_lane) === targetLane);
 
   const runningJob = laneJobs.find((j) => j.realState === 'RUNNING');
-  const waitingJobs = laneJobs.filter((j) => j.realState !== 'RUNNING' && j.realState !== 'TERMINAL');
+  const waitingJobs = laneJobs.filter((j) => j.realState !== 'RUNNING' && j.realState !== 'TERMINAL' && j.realState !== 'FAILED');
   const waitingCount = waitingJobs.length;
 
   if (runningJob) {
@@ -1960,6 +1973,8 @@ export function computeJobCounts(jobs = []) {
     } else if (job.realState === 'RUNNING') {
       counts.running.total += 1;
       counts.running[lane] = (counts.running[lane] || 0) + 1;
+    } else if (job.realState === 'TERMINAL' || job.realState === 'FAILED') {
+      // finished days are not part of the work still to do
     } else {
       counts.queued.total += 1;
       counts.queued[lane] = (counts.queued[lane] || 0) + 1;
@@ -1974,16 +1989,30 @@ export function groupJobsByRealStatus(jobs = []) {
   const runningJobs = [];
   const attentionJobs = [];
   const queuedJobs = [];
+  const failedJobs = [];
 
   for (const job of (Array.isArray(jobs) ? jobs : [])) {
     if (job.realState === 'RUNNING') {
       runningJobs.push(job);
-    } else if (job.realState === 'WAITING_AUTH' || job.realState === 'RETRY_WAIT') {
+    } else if (job.realState === 'WAITING_AUTH' || job.realState === 'RETRY_WAIT' || job.realState === 'CIRCUIT_OPEN') {
       attentionJobs.push(job);
+    } else if (job.realState === 'FAILED') {
+      failedJobs.push(job);
+    } else if (job.realState === 'TERMINAL') {
+      // done: not listed as waiting
     } else {
       queuedJobs.push(job);
     }
   }
+
+  const failedGroup = failedJobs.length === 0 ? [] : [{
+    key: 'FAILED',
+    label: 'Lỗi, không tự thử lại',
+    defaultOpen: true,
+    jobs: failedJobs,
+    count: failedJobs.length,
+    dateRange: formatJobDateRange(failedJobs.map((j) => j.business_date)),
+  }];
 
   return [
     {
@@ -2010,6 +2039,7 @@ export function groupJobsByRealStatus(jobs = []) {
       count: queuedJobs.length,
       dateRange: formatJobDateRange(queuedJobs.map((j) => j.business_date)),
     },
+    ...failedGroup,
   ];
 }
 

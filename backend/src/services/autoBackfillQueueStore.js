@@ -514,6 +514,7 @@ class AutoBackfillQueueStore {
                 ? await get(db, "SELECT id FROM auto_backfill_job WHERE state = 'RUNNING' AND source_lane = ?", [laneCode])
                 : await get(db, "SELECT id FROM auto_backfill_job WHERE state = 'RUNNING'");
             if (existingLease || runningJob) return null;
+            await this.releaseOrphanCircuitFlags(db);
 
             // AB-AUTH-03: the former global block -- "if ANY RUNNING run is WAITING_AUTH or
             // BLOCKED_INTEGRITY, stop the whole queue" -- is replaced by a per-lane exclusion.
@@ -526,7 +527,7 @@ class AutoBackfillQueueStore {
                  JOIN auto_backfill_run r ON r.id = j.run_id
                   WHERE j.state = 'QUEUED' AND r.status = 'RUNNING'
                     AND (j.safety_state IS NULL OR (j.safety_state = 'RETRY_WAIT' AND j.next_attempt_at <= ?))
-                    AND (r.safety_state IS NULL OR r.safety_state = 'CIRCUIT_OPEN')
+                    AND (r.safety_state IS NULL OR r.safety_state IN ('CIRCUIT_OPEN', 'WAITING_AUTH'))
                     AND j.source_lane NOT IN (${BLOCKED_LANES_SUBQUERY})
                     ${laneCode ? 'AND j.source_lane = ?' : ''}
                  ORDER BY j.business_date DESC, j.indicator_priority ASC,
@@ -674,7 +675,8 @@ class AutoBackfillQueueStore {
             const earlierRealAttempts = await get(
                 db,
                 `SELECT COUNT(*) AS n FROM auto_backfill_attempt
-                 WHERE job_id = ? AND id <> ? AND COALESCE(result_code, '') <> 'SESSION_PENDING_HUMAN_ACTION'`,
+                 WHERE job_id = ? AND id <> ?
+                   AND COALESCE(result_code, '') NOT IN ('SESSION_PENDING_HUMAN_ACTION', 'LEASE_EXPIRED')`,
                 [jobId, attempt.id],
             );
             const realAttemptNumber = Number(earlierRealAttempts.n) + 1;
@@ -683,11 +685,15 @@ class AutoBackfillQueueStore {
             let circuitSequenceReset = false;
             if (failure.systemic) {
                 const previous = await get(db, 'SELECT * FROM auto_backfill_circuit WHERE scope_key = ?', [failure.scope.key]);
+                const alreadyOpen = previous?.state === 'OPEN';
                 const consecutiveCount = previous?.error_signature === failure.signature
                     ? Number(previous.consecutive_count) + 1
                     : 1;
                 const circuitOpen = consecutiveCount >= circuitThreshold;
-                await run(
+                // An open circuit stays open until a success or the admin reset closes it. A failure with another
+                // signature must not silently rewrite it to CLOSED: that left CIRCUIT_OPEN flags on jobs with no open
+                // circuit behind them (Opus review C1, IMPORT-STUCK-RUN-01).
+                if (!alreadyOpen) await run(
                     db,
                     `INSERT INTO auto_backfill_circuit
                         (scope_key, adapter_id, source_lane, resource_identity, error_signature,
@@ -714,7 +720,9 @@ class AutoBackfillQueueStore {
                         now,
                     ],
                 );
-                circuit = { consecutiveCount, open: circuitOpen };
+                circuit = alreadyOpen
+                    ? { consecutiveCount: Number(previous.consecutive_count), open: false }
+                    : { consecutiveCount, open: circuitOpen };
             } else {
                 const previous = await get(db, 'SELECT * FROM auto_backfill_circuit WHERE scope_key = ?', [failure.scope.key]);
                 if (previous?.state === 'CLOSED' && Number(previous.consecutive_count) > 0) {
@@ -911,16 +919,66 @@ class AutoBackfillQueueStore {
         });
     }
 
+    /**
+     * Clears CIRCUIT_OPEN flags on jobs (and then runs) whose circuit is no longer open. Such a flag can only be a
+     * leftover: nothing else would ever clear it, the worker skips the job and the admin reset is refused (409).
+     * Returns the number of jobs released.
+     */
+    async releaseOrphanCircuitFlags(db, now = this.nowIso()) {
+        const orphan = await get(
+            db,
+            `SELECT 1 AS n FROM auto_backfill_job j
+             WHERE j.safety_state = 'CIRCUIT_OPEN'
+               AND NOT EXISTS (SELECT 1 FROM auto_backfill_circuit c WHERE c.scope_key = j.circuit_scope_key AND c.state = 'OPEN')
+             LIMIT 1`,
+        );
+        if (!orphan) return 0;
+        const released = await run(
+            db,
+            `UPDATE auto_backfill_job SET safety_state = NULL, action_required = NULL, updated_at = ?
+             WHERE safety_state = 'CIRCUIT_OPEN'
+               AND NOT EXISTS (SELECT 1 FROM auto_backfill_circuit c WHERE c.scope_key = auto_backfill_job.circuit_scope_key AND c.state = 'OPEN')`,
+            [now],
+        );
+        await run(
+            db,
+            `UPDATE auto_backfill_run SET safety_state = NULL, action_required = NULL, updated_at = ?
+             WHERE safety_state = 'CIRCUIT_OPEN'
+               AND NOT EXISTS (SELECT 1 FROM auto_backfill_job j WHERE j.run_id = auto_backfill_run.id AND j.safety_state = 'CIRCUIT_OPEN')`,
+            [now],
+        );
+        return Number(released?.changes || 1);
+    }
+
     async recordCircuitSuccess(job, scope) {
         return this.transaction(async (db) => {
             const circuit = await get(db, 'SELECT * FROM auto_backfill_circuit WHERE scope_key = ?', [scope.key]);
-            if (!circuit || (circuit.state === 'CLOSED' && Number(circuit.consecutive_count) === 0)) return false;
+            if (!circuit || (circuit.state === 'CLOSED' && Number(circuit.consecutive_count) === 0)) {
+                await this.releaseOrphanCircuitFlags(db);
+                return false;
+            }
             const now = this.nowIso();
             await run(
                 db,
                 `UPDATE auto_backfill_circuit SET state = 'CLOSED', consecutive_count = 0,
                     error_signature = NULL, last_error_code = NULL, reset_at = ?, updated_at = ? WHERE scope_key = ?`,
                 [now, now, scope.key],
+            );
+            // A success on this scope closes the circuit, so the CIRCUIT_OPEN flag that the opening wrote on the other
+            // jobs (and runs) of the same scope must go too. Otherwise those jobs are never claimed again and the admin
+            // reset is refused (no open circuit). 2026-11-03: run 905eda67 stayed stuck on 8 HUE days this way.
+            await run(
+                db,
+                `UPDATE auto_backfill_job SET safety_state = NULL, action_required = NULL, updated_at = ?
+                 WHERE circuit_scope_key = ? AND safety_state = 'CIRCUIT_OPEN'`,
+                [now, scope.key],
+            );
+            await run(
+                db,
+                `UPDATE auto_backfill_run SET safety_state = NULL, action_required = NULL, updated_at = ?
+                 WHERE safety_state = 'CIRCUIT_OPEN'
+                   AND NOT EXISTS (SELECT 1 FROM auto_backfill_job j WHERE j.run_id = auto_backfill_run.id AND j.safety_state = 'CIRCUIT_OPEN')`,
+                [now],
             );
             await this.appendEvent(db, {
                 runId: job.run_id,
@@ -1026,7 +1084,10 @@ class AutoBackfillQueueStore {
                 });
                 return;
             }
-            if (runRecord.status === 'RUNNING') return;
+            if (runRecord.status === 'RUNNING') {
+                await this.releaseOrphanCircuitFlags(db);
+                return;
+            }
             if (runRecord.status !== 'PAUSED') throw queueError('AUTO_BACKFILL_RUN_NOT_PAUSED', 'Only a PAUSED Auto Backfill run can be resumed.', 409);
             const now = this.nowIso();
             await run(db, "UPDATE auto_backfill_run SET status = 'RUNNING', status_reason = NULL, updated_at = ?, ended_at = NULL WHERE id = ?", [now, runId]);
@@ -1037,6 +1098,46 @@ class AutoBackfillQueueStore {
                 toState: 'RUNNING',
                 reasonCode: 'RESUME_REQUESTED',
                 payload: { actor },
+                createdAt: now,
+            });
+        });
+        return this.getRun(runId);
+    }
+
+    /**
+     * Cancels an open run: its still-QUEUED days become CANCELLED and the run CANCELLED, which frees those dates for a
+     * new run and lifts a BLOCKED_INTEGRITY block that otherwise has no way out (Opus review C2, IMPORT-STUCK-RUN-01).
+     * Refused while a day is executing: pause the run and let that day finish first.
+     */
+    async cancelRun(runId, actor) {
+        await this.transaction(async (db) => {
+            const runRecord = await get(db, 'SELECT * FROM auto_backfill_run WHERE id = ?', [runId]);
+            if (!runRecord) throw queueError('AUTO_BACKFILL_RUN_NOT_FOUND', `Auto Backfill run '${runId}' was not found.`, 404);
+            if (['COMPLETED', 'COMPLETED_WITH_ERRORS', 'CANCELLED'].includes(runRecord.status)) {
+                throw queueError('AUTO_BACKFILL_RUN_ALREADY_ENDED', 'This Auto Backfill run has already ended.', 409);
+            }
+            const active = await get(db, "SELECT 1 AS n FROM auto_backfill_job WHERE run_id = ? AND state IN ('RUNNING', 'RECOVERY_CHECK') LIMIT 1", [runId]);
+            if (active) throw queueError('AUTO_BACKFILL_RUN_HAS_ACTIVE_JOB', 'A day of this run is executing; wait until it finishes, then cancel.', 409);
+            const now = this.nowIso();
+            const cancelled = await run(
+                db,
+                `UPDATE auto_backfill_job SET state = 'CANCELLED', safety_state = NULL, next_attempt_at = NULL,
+                    action_required = NULL, ended_at = ?, updated_at = ? WHERE run_id = ? AND state = 'QUEUED'`,
+                [now, now, runId],
+            );
+            await run(
+                db,
+                `UPDATE auto_backfill_run SET status = 'CANCELLED', safety_state = NULL, action_required = NULL,
+                    status_reason = 'CANCELLED_BY_ADMIN', updated_at = ?, ended_at = ? WHERE id = ?`,
+                [now, now, runId],
+            );
+            await this.appendEvent(db, {
+                runId,
+                eventType: 'RUN_STATE_CHANGED',
+                fromState: runRecord.safety_state || runRecord.status,
+                toState: 'CANCELLED',
+                reasonCode: 'CANCELLED_BY_ADMIN',
+                payload: { actor, cancelled_jobs: cancelled.changes },
                 createdAt: now,
             });
         });
@@ -1054,7 +1155,11 @@ class AutoBackfillQueueStore {
                  WHERE j.run_id = ? AND c.state = 'OPEN'`,
                 [runId],
             );
-            if (circuits.length === 0) throw queueError('AUTO_BACKFILL_CIRCUIT_NOT_OPEN', 'No open circuit belongs to this run.', 409);
+            if (circuits.length === 0) {
+                // No open circuit: a CIRCUIT_OPEN flag left behind is cleared instead of refusing the admin.
+                if (await this.releaseOrphanCircuitFlags(db)) return;
+                throw queueError('AUTO_BACKFILL_CIRCUIT_NOT_OPEN', 'No open circuit belongs to this run.', 409);
+            }
             const now = this.nowIso();
             for (const circuit of circuits) {
                 await run(
@@ -1193,7 +1298,7 @@ class AutoBackfillQueueStore {
                 `SELECT
                     SUM(CASE WHEN j.state = 'QUEUED' AND r.status = 'RUNNING'
                         AND (j.safety_state IS NULL OR (j.safety_state = 'RETRY_WAIT' AND j.next_attempt_at <= ?))
-                        AND (r.safety_state IS NULL OR r.safety_state = 'CIRCUIT_OPEN') THEN 1 ELSE 0 END) AS eligible_job_count,
+                        AND (r.safety_state IS NULL OR r.safety_state IN ('CIRCUIT_OPEN', 'WAITING_AUTH')) THEN 1 ELSE 0 END) AS eligible_job_count,
                     SUM(CASE WHEN j.state = 'RUNNING' THEN 1 ELSE 0 END) AS running_job_count,
                     SUM(CASE WHEN j.safety_state = 'WAITING_AUTH' THEN 1 ELSE 0 END) AS waiting_auth_count,
                     SUM(CASE WHEN j.safety_state = 'CIRCUIT_OPEN' THEN 1 ELSE 0 END) AS circuit_open_count,
@@ -1214,7 +1319,7 @@ class AutoBackfillQueueStore {
                 `SELECT
                     SUM(CASE WHEN j.state = 'QUEUED' AND r.status = 'RUNNING'
                         AND (j.safety_state IS NULL OR (j.safety_state = 'RETRY_WAIT' AND j.next_attempt_at <= ?))
-                        AND (r.safety_state IS NULL OR r.safety_state = 'CIRCUIT_OPEN') THEN 1 ELSE 0 END) AS n,
+                        AND (r.safety_state IS NULL OR r.safety_state IN ('CIRCUIT_OPEN', 'WAITING_AUTH')) THEN 1 ELSE 0 END) AS n,
                     MIN(CASE WHEN j.safety_state = 'RETRY_WAIT' THEN j.next_attempt_at END) AS retry_ready_at
                  FROM auto_backfill_job j
                  JOIN auto_backfill_run r ON r.id = j.run_id

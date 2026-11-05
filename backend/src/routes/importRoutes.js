@@ -40,6 +40,7 @@ router.get('/auto-backfill/jobs', ...adminOnly, autoBackfillQueueController.list
 router.get('/auto-backfill/runs/:runId', ...adminOnly, autoBackfillQueueController.getRun.bind(autoBackfillQueueController));
 router.post('/auto-backfill/runs/:runId/pause', ...adminOnly, autoBackfillQueueController.pauseRun.bind(autoBackfillQueueController));
 router.post('/auto-backfill/runs/:runId/resume', ...adminOnly, autoBackfillQueueController.resumeRun.bind(autoBackfillQueueController));
+router.post('/auto-backfill/runs/:runId/cancel', ...adminOnly, autoBackfillQueueController.cancelRun.bind(autoBackfillQueueController));
 router.post('/auto-backfill/runs/:runId/circuit/reset', ...adminOnly, autoBackfillQueueController.resetCircuits.bind(autoBackfillQueueController));
 router.get('/auto-backfill/runs/:runId/events', ...adminOnly, autoBackfillQueueController.getEvents.bind(autoBackfillQueueController));
 router.get('/auto-backfill/runs/:runId/report', ...adminOnly, autoBackfillQueueController.getReport.bind(autoBackfillQueueController));

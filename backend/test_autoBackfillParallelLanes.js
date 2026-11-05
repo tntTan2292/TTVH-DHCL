@@ -516,3 +516,21 @@ test('the TCT F1.3 backfill import is inside the shared-connection write lock', 
     const source = fs.readFileSync(path.join(__dirname, 'src/services/tctF13BackfillService.js'), 'utf8');
     assert.match(source, /withImportWriteLock\(\(\) => this\.importNationalParsedData\(/);
 });
+
+test('Opus review N7: in ONE two-lane run, the lane waiting for a login holds only itself', async () => {
+    const fixture = await createFixture();
+    const db = await openDb(fixture.dbPath);
+    try {
+        const created = await fixture.service.createRun({ actor: 'admin', roles: ['admin'] });
+        const store = fixture.service.store;
+        const tctJob = created.jobs.find((job) => job.source_lane === 'TCT');
+        await dbExec(db, `UPDATE auto_backfill_job SET safety_state = 'WAITING_AUTH' WHERE id = '${tctJob.id}'`);
+        await dbExec(db, `UPDATE auto_backfill_run SET safety_state = 'WAITING_AUTH' WHERE id = '${created.run.id}'`);
+        assert.equal(await store.acquireNextJob('w-tct', { lane: 'TCT' }), null, 'the lane waiting for a login stays held');
+        const hue = await store.acquireNextJob('w-hue', { lane: 'HUE' });
+        assert.ok(hue && hue.source_lane === 'HUE', 'the other lane of the same run keeps working');
+    } finally {
+        await dbClose(db);
+        fixture.cleanup();
+    }
+});

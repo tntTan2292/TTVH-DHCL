@@ -1607,3 +1607,38 @@ console.log('Running AUTO-BACKFILL-UI behavior and contract test suite...');
 
 
 
+
+{
+  // finished jobs are not listed as waiting: done + failed + queued shows only the queued as waiting
+  const jobs = [];
+  for (let i = 0; i < 6; i += 1) jobs.push({ state: 'SUCCESS', source_lane: 'TCT', business_date: `2026-02-0${i + 1}` });
+  jobs.push({ state: 'FAILED_TERMINAL', source_lane: 'TCT', business_date: '2026-07-21' });
+  for (let i = 1; i <= 3; i += 1) jobs.push({ state: 'QUEUED', source_lane: 'HUE', business_date: `2026-01-0${i}` });
+  const classified = jobs.map((job) => ({ ...job, realState: classifyJobRealState(job, {}) }));
+  assert.equal(classified.filter((j) => j.realState === 'TERMINAL').length, 6);
+  assert.equal(computeJobCounts(classified).queued.total, 3);
+  assert.equal(computeJobCounts(classified).total, 3);
+  const groups = groupJobsByRealStatus(classified);
+  assert.equal(groups.find((g) => g.key === 'QUEUED').count, 3);
+  const failed = groups.find((g) => g.key === 'FAILED');
+  assert.equal(failed.count, 1);
+  assert.equal(failed.jobs[0].business_date, '2026-07-21');
+  assert.equal(groupJobsByRealStatus([]).some((g) => g.key === 'FAILED'), false);
+  console.log('# ✔ 28. Finished jobs are not listed as waiting; a failed day has its own group tests PASSED!');
+}
+
+{
+  // Opus review N3/N4/N5: finished days stay finished inside a WAITING_AUTH run; a circuit-blocked day has its own state;
+  // a lane with only a failed day has no queue left; a PAUSED run is counted as paused.
+  const waitingRun = { safety_state: 'WAITING_AUTH' };
+  assert.equal(classifyJobRealState({ state: 'SUCCESS' }, waitingRun), 'TERMINAL');
+  assert.equal(classifyJobRealState({ state: 'QUEUED' }, waitingRun), 'WAITING_AUTH');
+  assert.equal(classifyJobRealState({ state: 'QUEUED', safety_state: 'CIRCUIT_OPEN' }, {}), 'CIRCUIT_OPEN');
+  assert.match(resolveJobShortReason({ state: 'QUEUED', safety_state: 'CIRCUIT_OPEN', realState: 'CIRCUIT_OPEN' }), /Cầu dao/);
+  const failedOnly = [{ state: 'FAILED_TERMINAL', source_lane: 'TCT', business_date: '2026-07-21', realState: 'FAILED' }];
+  assert.equal(formatLaneStatus('TCT', { jobs: failedOnly, runs: [] }), 'Hết hàng chờ');
+  const summary = summarizeOpenRuns([{ run: { status: 'PAUSED', requested_lane: 'ALL' }, jobs: [{ state: 'QUEUED', source_lane: 'HUE' }] }]);
+  assert.equal(summary.countsByState.paused, 1);
+  assert.equal(summary.countsByState.running, 0);
+  console.log('# ✔ 29. Opus review N3/N4/N5: terminal first, circuit-blocked state, lane status, paused run tests PASSED!');
+}

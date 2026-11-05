@@ -578,6 +578,13 @@ class AutoBackfillQueueService {
         return runIds;
     }
 
+    async cancelRun(runId, { actor, roles }) {
+        assertAdmin(roles);
+        const result = await this.store.cancelRun(runId, actor);
+        this.notifyWorkAvailable('run-cancelled');
+        return result;
+    }
+
     async resetCircuits(runId, { actor, roles }) {
         assertAdmin(roles);
         const result = await this.store.resetCircuitsForRun(runId, actor);
