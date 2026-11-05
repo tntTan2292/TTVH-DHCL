@@ -9,6 +9,7 @@ import F13V2WhyFilterBar from './components/F13V2WhyFilterBar.jsx';
 import F13V2WhyFreshnessNotice from './components/F13V2WhyFreshnessNotice.jsx';
 import F13V2WhyDiagnosticCard from './components/F13V2WhyDiagnosticCard.jsx';
 import F13V2WhyRouteTable from './components/F13V2WhyRouteTable.jsx';
+import F13V2WhyParcelModal from './components/F13V2WhyParcelModal.jsx';
 import { buildWhyUnitOptions, resolveEffectiveBcvh, separateRouteScopes } from './f13WhyHelpers.js';
 
 export default function F13V2WhyPage() {
@@ -55,6 +56,29 @@ export default function F13V2WhyPage() {
     routesData: null,
     error: null,
   });
+
+  // Step 2: Parcel list modal state
+  const [parcelModal, setParcelModal] = useState({
+    isOpen: false,
+    title: '',
+    subtitle: '',
+    filter: null,
+    expectedCount: null,
+  });
+
+  const handleOpenParcels = useCallback(({ title, subtitle, filter, expectedCount }) => {
+    setParcelModal({
+      isOpen: true,
+      title: title || '',
+      subtitle: subtitle || '',
+      filter: filter || null,
+      expectedCount: expectedCount ?? null,
+    });
+  }, []);
+
+  const handleCloseParcels = useCallback(() => {
+    setParcelModal((prev) => ({ ...prev, isOpen: false }));
+  }, []);
 
   // 1. Initial Load: Layout, Meta, Weeks, Months
   useEffect(() => {
@@ -343,10 +367,11 @@ export default function F13V2WhyPage() {
                 postmanRoutes={postmanRoutes}
                 periodLabel={periodLabel}
                 onSelectBcvh={handleBcvhChange}
+                onOpenParcels={handleOpenParcels}
               />
             )}
 
-            {/* Step 1 Block 2: Route Level Ranking & Cause Breakdown Table */}
+            {/* Step 1 Block 2: Route Level Ranking & Cause Breakdown Table + Step 2 Postman Sub-table */}
             <F13V2WhyRouteTable
               routes={allRoutes}
               bcvhRows={dataState.bcvhData?.rows || []}
@@ -354,6 +379,17 @@ export default function F13V2WhyPage() {
               bcvhName={bcvhDisplayName}
               periodLabel={periodLabel}
               onSelectBcvh={handleBcvhChange}
+              onOpenParcels={handleOpenParcels}
+            />
+
+            {/* Step 2: Parcel Evidence Modal */}
+            <F13V2WhyParcelModal
+              isOpen={parcelModal.isOpen}
+              onClose={handleCloseParcels}
+              title={parcelModal.title}
+              subtitle={parcelModal.subtitle}
+              filter={parcelModal.filter}
+              expectedCount={parcelModal.expectedCount}
             />
           </>
         )}

@@ -18,6 +18,7 @@ export default function F13V2WhyDiagnosticCard({
   postmanRoutes = [],
   periodLabel = '',
   onSelectBcvh,
+  onOpenParcels,
 }) {
   const cardRef = useRef(null);
   const indicator = useIndicator();
@@ -75,6 +76,7 @@ export default function F13V2WhyDiagnosticCard({
   const isBelowTarget = rate < targetRate;
   const periodText = periodLabel ? `Kỳ: ${periodLabel}` : '';
   const captureTitle = `Bức tranh nguyên nhân ${ten_bcvh}`;
+  const baseFilter = bcvhRow.filter || {};
 
   return (
     <section
@@ -159,21 +161,60 @@ export default function F13V2WhyDiagnosticCard({
           </div>
         </div>
 
-        <div className="rounded-xl border border-slate-200/80 bg-slate-50/50 p-3 text-center">
+        <div
+          onClick={() =>
+            onOpenParcels?.({
+              title: `${ten_bcvh} • Toàn bộ sản lượng`,
+              subtitle: periodText,
+              filter: baseFilter,
+              expectedCount: volume,
+            })
+          }
+          className={`rounded-xl border border-slate-200/80 bg-slate-50/50 p-3 text-center ${
+            onOpenParcels ? 'hover:bg-slate-100 hover:border-slate-300 transition-colors cursor-pointer' : ''
+          }`}
+          title={onOpenParcels ? 'Bấm để xem danh sách toàn bộ bưu gửi' : undefined}
+        >
           <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider block">Sản lượng (N)</span>
           <span className="mt-1 text-xl font-bold text-slate-800 block">
             {new Intl.NumberFormat('vi-VN').format(volume)}
           </span>
         </div>
 
-        <div className="rounded-xl border border-slate-200/80 bg-slate-50/50 p-3 text-center">
+        <div
+          onClick={() =>
+            onOpenParcels?.({
+              title: `${ten_bcvh} • Bưu gửi Đạt`,
+              subtitle: periodText,
+              filter: { ...baseFilter, verdict: 'Đạt' },
+              expectedCount: passed,
+            })
+          }
+          className={`rounded-xl border border-slate-200/80 bg-slate-50/50 p-3 text-center ${
+            onOpenParcels ? 'hover:bg-emerald-50/60 hover:border-emerald-300 transition-colors cursor-pointer' : ''
+          }`}
+          title={onOpenParcels ? 'Bấm để xem danh sách bưu gửi đạt chỉ tiêu' : undefined}
+        >
           <span className="text-[11px] font-semibold text-emerald-700 uppercase tracking-wider block">Đạt</span>
           <span className="mt-1 text-xl font-bold text-emerald-700 block">
             {new Intl.NumberFormat('vi-VN').format(passed)}
           </span>
         </div>
 
-        <div className="rounded-xl border border-slate-200/80 bg-slate-50/50 p-3 text-center">
+        <div
+          onClick={() =>
+            onOpenParcels?.({
+              title: `${ten_bcvh} • Bưu gửi Không đạt`,
+              subtitle: periodText,
+              filter: { ...baseFilter, verdict: 'Không đạt' },
+              expectedCount: failed,
+            })
+          }
+          className={`rounded-xl border border-slate-200/80 bg-slate-50/50 p-3 text-center ${
+            onOpenParcels ? 'hover:bg-rose-50/60 hover:border-rose-300 transition-colors cursor-pointer' : ''
+          }`}
+          title={onOpenParcels ? 'Bấm để xem danh sách bưu gửi không đạt chỉ tiêu' : undefined}
+        >
           <span className="text-[11px] font-semibold text-rose-700 uppercase tracking-wider block">Không đạt</span>
           <span className="mt-1 text-xl font-bold text-rose-700 block">
             {new Intl.NumberFormat('vi-VN').format(failed)}
@@ -183,7 +224,20 @@ export default function F13V2WhyDiagnosticCard({
           )}
         </div>
 
-        <div className="col-span-2 sm:col-span-1 rounded-xl border border-amber-200 bg-amber-50/40 p-3 text-center">
+        <div
+          onClick={() =>
+            onOpenParcels?.({
+              title: `${ten_bcvh} • Bưu gửi Không đạt (Thiếu hụt vs 90%)`,
+              subtitle: periodText,
+              filter: { ...baseFilter, verdict: 'Không đạt' },
+              expectedCount: failed,
+            })
+          }
+          className={`col-span-2 sm:col-span-1 rounded-xl border border-amber-200 bg-amber-50/40 p-3 text-center ${
+            onOpenParcels ? 'hover:bg-amber-100/50 hover:border-amber-300 transition-colors cursor-pointer' : ''
+          }`}
+          title={onOpenParcels ? 'Bấm để xem danh sách bưu gửi không đạt cần bù' : undefined}
+        >
           <span className="text-[11px] font-bold text-amber-800 uppercase tracking-wider block">Thiếu hụt vs 90%</span>
           <span className="mt-1 text-xl font-black text-amber-700 block">
             {formatShortfall(own_shortfall)}
@@ -243,13 +297,46 @@ export default function F13V2WhyDiagnosticCard({
                           <span className="text-[10px] text-slate-400 font-mono">({row.ma_bcvh})</span>
                         </div>
                       </td>
-                      <td className="px-2.5 py-2 text-right font-medium text-slate-700 border-r border-slate-200">
+                      <td
+                        onClick={() =>
+                          onOpenParcels?.({
+                            title: `${row.ten_bcvh} • Sản lượng`,
+                            subtitle: periodText,
+                            filter: row.filter,
+                            expectedCount: row.volume,
+                          })
+                        }
+                        className="px-2.5 py-2 text-right font-medium text-slate-700 border-r border-slate-200 hover:text-blue-600 hover:underline cursor-pointer"
+                        title="Bấm để xem danh sách bưu gửi của bưu cục này"
+                      >
                         {formatVolume(row.volume)}
                       </td>
-                      <td className="px-2 py-2 text-right font-medium text-emerald-700 border-r border-slate-200">
+                      <td
+                        onClick={() =>
+                          onOpenParcels?.({
+                            title: `${row.ten_bcvh} • Bưu gửi Đạt`,
+                            subtitle: periodText,
+                            filter: { ...row.filter, verdict: 'Đạt' },
+                            expectedCount: row.passed,
+                          })
+                        }
+                        className="px-2 py-2 text-right font-medium text-emerald-700 border-r border-slate-200 hover:underline cursor-pointer"
+                        title="Bấm để xem bưu gửi đạt của bưu cục này"
+                      >
                         {formatVolume(row.passed)}
                       </td>
-                      <td className="px-2 py-2 text-right font-medium text-rose-700 border-r border-slate-200">
+                      <td
+                        onClick={() =>
+                          onOpenParcels?.({
+                            title: `${row.ten_bcvh} • Bưu gửi Không đạt`,
+                            subtitle: periodText,
+                            filter: { ...row.filter, verdict: 'Không đạt' },
+                            expectedCount: row.failed,
+                          })
+                        }
+                        className="px-2 py-2 text-right font-medium text-rose-700 border-r border-slate-200 hover:underline cursor-pointer"
+                        title="Bấm để xem bưu gửi không đạt của bưu cục này"
+                      >
                         {formatVolume(row.failed)}
                       </td>
                       <td className="px-2.5 py-2 text-center border-r border-slate-200">
@@ -305,33 +392,89 @@ export default function F13V2WhyDiagnosticCard({
                   Khách quan trước bưu cục
                 </h3>
               </div>
-              <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-black text-amber-800">
+              <button
+                type="button"
+                onClick={() =>
+                  onOpenParcels?.({
+                    title: `${ten_bcvh} • Khách quan trước bưu cục`,
+                    subtitle: periodText,
+                    filter: { ...baseFilter, verdict: 'Không đạt' },
+                    expectedCount: upstreamCount,
+                  })
+                }
+                className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-black text-amber-800 hover:bg-amber-200 transition-colors cursor-pointer"
+                title="Bấm để xem danh sách bưu gửi khách quan"
+              >
                 {formatSharePercent(upstreamShare)} ({upstreamCount} BG)
-              </span>
+              </button>
             </div>
 
             <div className="space-y-2 text-xs">
-              <div className="flex items-center justify-between py-1 border-b border-amber-100/50">
+              <div
+                onClick={() =>
+                  onOpenParcels?.({
+                    title: `${ten_bcvh} • Không trọn lô`,
+                    subtitle: periodText,
+                    filter: { ...baseFilter, cause: 'KHONG_TRON_LO', verdict: 'Không đạt' },
+                    expectedCount: khongTronLo.count,
+                  })
+                }
+                className="flex items-center justify-between py-1 border-b border-amber-100/50 hover:bg-amber-100/40 rounded px-1 -mx-1 transition-colors cursor-pointer"
+                title="Bấm để xem danh sách bưu gửi Không trọn lô"
+              >
                 <span className="text-slate-700 font-medium">Không trọn lô:</span>
-                <span className="font-bold text-slate-900">
+                <span className="font-bold text-slate-900 hover:underline">
                   {khongTronLo.count} BG ({formatSharePercent(khongTronLo.share)})
                 </span>
               </div>
-              <div className="flex items-center justify-between py-1 border-b border-amber-100/50">
+              <div
+                onClick={() =>
+                  onOpenParcels?.({
+                    title: `${ten_bcvh} • Khai thác đến quá hạn`,
+                    subtitle: periodText,
+                    filter: { ...baseFilter, cause: 'KHAI_THAC', verdict: 'Không đạt' },
+                    expectedCount: khaiThac.count,
+                  })
+                }
+                className="flex items-center justify-between py-1 border-b border-amber-100/50 hover:bg-amber-100/40 rounded px-1 -mx-1 transition-colors cursor-pointer"
+                title="Bấm để xem danh sách bưu gửi Khai thác quá hạn"
+              >
                 <span className="text-slate-700 font-medium">Khai thác đến quá hạn:</span>
-                <span className="font-bold text-slate-900">
+                <span className="font-bold text-slate-900 hover:underline">
                   {khaiThac.count} BG ({formatSharePercent(khaiThac.share)})
                 </span>
               </div>
-              <div className="flex items-center justify-between py-1 border-b border-amber-100/50">
+              <div
+                onClick={() =>
+                  onOpenParcels?.({
+                    title: `${ten_bcvh} • Vận chuyển đến quá hạn`,
+                    subtitle: periodText,
+                    filter: { ...baseFilter, cause: 'VAN_CHUYEN', verdict: 'Không đạt' },
+                    expectedCount: vanChuyen.count,
+                  })
+                }
+                className="flex items-center justify-between py-1 border-b border-amber-100/50 hover:bg-amber-100/40 rounded px-1 -mx-1 transition-colors cursor-pointer"
+                title="Bấm để xem danh sách bưu gửi Vận chuyển quá hạn"
+              >
                 <span className="text-slate-700 font-medium">Vận chuyển đến quá hạn:</span>
-                <span className="font-bold text-slate-900">
+                <span className="font-bold text-slate-900 hover:underline">
                   {vanChuyen.count} BG ({formatSharePercent(vanChuyen.share)})
                 </span>
               </div>
-              <div className="flex items-center justify-between py-1">
+              <div
+                onClick={() =>
+                  onOpenParcels?.({
+                    title: `${ten_bcvh} • KT - VC chưa phân biệt`,
+                    subtitle: periodText,
+                    filter: { ...baseFilter, cause: 'KHAI_THAC_VAN_CHUYEN_CHUA_PHAN_BIET', verdict: 'Không đạt' },
+                    expectedCount: ktVcChuaPhanBiet.count,
+                  })
+                }
+                className="flex items-center justify-between py-1 hover:bg-amber-100/40 rounded px-1 -mx-1 transition-colors cursor-pointer"
+                title="Bấm để xem danh sách bưu gửi KT - VC chưa phân biệt"
+              >
                 <span className="text-slate-700 font-medium">KT - VC chưa phân biệt:</span>
-                <span className="font-bold text-slate-900">
+                <span className="font-bold text-slate-900 hover:underline">
                   {ktVcChuaPhanBiet.count} BG ({formatSharePercent(ktVcChuaPhanBiet.share)})
                 </span>
               </div>
@@ -352,27 +495,72 @@ export default function F13V2WhyDiagnosticCard({
                   Khâu phát tại bưu cục
                 </h3>
               </div>
-              <span className="rounded-full bg-blue-100 px-2 py-0.5 text-[11px] font-black text-blue-800">
+              <button
+                type="button"
+                onClick={() =>
+                  onOpenParcels?.({
+                    title: `${ten_bcvh} • Khâu phát tại bưu cục`,
+                    subtitle: periodText,
+                    filter: { ...baseFilter, cause: 'PHAT', verdict: 'Không đạt' },
+                    expectedCount: phat.count,
+                  })
+                }
+                className="rounded-full bg-blue-100 px-2 py-0.5 text-[11px] font-black text-blue-800 hover:bg-blue-200 transition-colors cursor-pointer"
+                title="Bấm để xem danh sách bưu gửi khâu phát"
+              >
                 {formatSharePercent(phat.share)} ({phat.count} BG)
-              </span>
+              </button>
             </div>
 
             <div className="space-y-2 text-xs">
-              <div className="flex items-center justify-between py-1 border-b border-blue-100/50">
+              <div
+                onClick={() =>
+                  onOpenParcels?.({
+                    title: `${ten_bcvh} • Chậm giao bưu tá`,
+                    subtitle: periodText,
+                    filter: { ...baseFilter, cause: 'GIAO_BUU_TA_QUA_GIO', verdict: 'Không đạt' },
+                    expectedCount: chamGiao,
+                  })
+                }
+                className="flex items-center justify-between py-1 border-b border-blue-100/50 hover:bg-blue-100/40 rounded px-1 -mx-1 transition-colors cursor-pointer"
+                title="Bấm để xem danh sách bưu gửi chậm giao bưu tá"
+              >
                 <span className="text-slate-700 font-medium">Chậm giao bưu tá:</span>
-                <span className="font-bold text-slate-900">
+                <span className="font-bold text-slate-900 hover:underline">
                   {chamGiao} BG ({formatSharePercent(failed > 0 ? chamGiao / failed : 0)})
                 </span>
               </div>
-              <div className="flex items-center justify-between py-1 border-b border-blue-100/50">
+              <div
+                onClick={() =>
+                  onOpenParcels?.({
+                    title: `${ten_bcvh} • Phát chậm sau khi giao`,
+                    subtitle: periodText,
+                    filter: { ...baseFilter, cause: 'PHAT_MUON', verdict: 'Không đạt' },
+                    expectedCount: phatCham,
+                  })
+                }
+                className="flex items-center justify-between py-1 border-b border-blue-100/50 hover:bg-blue-100/40 rounded px-1 -mx-1 transition-colors cursor-pointer"
+                title="Bấm để xem danh sách bưu gửi phát chậm sau khi giao"
+              >
                 <span className="text-slate-700 font-medium">Phát chậm sau khi giao:</span>
-                <span className="font-bold text-slate-900">
+                <span className="font-bold text-slate-900 hover:underline">
                   {phatCham} BG ({formatSharePercent(failed > 0 ? phatCham / failed : 0)})
                 </span>
               </div>
-              <div className="flex items-center justify-between py-1">
+              <div
+                onClick={() =>
+                  onOpenParcels?.({
+                    title: `${ten_bcvh} • Phát chưa rõ chi tiết`,
+                    subtitle: periodText,
+                    filter: { ...baseFilter, cause: 'PHAT_KHONG_CHI_TIET', verdict: 'Không đạt' },
+                    expectedCount: phatChuaRo,
+                  })
+                }
+                className="flex items-center justify-between py-1 hover:bg-blue-100/40 rounded px-1 -mx-1 transition-colors cursor-pointer"
+                title="Bấm để xem danh sách bưu gửi phát chưa rõ chi tiết"
+              >
                 <span className="text-slate-700 font-medium">Phát chưa rõ chi tiết:</span>
-                <span className="font-bold text-slate-900">
+                <span className="font-bold text-slate-900 hover:underline">
                   {phatChuaRo} BG ({formatSharePercent(failed > 0 ? phatChuaRo / failed : 0)})
                 </span>
               </div>
@@ -394,9 +582,21 @@ export default function F13V2WhyDiagnosticCard({
                 </h3>
               </div>
               {choChuyenQuan.count > 0 && (
-                <span className="rounded-full bg-slate-200 px-2 py-0.5 text-[11px] font-black text-slate-800">
+                <button
+                  type="button"
+                  onClick={() =>
+                    onOpenParcels?.({
+                      title: `${ten_bcvh} • Chờ Chuyên quản phân tích`,
+                      subtitle: periodText,
+                      filter: { ...baseFilter, cause: 'CHO_CHUYEN_QUAN', verdict: 'Không đạt' },
+                      expectedCount: choChuyenQuan.count,
+                    })
+                  }
+                  className="rounded-full bg-slate-200 px-2 py-0.5 text-[11px] font-black text-slate-800 hover:bg-slate-300 transition-colors cursor-pointer"
+                  title="Bấm để xem danh sách bưu gửi chờ CQ"
+                >
                   {choChuyenQuan.count} BG chờ CQ
-                </span>
+                </button>
               )}
             </div>
 
@@ -405,27 +605,71 @@ export default function F13V2WhyDiagnosticCard({
                 Thời gian còn lại khi đến BCVH:
               </div>
               <div className="grid grid-cols-2 gap-1.5 text-[11px]">
-                <div className="rounded border border-rose-200 bg-rose-50/60 px-2 py-1">
+                <div
+                  onClick={() =>
+                    onOpenParcels?.({
+                      title: `${ten_bcvh} • Đến quá giờ`,
+                      subtitle: periodText,
+                      filter: { ...baseFilter, remaining: 'over_limit', verdict: 'Không đạt' },
+                      expectedCount: arrival_remaining.over_limit || 0,
+                    })
+                  }
+                  className="rounded border border-rose-200 bg-rose-50/60 px-2 py-1 hover:bg-rose-100/60 transition-colors cursor-pointer"
+                  title="Bấm để xem bưu gửi đến quá giờ"
+                >
                   <span className="text-rose-700 block">Đến quá giờ:</span>
-                  <span className="font-black text-rose-900">
+                  <span className="font-black text-rose-900 hover:underline">
                     {arrival_remaining.over_limit || 0} BG ({formatSharePercent(arrival_remaining.shares?.over_limit)})
                   </span>
                 </div>
-                <div className="rounded border border-amber-200 bg-amber-50/60 px-2 py-1">
+                <div
+                  onClick={() =>
+                    onOpenParcels?.({
+                      title: `${ten_bcvh} • Đến còn < 3h`,
+                      subtitle: periodText,
+                      filter: { ...baseFilter, remaining: 'lt_3h', verdict: 'Không đạt' },
+                      expectedCount: arrival_remaining.lt_3h || 0,
+                    })
+                  }
+                  className="rounded border border-amber-200 bg-amber-50/60 px-2 py-1 hover:bg-amber-100/60 transition-colors cursor-pointer"
+                  title="Bấm để xem bưu gửi đến còn < 3h"
+                >
                   <span className="text-amber-700 block">Còn &lt; 3h:</span>
-                  <span className="font-black text-amber-900">
+                  <span className="font-black text-amber-900 hover:underline">
                     {arrival_remaining.lt_3h || 0} BG ({formatSharePercent(arrival_remaining.shares?.lt_3h)})
                   </span>
                 </div>
-                <div className="rounded border border-sky-200 bg-sky-50/60 px-2 py-1">
+                <div
+                  onClick={() =>
+                    onOpenParcels?.({
+                      title: `${ten_bcvh} • Đến còn 3 - 6h`,
+                      subtitle: periodText,
+                      filter: { ...baseFilter, remaining: 'h3_6', verdict: 'Không đạt' },
+                      expectedCount: arrival_remaining.h3_6 || 0,
+                    })
+                  }
+                  className="rounded border border-sky-200 bg-sky-50/60 px-2 py-1 hover:bg-sky-100/60 transition-colors cursor-pointer"
+                  title="Bấm để xem bưu gửi đến còn 3 - 6h"
+                >
                   <span className="text-sky-700 block">Còn 3 - 6h:</span>
-                  <span className="font-black text-sky-900">
+                  <span className="font-black text-sky-900 hover:underline">
                     {arrival_remaining.h3_6 || 0} BG ({formatSharePercent(arrival_remaining.shares?.h3_6)})
                   </span>
                 </div>
-                <div className="rounded border border-emerald-200 bg-emerald-50/60 px-2 py-1">
+                <div
+                  onClick={() =>
+                    onOpenParcels?.({
+                      title: `${ten_bcvh} • Đến còn ≥ 6h`,
+                      subtitle: periodText,
+                      filter: { ...baseFilter, remaining: 'ge_6h', verdict: 'Không đạt' },
+                      expectedCount: arrival_remaining.ge_6h || 0,
+                    })
+                  }
+                  className="rounded border border-emerald-200 bg-emerald-50/60 px-2 py-1 hover:bg-emerald-100/60 transition-colors cursor-pointer"
+                  title="Bấm để xem bưu gửi đến còn ≥ 6h"
+                >
                   <span className="text-emerald-700 block">Còn &ge; 6h:</span>
-                  <span className="font-black text-emerald-900">
+                  <span className="font-black text-emerald-900 hover:underline">
                     {arrival_remaining.ge_6h || 0} BG ({formatSharePercent(arrival_remaining.shares?.ge_6h)})
                   </span>
                 </div>
@@ -437,9 +681,21 @@ export default function F13V2WhyDiagnosticCard({
                     Chờ CQ phân tích: {choChuyenQuan.count} BG ({formatSharePercent(choChuyenQuan.share)})
                   </span>
                   {Object.entries(choChuyenQuan.by_reason || {}).map(([reason, cnt]) => (
-                    <span key={reason} className="text-[10px] text-slate-500 block">
-                      • {formatChoChuyenQuanReason(reason)}: {cnt} BG
-                    </span>
+                    <button
+                      key={reason}
+                      type="button"
+                      onClick={() =>
+                        onOpenParcels?.({
+                          title: `${ten_bcvh} • ${formatChoChuyenQuanReason(reason)}`,
+                          subtitle: periodText,
+                          filter: { ...baseFilter, cause: 'CHO_CHUYEN_QUAN', reason, verdict: 'Không đạt' },
+                          expectedCount: cnt,
+                        })
+                      }
+                      className="text-[10px] text-slate-700 hover:text-blue-700 hover:underline text-left block w-full py-0.5 cursor-pointer"
+                    >
+                      • {formatChoChuyenQuanReason(reason)}: <strong>{cnt} BG</strong>
+                    </button>
                   ))}
                 </div>
               )}

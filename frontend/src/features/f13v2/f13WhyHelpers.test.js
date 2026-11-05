@@ -12,6 +12,11 @@ import {
   buildWhyUnitOptions,
   resolveEffectiveBcvh,
   groupRoutesByBcvh,
+  formatCauseLabel,
+  formatPhatDetail,
+  formatRemainingAtArrival,
+  formatPostmanName,
+  sortWhyPostmen,
 } from './f13WhyHelpers.js';
 
 test('formatShortfall formats integer and decimal values with Vietnamese locale', () => {
@@ -349,4 +354,63 @@ test('S1-PO1: generateBcvhDiagnosticStory describes city-wide picture and which 
   assert.match(story.hotspotSummary, /BCVH Thuận Hóa/);
   assert.match(story.hotspotSummary, /BCVH Hương Thủy/);
   assert.match(story.hotspotSummary, /2 \/ 3 BCVH chưa đạt/);
+});
+
+test('Step 2: formatCauseLabel and formatPhatDetail translate codes cleanly to Vietnamese', () => {
+  assert.equal(formatCauseLabel('KHONG_TRON_LO'), 'Không trọn lô');
+  assert.equal(formatCauseLabel('KHAI_THAC'), 'Khai thác (đến BCVH quá hạn)');
+  assert.equal(formatCauseLabel('VAN_CHUYEN'), 'Vận chuyển (đến BCVH quá hạn)');
+  assert.equal(formatCauseLabel('KHAI_THAC_VAN_CHUYEN_CHUA_PHAN_BIET'), 'Khai thác - Vận chuyển (chưa phân biệt)');
+  assert.equal(formatCauseLabel('GIAO_BUU_TA_QUA_GIO'), 'Chậm giao bưu tá');
+  assert.equal(formatCauseLabel('PHAT_MUON'), 'Phát chậm sau khi giao');
+  assert.equal(formatCauseLabel('PHAT_KHONG_CHI_TIET'), 'Phát (chưa rõ chi tiết)');
+  assert.equal(formatCauseLabel('CHO_CHUYEN_QUAN'), 'Chờ Chuyên quản phân tích');
+  assert.equal(formatCauseLabel('UNKNOWN_CAUSE'), 'UNKNOWN_CAUSE');
+
+  assert.equal(formatPhatDetail('CHAM_GIAO_BUU_TA'), 'Chậm giao bưu tá');
+  assert.equal(formatPhatDetail('PHAT_CHAM_SAU_GIAO'), 'Phát chậm sau khi giao');
+  assert.equal(formatPhatDetail('KHONG_CHI_TIET'), 'Không có chi tiết');
+  assert.equal(formatPhatDetail(null), '—');
+});
+
+test('Step 2: formatRemainingAtArrival formats buckets and ms offsets', () => {
+  assert.equal(formatRemainingAtArrival('over_limit'), 'Đến quá giờ');
+  assert.equal(formatRemainingAtArrival('lt_3h'), 'Còn < 3h');
+  assert.equal(formatRemainingAtArrival('h3_6'), 'Còn 3 - 6h');
+  assert.equal(formatRemainingAtArrival('ge_6h'), 'Còn ≥ 6h');
+
+  assert.equal(formatRemainingAtArrival(-1000), 'Đến quá giờ');
+  assert.equal(formatRemainingAtArrival(3600000), 'Còn < 3h');
+  assert.equal(formatRemainingAtArrival(14400000), 'Còn 3 - 6h');
+  assert.equal(formatRemainingAtArrival(25000000), 'Còn ≥ 6h');
+  assert.equal(formatRemainingAtArrival(null), '—');
+});
+
+test('Step 2: formatPostmanName formats postmen and preserves "Chưa có bưu tá" bucket', () => {
+  assert.equal(formatPostmanName(null, 'NONE'), 'Chưa có bưu tá');
+  assert.equal(formatPostmanName(null, null), 'Chưa có bưu tá');
+  assert.equal(formatPostmanName('Nguyễn Văn A', 'BT01'), 'Nguyễn Văn A (BT01)');
+  assert.equal(formatPostmanName('Nguyễn Văn B', null), 'Nguyễn Văn B');
+  assert.equal(formatPostmanName(null, 'BT99'), 'Bưu tá BT99');
+});
+
+test('Step 2: sortWhyPostmen sorts postmen rows by various criteria', () => {
+  const list = [
+    { ma_buu_ta: 'B1', ten_buu_ta: 'Nguyễn Văn B', own_shortfall_x10: 200, volume: 150, rate: 70 },
+    { ma_buu_ta: 'A1', ten_buu_ta: 'Trần Văn A', own_shortfall_x10: 500, volume: 300, rate: 50 },
+    { ma_buu_ta: null, ten_buu_ta: 'Chưa có bưu tá', own_shortfall_x10: 100, volume: 50, rate: 80 },
+  ];
+
+  const byShortfallDesc = sortWhyPostmen(list, 'own_shortfall', 'desc');
+  assert.equal(byShortfallDesc[0].ma_buu_ta, 'A1');
+  assert.equal(byShortfallDesc[1].ma_buu_ta, 'B1');
+  assert.equal(byShortfallDesc[2].ma_buu_ta, null);
+
+  const byVolumeDesc = sortWhyPostmen(list, 'volume', 'desc');
+  assert.equal(byVolumeDesc[0].ma_buu_ta, 'A1');
+  assert.equal(byVolumeDesc[1].ma_buu_ta, 'B1');
+  assert.equal(byVolumeDesc[2].ma_buu_ta, null);
+
+  const byNameAsc = sortWhyPostmen(list, 'ten_buu_ta', 'asc');
+  assert.equal(byNameAsc[0].ten_buu_ta, 'Chưa có bưu tá');
 });

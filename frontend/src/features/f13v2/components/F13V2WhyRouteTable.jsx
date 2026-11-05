@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from 'react';
-import { Route, Layers } from 'lucide-react';
+import { Route, Layers, ChevronDown, ChevronRight, User, Package } from 'lucide-react';
 import BlockCaptureButton from '../../../components/common/BlockCaptureButton.jsx';
 import SortableTh from '../../../components/common/SortableTh.jsx';
 import { useIndicator } from '../../indicator/IndicatorContext.js';
@@ -13,6 +13,7 @@ import {
   sortWhyRoutes,
   groupRoutesByBcvh,
 } from '../f13WhyHelpers.js';
+import F13V2WhyPostmanSubTable from './F13V2WhyPostmanSubTable.jsx';
 
 function RateBadge({ rate, target = 90 }) {
   const tone = classifyRateTone(rate, target);
@@ -30,7 +31,7 @@ function RateBadge({ rate, target = 90 }) {
   );
 }
 
-function CauseMixMiniChips({ mix }) {
+function CauseMixMiniChips({ mix, routeFilter, onOpenParcels, routeName }) {
   if (!mix || mix.failed === 0) return null;
 
   const lines = mix.lines || [];
@@ -42,7 +43,14 @@ function CauseMixMiniChips({ mix }) {
       key: 'ktl',
       label: `Lô: ${khongTronLo.count}`,
       title: `Không trọn lô: ${khongTronLo.count} BG (${formatSharePercent(khongTronLo.share)})`,
-      className: 'bg-amber-100 text-amber-900 border-amber-200',
+      className: 'bg-amber-100 text-amber-900 border-amber-200 hover:bg-amber-200 cursor-pointer',
+      onClick: () =>
+        onOpenParcels?.({
+          title: `${routeName} • Không trọn lô`,
+          subtitle: 'Cơ cấu nguyên nhân tuyến phát',
+          filter: { ...routeFilter, cause: 'KHONG_TRON_LO', verdict: 'Không đạt' },
+          expectedCount: khongTronLo.count,
+        }),
     });
   }
 
@@ -52,7 +60,14 @@ function CauseMixMiniChips({ mix }) {
       key: 'kt',
       label: `KT: ${khaiThac.count}`,
       title: `Khai thác quá hạn: ${khaiThac.count} BG (${formatSharePercent(khaiThac.share)})`,
-      className: 'bg-amber-50 text-amber-800 border-amber-200',
+      className: 'bg-amber-50 text-amber-800 border-amber-200 hover:bg-amber-100 cursor-pointer',
+      onClick: () =>
+        onOpenParcels?.({
+          title: `${routeName} • Khai thác đến quá hạn`,
+          subtitle: 'Cơ cấu nguyên nhân tuyến phát',
+          filter: { ...routeFilter, cause: 'KHAI_THAC', verdict: 'Không đạt' },
+          expectedCount: khaiThac.count,
+        }),
     });
   }
 
@@ -62,7 +77,14 @@ function CauseMixMiniChips({ mix }) {
       key: 'vc',
       label: `VC: ${vanChuyen.count}`,
       title: `Vận chuyển quá hạn: ${vanChuyen.count} BG (${formatSharePercent(vanChuyen.share)})`,
-      className: 'bg-amber-50 text-amber-800 border-amber-200',
+      className: 'bg-amber-50 text-amber-800 border-amber-200 hover:bg-amber-100 cursor-pointer',
+      onClick: () =>
+        onOpenParcels?.({
+          title: `${routeName} • Vận chuyển đến quá hạn`,
+          subtitle: 'Cơ cấu nguyên nhân tuyến phát',
+          filter: { ...routeFilter, cause: 'VAN_CHUYEN', verdict: 'Không đạt' },
+          expectedCount: vanChuyen.count,
+        }),
     });
   }
 
@@ -74,7 +96,14 @@ function CauseMixMiniChips({ mix }) {
       key: 'phat',
       label: `Phát: ${phat.count}`,
       title: `Khâu phát: ${phat.count} BG (${chamGiao} chậm giao, ${phatCham} phát chậm)`,
-      className: 'bg-blue-100 text-blue-900 border-blue-200',
+      className: 'bg-blue-100 text-blue-900 border-blue-200 hover:bg-blue-200 cursor-pointer',
+      onClick: () =>
+        onOpenParcels?.({
+          title: `${routeName} • Khâu phát tại bưu cục`,
+          subtitle: 'Cơ cấu nguyên nhân tuyến phát',
+          filter: { ...routeFilter, cause: 'PHAT', verdict: 'Không đạt' },
+          expectedCount: phat.count,
+        }),
     });
   }
 
@@ -84,20 +113,29 @@ function CauseMixMiniChips({ mix }) {
       key: 'cq',
       label: `CQ: ${choCQ}`,
       title: `Chờ Chuyên quản: ${choCQ} BG`,
-      className: 'bg-slate-100 text-slate-800 border-slate-300',
+      className: 'bg-slate-100 text-slate-800 border-slate-300 hover:bg-slate-200 cursor-pointer',
+      onClick: () =>
+        onOpenParcels?.({
+          title: `${routeName} • Chờ Chuyên quản phân tích`,
+          subtitle: 'Cơ cấu nguyên nhân tuyến phát',
+          filter: { ...routeFilter, cause: 'CHO_CHUYEN_QUAN', verdict: 'Không đạt' },
+          expectedCount: choCQ,
+        }),
     });
   }
 
   return (
     <div className="flex flex-wrap items-center gap-1">
       {chips.map((c) => (
-        <span
+        <button
           key={c.key}
+          type="button"
+          onClick={c.onClick}
           title={c.title}
-          className={`inline-block px-1 py-0.2 rounded text-[10px] font-semibold border ${c.className}`}
+          className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-semibold border transition-colors ${c.className}`}
         >
           {c.label}
-        </span>
+        </button>
       ))}
     </div>
   );
@@ -110,8 +148,15 @@ function SingleBcvhRoutesBlock({
   theme,
   targetRate,
   onSelectBcvh,
+  onOpenParcels,
   isCityWide = false,
 }) {
+  const [expandedRouteKey, setExpandedRouteKey] = useState(null);
+
+  const toggleExpand = (key) => {
+    setExpandedRouteKey((cur) => (cur === key ? null : key));
+  };
+
   const sortedPostman = useMemo(() => {
     return sortWhyRoutes(bcvhGroup.postmanRoutes, sort.field, sort.direction);
   }, [bcvhGroup.postmanRoutes, sort.field, sort.direction]);
@@ -231,18 +276,21 @@ function SingleBcvhRoutesBlock({
               >
                 % Kéo tụt
               </SortableTh>
-              <th className="min-w-[170px] px-2.5 py-2 text-left border-r border-slate-200">
+              <th className="min-w-[160px] px-2.5 py-2 text-left border-r border-slate-200">
                 Nguyên nhân chính
               </th>
-              <th className="min-w-[130px] px-2 py-2 text-left">
+              <th className="min-w-[140px] px-2 py-2 text-left border-r border-slate-200">
                 Cơ cấu nguyên nhân
+              </th>
+              <th className="w-36 px-2 py-2 text-center" data-no-capture="true">
+                Thao tác
               </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
             {sortedPostman.length === 0 ? (
               <tr>
-                <td colSpan={11} className="py-5 text-center text-slate-400">
+                <td colSpan={12} className="py-5 text-center text-slate-400">
                   BCVH này không có dữ liệu tuyến bưu tá cho kỳ báo cáo.
                 </td>
               </tr>
@@ -250,13 +298,15 @@ function SingleBcvhRoutesBlock({
               sortedPostman.map((route, idx) => {
                 const mainCause = summarizeRouteMainCause(route);
                 const hasRouteDeficit = (route.own_shortfall || 0) > 0;
+                const routeName = route.ten_tuyen || `Tuyến ${route.ma_tuyen}`;
+                const isExpanded = expandedRouteKey === route.key;
 
                 return (
                   <tr
                     key={route.key || route.ma_tuyen}
-                    className={`hover:bg-blue-50/30 transition-colors duration-100 ${
+                    className={`transition-colors duration-100 ${
                       hasRouteDeficit ? 'bg-amber-50/15' : ''
-                    }`}
+                    } ${isExpanded ? 'bg-blue-50/20' : 'hover:bg-blue-50/30'}`}
                   >
                     <td className="px-2 py-2 text-center font-semibold text-slate-500 border-r border-slate-100">
                       {idx + 1}
@@ -270,13 +320,46 @@ function SingleBcvhRoutesBlock({
                     >
                       {route.ten_tuyen || '—'}
                     </td>
-                    <td className="px-2 py-2 text-right font-medium text-slate-800">
+                    <td
+                      onClick={() =>
+                        onOpenParcels?.({
+                          title: `${routeName} • Toàn bộ sản lượng`,
+                          subtitle: `BCVH ${bcvhGroup.ten_bcvh}`,
+                          filter: route.filter,
+                          expectedCount: route.volume,
+                        })
+                      }
+                      className="px-2 py-2 text-right font-medium text-slate-800 hover:text-blue-600 hover:underline cursor-pointer"
+                      title="Bấm để xem danh sách toàn bộ bưu gửi của tuyến"
+                    >
                       {formatVolume(route.volume)}
                     </td>
-                    <td className="px-2 py-2 text-right font-medium text-emerald-700">
+                    <td
+                      onClick={() =>
+                        onOpenParcels?.({
+                          title: `${routeName} • Bưu gửi Đạt`,
+                          subtitle: `BCVH ${bcvhGroup.ten_bcvh}`,
+                          filter: { ...route.filter, verdict: 'Đạt' },
+                          expectedCount: route.passed,
+                        })
+                      }
+                      className="px-2 py-2 text-right font-medium text-emerald-700 hover:underline cursor-pointer"
+                      title="Bấm để xem danh sách bưu gửi đạt của tuyến"
+                    >
                       {formatVolume(route.passed)}
                     </td>
-                    <td className="px-2 py-2 text-right font-medium text-rose-700">
+                    <td
+                      onClick={() =>
+                        onOpenParcels?.({
+                          title: `${routeName} • Bưu gửi Không đạt`,
+                          subtitle: `BCVH ${bcvhGroup.ten_bcvh}`,
+                          filter: { ...route.filter, verdict: 'Không đạt' },
+                          expectedCount: route.failed,
+                        })
+                      }
+                      className="px-2 py-2 text-right font-medium text-rose-700 hover:underline cursor-pointer"
+                      title="Bấm để xem danh sách bưu gửi không đạt của tuyến"
+                    >
                       {formatVolume(route.failed)}
                     </td>
                     <td className="px-2 py-2 text-center border-r border-slate-100">
@@ -293,13 +376,67 @@ function SingleBcvhRoutesBlock({
                     <td className="px-2.5 py-2 text-slate-800 font-medium border-r border-slate-100 whitespace-normal break-words">
                       {mainCause}
                     </td>
-                    <td className="px-2 py-2">
-                      <CauseMixMiniChips mix={route.cause_mix} />
+                    <td className="px-2 py-2 border-r border-slate-100">
+                      <CauseMixMiniChips
+                        mix={route.cause_mix}
+                        routeFilter={route.filter}
+                        onOpenParcels={onOpenParcels}
+                        routeName={routeName}
+                      />
+                    </td>
+                    <td className="px-2 py-2 text-center" data-no-capture="true">
+                      <div className="flex items-center justify-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => toggleExpand(route.key)}
+                          className={`inline-flex items-center gap-1 rounded border px-2 py-1 text-[11px] font-bold transition-colors cursor-pointer ${
+                            isExpanded
+                              ? 'border-blue-400 bg-blue-100 text-blue-900'
+                              : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-100'
+                          }`}
+                          title="Xem danh sách bưu tá bàn giao đầu tiên của tuyến này"
+                        >
+                          <User className="h-3 w-3" />
+                          <span>Bưu tá</span>
+                          {isExpanded ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() =>
+                            onOpenParcels?.({
+                              title: `${routeName} • Bưu gửi Không đạt`,
+                              subtitle: `BCVH ${bcvhGroup.ten_bcvh}`,
+                              filter: { ...route.filter, verdict: 'Không đạt' },
+                              expectedCount: route.failed,
+                            })
+                          }
+                          className="inline-flex items-center gap-1 rounded border border-blue-200 bg-blue-50/80 px-2 py-1 text-[11px] font-bold text-blue-700 hover:bg-blue-100 transition-colors cursor-pointer"
+                          title="Xem danh sách bưu gửi không đạt của tuyến"
+                        >
+                          <Package className="h-3 w-3" />
+                          <span>({route.failed})</span>
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 );
               })
             )}
+            {/* Inline Expanded Postmen Sub-table for the selected route */}
+            {sortedPostman.map((route) => {
+              if (expandedRouteKey !== route.key) return null;
+              return (
+                <tr key={`${route.key}_postmen_sub`} className="bg-slate-50/80">
+                  <td colSpan={12} className="p-2 sm:p-3 border-b border-slate-200">
+                    <F13V2WhyPostmanSubTable
+                      route={route}
+                      onOpenParcels={onOpenParcels}
+                    />
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
@@ -331,37 +468,98 @@ function SingleBcvhRoutesBlock({
                   <th className="px-2 py-1.5 text-right text-amber-800">Thiếu hụt</th>
                   <th className="px-3 py-1.5">Nguyên nhân chính</th>
                   <th className="px-2 py-1.5">Cơ cấu</th>
+                  <th className="w-24 px-2 py-1.5 text-center" data-no-capture="true">
+                    Thao tác
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200/60">
-                {bcvhGroup.otherRoutes.map((r) => (
-                  <tr key={r.key} className="hover:bg-slate-100/50">
-                    <td className="px-3 py-2 font-bold text-slate-800">
-                      {r.ten_tuyen || r.route_scope}
-                    </td>
-                    <td className="px-2 py-2 text-right font-medium text-slate-800">
-                      {formatVolume(r.volume)}
-                    </td>
-                    <td className="px-2 py-2 text-right font-medium text-emerald-700">
-                      {formatVolume(r.passed)}
-                    </td>
-                    <td className="px-2 py-2 text-right font-medium text-rose-700">
-                      {formatVolume(r.failed)}
-                    </td>
-                    <td className="px-2 py-2 text-center">
-                      <RateBadge rate={r.rate} target={targetRate} />
-                    </td>
-                    <td className="px-2 py-2 text-right font-bold text-amber-800">
-                      {formatShortfall(r.own_shortfall)}
-                    </td>
-                    <td className="px-3 py-2 text-slate-800 font-medium">
-                      {summarizeRouteMainCause(r)}
-                    </td>
-                    <td className="px-2 py-2">
-                      <CauseMixMiniChips mix={r.cause_mix} />
-                    </td>
-                  </tr>
-                ))}
+                {bcvhGroup.otherRoutes.map((r) => {
+                  const otherRouteName = r.ten_tuyen || r.route_scope;
+                  return (
+                    <tr key={r.key} className="hover:bg-slate-100/50">
+                      <td className="px-3 py-2 font-bold text-slate-800">
+                        {otherRouteName}
+                      </td>
+                      <td
+                        onClick={() =>
+                          onOpenParcels?.({
+                            title: `${otherRouteName} • Sản lượng`,
+                            subtitle: `BCVH ${bcvhGroup.ten_bcvh}`,
+                            filter: r.filter,
+                            expectedCount: r.volume,
+                          })
+                        }
+                        className="px-2 py-2 text-right font-medium text-slate-800 hover:text-blue-600 hover:underline cursor-pointer"
+                        title="Bấm để xem danh sách bưu gửi"
+                      >
+                        {formatVolume(r.volume)}
+                      </td>
+                      <td
+                        onClick={() =>
+                          onOpenParcels?.({
+                            title: `${otherRouteName} • Bưu gửi Đạt`,
+                            subtitle: `BCVH ${bcvhGroup.ten_bcvh}`,
+                            filter: { ...r.filter, verdict: 'Đạt' },
+                            expectedCount: r.passed,
+                          })
+                        }
+                        className="px-2 py-2 text-right font-medium text-emerald-700 hover:underline cursor-pointer"
+                        title="Bấm để xem danh sách bưu gửi đạt"
+                      >
+                        {formatVolume(r.passed)}
+                      </td>
+                      <td
+                        onClick={() =>
+                          onOpenParcels?.({
+                            title: `${otherRouteName} • Bưu gửi Không đạt`,
+                            subtitle: `BCVH ${bcvhGroup.ten_bcvh}`,
+                            filter: { ...r.filter, verdict: 'Không đạt' },
+                            expectedCount: r.failed,
+                          })
+                        }
+                        className="px-2 py-2 text-right font-medium text-rose-700 hover:underline cursor-pointer"
+                        title="Bấm để xem danh sách bưu gửi không đạt"
+                      >
+                        {formatVolume(r.failed)}
+                      </td>
+                      <td className="px-2 py-2 text-center">
+                        <RateBadge rate={r.rate} target={targetRate} />
+                      </td>
+                      <td className="px-2 py-2 text-right font-bold text-amber-800">
+                        {formatShortfall(r.own_shortfall)}
+                      </td>
+                      <td className="px-3 py-2 text-slate-800 font-medium">
+                        {summarizeRouteMainCause(r)}
+                      </td>
+                      <td className="px-2 py-2">
+                        <CauseMixMiniChips
+                          mix={r.cause_mix}
+                          routeFilter={r.filter}
+                          onOpenParcels={onOpenParcels}
+                          routeName={otherRouteName}
+                        />
+                      </td>
+                      <td className="px-2 py-2 text-center" data-no-capture="true">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            onOpenParcels?.({
+                              title: `${otherRouteName} • Bưu gửi Không đạt`,
+                              subtitle: `BCVH ${bcvhGroup.ten_bcvh}`,
+                              filter: { ...r.filter, verdict: 'Không đạt' },
+                              expectedCount: r.failed,
+                            })
+                          }
+                          className="inline-flex items-center gap-1 rounded border border-blue-200 bg-blue-50/80 px-2 py-0.5 text-[11px] font-bold text-blue-700 hover:bg-blue-100 transition-colors cursor-pointer"
+                        >
+                          <Package className="h-3 w-3" />
+                          <span>Xem ({r.failed})</span>
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -378,6 +576,7 @@ export default function F13V2WhyRouteTable({
   bcvhName = '',
   periodLabel = '',
   onSelectBcvh,
+  onOpenParcels,
 }) {
   const tableRef = useRef(null);
   const indicator = useIndicator();
@@ -470,6 +669,7 @@ export default function F13V2WhyRouteTable({
             theme={theme}
             targetRate={targetRate}
             onSelectBcvh={onSelectBcvh}
+            onOpenParcels={onOpenParcels}
             isCityWide={isCityWide}
           />
         ))}

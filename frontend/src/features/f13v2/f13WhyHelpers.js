@@ -23,6 +23,62 @@ export function formatChoChuyenQuanReason(code) {
   return CHO_CHUYEN_QUAN_REASONS[code] || String(code);
 }
 
+export const CAUSE_LABELS = Object.freeze({
+  KHONG_TRON_LO: 'Không trọn lô',
+  KHAI_THAC: 'Khai thác (đến BCVH quá hạn)',
+  VAN_CHUYEN: 'Vận chuyển (đến BCVH quá hạn)',
+  KHAI_THAC_VAN_CHUYEN_CHUA_PHAN_BIET: 'Khai thác - Vận chuyển (chưa phân biệt)',
+  GIAO_BUU_TA_QUA_GIO: 'Chậm giao bưu tá',
+  PHAT_MUON: 'Phát chậm sau khi giao',
+  PHAT_KHONG_CHI_TIET: 'Phát (chưa rõ chi tiết)',
+  CHO_CHUYEN_QUAN: 'Chờ Chuyên quản phân tích',
+  CHUA_DU_CAN_CU: 'Chưa đủ căn cứ',
+  KHONG_PHAN_TICH: 'Không phân tích',
+  PHAT: 'Khâu phát',
+});
+
+export function formatCauseLabel(code) {
+  if (!code) return '—';
+  return CAUSE_LABELS[code] || String(code);
+}
+
+export const PHAT_DETAIL_LABELS = Object.freeze({
+  CHAM_GIAO_BUU_TA: 'Chậm giao bưu tá',
+  PHAT_CHAM_SAU_GIAO: 'Phát chậm sau khi giao',
+  KHONG_CHI_TIET: 'Không có chi tiết',
+});
+
+export function formatPhatDetail(detail) {
+  if (!detail) return '—';
+  return PHAT_DETAIL_LABELS[detail] || String(detail);
+}
+
+export function formatRemainingAtArrival(msOrBucket) {
+  if (msOrBucket === null || msOrBucket === undefined) return '—';
+  if (typeof msOrBucket === 'string') {
+    const map = {
+      over_limit: 'Đến quá giờ',
+      lt_3h: 'Còn < 3h',
+      h3_6: 'Còn 3 - 6h',
+      ge_6h: 'Còn ≥ 6h',
+    };
+    return map[msOrBucket] || msOrBucket;
+  }
+  const num = Number(msOrBucket);
+  if (Number.isNaN(num)) return '—';
+  if (num < 0) return 'Đến quá giờ';
+  if (num < 3 * 3600 * 1000) return 'Còn < 3h';
+  if (num < 6 * 3600 * 1000) return 'Còn 3 - 6h';
+  return 'Còn ≥ 6h';
+}
+
+export function formatPostmanName(name, code) {
+  if ((!name && !code) || code === 'NONE') return 'Chưa có bưu tá';
+  if (name && code) return `${name} (${code})`;
+  if (name) return name;
+  return `Bưu tá ${code}`;
+}
+
 export function formatShortfall(val) {
   if (val === null || val === undefined || Number.isNaN(Number(val))) return '—';
   const num = Number(val);
@@ -446,6 +502,66 @@ export function sortWhyRoutes(routes = [], sortField = 'own_shortfall', sortDire
       case 'ten_tuyen':
         valA = a.ten_tuyen || '';
         valB = b.ten_tuyen || '';
+        break;
+      default:
+        valA = a.own_shortfall_x10 ?? -1;
+        valB = b.own_shortfall_x10 ?? -1;
+        break;
+    }
+
+    if (typeof valA === 'string' && typeof valB === 'string') {
+      const cmp = valA.localeCompare(valB, 'vi');
+      return cmp !== 0 ? cmp * dir : (b.volume || 0) - (a.volume || 0);
+    }
+
+    const diff = (valA - valB) * dir;
+    return diff !== 0 ? diff : (b.volume || 0) - (a.volume || 0);
+  });
+}
+
+/**
+ * Pure sort helper for postman table rows.
+ */
+export function sortWhyPostmen(postmen = [], sortField = 'own_shortfall', sortDirection = 'desc') {
+  if (!postmen || postmen.length === 0) return [];
+  const dir = sortDirection === 'asc' ? 1 : -1;
+
+  return [...postmen].sort((a, b) => {
+    let valA;
+    let valB;
+
+    switch (sortField) {
+      case 'own_shortfall':
+        valA = a.own_shortfall_x10 ?? -1;
+        valB = b.own_shortfall_x10 ?? -1;
+        break;
+      case 'share_of_parent_shortfall':
+        valA = a.share_of_parent_shortfall ?? -1;
+        valB = b.share_of_parent_shortfall ?? -1;
+        break;
+      case 'volume':
+        valA = a.volume ?? -1;
+        valB = b.volume ?? -1;
+        break;
+      case 'passed':
+        valA = a.passed ?? -1;
+        valB = b.passed ?? -1;
+        break;
+      case 'failed':
+        valA = a.failed ?? -1;
+        valB = b.failed ?? -1;
+        break;
+      case 'rate':
+        valA = a.rate ?? -1;
+        valB = b.rate ?? -1;
+        break;
+      case 'ma_buu_ta':
+        valA = a.ma_buu_ta || '';
+        valB = b.ma_buu_ta || '';
+        break;
+      case 'ten_buu_ta':
+        valA = a.ten_buu_ta || '';
+        valB = b.ten_buu_ta || '';
         break;
       default:
         valA = a.own_shortfall_x10 ?? -1;
