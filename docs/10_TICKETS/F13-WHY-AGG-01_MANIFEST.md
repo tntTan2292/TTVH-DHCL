@@ -7,7 +7,7 @@
 - Programme: F1.3 cause rebuild. Predecessor `F13-WHY-DATA-01` (CLOSED / PO UI PASS, commits `c8b24977`, `7ae159d2`). Next tickets in the agreed order (PO + ChatGPT, 2026-11-05): Hành trình page (cause, flags, hints, filters; UI by Antigravity), Phân tích tuyến phát, Năng lực và chất lượng tuyến (needs a PO definition first), Dữ liệu minh chứng, NARRATIVE, RETIRE.
 - Owner: `Claude Code` (backend, data, tests, documentation, Git). Model discipline: Sonnet 5.5 implements; **Opus reviews independently** (high risk: new derived table, background job); the same model does not self-approve.
 - Branch: `codex/da-impl-006` (as `PROJECT_SNAPSHOT.md`).
-- **Status: `ACTIVE - P1, P2, P3 ACCEPTED BY OPUS REVIEW (sections 14, 16, 18); P4 next (with P3-R1 first)`** (activated 2026-11-05, section 10). The Design of Record v2 (with section 6A and Appendix D) was approved by the PO on 2026-11-05; the Opus pre-implementation review (section 12) found no SSOT or PO issue.
+- **Status: `P1-P4 ACCEPTED BY OPUS REVIEW (section 20) - READY FOR PRODUCTION BUILD (needs the PO's agreement)`** (activated 2026-11-05, section 10). The Design of Record v2 (with section 6A and Appendix D) was approved by the PO on 2026-11-05; the Opus pre-implementation review (section 12) found no SSOT or PO issue.
 - Relation to `PROJECT_SNAPSHOT.md`: Current Ticket is `F13-ROUTE-POSTMAN-IDENTITY-01` (PAUSED by PO decision). This ticket does **not** replace it and does **not** reactivate it (the same arrangement as `F13-WHY-DATA-01`: "does not change Current Ticket"). On activation the snapshot only receives a "Previous update" line; the PAUSED state of the postman-identity ticket is untouched.
 
 ## 2. Authority and sources
@@ -215,3 +215,13 @@ Copy only (`aggcopy.sqlite`); the live database was not opened, `QIS_F13_CAUSE_R
 
 **Open for the review / handoff.** Production build, `QIS_F13_CAUSE_REFRESH=on` and the restart are for Opus after the review and the PO's agreement (a full-year build is about 10 min in the background). The `summary` cost (about 8 s for a year) is a P2 query item to look at before a year view is put on a page. READY FOR OPUS REVIEW.
 
+## 20. Opus review of P4 (2026-11-05, Claude Code / Opus 5.5; commit `6f435761`)
+
+**Verdict: P4 ACCEPTED - P3-R1 fixed, reconciliation 0 differences, P1-R4 explained. The ticket is technically complete; only the production build remains (section 6: by Claude Code after the PO agrees).**
+
+Repeated independently on the copy: suites one file at a time with `--experimental-sqlite` (`CauseRefresh` 19, `CauseAggBuilder` 21, `CauseAggQueryService` 22, `f13v2WhyRoutes.scope` 5, `f13v2Routes.scope` 13, `f13v2Units` 20, `JourneyService` 25, `CauseClassifier` 29, `tctIntervals` 45, `migrate_f13_why_agg_01_schema` 3, `server.startupMigrations` 1 - all pass); grouped signatures for 308 days in 1,1 s, equal to the per-day signature on 21 sampled days (0 differences); `freshness` for 2026-01-01..2026-11-04 uncached 1,2 s (was 17,8 s inside `summary`), `complete = true` after the executor's rebuild; week 43 cause lines by SQL equal section 19 (Phát 3 505 / 2 969 / 25, Không trọn lô 449, Khai thác 353, chưa phân biệt 156, Vận chuyển 40, Chờ Chuyên quản 241 = 7 738) and the weekly-report skill run of the F13-WHY-DATA-02 review (groups 549 / 3 505 / 2 994 / 449 / 241); the reconciliation script contains no write statement. P1-R4: the table counts F4.2 inside `[D-10, D+5]` (66 / 2 169), the Design Appendix B prototype read every date (61 / 2 179 + 1 parcel of another unit); the table figures are the operational ones.
+
+| ID | Level | Finding | Resolution |
+|---|---|---|---|
+| P4-R1 | Low (UI ticket) | `summary` over a whole year takes about 8 s (the P2 GROUP BY over about 1 million rows), a month under 1 s. | The page opens on a day / week / month; a year view needs a day-level aggregate first (own ticket if the PO asks for it). |
+| P4-R2 | Operations | Production build: about 10 minutes for 2026 on a separate writer connection; afterwards `QIS_F13_CAUSE_REFRESH=on` and a backend restart (P3-R2: enable after large backfills). | Done by Claude Code only with the PO's agreement and after checking that no import or backfill is running. |
