@@ -119,6 +119,51 @@ async function computeDaySignature(db, date) {
     return parts.join('|');
 }
 
+/**
+ * Signatures of many days with ONE GROUP BY-day query per source over the whole needed range; each day's window is derived in memory.
+ * Same strings as computeDaySignature (P3-R1). `days` are ISO dates; returns Map day -> signature.
+ */
+async function computeSignaturesForDays(db, days) {
+    const result = new Map();
+    if (!days.length) return result;
+    const sorted = [...days].sort();
+    const first = windowFor(sorted[0]);
+    const last = windowFor(sorted[sorted.length - 1]);
+    const perSource = [];
+    for (const source of SOURCES) {
+        const lo = first.from;
+        const hi = source.window === 'bf' ? last.bfTo : last.to;
+        let rows;
+        try {
+            rows = await db.all(
+                `SELECT ${source.dateColumn} AS d, COUNT(*) AS c, MAX(id) AS m FROM ${source.table} WHERE ${source.dateColumn} BETWEEN ? AND ? GROUP BY ${source.dateColumn}`,
+                [lo, hi],
+            );
+        } catch (error) {
+            if (!/no such table/i.test(String(error.message))) throw error;
+            rows = [];
+        }
+        perSource.push(rows.map((row) => ({ d: row.d, c: Number(row.c), m: Number(row.m ?? 0) })).sort((a, b) => (a.d < b.d ? -1 : 1)));
+    }
+    for (const day of sorted) {
+        const { from, to, bfTo } = windowFor(day);
+        const parts = SOURCES.map((source, index) => {
+            const upper = source.window === 'bf' ? bfTo : to;
+            let count = 0;
+            let max = 0;
+            for (const entry of perSource[index]) {
+                if (entry.d < from) continue;
+                if (entry.d > upper) break;
+                count += entry.c;
+                if (entry.m > max) max = entry.m;
+            }
+            return `${source.key}:${count}:${max}`;
+        });
+        result.set(day, parts.join('|'));
+    }
+    return result;
+}
+
 function wrapDb(db) {
     return {
         run: (sql, params = []) => new Promise((resolve, reject) => {
@@ -379,6 +424,7 @@ class CauseAggBuilder {
 module.exports = {
     CauseAggBuilder,
     computeDaySignature,
+    computeSignaturesForDays,
     wrapDb,
     ROUTE_SCOPES,
     DAY_STATES,

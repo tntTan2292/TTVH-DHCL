@@ -17,7 +17,7 @@ const { weekBoundsForWeekId } = require('../bcvhWeeklyComparisonService');
 const { monthBounds, isRealDate } = require('./periodResolve');
 const { CAUSES, PHAT_DETAILS } = require('./CauseClassifier');
 const { REMAINING_BUCKET_MS } = require('../../config/f13CauseConfig');
-const { computeDaySignature, computeClassifierVersion } = require('./CauseAggBuilder');
+const { computeSignaturesForDays, computeClassifierVersion } = require('./CauseAggBuilder');
 
 const SIGNATURE_TTL_MS = 60 * 1000;
 
@@ -313,13 +313,18 @@ class CauseAggQueryService {
 
     // ---- freshness (P3): for every day with data the stored input signature and classifier version are compared with the CURRENT ones
     // (signature cached SIGNATURE_TTL_MS per day); a moved signature or an old classifier version is stale, never complete.
-    async _currentSignature(day) {
-        const cached = this.signatureCache.get(day);
+    /** Current signatures of `days`: cached ones are reused, the rest come from one grouped query per source over their whole range (P3-R1). */
+    async _currentSignatures(days) {
         const at = this.now();
-        if (cached && at - cached.at < this.signatureTtlMs) return cached.value;
-        const value = await computeDaySignature({ get: async (sql, params) => (await this.db.all(sql, params))[0] }, day);
-        this.signatureCache.set(day, { value, at });
-        return value;
+        const missing = days.filter((day) => {
+            const cached = this.signatureCache.get(day);
+            return !cached || at - cached.at >= this.signatureTtlMs;
+        });
+        if (missing.length) {
+            const computed = await computeSignaturesForDays(this.db, missing);
+            for (const [day, value] of computed) this.signatureCache.set(day, { value, at });
+        }
+        return new Map(days.map((day) => [day, this.signatureCache.get(day).value]));
     }
 
     _currentClassifierVersion() {
@@ -335,12 +340,14 @@ class CauseAggQueryService {
         const staleDays = [];
         const staleReasons = {};
         const buildingDays = [];
+        const toCheck = dayRows.filter((row) => row.state === 'FRESH' && row.classifier_version === version).map((row) => row.d);
+        const current = await this._currentSignatures(toCheck);
         for (const row of dayRows) {
             if (row.state === 'BUILDING') { buildingDays.push(row.d); continue; }
             let reason = null;
             if (row.state === 'STALE') reason = 'STORED_STALE';
             else if (row.classifier_version !== version) reason = 'CLASSIFIER_VERSION';
-            else if (row.input_signature !== await this._currentSignature(row.d)) reason = 'SIGNATURE_MOVED';
+            else if (row.input_signature !== current.get(row.d)) reason = 'SIGNATURE_MOVED';
             if (reason) { staleDays.push(row.d); staleReasons[row.d] = reason; }
         }
         const missingDays = factDays.filter((day) => !byDay.has(day));

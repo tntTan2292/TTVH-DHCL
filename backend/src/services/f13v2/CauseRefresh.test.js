@@ -458,3 +458,28 @@ test('every import hook and the startup resume sit behind the switch (source che
     }
     assert.match(fs.readFileSync(path.join(root, 'services/importProcessor.js'), 'utf8'), /function notifyCauseRefresh[\s\S]{0,300}QIS_F13_CAUSE_REFRESH/);
 });
+
+// ---- P3-R1: one grouped query per source, windows derived in memory ------------------------------------------------------------------------
+
+test('P3-R1: the grouped signatures equal the per-day signatures for every day of a range (gaps, deletes, reinserts, BF window, empty days)', async () => {
+    const { computeDaySignature, computeSignaturesForDays, wrapDb } = builderModule;
+    const env = await makeEnv({ seedDay: false });
+    try {
+        for (const day of ['2026-10-03', '2026-10-05', '2026-10-12', '2026-10-13', '2026-10-28']) await seed(env.w, day);
+        await insert(env.w, 'fact_f11', { ngay_do_kiem: '2026-10-09' });
+        await insert(env.w, 'fact_f13', f13Row('2026-10-12', 'EXTRA1'));
+        await env.w.run("DELETE FROM fact_f41 WHERE ngay_do_kiem = '2026-10-05'");
+        await insert(env.w, 'fact_f41', { ma_bg: 'RE', ngay_do_kiem: '2026-10-05' }); // delete + reinsert: a higher max id
+        await insert(env.w, 'fact_bf_phat', { ngay_bf: '2026-10-20', lading_code: 'X', ma_lo: 'L' });
+        const days = [];
+        for (let offset = -12; offset <= 40; offset += 1) days.push(shiftIsoDate('2026-09-25', offset));
+        const db = wrapDb(env.reader);
+        const grouped = await computeSignaturesForDays(db, days);
+        for (const day of days) assert.equal(grouped.get(day), await computeDaySignature(db, day), day);
+        // a sparse subset (what the reader asks for) gives the same values
+        const subset = ['2026-10-05', '2026-10-28', '2026-11-20'];
+        const some = await computeSignaturesForDays(db, subset);
+        for (const day of subset) assert.equal(some.get(day), grouped.get(day) ?? await computeDaySignature(db, day));
+        assert.equal((await computeSignaturesForDays(db, [])).size, 0);
+    } finally { await env.close(); }
+});
