@@ -30,5 +30,12 @@ router.get(
 );
 router.get('/journey/routes', controller.getJourneyRoutes);
 router.get('/journey/parcels', controller.getJourneyParcels);
+// F13-WHY-AGG-01 P2: cause aggregation over the derived table (not cached: the answer carries its own freshness).
+// A BCVH-mode account gets its own unit only and no city total (the service leaves it out; `drop` is the second guard).
+router.get('/why/summary', controller.getWhySummary);
+router.get('/why/bcvh', scopeBcvhResponse({ drop: ['data.total'] }), controller.getWhyBcvh);
+router.get('/why/routes', controller.getWhyRoutes);
+router.get('/why/postmen', controller.getWhyPostmen);
+router.get('/why/parcels', controller.getWhyParcels);
 
 module.exports = router;
