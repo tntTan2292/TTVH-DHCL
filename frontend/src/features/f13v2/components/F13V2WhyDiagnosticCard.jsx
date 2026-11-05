@@ -1,19 +1,36 @@
-import { useRef } from 'react';
+import { useRef, useMemo } from 'react';
 import { Target, Clock, Truck, Package, Sparkles } from 'lucide-react';
 import BlockCaptureButton from '../../../components/common/BlockCaptureButton.jsx';
 import { useIndicator } from '../../indicator/IndicatorContext.js';
 import { indicatorTheme, indicatorTargetRate } from '../../indicator/indicatorConfig.js';
-import { formatShortfall, formatSharePercent, generateBcvhDiagnosticStory, formatChoChuyenQuanReason } from '../f13WhyHelpers.js';
+import { formatRate, formatVolume } from '../f13v2Helpers.js';
+import {
+  formatShortfall,
+  formatSharePercent,
+  generateBcvhDiagnosticStory,
+  formatChoChuyenQuanReason,
+} from '../f13WhyHelpers.js';
 
 export default function F13V2WhyDiagnosticCard({
   bcvhRow,
+  allBcvhRows = [],
+  isCityWide = false,
   postmanRoutes = [],
   periodLabel = '',
+  onSelectBcvh,
 }) {
   const cardRef = useRef(null);
   const indicator = useIndicator();
   const _theme = indicatorTheme(indicator);
   const targetRate = indicatorTargetRate(indicator);
+
+  // Sort BCVHs by shortfall descending, then volume descending
+  const sortedBcvhs = useMemo(() => {
+    return [...allBcvhRows].sort((a, b) => {
+      const diff = (b.own_shortfall_x10 || 0) - (a.own_shortfall_x10 || 0);
+      return diff !== 0 ? diff : (b.volume || 0) - (a.volume || 0);
+    });
+  }, [allBcvhRows]);
 
   if (!bcvhRow) return null;
 
@@ -50,7 +67,9 @@ export default function F13V2WhyDiagnosticCard({
   const story = generateBcvhDiagnosticStory({
     bcvhRow,
     postmanRoutes,
+    allBcvhRows,
     periodLabel,
+    isCityWide,
   });
 
   const isBelowTarget = rate < targetRate;
@@ -80,7 +99,9 @@ export default function F13V2WhyDiagnosticCard({
               )}
             </div>
             <p className="text-xs text-slate-500 font-medium mt-0.5">
-              Chẩn đoán nguyên nhân không đạt chỉ tiêu F1.3 và phân tách khách quan trước bưu cục vs khâu phát
+              {isCityWide
+                ? 'Chẩn đoán nguyên nhân không đạt chỉ tiêu F1.3 toàn BĐTP và phân bổ mức kéo tụt theo từng bưu cục'
+                : 'Chẩn đoán nguyên nhân không đạt chỉ tiêu F1.3 và phân tách khách quan trước bưu cục vs khâu phát'}
             </p>
           </div>
         </div>
@@ -170,6 +191,107 @@ export default function F13V2WhyDiagnosticCard({
           <span className="text-[10px] text-amber-600 block mt-0.5">bưu gửi cần bù</span>
         </div>
       </div>
+
+      {/* City-Wide BCVH Ranking & Impact Breakdown (PO Rule: showing the whole BĐTP and which BCVH pulls it down) */}
+      {isCityWide && sortedBcvhs.length > 0 && (
+        <div className="mb-5 rounded-xl border border-slate-200/90 bg-slate-50/40 p-3 sm:p-4">
+          <div className="mb-2.5 flex items-center justify-between">
+            <div>
+              <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wide">
+                Mức độ ảnh hưởng và kéo tụt chỉ tiêu BĐTP theo từng BCVH
+              </h3>
+              <p className="text-[11px] text-slate-500 font-medium mt-0.5">
+                Xếp hạng các bưu cục theo số bưu gửi thiếu hụt so với chỉ tiêu 90% và tỷ trọng kéo tụt BĐTP
+              </p>
+            </div>
+            <span className="text-[11px] font-semibold text-slate-500">
+              {sortedBcvhs.length} bưu cục
+            </span>
+          </div>
+
+          <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
+            <table className="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr className="border-b border-slate-200 bg-slate-50 text-slate-700 font-bold">
+                  <th className="w-10 px-2 py-2 text-center border-r border-slate-200">STT</th>
+                  <th className="px-3 py-2 text-left border-r border-slate-200">Bưu cục</th>
+                  <th className="w-24 px-2.5 py-2 text-right border-r border-slate-200">Sản lượng (N)</th>
+                  <th className="w-20 px-2 py-2 text-right border-r border-slate-200">Đạt</th>
+                  <th className="w-20 px-2 py-2 text-right border-r border-slate-200">Không đạt</th>
+                  <th className="w-24 px-2.5 py-2 text-center border-r border-slate-200">Tỷ lệ đạt</th>
+                  <th className="w-28 px-2.5 py-2 text-right border-r border-slate-200">Thiếu hụt vs 90%</th>
+                  <th className="w-28 px-2.5 py-2 text-right border-r border-slate-200">% Kéo tụt BĐTP</th>
+                  <th className="w-28 px-2 py-2 text-center">Thao tác</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {sortedBcvhs.map((row, idx) => {
+                  const isLagging = (row.own_shortfall || 0) > 0;
+                  return (
+                    <tr
+                      key={row.ma_bcvh}
+                      className={`hover:bg-slate-50/80 transition-colors ${
+                        isLagging ? 'bg-amber-50/15' : ''
+                      }`}
+                    >
+                      <td className="px-2 py-2 text-center text-slate-400 font-mono text-[11px] border-r border-slate-200">
+                        {idx + 1}
+                      </td>
+                      <td className="px-3 py-2 text-slate-800 font-medium border-r border-slate-200">
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-bold">{row.ten_bcvh}</span>
+                          <span className="text-[10px] text-slate-400 font-mono">({row.ma_bcvh})</span>
+                        </div>
+                      </td>
+                      <td className="px-2.5 py-2 text-right font-medium text-slate-700 border-r border-slate-200">
+                        {formatVolume(row.volume)}
+                      </td>
+                      <td className="px-2 py-2 text-right font-medium text-emerald-700 border-r border-slate-200">
+                        {formatVolume(row.passed)}
+                      </td>
+                      <td className="px-2 py-2 text-right font-medium text-rose-700 border-r border-slate-200">
+                        {formatVolume(row.failed)}
+                      </td>
+                      <td className="px-2.5 py-2 text-center border-r border-slate-200">
+                        <span
+                          className={`inline-block px-1.5 py-0.5 rounded text-xs font-bold border ${
+                            row.rate < targetRate
+                              ? 'text-rose-800 bg-rose-100/80 border-rose-300'
+                              : 'text-emerald-800 bg-emerald-100/80 border-emerald-300'
+                          }`}
+                        >
+                          {formatRate(row.rate)}
+                        </span>
+                      </td>
+                      <td className="px-2.5 py-2 text-right font-black border-r border-slate-200">
+                        {isLagging ? (
+                          <span className="text-amber-700">{formatShortfall(row.own_shortfall)}</span>
+                        ) : (
+                          <span className="text-emerald-600 font-bold">Đạt</span>
+                        )}
+                      </td>
+                      <td className="px-2.5 py-2 text-right font-bold text-slate-700 border-r border-slate-200">
+                        {formatSharePercent(row.share_of_parent_shortfall)}
+                      </td>
+                      <td className="px-2 py-2 text-center">
+                        {onSelectBcvh && (
+                          <button
+                            type="button"
+                            onClick={() => onSelectBcvh(row.ma_bcvh)}
+                            className="rounded border border-blue-200 bg-blue-50/80 px-2 py-1 text-[11px] font-bold text-blue-700 hover:bg-blue-100 transition-colors cursor-pointer"
+                          >
+                            Xem BCVH &rarr;
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       {/* 3-Column Cause Decomposition Grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">

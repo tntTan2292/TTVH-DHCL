@@ -9,6 +9,9 @@ import {
   sortWhyRoutes,
   formatChoChuyenQuanReason,
   CHO_CHUYEN_QUAN_REASONS,
+  buildWhyUnitOptions,
+  resolveEffectiveBcvh,
+  groupRoutesByBcvh,
 } from './f13WhyHelpers.js';
 
 test('formatShortfall formats integer and decimal values with Vietnamese locale', () => {
@@ -210,4 +213,140 @@ test('sortWhyRoutes sorts properly in ascending and descending directions', () =
   assert.equal(sortedAsc[0].ma_tuyen, 'A');
   assert.equal(sortedAsc[1].ma_tuyen, 'C');
   assert.equal(sortedAsc[2].ma_tuyen, 'B');
+});
+
+test('S1-PO1: buildWhyUnitOptions provides "Tất cả BCVH" for city-wide accounts and only unit for scoped accounts', () => {
+  const metaUnits = [
+    { ma_bcvh: '535790', ten_bcvh: 'BCVH A Lưới' },
+    { ma_bcvh: '533140', ten_bcvh: 'BCVH Thuận Hóa' },
+    { ma_bcvh: '530000', ten_bcvh: 'BCVH Hương Thủy' },
+  ];
+
+  // 1. City-wide account: allow_all = true
+  const cityOptions = buildWhyUnitOptions({
+    layout: { units: { allow_all: true, bcvh: [] } },
+    metaUnits,
+  });
+  assert.equal(cityOptions.length, 4);
+  assert.equal(cityOptions[0].value, 'all');
+  assert.equal(cityOptions[0].label, 'Tất cả BCVH');
+  assert.equal(cityOptions[1].value, '535790');
+
+  // 2. Scoped single-unit account: allow_all = false, bcvh = ['535790']
+  const scopedOptions = buildWhyUnitOptions({
+    layout: { units: { allow_all: false, bcvh: ['535790'] } },
+    metaUnits,
+  });
+  assert.equal(scopedOptions.length, 1);
+  assert.equal(scopedOptions[0].value, '535790');
+  assert.equal(scopedOptions[0].label, 'BCVH A Lưới (535790)');
+  // Must NEVER have 'all' in scoped options
+  assert.equal(scopedOptions.some((opt) => opt.value === 'all'), false);
+});
+
+test('S1-PO1: resolveEffectiveBcvh guarantees that selected value is ALWAYS one of the options', () => {
+  const metaUnits = [
+    { ma_bcvh: '535790', ten_bcvh: 'BCVH A Lưới' },
+    { ma_bcvh: '533140', ten_bcvh: 'BCVH Thuận Hóa' },
+  ];
+
+  // Case A: City-wide account
+  const cityLayout = { units: { allow_all: true, bcvh: [] } };
+  const cityOptions = buildWhyUnitOptions({ layout: cityLayout, metaUnits });
+
+  // 1. No param provided (first open): defaults to 'all'
+  const cityVal1 = resolveEffectiveBcvh({ currentParam: null, unitOptions: cityOptions, layout: cityLayout });
+  assert.equal(cityVal1, 'all');
+  assert.ok(cityOptions.some((opt) => opt.value === cityVal1), 'Selected value must be one of options');
+
+  // 2. Valid unit param provided: keeps that unit
+  const cityVal2 = resolveEffectiveBcvh({ currentParam: '535790', unitOptions: cityOptions, layout: cityLayout });
+  assert.equal(cityVal2, '535790');
+  assert.ok(cityOptions.some((opt) => opt.value === cityVal2), 'Selected value must be one of options');
+
+  // 3. Invalid param provided: falls back to 'all'
+  const cityVal3 = resolveEffectiveBcvh({ currentParam: 'invalid_code_999', unitOptions: cityOptions, layout: cityLayout });
+  assert.equal(cityVal3, 'all');
+  assert.ok(cityOptions.some((opt) => opt.value === cityVal3), 'Selected value must be one of options');
+
+  // Case B: Scoped single-unit account (e.g. A Lưới only)
+  const scopedLayout = { units: { allow_all: false, bcvh: ['535790'] } };
+  const scopedOptions = buildWhyUnitOptions({ layout: scopedLayout, metaUnits });
+
+  // 4. No param provided (first open): opens on its own unit
+  const scopedVal1 = resolveEffectiveBcvh({ currentParam: null, unitOptions: scopedOptions, layout: scopedLayout });
+  assert.equal(scopedVal1, '535790');
+  assert.ok(scopedOptions.some((opt) => opt.value === scopedVal1), 'Selected value must be one of options');
+
+  // 5. 'all' param in URL: ignored because account is scoped, resolves to its own unit
+  const scopedVal2 = resolveEffectiveBcvh({ currentParam: 'all', unitOptions: scopedOptions, layout: scopedLayout });
+  assert.equal(scopedVal2, '535790');
+  assert.ok(scopedOptions.some((opt) => opt.value === scopedVal2), 'Selected value must be one of options');
+
+  // 6. Another unit param in URL: ignored, resolves to its own unit
+  const scopedVal3 = resolveEffectiveBcvh({ currentParam: '533140', unitOptions: scopedOptions, layout: scopedLayout });
+  assert.equal(scopedVal3, '535790');
+  assert.ok(scopedOptions.some((opt) => opt.value === scopedVal3), 'Selected value must be one of options');
+});
+
+test('S1-PO1: groupRoutesByBcvh groups routes per BCVH and preserves shortfall order', () => {
+  const bcvhRows = [
+    { ma_bcvh: '533140', ten_bcvh: 'BCVH Thuận Hóa', own_shortfall: 309.8 },
+    { ma_bcvh: '535790', ten_bcvh: 'BCVH A Lưới', own_shortfall: 21.0 },
+  ];
+
+  const routes = [
+    { ma_bcvh: '535790', ma_tuyen: 'AL1', route_scope: 'POSTMAN', volume: 50 },
+    { ma_bcvh: '533140', ma_tuyen: 'TH1', route_scope: 'POSTMAN', volume: 100 },
+    { ma_bcvh: '533140', ma_tuyen: 'TH_OTHER', route_scope: 'NON_POSTMAN', volume: 10 },
+  ];
+
+  const groups = groupRoutesByBcvh(routes, bcvhRows);
+  assert.equal(groups.length, 2);
+
+  // Thuận Hóa is first (from bcvhRows order)
+  assert.equal(groups[0].ma_bcvh, '533140');
+  assert.equal(groups[0].postmanRoutes.length, 1);
+  assert.equal(groups[0].postmanRoutes[0].ma_tuyen, 'TH1');
+  assert.equal(groups[0].otherRoutes.length, 1);
+  assert.equal(groups[0].otherRoutes[0].ma_tuyen, 'TH_OTHER');
+
+  // A Lưới is second
+  assert.equal(groups[1].ma_bcvh, '535790');
+  assert.equal(groups[1].postmanRoutes.length, 1);
+  assert.equal(groups[1].postmanRoutes[0].ma_tuyen, 'AL1');
+  assert.equal(groups[1].otherRoutes.length, 0);
+});
+
+test('S1-PO1: generateBcvhDiagnosticStory describes city-wide picture and which BCVHs pull it down', () => {
+  const cityTotal = {
+    ma_bcvh: 'all',
+    ten_bcvh: 'Toàn BĐTP Huế',
+    rate: 85.2,
+    volume: 10000,
+    passed: 8520,
+    failed: 1480,
+    own_shortfall: 480.0,
+    cause_mix: { lines: [{ code: 'KHONG_TRON_LO', count: 300, share: 0.2027 }] },
+  };
+
+  const allBcvhRows = [
+    { ma_bcvh: '533140', ten_bcvh: 'BCVH Thuận Hóa', own_shortfall: 309.8, own_shortfall_x10: 3098, share_of_parent_shortfall: 0.6454 },
+    { ma_bcvh: '530000', ten_bcvh: 'BCVH Hương Thủy', own_shortfall: 170.2, own_shortfall_x10: 1702, share_of_parent_shortfall: 0.3546 },
+    { ma_bcvh: '535790', ten_bcvh: 'BCVH A Lưới', own_shortfall: 0, own_shortfall_x10: 0, share_of_parent_shortfall: 0 },
+  ];
+
+  const story = generateBcvhDiagnosticStory({
+    bcvhRow: cityTotal,
+    allBcvhRows,
+    periodLabel: 'tháng 10/2026',
+    isCityWide: true,
+  });
+
+  assert.match(story.headline, /toàn BĐTP Huế đạt tỷ lệ 85,2%/);
+  assert.match(story.headline, /thiếu hụt 480 bưu gửi so với chỉ tiêu 90%/);
+  assert.match(story.hotspotSummary, /kéo tụt chỉ tiêu BĐTP nhiều nhất/);
+  assert.match(story.hotspotSummary, /BCVH Thuận Hóa/);
+  assert.match(story.hotspotSummary, /BCVH Hương Thủy/);
+  assert.match(story.hotspotSummary, /2 \/ 3 BCVH chưa đạt/);
 });

@@ -1,3 +1,4 @@
+/* oxlint-disable no-undef */
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { PageContainer } from '../../components/shared/SharedComponents.jsx';
@@ -5,12 +6,11 @@ import { useIndicator } from '../indicator/IndicatorContext.js';
 import { F13_INDICATOR, indicatorTheme } from '../indicator/indicatorConfig.js';
 import { fetchLayout, resolvePeriod, fetchWhyBcvh, fetchWhyRoutes } from './api/f13v2Api.js';
 import api from '../../api/client.js';
-import { buildScopedUnitOptions } from './f13v2Helpers.js';
 import F13V2WhyFilterBar from './components/F13V2WhyFilterBar.jsx';
 import F13V2WhyFreshnessNotice from './components/F13V2WhyFreshnessNotice.jsx';
 import F13V2WhyDiagnosticCard from './components/F13V2WhyDiagnosticCard.jsx';
 import F13V2WhyRouteTable from './components/F13V2WhyRouteTable.jsx';
-import { separateRouteScopes } from './f13WhyHelpers.js';
+import { buildWhyUnitOptions, resolveEffectiveBcvh, separateRouteScopes } from './f13WhyHelpers.js';
 
 export default function F13V2WhyPage() {
   const indicator = useIndicator() || F13_INDICATOR;
@@ -38,14 +38,16 @@ export default function F13V2WhyPage() {
     return 'day';
   }, [weekParam, monthParam]);
 
-  // Scoped unit contract: if user is locked to one unit, they cannot see 'all'
-  const ownBcvh = layout?.units?.allow_all === false && layout.units.bcvh?.length === 1 ? layout.units.bcvh[0] : null;
-  const bcvhParam = searchParams.get('bcvh') || ownBcvh || 'all';
-
-  // Unit options from layout contract
+  // Unit options from layout contract (for city-wide account, includes 'all' as first option)
   const unitOptions = useMemo(() => {
-    return buildScopedUnitOptions({ layout, metaUnits });
+    return buildWhyUnitOptions({ layout, metaUnits });
   }, [layout, metaUnits]);
+
+  // Scoped unit resolution: guaranteed to always be one of unitOptions
+  const rawBcvhParam = searchParams.get('bcvh');
+  const bcvhParam = useMemo(() => {
+    return resolveEffectiveBcvh({ currentParam: rawBcvhParam, unitOptions, layout });
+  }, [rawBcvhParam, unitOptions, layout]);
 
   // Query Data states
   const [dataState, setDataState] = useState({
@@ -249,26 +251,29 @@ export default function F13V2WhyPage() {
   }, [periodMode, weekParam, monthParam, fromParam, toParam, latestDate, weeks, months]);
 
   // Pick target BCVH row and postman routes
-  const { currentBcvhRow, bcvhDisplayName } = useMemo(() => {
+  const { currentBcvhRow, bcvhDisplayName, isCityWide } = useMemo(() => {
     const rows = dataState.bcvhData?.rows || [];
     if (bcvhParam && bcvhParam !== 'all') {
       const found = rows.find((r) => r.ma_bcvh === bcvhParam);
       return {
         currentBcvhRow: found || rows[0] || null,
         bcvhDisplayName: found?.ten_bcvh || `BCVH ${bcvhParam}`,
+        isCityWide: false,
       };
     }
     // All units selected: if total exists use total, otherwise first unit
     const total = dataState.bcvhData?.total || null;
     if (total) {
       return {
-        currentBcvhRow: { ...total, ten_bcvh: 'Toàn tỉnh (Tất cả BCVH)' },
-        bcvhDisplayName: 'Toàn tỉnh (Tất cả BCVH)',
+        currentBcvhRow: { ...total, ma_bcvh: 'all', ten_bcvh: 'Toàn BĐTP Huế', isCityWide: true },
+        bcvhDisplayName: 'Toàn BĐTP Huế',
+        isCityWide: true,
       };
     }
     return {
       currentBcvhRow: rows[0] || null,
       bcvhDisplayName: rows[0]?.ten_bcvh || 'Tất cả BCVH',
+      isCityWide: true,
     };
   }, [dataState.bcvhData, bcvhParam]);
 
@@ -334,16 +339,22 @@ export default function F13V2WhyPage() {
             {currentBcvhRow && (
               <F13V2WhyDiagnosticCard
                 bcvhRow={currentBcvhRow}
+                allBcvhRows={dataState.bcvhData?.rows || []}
+                isCityWide={isCityWide}
                 postmanRoutes={postmanRoutes}
                 periodLabel={periodLabel}
+                onSelectBcvh={handleBcvhChange}
               />
             )}
 
             {/* Step 1 Block 2: Route Level Ranking & Cause Breakdown Table */}
             <F13V2WhyRouteTable
               routes={allRoutes}
+              bcvhRows={dataState.bcvhData?.rows || []}
+              bcvhParam={bcvhParam}
               bcvhName={bcvhDisplayName}
               periodLabel={periodLabel}
+              onSelectBcvh={handleBcvhChange}
             />
           </>
         )}
