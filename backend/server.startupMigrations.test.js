@@ -90,6 +90,8 @@ test('startup schema migrations create fact_f41 without watcher/import side effe
             assert.equal(queueEventRows.n, 0);
             assert.equal(circuitRows.n, 0);
             assert.equal(jobSafetyColumn.name, 'safety_state');
+            const causeTables = await new Promise((resolve, reject) => db.all("SELECT name FROM sqlite_master WHERE type='table' AND name LIKE 'f13_cause_%' ORDER BY name", (e, rows) => (e ? reject(e) : resolve(rows.map((r) => r.name)))));
+            assert.deepEqual(causeTables, ['f13_cause_day', 'f13_cause_parcel', 'f13_cause_run']);
             assert.deepEqual(f13Sentinel, {
                 ngay_do_kiem: '2026-08-01',
                 ma_bg: 'F13-SENTINEL',

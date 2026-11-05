@@ -25,6 +25,7 @@ const { classify } = require('./CauseClassifier');
 // A parcel's F4.1 / F4.2 row can carry an earlier or a later date than its F1.3 row.
 const DAYS_BEFORE = 10;
 const DAYS_AFTER = 5;
+const BF_EXTRA_DAYS = 1; // BF Phát can be dated the day after delivery
 const DEFAULT_PAGE_SIZE = 50;
 const MAX_PAGE_SIZE = 200;
 const LEGS = ['tms_depart', 'depart_arrive', 'tms_arrive', 'arrive_gbt', 'gbt_ptc', 'tms_ptc'];
@@ -197,7 +198,7 @@ class JourneyService {
             this.repository.getF41Arrivals(fromDate, toDate),
             this.repository.getF42Handovers(fromDate, toDate),
             this.repository.getF11Departures(fromDate, toDate),
-            this.repository.getBfLots(fromDate, shiftIsoDate(toDate, 1)), // BF Phát can be dated the day after delivery
+            this.repository.getBfLots(fromDate, shiftIsoDate(toDate, BF_EXTRA_DAYS)),
             this.repository.getF13LotScans(fromDate, toDate),
         ]);
         const { lotOf, lots } = buildLots(lotRows, scanRows, allowed);
@@ -247,6 +248,9 @@ class JourneyService {
                 danh_gia: row.danh_gia_2026 || null,
                 ma_buu_ta: handover?.ma_buu_ta || null,
                 ten_buu_ta: handover?.ten_buu_ta || null,
+                // F13-WHY-AGG-01: the postman of the first handover (the one the classifier uses); ma_buu_ta stays the one shown on the journey.
+                ma_buu_ta_first: firstHandover?.ma_buu_ta || null,
+                ten_buu_ta_first: firstHandover?.ten_buu_ta || null,
                 so_gio_tct: row.thoi_gian_thuc_hien_thuc_te_gio || null,
                 milestones: { tms: formatTime(tms), depart: formatTime(depart), arrive: formatTime(arrive), gbt: formatTime(gbt), gbt_first: formatTime(gbtFirst), ptc: formatTime(ptc) },
                 legs: {
@@ -362,4 +366,4 @@ class JourneyService {
     }
 }
 
-module.exports = { JourneyService, parseTime, cleanBagNumber, legHours, median, pickHandover, pickFirstHandover, pickArrival };
+module.exports = { JourneyService, DAYS_BEFORE, DAYS_AFTER, BF_EXTRA_DAYS, shiftIsoDate, parseTime, cleanBagNumber, legHours, median, pickHandover, pickFirstHandover, pickArrival };
