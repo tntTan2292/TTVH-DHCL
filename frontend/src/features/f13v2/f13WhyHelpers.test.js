@@ -7,6 +7,8 @@ import {
   summarizeRouteMainCause,
   generateBcvhDiagnosticStory,
   sortWhyRoutes,
+  formatChoChuyenQuanReason,
+  CHO_CHUYEN_QUAN_REASONS,
 } from './f13WhyHelpers.js';
 
 test('formatShortfall formats integer and decimal values with Vietnamese locale', () => {
@@ -27,6 +29,19 @@ test('formatSharePercent formats ratio to percentage with 1 decimal place', () =
   assert.equal(formatSharePercent(1), '100,0%');
 });
 
+test('S1-R1: formatChoChuyenQuanReason translates every F13-WHY-DATA-02 reason to Vietnamese and keeps unknown codes', () => {
+  assert.equal(formatChoChuyenQuanReason('TCT_DAI_HON_MOC'), 'Giờ TCT dài hơn mốc thực tế');
+  assert.equal(formatChoChuyenQuanReason('CHAM_DEN_HAY_CHAM_GIAO'), 'Không có xác nhận đến BCVH, chưa tách được đến muộn hay giao muộn');
+  assert.equal(formatChoChuyenQuanReason('MOC_A_KHONG_HOP_LE'), 'Mốc đến BCVH sai thứ tự');
+  assert.equal(formatChoChuyenQuanReason('THIEU_MOC_G'), 'Thiếu mốc giao bưu tá');
+  assert.equal(formatChoChuyenQuanReason('MOC_G_KHONG_HOP_LE'), 'Mốc giao bưu tá sai thứ tự');
+  assert.equal(formatChoChuyenQuanReason('KHOANG_CAT_CHI_TIEU'), 'Chưa đủ chắc chắn quá hạn hay còn hạn');
+  assert.equal(formatChoChuyenQuanReason('KET_QUA_KHONG_KHOP_CHI_TIEU'), 'Kết quả TCT không khớp chỉ tiêu');
+  assert.equal(formatChoChuyenQuanReason('THIEU_PTC'), 'Chưa có giờ phát');
+  assert.equal(formatChoChuyenQuanReason('UNKNOWN_REASON_CODE'), 'UNKNOWN_REASON_CODE');
+  assert.equal(Object.keys(CHO_CHUYEN_QUAN_REASONS).length, 8);
+});
+
 test('separateRouteScopes separates POSTMAN routes from NON_POSTMAN and OTHER routes', () => {
   const routes = [
     { ma_tuyen: 'T1', route_scope: 'POSTMAN', volume: 100 },
@@ -45,7 +60,7 @@ test('separateRouteScopes separates POSTMAN routes from NON_POSTMAN and OTHER ro
   assert.equal(otherRoutes[1].route_scope, 'OTHER');
 });
 
-test('summarizeRouteMainCause identifies dominant cause cleanly', () => {
+test('summarizeRouteMainCause identifies dominant cause cleanly and includes S1-R1 & S1-R3 fixes', () => {
   // 1. Perfect route
   assert.equal(summarizeRouteMainCause({ failed: 0 }), '100% đạt chỉ tiêu');
 
@@ -65,18 +80,19 @@ test('summarizeRouteMainCause identifies dominant cause cleanly', () => {
   assert.match(summaryKTL, /98,2%/);
   assert.match(summaryKTL, /112 BG/);
 
-  // 3. Route dominated by Khâu phát
+  // 3. Route dominated by Khâu phát with S1-R3 (KHONG_CHI_TIET)
   const routePhat = {
-    failed: 41,
+    failed: 43,
     cause_mix: {
       lines: [
-        { code: 'GIAO_BUU_TA_QUA_GIO', count: 20, share: 0.4878 },
-        { code: 'PHAT_MUON', count: 21, share: 0.5122 },
+        { code: 'GIAO_BUU_TA_QUA_GIO', count: 20, share: 0.4651 },
+        { code: 'PHAT_MUON', count: 21, share: 0.4884 },
+        { code: 'PHAT_KHONG_CHI_TIET', count: 2, share: 0.0465 },
       ],
       phat: {
-        count: 41,
+        count: 43,
         share: 1.0,
-        by_detail: { CHAM_GIAO_BUU_TA: 20, PHAT_CHAM_SAU_GIAO: 21 },
+        by_detail: { CHAM_GIAO_BUU_TA: 20, PHAT_CHAM_SAU_GIAO: 21, KHONG_CHI_TIET: 2 },
       },
     },
   };
@@ -84,9 +100,26 @@ test('summarizeRouteMainCause identifies dominant cause cleanly', () => {
   assert.match(summaryPhat, /Khâu phát/);
   assert.match(summaryPhat, /20 chậm giao/);
   assert.match(summaryPhat, /21 phát chậm/);
+  assert.match(summaryPhat, /2 không có chi tiết/);
+
+  // 4. Route with Chờ Chuyên quản using Vietnamese labels (S1-R1)
+  const routeCQ = {
+    failed: 3,
+    cause_mix: {
+      lines: [],
+      cho_chuyen_quan: {
+        count: 3,
+        by_reason: { KHOANG_CAT_CHI_TIEU: 2, MOC_A_KHONG_HOP_LE: 1 },
+      },
+    },
+  };
+  const summaryCQ = summarizeRouteMainCause(routeCQ);
+  assert.match(summaryCQ, /Chờ Chuyên quản phân tích/);
+  assert.match(summaryCQ, /Chưa đủ chắc chắn quá hạn hay còn hạn/);
+  assert.match(summaryCQ, /Mốc đến BCVH sai thứ tự/);
 });
 
-test('generateBcvhDiagnosticStory produces coherent diagnostic text matching PO example', () => {
+test('generateBcvhDiagnosticStory produces coherent diagnostic text matching PO example with S1-R2 & S1-R3', () => {
   const bcvhRow = {
     ten_bcvh: 'BCVH Thuận Hóa',
     rate: 72.6,
@@ -100,11 +133,12 @@ test('generateBcvhDiagnosticStory produces coherent diagnostic text matching PO 
         { code: 'KHONG_TRON_LO', label: 'Không trọn lô', count: 121, share: 0.2788 },
         { code: 'KHAI_THAC', label: 'Khai thác (đến BCVH quá hạn)', count: 14, share: 0.0322 },
         { code: 'VAN_CHUYEN', label: 'Vận chuyển (đến BCVH quá hạn)', count: 2, share: 0.0046 },
+        { code: 'KHAI_THAC_VAN_CHUYEN_CHUA_PHAN_BIET', label: 'Khai thác - Vận chuyển (chưa phân biệt)', count: 5, share: 0.0115 },
       ],
       phat: {
         count: 289,
         share: 0.6658,
-        by_detail: { CHAM_GIAO_BUU_TA: 123, PHAT_CHAM_SAU_GIAO: 164 },
+        by_detail: { CHAM_GIAO_BUU_TA: 123, PHAT_CHAM_SAU_GIAO: 164, KHONG_CHI_TIET: 2 },
       },
     },
   };
@@ -146,12 +180,18 @@ test('generateBcvhDiagnosticStory produces coherent diagnostic text matching PO 
   assert.match(story.hotspotSummary, /tuyến phát cần chú ý/);
   assert.match(story.hotspotSummary, /Ô tô Nam giữa/);
 
+  // S1-R2: objective before BCVH lists all components including Khai thác - Vận chuyển (chưa phân biệt)
   assert.match(story.upstreamSummary, /Nguyên nhân khách quan trước bưu cục/);
   assert.match(story.upstreamSummary, /Không trọn lô: 121 BG/);
+  assert.match(story.upstreamSummary, /Khai thác: 14 BG/);
+  assert.match(story.upstreamSummary, /Vận chuyển: 2 BG/);
+  assert.match(story.upstreamSummary, /Khai thác - Vận chuyển \(chưa phân biệt\): 5 BG/);
 
+  // S1-R3: internal delivery causes includes "không có chi tiết" when > 0
   assert.match(story.internalSummary, /Nguyên nhân tại khâu phát/);
   assert.match(story.internalSummary, /123 bưu gửi chậm giao bưu tá/);
-  assert.match(story.internalSummary, /164 bưu gửi phát chậm/);
+  assert.match(story.internalSummary, /164 bưu gửi phát chậm sau khi giao/);
+  assert.match(story.internalSummary, /2 không có chi tiết/);
 });
 
 test('sortWhyRoutes sorts properly in ascending and descending directions', () => {

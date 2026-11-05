@@ -7,6 +7,22 @@
  * - Provide natural language diagnostic summary for Chuyên quản and Giám đốc BCVH.
  */
 
+export const CHO_CHUYEN_QUAN_REASONS = Object.freeze({
+  TCT_DAI_HON_MOC: 'Giờ TCT dài hơn mốc thực tế',
+  CHAM_DEN_HAY_CHAM_GIAO: 'Không có xác nhận đến BCVH, chưa tách được đến muộn hay giao muộn',
+  MOC_A_KHONG_HOP_LE: 'Mốc đến BCVH sai thứ tự',
+  THIEU_MOC_G: 'Thiếu mốc giao bưu tá',
+  MOC_G_KHONG_HOP_LE: 'Mốc giao bưu tá sai thứ tự',
+  KHOANG_CAT_CHI_TIEU: 'Chưa đủ chắc chắn quá hạn hay còn hạn',
+  KET_QUA_KHONG_KHOP_CHI_TIEU: 'Kết quả TCT không khớp chỉ tiêu',
+  THIEU_PTC: 'Chưa có giờ phát',
+});
+
+export function formatChoChuyenQuanReason(code) {
+  if (!code) return '—';
+  return CHO_CHUYEN_QUAN_REASONS[code] || String(code);
+}
+
 export function formatShortfall(val) {
   if (val === null || val === undefined || Number.isNaN(Number(val))) return '—';
   const num = Number(val);
@@ -70,9 +86,11 @@ export function summarizeRouteMainCause(route) {
   if (phatCount > 0 && phatCount >= (topLine?.count || 0)) {
     const chamGiao = phat?.by_detail?.CHAM_GIAO_BUU_TA || 0;
     const phatCham = phat?.by_detail?.PHAT_CHAM_SAU_GIAO || 0;
+    const phatChuaRo = phat?.by_detail?.KHONG_CHI_TIET || 0;
     const parts = [];
     if (chamGiao > 0) parts.push(`${chamGiao} chậm giao`);
     if (phatCham > 0) parts.push(`${phatCham} phát chậm`);
+    if (phatChuaRo > 0) parts.push(`${phatChuaRo} không có chi tiết`);
     const detailStr = parts.length > 0 ? ` (${parts.join(', ')})` : ` (${phatCount} BG)`;
     return `Khâu phát chiếm ${formatSharePercent(phat.share)}${detailStr}`;
   }
@@ -84,7 +102,7 @@ export function summarizeRouteMainCause(route) {
 
   if (choChuyenQuan > 0) {
     const reasons = Object.keys(mix.cho_chuyen_quan?.by_reason || {});
-    const reasonText = reasons.length > 0 ? `: ${reasons.join(', ')}` : '';
+    const reasonText = reasons.length > 0 ? `: ${reasons.map(formatChoChuyenQuanReason).join(', ')}` : '';
     return `Chờ Chuyên quản phân tích (${choChuyenQuan} BG${reasonText})`;
   }
 
@@ -165,6 +183,7 @@ export function generateBcvhDiagnosticStory({ bcvhRow, postmanRoutes = [], perio
     if (khongTronLo > 0) details.push(`Không trọn lô: ${khongTronLo} BG`);
     if (khaiThac > 0) details.push(`Khai thác: ${khaiThac} BG`);
     if (vanChuyen > 0) details.push(`Vận chuyển: ${vanChuyen} BG`);
+    if (ktVcChuaPhanBiet > 0) details.push(`Khai thác - Vận chuyển (chưa phân biệt): ${ktVcChuaPhanBiet} BG`);
     upstreamSummary = `Nguyên nhân khách quan trước bưu cục chiếm ${new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 1 }).format(upstreamShare)}% số không đạt (${upstreamTotal} / ${failed} BG; gồm ${details.join(', ')}).`;
   }
 
@@ -175,7 +194,12 @@ export function generateBcvhDiagnosticStory({ bcvhRow, postmanRoutes = [], perio
     const phatShare = (phatCount / failed) * 100;
     const chamGiao = cause_mix?.phat?.by_detail?.CHAM_GIAO_BUU_TA || 0;
     const phatCham = cause_mix?.phat?.by_detail?.PHAT_CHAM_SAU_GIAO || 0;
-    internalSummary = `Nguyên nhân tại khâu phát chiếm ${new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 1 }).format(phatShare)}% (${phatCount} BG; gồm ${chamGiao} bưu gửi chậm giao bưu tá và ${phatCham} bưu gửi phát chậm sau khi giao).`;
+    const phatChuaRo = cause_mix?.phat?.by_detail?.KHONG_CHI_TIET || 0;
+    const parts = [];
+    if (chamGiao > 0) parts.push(`${chamGiao} bưu gửi chậm giao bưu tá`);
+    if (phatCham > 0) parts.push(`${phatCham} bưu gửi phát chậm sau khi giao`);
+    if (phatChuaRo > 0) parts.push(`${phatChuaRo} không có chi tiết`);
+    internalSummary = `Nguyên nhân tại khâu phát chiếm ${new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 1 }).format(phatShare)}% (${phatCount} BG; gồm ${parts.join(', ')}).`;
   }
 
   return {

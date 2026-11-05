@@ -3,7 +3,7 @@ import { Target, Clock, Truck, Package, Sparkles } from 'lucide-react';
 import BlockCaptureButton from '../../../components/common/BlockCaptureButton.jsx';
 import { useIndicator } from '../../indicator/IndicatorContext.js';
 import { indicatorTheme, indicatorTargetRate } from '../../indicator/indicatorConfig.js';
-import { formatShortfall, formatSharePercent, generateBcvhDiagnosticStory } from '../f13WhyHelpers.js';
+import { formatShortfall, formatSharePercent, generateBcvhDiagnosticStory, formatChoChuyenQuanReason } from '../f13WhyHelpers.js';
 
 export default function F13V2WhyDiagnosticCard({
   bcvhRow,
@@ -316,7 +316,7 @@ export default function F13V2WhyDiagnosticCard({
                   </span>
                   {Object.entries(choChuyenQuan.by_reason || {}).map(([reason, cnt]) => (
                     <span key={reason} className="text-[10px] text-slate-500 block">
-                      • {reason}: {cnt} BG
+                      • {formatChoChuyenQuanReason(reason)}: {cnt} BG
                     </span>
                   ))}
                 </div>
