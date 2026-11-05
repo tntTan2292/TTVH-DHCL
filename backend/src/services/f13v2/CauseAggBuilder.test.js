@@ -37,7 +37,7 @@ CREATE TABLE fact_f42 (id INTEGER PRIMARY KEY AUTOINCREMENT, ma_bg TEXT, ngay_do
 CREATE INDEX idx_f42_day ON fact_f42(ngay_do_kiem);
 CREATE TABLE fact_f11 (id INTEGER PRIMARY KEY AUTOINCREMENT, ngay_do_kiem TEXT, so_bd10_dong_di_kttinh TEXT, thoi_gian_bd10_dong_di_kttinh TEXT);
 CREATE INDEX idx_f11_day ON fact_f11(ngay_do_kiem);
-CREATE TABLE fact_bf_phat (id INTEGER PRIMARY KEY AUTOINCREMENT, ngay_bf TEXT, lading_code TEXT, ma_lo TEXT);
+CREATE TABLE fact_bf_phat (id INTEGER PRIMARY KEY AUTOINCREMENT, ngay_bf TEXT, lading_code TEXT, ma_lo TEXT, mabc_phat TEXT, xac_nhan_den_bcp TEXT);
 CREATE INDEX idx_bf_day ON fact_bf_phat(ngay_bf);
 `;
 
@@ -170,6 +170,12 @@ test('(b) every stored field equals the JourneyService parcel; scopes and both p
             assert.equal(r.ten_buu_ta_shown, p.ten_buu_ta);
             assert.equal(r.ma_buu_ta_first, p.ma_buu_ta_first);
             assert.equal(r.ten_buu_ta_first, p.ten_buu_ta_first);
+            // F13-WHY-DATA-02 R2: the v5 fields are stored as the service gives them
+            assert.equal(r.cause_detail, p.cause ? (p.cause.detail ?? null) : null);
+            assert.equal(r.cause_reason, p.cause_reason ?? null);
+            assert.equal(r.remaining_at_arrival_ms, p.remaining_at_arrival_ms ?? null);
+            assert.equal(r.a_source, p.a_source ?? null);
+            assert.equal(r.basis, p.cause_basis ?? null);
             assert.equal(r.classifier_version, env.builder.classifierVersion);
             assert.equal(r.built_at, FIXED_NOW().toISOString());
         }
@@ -178,7 +184,8 @@ test('(b) every stored field equals the JourneyService parcel; scopes and both p
         assert.equal(byBg.get('BG_LATE').ma_buu_ta_shown, 'PT_B');
         assert.equal(byBg.get('BG_LATE').ma_lo, 'LOT1');
         assert.equal(byBg.get('BG_NOF41').ma_buu_ta_first, null);
-        assert.equal(byBg.get('BG_NOF41').cause_status, 'CHUA_DU_CAN_CU');
+        assert.equal(byBg.get('BG_NOF41').cause_status, 'CHO_CHUYEN_QUAN'); // no arrival anywhere and no handover: left to the Chuyên quản (E5)
+        assert.equal(byBg.get('BG_NOF41').cause_reason, 'THIEU_MOC_G');
         assert.equal(byBg.get('BG_DAT').cause_status, 'KHONG_PHAN_TICH');
         assert.equal(byBg.get('BG_DAT').cause_code, null);
         assert.equal(byBg.get('BG_LATE').cause_status, 'CAUSE');
@@ -549,6 +556,6 @@ test('the table has exactly the columns of the Design of Record section 5 (plus 
     assert.deepEqual(ROW_COLUMNS, [
         'ngay_do_kiem', 'ma_bg', 'ma_bcvh', 'ma_tuyen', 'route_scope', 'ma_buu_ta_first', 'ten_buu_ta_first', 'ma_buu_ta_shown', 'ten_buu_ta_shown',
         'danh_gia', 'cause_code', 'cause_status', 'cause_step', 'flags', 'hints', 'ma_lo', 'khong_tron_lo', 'limit_ms', 'tct_ms', 'l_ms', 'r_ms',
-        'built_at', 'classifier_version',
+        'built_at', 'classifier_version', 'cause_detail', 'cause_reason', 'remaining_at_arrival_ms', 'a_source', 'basis',
     ]);
 });

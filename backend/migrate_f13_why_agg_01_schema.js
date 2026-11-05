@@ -37,7 +37,12 @@ CREATE TABLE IF NOT EXISTS f13_cause_parcel (
     l_ms INTEGER,
     r_ms INTEGER,
     built_at TEXT NOT NULL,
-    classifier_version TEXT NOT NULL
+    classifier_version TEXT NOT NULL,
+    cause_detail TEXT,
+    cause_reason TEXT,
+    remaining_at_arrival_ms INTEGER,
+    a_source TEXT,
+    basis TEXT
 );
 CREATE UNIQUE INDEX IF NOT EXISTS uq_f13_cause_parcel ON f13_cause_parcel(ngay_do_kiem, ma_bg);
 CREATE INDEX IF NOT EXISTS idx_f13_cause_parcel_bcvh ON f13_cause_parcel(ngay_do_kiem, ma_bcvh);
@@ -71,6 +76,16 @@ CREATE TABLE IF NOT EXISTS f13_cause_run (
 CREATE INDEX IF NOT EXISTS idx_f13_cause_run_status ON f13_cause_run(status, heartbeat_at);
 `;
 
+// F13-WHY-DATA-02 R2: columns added to f13_cause_parcel after the first release (additive; ALTER ... ADD COLUMN for a table created before).
+// Same order and types as in the CREATE TABLE above, so an old and a new table end up identical.
+const F13_WHY_AGG_01_ADDED_COLUMNS = [
+    ['cause_detail', 'TEXT'], // Phát detail: CHAM_GIAO_BUU_TA | PHAT_CHAM_SAU_GIAO | NULL
+    ['cause_reason', 'TEXT'], // why a parcel waits for the Chuyên quản (status CHO_CHUYEN_QUAN) or has no usable milestone
+    ['remaining_at_arrival_ms', 'INTEGER'], // limit - net T->A, reference only
+    ['a_source', 'TEXT'], // F41 | BF | NULL
+    ['basis', 'TEXT'], // INTERVAL | MILESTONES
+];
+
 const F13_WHY_AGG_01_TABLE_NAMES = ['f13_cause_day', 'f13_cause_parcel', 'f13_cause_run'];
 
 function resolveDbPath(argv) {
@@ -83,19 +98,31 @@ function applyF13WhyAgg01Schema(dbPath) {
     return new Promise((resolve, reject) => {
         const db = new sqlite3.Database(dbPath, (openErr) => {
             if (openErr) return reject(openErr);
+            const fail = (error) => db.close(() => reject(error));
             db.exec(`PRAGMA busy_timeout = 30000; ${F13_WHY_AGG_01_SCHEMA_SQL}`, (execErr) => {
-                if (execErr) return db.close(() => reject(execErr));
-                db.all(
-                    `SELECT name FROM sqlite_master WHERE type='table' AND name IN (${F13_WHY_AGG_01_TABLE_NAMES.map(() => '?').join(',')}) ORDER BY name`,
-                    F13_WHY_AGG_01_TABLE_NAMES,
-                    (queryErr, rows) => {
-                        db.close((closeErr) => {
-                            if (queryErr) return reject(queryErr);
-                            if (closeErr) return reject(closeErr);
-                            resolve(rows.map((row) => row.name));
-                        });
-                    },
-                );
+                if (execErr) return fail(execErr);
+                return db.all(`SELECT name FROM pragma_table_info('f13_cause_parcel')`, [], (infoErr, columns) => {
+                    if (infoErr) return fail(infoErr);
+                    const present = new Set(columns.map((column) => column.name));
+                    const missing = F13_WHY_AGG_01_ADDED_COLUMNS.filter(([name]) => !present.has(name));
+                    const finish = () => db.all(
+                        `SELECT name FROM sqlite_master WHERE type='table' AND name IN (${F13_WHY_AGG_01_TABLE_NAMES.map(() => '?').join(',')}) ORDER BY name`,
+                        F13_WHY_AGG_01_TABLE_NAMES,
+                        (queryErr, rows) => {
+                            db.close((closeErr) => {
+                                if (queryErr) return reject(queryErr);
+                                if (closeErr) return reject(closeErr);
+                                return resolve(rows.map((row) => row.name));
+                            });
+                        },
+                    );
+                    const addNext = (index) => {
+                        if (index >= missing.length) return finish();
+                        const [name, type] = missing[index];
+                        return db.run(`ALTER TABLE f13_cause_parcel ADD COLUMN ${name} ${type}`, (alterErr) => (alterErr ? fail(alterErr) : addNext(index + 1)));
+                    };
+                    return addNext(0);
+                });
             });
         });
     });
@@ -110,4 +137,4 @@ if (require.main === module) {
         .catch((error) => { console.error('[FAIL]', error.message); process.exit(1); });
 }
 
-module.exports = { applyF13WhyAgg01Schema, F13_WHY_AGG_01_SCHEMA_SQL, F13_WHY_AGG_01_TABLE_NAMES };
+module.exports = { applyF13WhyAgg01Schema, F13_WHY_AGG_01_SCHEMA_SQL, F13_WHY_AGG_01_TABLE_NAMES, F13_WHY_AGG_01_ADDED_COLUMNS };

@@ -7,7 +7,7 @@
 - Programme: F1.3 cause rebuild. Predecessor `F13-WHY-DATA-01` (CLOSED; rules v4 locked there). Runs between `F13-WHY-AGG-01` P2 (accepted) and P3: the derived table is rebuilt with these rules before P3 / P4 (its `classifier_version` changes by itself).
 - Owner: `Claude Code`. Sonnet 5.5 implements; Opus 5.5 reviews independently (rule change on the cause of every failed parcel). Does not change the Current Ticket of `PROJECT_SNAPSHOT.md`.
 - Branch: `codex/da-impl-006`.
-- **Status: `PO DECISIONS RECORDED (2026-11-05) - READY FOR IMPLEMENTATION`.** `PO UI Check Required = No` (backend; the page that shows it is a later UI ticket).
+- **Status: `R1 + R2 IMPLEMENTED - FOR OPUS REVIEW (section 8)`** (2026-11-05, Claude Code / Sonnet 5.5). Decisions E1-E7 of section 3 are implemented as written. `PO UI Check Required = No` (backend; the page that shows it is a later UI ticket).
 
 ## 2. Why (evidence, read only, 2026 on a copy of the database)
 
@@ -53,3 +53,41 @@ Backend only; F1.3 only; no screen; no F4.1 indicator work; never write the live
 ## 7. Change log
 
 - 2026-11-05: decisions E1-E8 recorded from the PO chat (Claude Code / Opus 5.5); ready for implementation.
+
+## 8. R1 + R2 results (2026-11-05, Claude Code / Sonnet 5.5; for Opus review, not self-approved)
+
+**Built (backend only).**
+- R1 `CauseClassifier.js` rewritten for rules v5: basis `INTERVAL` when R is valid (v4 interval method kept) else `MILESTONES` (night rule C only, T to the last known milestone, no TCT reconciliation) (E1); stages Khai thác T-D, Vận chuyển D-A, Phát A-E, Nộp tiền never an input (E3); cause `PHAT` with detail `CHAM_GIAO_BUU_TA` (T-G over the limit, or G on a later calendar day than A) / `PHAT_CHAM_SAU_GIAO` / none when G is missing, invalid or its interval crosses the limit (E4); a missing milestone is judged on the others, an earlier fault ends the examination, A missing in both sources: T-G within the limit and delivery late = Phát chậm sau khi giao, T-G over the limit = Chờ Chuyên quản `CHAM_DEN_HAY_CHAM_GIAO` (E5); status `CHO_CHUYEN_QUAN` with a `reason` (`TCT_DAI_HON_MOC` for E7, `KET_QUA_KHONG_KHOP_CHI_TIEU` with a valid R, `KHOANG_CAT_CHI_TIEU`, `CHAM_DEN_HAY_CHAM_GIAO`, `MOC_A_KHONG_HOP_LE`, `THIEU_MOC_G`, `MOC_G_KHONG_HOP_LE`, `THIEU_PTC`); `CHUA_DU_CAN_CU` only for no usable milestone (`KHONG_CO_MOC`) or no limit; `remaining_at_arrival_ms` = limit - net T-A and hint `DEN_BCVH_CON_IT_GIO` for 0 <= remaining < 6 h, never a cause (E6). Thresholds in `backend/src/config/f13CauseConfig.js` (one constant; part of the classifier version). Flag `KHONG_XAC_NHAN_DEN` (no arrival in F4.1 nor BatchFile); `THIEU_F41` stays.
+- R1 `JourneyService` / `F13JourneyRepository`: A = F4.1 by the exact key, else `fact_bf_phat.xac_nhan_den_bcp` of the same BCVH (`M/D/YYYY h:mm:ss AM/PM`, earliest non-empty value; also used when F4.1 is not unique); `a_source` F41 | BF | null; `milestones.arrive_source`. The BF Phát read of `_parcels` (window D-10..D+6) now also returns `mabc_phat` and `xac_nhan_den_bcp` (one read, no new window); D stays unknown for a BatchFile arrival (no bag).
+- R2 `f13_cause_parcel` gets `cause_detail`, `cause_reason`, `remaining_at_arrival_ms`, `a_source`, `basis` (additive: new tables have them, an older table is extended by `ALTER TABLE ... ADD COLUMN` in `applyF13WhyAgg01Schema`, rows kept); the builder maps them; `classifier_version` now also covers `f13CauseConfig.js` and `F13JourneyRepository.js`. `CauseAggQueryService` keeps every P2 line (Phát is shown as `GIAO_BUU_TA_QUA_GIO` = Chậm giao bưu tá and `PHAT_MUON` = Phát chậm sau khi giao) and adds the line `PHAT_KHONG_CHI_TIET`, `phat` (by detail), `cho_chuyen_quan` (by reason), `arrival_remaining` (over the limit / < 3 h / 3-6 h / >= 6 h), `arrival_source`, `basis`; parcels filters `cause` (new values), `reason`, `remaining`, `a_source`. Legacy rows with the P2 codes still read correctly.
+
+**Tests** (one file at a time, `--experimental-sqlite`, all green): `CauseClassifier` 29, `tctIntervals` 45, `JourneyService` 25, `f13v2Units` 20, `f13v2Routes.scope` 13, `CauseAggBuilder` 21, `CauseAggQueryService` 22, `f13v2WhyRoutes.scope` 5, `migrate_f13_why_agg_01_schema` 3, `server.startupMigrations` 1. Acceptance R1 (b): each of E1-E7 has tests, including the three April samples (real times from the copy: CB294036850VN, CC579840515VN, CD460221265VN -> Chờ Chuyên quản `TCT_DAI_HON_MOC`), a next-day handover, A only in BatchFile, A in neither, G missing; (c) a Đạt / unrated parcel has no cause, status, reason, basis or source; (d) the official numbers: equal in v4, v5 and `fact_f13` for every month (below). R2: P2 suites unchanged in what they check (the P2 fixture was kept, lines were added); new tests for the new lines, buckets (add up to the parcels with an arrival), sources, basis, reasons and for each cell the parcels behind it.
+
+**Database copy** (`aggcopy.sqlite` of the session scratchpad, never the live file; v4 table snapshot kept as `f13_cause_parcel_v4`): `f13_cause_tool.js rebuild --from 2026-01-01 --to 2026-11-04 --db`: 306 days, 0 failed, 567 s (classifier `6c71e81b4d92`); `verify` OK, 0 differences over 1 814 day x BCVH keys: table = `fact_f13` = `agg_f13_day` = 988 895 rows / 556 756 Đạt / 389 589 Không đạt / 42 550 unrated. Output `exports/F13-WHY-DATA-02/bang_theo_thang_va_thang10_R_hop_le.txt` (SHA-256 prefix `3732a99aa81e2a7e`; the folder is git-ignored).
+
+**Per month, failed parcels, six BCVH (before = v4 snapshot, after = v5).** Official rows / Đạt / Không đạt / unrated are equal before, after and in `fact_f13` in all 11 months.
+
+| Month | Failed | KTL | KT | VC | KT-VC chưa pb. | v4 Chậm giao / Phát sau giao | v5 Chậm giao / Phát sau giao / Phát k.c.t. | v5 Chờ CQ | v4 chưa đủ căn cứ | v5 chưa đủ căn cứ | A: F41 / BF / none |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| 01 | 36 679 | 2 180 | 0 | 0 | 2 085 -> 3 976 | 0 / 0 | 0 / 0 / 19 322 | 11 198 | 32 414 (88,4 %) | 3 | 20 640 / 8 966 / 7 073 |
+| 02 | 27 649 | 2 570 | 0 | 0 | 2 638 -> 3 600 | 0 / 0 | 0 / 0 / 14 519 | 6 933 | 22 441 (81,2 %) | 27 | 22 881 / 42 / 4 726 |
+| 03 | 44 755 | 3 326 | 0 | 0 | 2 144 -> 3 423 | 0 / 0 | 0 / 0 / 26 748 | 11 258 | 39 285 (87,8 %) | 0 | 38 010 / 145 / 6 600 |
+| 04 | 35 522 | 1 257 | 0 | 0 | 1 603 -> 3 071 | 3 529 / 6 125 | 8 948 / 13 508 / 742 | 7 969 | 23 008 (64,8 %) | 27 | 26 052 / 3 876 / 5 594 |
+| 05 | 35 599 | 1 556 | 0 | 0 | 2 138 -> 3 236 | 4 281 / 6 908 | 9 294 / 13 693 / 58 | 7 746 | 20 716 (58,2 %) | 16 | 29 687 / 100 / 5 812 |
+| 06 | 39 188 | 1 953 | 0 | 0 | 2 150 -> 3 101 | 6 094 / 7 301 | 12 644 / 14 284 / 129 | 7 072 | 21 690 (55,3 %) | 5 | 32 705 / 45 / 6 438 |
+| 07 | 40 070 | 1 966 | 0 | 0 | 1 771 -> 2 611 | 5 991 / 7 471 | 13 154 / 14 971 / 62 | 7 306 | 22 871 (57,1 %) | 0 | 31 527 / 78 / 8 465 |
+| 08 | 47 601 | 2 390 | 0 | 0 | 3 135 -> 4 082 | 11 382 / 11 297 | 17 924 / 16 453 / 72 | 6 653 | 19 397 (40,7 %) | 27 | 38 894 / 32 / 8 675 |
+| 09 | 39 647 | 2 735 | 1 514 -> 1 515 | 481 | 1 761 -> 1 772 | 15 693 / 14 766 | 19 363 / 12 192 / 246 | 1 343 | 2 697 (6,8 %) | 0 | 38 461 / 86 / 1 100 |
+| 10 | 38 820 | 2 328 | 1 769 | 197 | 1 097 -> 1 139 | 12 131 / 16 998 | 15 599 / 14 934 / 708 | 2 146 | 4 300 (11,1 %) | 0 | 35 566 / 536 / 2 718 |
+| 11 (to 04/11) | 4 059 | 176 | 267 | 7 | 200 -> 209 | 1 242 / 1 703 | 1 541 / 1 622 / 141 | 96 | 464 (11,4 %) | 0 | 3 818 / 172 / 69 |
+
+"Chờ CQ" by reason (v5): `TCT_DAI_HON_MOC` Jan-Aug 5 590 / 3 271 / 5 935 / 5 259 / 5 073 / 4 317 / 3 248 / 2 073, none from September (the TCT hours become reproducible); `THIEU_MOC_G` 5 362 / 3 399 / 4 989 in Jan-Mar (no F4.2 handover rows then) and 148 / 14 / 38 / 17 / 13 / 5 / 106 / 6 afterwards; `CHAM_DEN_HAY_CHAM_GIAO` (no arrival anywhere and T-G over the limit) 2 416 / 2 180 / 2 535 / 3 789 / 4 143 / 572 / 1 240 / 30 from April; `MOC_A_KHONG_HOP_LE` 195-739 a month; `KHOANG_CAT_CHI_TIEU` 1-156; `KET_QUA_KHONG_KHOP_CHI_TIEU` 0-61; `MOC_G_KHONG_HOP_LE` 0-15; `THIEU_PTC` 10 in January. Basis (v5): MILESTONES for 18 437 / 12 487 / 22 501 / 18 520 / 18 219 / 18 728 / 18 400 / 13 430 / 61 / 0 / 0 failed parcels (Jan-Nov), INTERVAL for the rest. Hint `DEN_BCVH_CON_IT_GIO` in October: 7 020 of 38 820; time left in October: over the limit 3 398, < 3 h 2 097, 3-6 h 4 923, >= 6 h 24 944 (35 362 with an arrival time).
+
+**Acceptance R1 (a), October 2026, failed parcels with R valid** (all 38 820 have R valid in v4): 31 267 keep the same cause; 3 253 are Phát parcels whose detail changed from Phát chậm sau khi giao to Chậm giao bưu tá (E4: handed over on a later day than the arrival); 4 300 had "chưa đủ căn cứ" in v4 and now get a cause (2 154) or "Chờ Chuyên quản" (2 146: 1 240 `CHAM_DEN_HAY_CHAM_GIAO`, 739 `MOC_A_KHONG_HOP_LE`, 60 `KHOANG_CAT_CHI_TIEU`, 106 `THIEU_MOC_G`, 1 `MOC_G_KHONG_HOP_LE`); 536 of these 4 300 got their A from the BatchFile (E2). **Unexplained changes: 0**; of the 34 520 parcels with a v4 cause, all keep it or only get a refined Phát detail. Hint `DEN_BCVH_CON_IT_GIO` added to 7 020 parcels (E6), no other hint changed. October failed parcels whose A now comes from the BatchFile: 536.
+
+**Findings for the review (not defects).**
+- January-March "Chờ Chuyên quản" is mostly `THIEU_MOC_G` (about 5 000 a month): F4.2 has no handover rows before April, so Phát cannot be split; Phát without detail is 19 322 / 14 519 / 26 748 in those months.
+- `CHAM_DEN_HAY_CHAM_GIAO` is the largest "Chờ Chuyên quản" reason from April (2 416-4 143 a month, 1 240 in October): parcels with no arrival time in F4.1 nor in the BatchFile and a late first handover. It follows E5 as written; it is the main block left to the Chuyên quản.
+- `MOC_A_KHONG_HOP_LE` (A before T or after E) moves from "chưa đủ căn cứ" to "Chờ Chuyên quản" (E5); 739 in October.
+- A rebuild of 2026 takes 567 s (306 days); `classifier_version` changed, so every built day is stale until rebuilt (relevant for P3 of F13-WHY-AGG-01).
+- The weekly-report skill mapping of section 4 was written in the skill (outside git).

@@ -35,11 +35,13 @@ class F13JourneyRepository {
         );
     }
 
-    // The lot number of a parcel is only in the delivery batch file (BF Phát).
+    // The lot number of a parcel is only in the delivery batch file (BF Phát); the same file gives the arrival at the BCVH
+    // (xac_nhan_den_bcp, F13-WHY-DATA-02 E2). One read, one window: rows with a lot number or with a confirmed arrival.
     getBfLots(fromDate, toDate) {
         return this._all(
-            `SELECT lading_code, ma_lo FROM fact_bf_phat
-             WHERE ngay_bf BETWEEN ? AND ? AND ma_lo IS NOT NULL AND ma_lo <> ''`,
+            `SELECT lading_code, ma_lo, mabc_phat, xac_nhan_den_bcp FROM fact_bf_phat
+             WHERE ngay_bf BETWEEN ? AND ?
+               AND ((ma_lo IS NOT NULL AND ma_lo <> '') OR (xac_nhan_den_bcp IS NOT NULL AND xac_nhan_den_bcp <> ''))`,
             [fromDate, toDate],
         );
     }

@@ -15,7 +15,7 @@ const sqlite3 = require('sqlite3');
 
 const { F13_WHY_AGG_01_SCHEMA_SQL } = require('../../../migrate_f13_why_agg_01_schema');
 const { weekIdFromDate } = require('../bcvhWeeklyComparisonService');
-const { CauseAggQueryService, resolvePeriod, CAUSE_ORDER } = require('./CauseAggQueryService');
+const { CauseAggQueryService, resolvePeriod, CAUSE_ORDER, lineOf } = require('./CauseAggQueryService');
 
 const A = '533140';
 const B = '536250';
@@ -101,6 +101,7 @@ test.before(async () => {
     for (const [day, state, error] of [[D1, 'FRESH', null], [D2, 'FRESH', null], ['2026-10-25', 'BUILDING', null], ['2026-04-09', 'FRESH', null], ['2026-04-10', 'STALE', 'boom']]) {
         await run("INSERT INTO f13_cause_day (ngay_do_kiem, input_signature, classifier_version, state, built_at, error, row_count) VALUES (?, 's', 'v1', ?, '2026-11-05T00:00:00.000Z', ?, 0)", [day, state, error]);
     }
+    await seedV5();
 });
 
 test.after(async () => {
@@ -175,7 +176,7 @@ test('(b) cause lines + "chưa đủ căn cứ" equal the failed parcels at ever
     const { totals } = await service.summary(query, ownScope(A));
     const mix = totals.cause_mix;
     const byCode = Object.fromEntries(mix.lines.map((line) => [line.code, line.count]));
-    assert.deepEqual(byCode, { KHONG_TRON_LO: 1, KHAI_THAC: 2, VAN_CHUYEN: 0, KHAI_THAC_VAN_CHUYEN_CHUA_PHAN_BIET: 0, GIAO_BUU_TA_QUA_GIO: 4, PHAT_MUON: 5 });
+    assert.deepEqual(byCode, { KHONG_TRON_LO: 1, KHAI_THAC: 2, VAN_CHUYEN: 0, KHAI_THAC_VAN_CHUYEN_CHUA_PHAN_BIET: 0, GIAO_BUU_TA_QUA_GIO: 4, PHAT_MUON: 5, PHAT_KHONG_CHI_TIET: 0 }); // v5 adds a line, none is removed
     assert.equal(mix.chua_du_can_cu.count, 2);
     assert.deepEqual(mix.chua_du_can_cu.by_step, { 'T-A': 1, 'T-G': 1 });
     assert.deepEqual(mix.chua_du_can_cu.by_flag, { THIEU_F41: 1, THIEU_MOC_G: 1 });
@@ -189,7 +190,7 @@ test('(b) cause lines + "chưa đủ căn cứ" equal the failed parcels at ever
     ];
     for (const [level, rows] of everyLevel) {
         for (const row of rows) {
-            const lines = row.cause_mix.lines.reduce((total, line) => total + line.count, 0) + row.cause_mix.chua_du_can_cu.count + row.cause_mix.unclassified;
+            const lines = row.cause_mix.lines.reduce((total, line) => total + line.count, 0) + row.cause_mix.chua_du_can_cu.count + row.cause_mix.cho_chuyen_quan.count + row.cause_mix.unclassified;
             assert.equal(lines, row.failed, `${level} ${row.key ?? ''}`);
             assert.equal(row.cause_mix.failed, row.failed);
         }
@@ -384,7 +385,7 @@ test('freshness reports the stored state of each day with data: complete, stale,
     assert.deepEqual(mixed.building_days, ['2026-10-25']);
     const stale = (await service.summary({ from: '2026-04-09', to: '2026-04-10' }, ownScope(B))).meta.freshness;
     assert.deepEqual([stale.complete, stale.stale_days], [false, ['2026-04-10']]);
-    assert.equal(stale.built_to, '2026-10-23');
+    assert.equal(stale.built_to, '2026-11-02'); // the latest FRESH day of the fixture (the v5 day)
     // a day without any F1.3 data (no fact row, no day row) is not "missing"
     assert.deepEqual((await service.summary({ from: '2026-09-01', to: '2026-09-03' }, CITY)).meta.freshness.missing_days, []);
 });
@@ -393,4 +394,137 @@ test('an empty period answers with zeros and null rates, never an error', async 
     const { totals } = await service.summary({ from: '2026-09-01', to: '2026-09-03' }, CITY);
     assert.deepEqual([totals.volume, totals.rate, totals.shortfall_x10, totals.cause_mix.failed], [0, null, 0, 0]);
     assert.deepEqual((await service.routes({ from: '2026-09-01', to: '2026-09-03' }, CITY)).rows, []);
+});
+
+// ================================================================== F13-WHY-DATA-02 R2 (rules v5)
+// A second, hand-added fixture on its own day (2026-11-02, BCVH Thuận An 537015): the table as the v5 builder writes it.
+//   30 rows: 8 Đạt, 22 Không đạt, 0 unrated -> shortfall_x10 = 9*30 - 10*8 = 190
+//   the 22 failed: KHONG_TRON_LO 1, KHAI_THAC 1, VAN_CHUYEN 1, KT_VC_CPB 1, PHAT/CHAM_GIAO_BUU_TA 3, PHAT/PHAT_CHAM_SAU_GIAO 5, PHAT/no detail 2,
+//                  CHO_CHUYEN_QUAN 5 (TCT_DAI_HON_MOC 3, THIEU_MOC_G 1, CHAM_DEN_HAY_CHAM_GIAO 1), CHUA_DU_CAN_CU 3 (KHONG_CO_MOC)
+//   time left at arrival (ms): over -2 h x3, 0..3 h: 0 / 1 h / 2.5 h, 3..6 h: 3 h / 5.99 h, 6 h and more: 6 h / 20 h; without arrival 10 -> 12 with, 10 without
+const V5_DAY = '2026-11-02';
+const D = 3600000;
+const V5 = '537015';
+
+async function addV5(o, count = 1) {
+    for (let i = 0; i < count; i += 1) {
+        await run(
+            `INSERT INTO f13_cause_parcel (ngay_do_kiem, ma_bg, ma_bcvh, ma_tuyen, route_scope, ma_buu_ta_first, ten_buu_ta_first, ma_buu_ta_shown, ten_buu_ta_shown,
+                danh_gia, cause_code, cause_detail, cause_reason, cause_status, cause_step, flags, hints, ma_lo, khong_tron_lo, limit_ms, tct_ms, l_ms, r_ms,
+                remaining_at_arrival_ms, a_source, basis, built_at, classifier_version)
+             VALUES (?, ?, ?, '53701501', 'POSTMAN', 'PV', 'Bưu tá V', 'PV', 'Bưu tá V', ?, ?, ?, ?, ?, ?, ?, ?, NULL, 0, 3600000, 7200000, 7200000, 0, ?, ?, ?, '2026-11-05T00:00:00.000Z', 'v5')`,
+            [V5_DAY, `V5-${++seq}`, V5, o.verdict || 'Không đạt', o.cause ?? null, o.detail ?? null, o.reason ?? null, o.status || 'CAUSE', o.step ?? null, o.flags ?? null, o.hints ?? null,
+                o.remaining ?? null, o.source ?? null, 'basis' in o ? o.basis : (o.verdict === 'Đạt' ? null : 'INTERVAL')],
+        );
+    }
+}
+
+// the v5 day, added by the before() hook at the top once the P2 fixture is in place
+async function seedV5() {
+    await addV5({ verdict: 'Đạt', status: 'KHONG_PHAN_TICH' }, 8);
+    await addV5({ cause: 'KHONG_TRON_LO', remaining: 8 * D, source: 'F41' });
+    await addV5({ cause: 'KHAI_THAC', remaining: -2 * D, source: 'F41' });
+    await addV5({ cause: 'VAN_CHUYEN', remaining: -2 * D, source: 'F41' });
+    await addV5({ cause: 'KHAI_THAC_VAN_CHUYEN_CHUA_PHAN_BIET', remaining: -2 * D, source: 'BF' });
+    await addV5({ cause: 'PHAT', detail: 'CHAM_GIAO_BUU_TA', remaining: 0, source: 'F41', hints: 'DEN_BCVH_CON_IT_GIO' });
+    await addV5({ cause: 'PHAT', detail: 'CHAM_GIAO_BUU_TA', remaining: 1 * D, source: 'F41', hints: 'DEN_BCVH_CON_IT_GIO' });
+    await addV5({ cause: 'PHAT', detail: 'CHAM_GIAO_BUU_TA', remaining: 2.5 * D, source: 'BF', hints: 'DEN_BCVH_CON_IT_GIO' });
+    await addV5({ cause: 'PHAT', detail: 'PHAT_CHAM_SAU_GIAO', remaining: 3 * D, source: 'F41' }, 1);
+    await addV5({ cause: 'PHAT', detail: 'PHAT_CHAM_SAU_GIAO', remaining: 5.99 * D, source: 'F41', hints: 'DEN_BCVH_CON_IT_GIO' }, 1);
+    await addV5({ cause: 'PHAT', detail: 'PHAT_CHAM_SAU_GIAO', remaining: 6 * D, source: 'BF' }, 1);
+    await addV5({ cause: 'PHAT', detail: 'PHAT_CHAM_SAU_GIAO', remaining: 20 * D, source: 'F41' }, 2);
+    await addV5({ cause: 'PHAT', source: null, remaining: null }, 2); // Phát without detail, and without an arrival time
+    await addV5({ status: 'CHO_CHUYEN_QUAN', reason: 'TCT_DAI_HON_MOC', step: 'T-E', basis: 'MILESTONES' }, 3);
+    await addV5({ status: 'CHO_CHUYEN_QUAN', reason: 'THIEU_MOC_G', step: 'T-G', basis: 'MILESTONES' });
+    await addV5({ status: 'CHO_CHUYEN_QUAN', reason: 'CHAM_DEN_HAY_CHAM_GIAO', step: 'T-G', basis: 'MILESTONES' });
+    await addV5({ status: 'CHUA_DU_CAN_CU', reason: 'KHONG_CO_MOC', step: 'THOI_GIAN', flags: 'THIEU_F41', basis: null }, 3);
+    await run("INSERT INTO fact_f13 (ngay_do_kiem, ma_bg, ma_bcvh) VALUES (?, 'F-v5', ?)", [V5_DAY, V5]);
+    await run("INSERT INTO f13_cause_day (ngay_do_kiem, input_signature, classifier_version, state, built_at, row_count) VALUES (?, 's', 'v5', 'FRESH', '2026-11-05T00:00:00.000Z', 30)", [V5_DAY]);
+}
+
+const V5_QUERY = { from: V5_DAY, to: V5_DAY };
+const lineCounts = (mix) => Object.fromEntries(mix.lines.map((line) => [line.code, line.count]));
+
+test('R2: Phát is shown as its details; the P2 lines stay, a line is added; "chờ Chuyên quản" and "chưa đủ căn cứ" are their own lines; everything adds up to the failed parcels', async () => {
+    const { totals } = await service.summary(V5_QUERY, ownScope(V5));
+    assert.deepEqual([totals.volume, totals.passed, totals.failed, totals.shortfall_x10], [30, 8, 22, 190]);
+    const mix = totals.cause_mix;
+    assert.deepEqual(lineCounts(mix), {
+        KHONG_TRON_LO: 1, KHAI_THAC: 1, VAN_CHUYEN: 1, KHAI_THAC_VAN_CHUYEN_CHUA_PHAN_BIET: 1, GIAO_BUU_TA_QUA_GIO: 3, PHAT_MUON: 5, PHAT_KHONG_CHI_TIET: 2,
+    });
+    assert.deepEqual(mix.lines.map((line) => line.code), CAUSE_ORDER);
+    assert.deepEqual(mix.lines.find((line) => line.code === 'GIAO_BUU_TA_QUA_GIO').label, 'Phát - Chậm giao bưu tá');
+    assert.deepEqual(mix.phat, { count: 10, share: 10 / 22, by_detail: { CHAM_GIAO_BUU_TA: 3, PHAT_CHAM_SAU_GIAO: 5, KHONG_CHI_TIET: 2 } });
+    assert.deepEqual(mix.cho_chuyen_quan.by_reason, { TCT_DAI_HON_MOC: 3, THIEU_MOC_G: 1, CHAM_DEN_HAY_CHAM_GIAO: 1 });
+    assert.equal(mix.cho_chuyen_quan.count, 5);
+    close(mix.cho_chuyen_quan.share, 5 / 22);
+    assert.equal(mix.chua_du_can_cu.count, 3); // only for a parcel with no usable milestone
+    assert.deepEqual(mix.chua_du_can_cu.by_step, { THOI_GIAN: 3 });
+    assert.equal(mix.unclassified, 0);
+    const added = mix.lines.reduce((total, line) => total + line.count, 0) + mix.cho_chuyen_quan.count + mix.chua_du_can_cu.count + mix.unclassified;
+    assert.equal(added, 22);
+    assert.equal(mix.failed, 22);
+    // the same at every level
+    for (const [level, rows] of [['bcvh', (await service.bcvh(V5_QUERY, CITY)).rows], ['routes', (await service.routes(V5_QUERY, CITY)).rows], ['postmen', (await service.postmen(V5_QUERY, CITY)).rows]]) {
+        for (const row of rows) {
+            const m = row.cause_mix;
+            assert.equal(m.lines.reduce((total, line) => total + line.count, 0) + m.cho_chuyen_quan.count + m.chua_du_can_cu.count + m.unclassified, row.failed, `${level} ${row.key}`);
+        }
+    }
+});
+
+test('R2: the time left at arrival is a distribution over the failed parcels with an arrival time: its buckets add up, at every level', async () => {
+    const { totals } = await service.summary(V5_QUERY, ownScope(V5));
+    const ar = totals.arrival_remaining;
+    // with an arrival time: Không trọn lô 8 h | Khai thác, Vận chuyển, chưa phân biệt -2 h | Chậm giao 0, 1, 2.5 h | Phát chậm 3, 5.99, 6, 20, 20 h = 12
+    assert.equal(ar.with_arrival, 12);
+    assert.deepEqual([ar.over_limit, ar.lt_3h, ar.h3_6, ar.ge_6h], [3, 3, 2, 4]);
+    assert.equal(ar.over_limit + ar.lt_3h + ar.h3_6 + ar.ge_6h, ar.with_arrival);
+    close(ar.shares.over_limit, 3 / 12);
+    const parts = Object.values((await service.routes(V5_QUERY, CITY)).rows).map((row) => row.arrival_remaining);
+    assert.equal(parts.reduce((total, part) => total + part.with_arrival, 0), ar.with_arrival);
+    // Đạt parcels and parcels without an arrival time are not in it
+    assert.ok(ar.with_arrival <= totals.failed);
+});
+
+test('R2: the arrival source (F4.1 / BatchFile / none) and the basis (interval / milestones) are counted over the failed parcels', async () => {
+    const { totals } = await service.summary(V5_QUERY, ownScope(V5));
+    const sources = totals.arrival_source;
+    assert.equal(sources.F41 + sources.BF + sources.none, totals.failed);
+    assert.equal(sources.BF, 3); // the BatchFile parcels: KTVC, a Chậm giao bưu tá, a Phát chậm sau khi giao
+    assert.equal(totals.basis.INTERVAL + totals.basis.MILESTONES + 3, totals.failed); // the three "chưa đủ căn cứ" have no basis
+    assert.equal(totals.basis.MILESTONES, 5); // the five parcels left to the Chuyên quản
+});
+
+test('R2: the parcels behind every new cell equal the cell (details, reasons, buckets, sources)', async () => {
+    const scope = ownScope(V5);
+    const { totals } = await service.summary(V5_QUERY, scope);
+    const count = async (extra) => (await service.parcels({ ...V5_QUERY, ...extra }, scope)).meta.total;
+    for (const line of totals.cause_mix.lines) assert.equal(await count({ cause: line.code }), line.count, line.code);
+    assert.equal(await count({ cause: 'PHAT' }), totals.cause_mix.phat.count);
+    assert.equal(await count({ cause: 'CHO_CHUYEN_QUAN' }), totals.cause_mix.cho_chuyen_quan.count);
+    assert.equal(await count({ cause: 'CHUA_DU_CAN_CU' }), totals.cause_mix.chua_du_can_cu.count);
+    for (const [reason, n] of Object.entries(totals.cause_mix.cho_chuyen_quan.by_reason)) assert.equal(await count({ cause: 'CHO_CHUYEN_QUAN', reason }), n, reason);
+    for (const bucket of ['over_limit', 'lt_3h', 'h3_6', 'ge_6h']) assert.equal(await count({ remaining: bucket }), totals.arrival_remaining[bucket], bucket);
+    for (const source of ['F41', 'BF']) assert.equal(await count({ a_source: source }), totals.arrival_source[source], source);
+    assert.equal(await count({ a_source: 'NONE' }), totals.arrival_source.none);
+    assert.equal(await count({ hint: 'DEN_BCVH_CON_IT_GIO' }), totals.hints.DEN_BCVH_CON_IT_GIO);
+    assert.equal(totals.hints.DEN_BCVH_CON_IT_GIO, 4); // 0, 1, 2.5 and 5.99 h left: under 6 h and not over the limit
+    await assert.rejects(service.parcels({ ...V5_QUERY, remaining: 'x' }, scope), { code: 'INVALID_FILTER' });
+    await assert.rejects(service.parcels({ ...V5_QUERY, a_source: 'x' }, scope), { code: 'INVALID_FILTER' });
+    const sample = (await service.parcels({ ...V5_QUERY, cause: 'CHAM_GIAO_BUU_TA_NOPE' }, scope).catch((e) => e));
+    assert.equal(sample.code, 'INVALID_FILTER');
+    const phat = (await service.parcels({ ...V5_QUERY, cause: 'GIAO_BUU_TA_QUA_GIO' }, scope)).parcels[0];
+    assert.deepEqual([phat.cause.code, phat.cause.detail, phat.cause.line, phat.basis], ['PHAT', 'CHAM_GIAO_BUU_TA', 'GIAO_BUU_TA_QUA_GIO', 'INTERVAL']);
+    const waiting = (await service.parcels({ ...V5_QUERY, cause: 'CHO_CHUYEN_QUAN', reason: 'TCT_DAI_HON_MOC' }, scope)).parcels[0];
+    assert.deepEqual([waiting.cause, waiting.cause_status, waiting.cause_reason, waiting.basis], [null, 'CHO_CHUYEN_QUAN', 'TCT_DAI_HON_MOC', 'MILESTONES']);
+});
+
+test('R2: lineOf maps the stored cause to a line; the P2 legacy codes pass through unchanged', () => {
+    assert.equal(lineOf('PHAT', 'CHAM_GIAO_BUU_TA'), 'GIAO_BUU_TA_QUA_GIO');
+    assert.equal(lineOf('PHAT', 'PHAT_CHAM_SAU_GIAO'), 'PHAT_MUON');
+    assert.equal(lineOf('PHAT', null), 'PHAT_KHONG_CHI_TIET');
+    assert.equal(lineOf('PHAT', 'x'), 'PHAT_KHONG_CHI_TIET');
+    assert.equal(lineOf('PHAT_MUON', null), 'PHAT_MUON');
+    assert.equal(lineOf('KHAI_THAC', null), 'KHAI_THAC');
 });

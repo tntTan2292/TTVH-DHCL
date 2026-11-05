@@ -9,6 +9,10 @@
 //   5 Delivered                   fact_f13.thoi_gian_ptc
 // Legs are clock hours, shown as they are: what counts as a fault also depends on the level-2 mail route of each BCVH.
 //
+// F13-WHY-DATA-02 (rules v5, E2): the arrival A is F4.1 by the exact key; when F4.1 has no row (or not a unique one), the BatchFile Phát
+// `xac_nhan_den_bcp` of the parcel for the same BCVH (earliest non-empty value); the source is kept (`a_source`). BF Phát is read once, with
+// the lot numbers (same window D-10..D+6).
+//
 // F13-WHY-DATA-01 (Manifest v4): every failed parcel gets at most one primary cause from CauseClassifier, with data-quality flags and
 // operating hints beside it. The classifier's inputs are built here:
 //   - the F4.1 arrival row is found by the exact key ma_bg + ngay_do_kiem + ma_bc_phat (none -> no arrival, several -> not unique;
@@ -53,6 +57,15 @@ function parseTime(value) {
     match = text.match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2}):(\d{2})/);
     if (match) return Date.UTC(+match[1], +match[2] - 1, +match[3], +match[4], +match[5], +match[6]);
     return null;
+}
+
+/** BatchFile times come as M/D/YYYY h:mm:ss AM/PM (local clock like the other sources); null when empty or malformed. */
+function parseBatchFileTime(value) {
+    if (!value) return null;
+    const match = String(value).trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4}) (\d{1,2}):(\d{2}):(\d{2}) (AM|PM)$/i);
+    if (!match) return null;
+    const hour = (Number(match[4]) % 12) + (match[7].toUpperCase() === 'PM' ? 12 : 0);
+    return Date.UTC(Number(match[3]), Number(match[1]) - 1, Number(match[2]), hour, Number(match[5]), Number(match[6]));
 }
 
 function formatTime(ms) {
@@ -115,13 +128,24 @@ function pickArrival(rows, date, bcvh) {
     return { row: exact[0], state: 'OK' };
 }
 
+/** F13-WHY-DATA-02 (E2): the earliest confirmed arrival at this BCVH in the BatchFile rows of a parcel; null when none. */
+function pickBatchFileArrival(rows, bcvh) {
+    let chosen = null;
+    for (const row of rows || []) {
+        if (String(row.mabc_phat ?? '') !== String(bcvh ?? '')) continue;
+        const at = parseBatchFileTime(row.xac_nhan_den_bcp);
+        if (at !== null && (chosen === null || at < chosen)) chosen = at;
+    }
+    return chosen;
+}
+
 /**
  * Per lot: its parcels and TMS batches (counted over every parcel of the lot, passed or failed). The batches decide for every account (a lot is one lot), the parcel counts only cover
  * the units the account may see, so a BCVH account never learns another unit's volume.
  */
 function buildLots(lotRows, scanRows, allowed) {
     const lotOf = new Map();
-    for (const row of lotRows) if (!lotOf.has(row.lading_code)) lotOf.set(row.lading_code, row.ma_lo);
+    for (const row of lotRows) if (row.ma_lo && !lotOf.has(row.lading_code)) lotOf.set(row.lading_code, row.ma_lo);
     const lots = new Map();
     const counted = new Set();
     for (const row of scanRows) {
@@ -203,6 +227,13 @@ class JourneyService {
         ]);
         const { lotOf, lots } = buildLots(lotRows, scanRows, allowed);
         const arrivals = groupByParcel(f41Rows, seen);
+        const batchFile = new Map(); // BF Phát rows (lading_code) of the parcels of this day, for the arrival time (E2)
+        for (const row of lotRows) {
+            if (!row.xac_nhan_den_bcp || !seen.has(row.lading_code)) continue;
+            const list = batchFile.get(row.lading_code);
+            if (list) list.push(row);
+            else batchFile.set(row.lading_code, [row]);
+        }
         const handovers = groupByParcel(f42Rows, seen);
         const departures = new Map(f11Rows.map((row) => [cleanBagNumber(row.so_bd10_dong_di_kttinh), row.thoi_gian_bd10_dong_di_kttinh]));
 
@@ -212,7 +243,11 @@ class JourneyService {
             const ptc = parseTime(row.thoi_gian_ptc);
             const handover = pickHandover(handovers.get(row.ma_bg), ptc);
             const depart = arrival ? parseTime(departures.get(cleanBagNumber(arrival.so_hieu_bd10_xnd_bcp))) : null;
-            const arrive = arrival ? parseTime(arrival.thoi_gian_xnd_bd1) : null;
+            const arriveF41 = arrival ? parseTime(arrival.thoi_gian_xnd_bd1) : null;
+            // E2: F4.1 by the exact key first; without a usable F4.1 row, the BatchFile arrival of the same BCVH.
+            const arriveBf = arriveF41 === null ? pickBatchFileArrival(batchFile.get(row.ma_bg), row.ma_bcvh) : null;
+            const arrive = arriveF41 !== null ? arriveF41 : arriveBf;
+            const aSource = arriveF41 !== null ? 'F41' : (arriveBf !== null ? 'BF' : null);
             const gbt = handover ? parseTime(handover.thoi_gian_gbt) : null;
             const lot = lotOfParcel(lotOf.get(row.ma_bg), lots);
             const khongTronLo = Boolean(lot?.incomplete && row.danh_gia_2026 === FAILED);
@@ -224,6 +259,7 @@ class JourneyService {
                 limit: row.thoi_gian_chi_tieu,
                 tct: row.thoi_gian_thuc_hien_thuc_te_gio,
                 f41: f41State,
+                aSource,
                 tms,
                 depart,
                 arrive,
@@ -234,6 +270,10 @@ class JourneyService {
                 cause: analysis.cause,
                 cause_status: analysis.status,
                 cause_step: analysis.step,
+                cause_reason: analysis.reason,
+                cause_basis: analysis.basis,
+                a_source: analysis.a_source,
+                remaining_at_arrival_ms: analysis.remaining_at_arrival_ms,
                 flags: analysis.flags,
                 hints: analysis.hints,
                 cause_detail: analysis.detail,
@@ -252,7 +292,7 @@ class JourneyService {
                 ma_buu_ta_first: firstHandover?.ma_buu_ta || null,
                 ten_buu_ta_first: firstHandover?.ten_buu_ta || null,
                 so_gio_tct: row.thoi_gian_thuc_hien_thuc_te_gio || null,
-                milestones: { tms: formatTime(tms), depart: formatTime(depart), arrive: formatTime(arrive), gbt: formatTime(gbt), gbt_first: formatTime(gbtFirst), ptc: formatTime(ptc) },
+                milestones: { tms: formatTime(tms), depart: formatTime(depart), arrive: formatTime(arrive), arrive_source: aSource, gbt: formatTime(gbt), gbt_first: formatTime(gbtFirst), ptc: formatTime(ptc) },
                 legs: {
                     tms_depart: legHours(tms, depart),
                     depart_arrive: legHours(depart, arrive),
@@ -366,4 +406,4 @@ class JourneyService {
     }
 }
 
-module.exports = { JourneyService, DAYS_BEFORE, DAYS_AFTER, BF_EXTRA_DAYS, shiftIsoDate, parseTime, cleanBagNumber, legHours, median, pickHandover, pickFirstHandover, pickArrival };
+module.exports = { JourneyService, parseBatchFileTime, pickBatchFileArrival, DAYS_BEFORE, DAYS_AFTER, BF_EXTRA_DAYS, shiftIsoDate, parseTime, cleanBagNumber, legHours, median, pickHandover, pickFirstHandover, pickArrival };

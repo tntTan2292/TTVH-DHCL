@@ -6,12 +6,17 @@
 // The unit of count is the BG-day row (the official F1.3 basis); distinct parcels (`distinct_bg`) are information only and are never
 // summed across children. A figure and the list of parcels behind it are built from the same WHERE clause.
 //
+// F13-WHY-DATA-02 R2 (rules v5): the cause lines keep every P2 line (none removed). Phát is stored as cause PHAT + detail and is shown as the two
+// legacy lines (GIAO_BUU_TA_QUA_GIO = Chậm giao bưu tá, PHAT_MUON = Phát chậm sau khi giao) plus PHAT_KHONG_CHI_TIET (no detail). New beside the
+// lines: `cho_chuyen_quan` (with reasons), `arrival_remaining` (time left at arrival), `arrival_source` (F41 / BF / none) and `basis`.
+//
 // Freshness (P2): reports the STORED state of each day (FRESH / STALE / BUILDING / missing). The signature check is P3.
 
 const { CANONICAL_BCVH_UNITS } = require('../../config/canonicalBcvhUnits');
 const { weekBoundsForWeekId } = require('../bcvhWeeklyComparisonService');
 const { monthBounds, isRealDate } = require('./periodResolve');
-const { CAUSES } = require('./CauseClassifier');
+const { CAUSES, PHAT_DETAILS } = require('./CauseClassifier');
+const { REMAINING_BUCKET_MS } = require('../../config/f13CauseConfig');
 
 const FAILED = 'Không đạt';
 const PASSED = 'Đạt';
@@ -20,7 +25,21 @@ const MAX_RANGE_DAYS = 366;
 const DEFAULT_PAGE_SIZE = 50;
 const MAX_PAGE_SIZE = 200;
 const ROUTE_SCOPES = ['POSTMAN', 'NON_POSTMAN', 'OTHER'];
-const CAUSE_ORDER = ['KHONG_TRON_LO', 'KHAI_THAC', 'VAN_CHUYEN', 'KHAI_THAC_VAN_CHUYEN_CHUA_PHAN_BIET', 'GIAO_BUU_TA_QUA_GIO', 'PHAT_MUON'];
+const CAUSE_ORDER = ['KHONG_TRON_LO', 'KHAI_THAC', 'VAN_CHUYEN', 'KHAI_THAC_VAN_CHUYEN_CHUA_PHAN_BIET', 'GIAO_BUU_TA_QUA_GIO', 'PHAT_MUON', 'PHAT_KHONG_CHI_TIET'];
+const LINE_LABELS = {
+    GIAO_BUU_TA_QUA_GIO: 'Phát - Chậm giao bưu tá',
+    PHAT_MUON: 'Phát - Phát chậm sau khi giao',
+    PHAT_KHONG_CHI_TIET: 'Phát (chưa rõ chi tiết)',
+};
+const labelOfLine = (code) => LINE_LABELS[code] || CAUSES[code]?.label || code;
+const REMAINING_BUCKETS = ['over_limit', 'lt_3h', 'h3_6', 'ge_6h'];
+const A_SOURCES = ['F41', 'BF'];
+
+/** The line of the cause mix a stored cause belongs to: Phát by its detail, every other code (and the P2 legacy codes) as it is. */
+function lineOf(code, detail) {
+    if (code !== 'PHAT') return code;
+    return PHAT_DETAILS[detail] ? PHAT_DETAILS[detail].line : 'PHAT_KHONG_CHI_TIET';
+}
 const NO_POSTMAN = 'NONE';
 const BCVH_NAMES = Object.fromEntries(CANONICAL_BCVH_UNITS.map((unit) => [unit.ma_bcvh, unit.ten_bcvh]));
 
@@ -114,13 +133,25 @@ function metricsOf(counts) {
 }
 
 function emptyMix() {
-    return { counts: {}, chua_du: { count: 0, by_step: {}, by_flag: {} }, unclassified: 0, hints: {} };
+    return {
+        counts: {},
+        chua_du: { count: 0, by_step: {}, by_flag: {} },
+        cho: { count: 0, by_reason: {} },
+        unclassified: 0,
+        hints: {},
+    };
 }
 
 function addCauseRow(mix, row) {
     const count = toNumber(row.c);
-    if (row.cause_status === 'CAUSE' && row.cause_code) mix.counts[row.cause_code] = (mix.counts[row.cause_code] || 0) + count;
-    else if (row.cause_status === 'CHUA_DU_CAN_CU') {
+    if (row.cause_status === 'CAUSE' && row.cause_code) {
+        const line = lineOf(row.cause_code, row.cause_detail);
+        mix.counts[line] = (mix.counts[line] || 0) + count;
+    } else if (row.cause_status === 'CHO_CHUYEN_QUAN') {
+        mix.cho.count += count;
+        const reason = row.cause_reason || '-';
+        mix.cho.by_reason[reason] = (mix.cho.by_reason[reason] || 0) + count;
+    } else if (row.cause_status === 'CHUA_DU_CAN_CU') {
         mix.chua_du.count += count;
         const step = row.cause_step || '-';
         mix.chua_du.by_step[step] = (mix.chua_du.by_step[step] || 0) + count;
@@ -128,14 +159,37 @@ function addCauseRow(mix, row) {
     } else mix.unclassified += count;
 }
 
-/** Cause lines over the failed parcels: every cause, "chưa đủ căn cứ" as its own line; the lines add up to the failed count. */
+/**
+ * Cause lines over the failed parcels. Every cause is a line, Phát appears as its two details plus "no detail", "Chờ Chuyên quản" and
+ * "chưa đủ căn cứ" are their own lines (never merged into a cause): the lines add up to the failed count.
+ */
 function causeMixOf(mix, failed) {
+    const lines = CAUSE_ORDER.map((code) => ({ code, label: labelOfLine(code), count: mix.counts[code] || 0, share: ratio(mix.counts[code] || 0, failed) }));
+    const phatCount = ['GIAO_BUU_TA_QUA_GIO', 'PHAT_MUON', 'PHAT_KHONG_CHI_TIET'].reduce((total, code) => total + (mix.counts[code] || 0), 0);
     return {
         failed,
-        lines: CAUSE_ORDER.map((code) => ({ code, label: CAUSES[code].label, count: mix.counts[code] || 0, share: ratio(mix.counts[code] || 0, failed) })),
+        lines,
+        phat: {
+            count: phatCount,
+            share: ratio(phatCount, failed),
+            by_detail: { CHAM_GIAO_BUU_TA: mix.counts.GIAO_BUU_TA_QUA_GIO || 0, PHAT_CHAM_SAU_GIAO: mix.counts.PHAT_MUON || 0, KHONG_CHI_TIET: mix.counts.PHAT_KHONG_CHI_TIET || 0 },
+        },
+        cho_chuyen_quan: { count: mix.cho.count, share: ratio(mix.cho.count, failed), by_reason: mix.cho.by_reason },
         chua_du_can_cu: { count: mix.chua_du.count, share: ratio(mix.chua_du.count, failed), by_step: mix.chua_du.by_step, by_flag: mix.chua_du.by_flag },
         unclassified: mix.unclassified,
     };
+}
+
+/** Distribution of the time left at arrival, over the failed parcels with an arrival time; the buckets add up to `with_arrival`. */
+function remainingOf(row) {
+    const total = toNumber(row.ar_total);
+    const buckets = { over_limit: toNumber(row.ar_over), lt_3h: toNumber(row.ar_lt3), h3_6: toNumber(row.ar_3to6), ge_6h: toNumber(row.ar_ge6) };
+    return { with_arrival: total, ...buckets, shares: Object.fromEntries(REMAINING_BUCKETS.map((key) => [key, ratio(buckets[key], total)])) };
+}
+
+function sourceOf(row, failed) {
+    const sources = { F41: toNumber(row.src_f41), BF: toNumber(row.src_bf) };
+    return { ...sources, none: failed - sources.F41 - sources.BF };
 }
 
 class CauseAggQueryService {
@@ -198,13 +252,39 @@ class CauseAggQueryService {
             }
             if (filter.cause) {
                 const cause = String(filter.cause);
-                if (CAUSE_ORDER.includes(cause)) {
+                const detailOf = (line) => Object.keys(PHAT_DETAILS).find((key) => PHAT_DETAILS[key].line === line);
+                if (cause === 'PHAT') clauses.push("cause_status = 'CAUSE' AND cause_code IN ('PHAT', 'GIAO_BUU_TA_QUA_GIO', 'PHAT_MUON')");
+                else if (cause === 'PHAT_KHONG_CHI_TIET') clauses.push("cause_status = 'CAUSE' AND cause_code = 'PHAT' AND (cause_detail IS NULL OR cause_detail = '')");
+                else if (detailOf(cause)) {
+                    clauses.push("cause_status = 'CAUSE' AND ((cause_code = 'PHAT' AND cause_detail = ?) OR cause_code = ?)");
+                    params.push(detailOf(cause), cause); // P2 legacy rows carry the line as the code itself
+                } else if (CAUSE_ORDER.includes(cause)) {
                     clauses.push("cause_status = 'CAUSE' AND cause_code = ?");
                     params.push(cause);
-                } else if (cause === 'CHUA_DU_CAN_CU' || cause === 'KHONG_PHAN_TICH') {
+                } else if (cause === 'CHUA_DU_CAN_CU' || cause === 'KHONG_PHAN_TICH' || cause === 'CHO_CHUYEN_QUAN') {
                     clauses.push('cause_status = ?');
                     params.push(cause);
                 } else throw fail('INVALID_FILTER', 'cause không hợp lệ');
+            }
+            if (filter.reason) {
+                clauses.push('cause_reason = ?');
+                params.push(String(filter.reason));
+            }
+            if (filter.remaining) {
+                const bucket = String(filter.remaining);
+                const [low, high] = REMAINING_BUCKET_MS;
+                const bounds = { over_limit: ['remaining_at_arrival_ms < 0'], lt_3h: ['remaining_at_arrival_ms >= 0 AND remaining_at_arrival_ms < ?', low], h3_6: ['remaining_at_arrival_ms >= ? AND remaining_at_arrival_ms < ?', low, high], ge_6h: ['remaining_at_arrival_ms >= ?', high] }[bucket];
+                if (!bounds) throw fail('INVALID_FILTER', 'remaining phải là over_limit, lt_3h, h3_6 hoặc ge_6h');
+                clauses.push(`danh_gia = '${FAILED}' AND remaining_at_arrival_ms IS NOT NULL AND ${bounds[0]}`);
+                params.push(...bounds.slice(1));
+            }
+            if (filter.a_source) {
+                const source = String(filter.a_source);
+                if (source === 'NONE') clauses.push(`danh_gia = '${FAILED}' AND a_source IS NULL`);
+                else if (A_SOURCES.includes(source)) {
+                    clauses.push('a_source = ?');
+                    params.push(source);
+                } else throw fail('INVALID_FILTER', 'a_source phải là F41, BF hoặc NONE');
             }
             if (filter.hint) {
                 clauses.push("(',' || COALESCE(hints, '') || ',') LIKE ?");
@@ -273,14 +353,23 @@ class CauseAggQueryService {
                     SUM(CASE WHEN danh_gia = '${PASSED}' THEN 1 ELSE 0 END) AS passed,
                     SUM(CASE WHEN danh_gia = '${FAILED}' THEN 1 ELSE 0 END) AS failed,
                     SUM(CASE WHEN danh_gia IS NULL OR TRIM(danh_gia) = '' THEN 1 ELSE 0 END) AS unrated,
-                    COUNT(DISTINCT ma_bg) AS distinct_bg${spec.nameSql}
+                    COUNT(DISTINCT ma_bg) AS distinct_bg,
+                    SUM(CASE WHEN danh_gia = '${FAILED}' AND remaining_at_arrival_ms IS NOT NULL THEN 1 ELSE 0 END) AS ar_total,
+                    SUM(CASE WHEN danh_gia = '${FAILED}' AND remaining_at_arrival_ms < 0 THEN 1 ELSE 0 END) AS ar_over,
+                    SUM(CASE WHEN danh_gia = '${FAILED}' AND remaining_at_arrival_ms >= 0 AND remaining_at_arrival_ms < ${REMAINING_BUCKET_MS[0]} THEN 1 ELSE 0 END) AS ar_lt3,
+                    SUM(CASE WHEN danh_gia = '${FAILED}' AND remaining_at_arrival_ms >= ${REMAINING_BUCKET_MS[0]} AND remaining_at_arrival_ms < ${REMAINING_BUCKET_MS[1]} THEN 1 ELSE 0 END) AS ar_3to6,
+                    SUM(CASE WHEN danh_gia = '${FAILED}' AND remaining_at_arrival_ms >= ${REMAINING_BUCKET_MS[1]} THEN 1 ELSE 0 END) AS ar_ge6,
+                    SUM(CASE WHEN danh_gia = '${FAILED}' AND a_source = 'F41' THEN 1 ELSE 0 END) AS src_f41,
+                    SUM(CASE WHEN danh_gia = '${FAILED}' AND a_source = 'BF' THEN 1 ELSE 0 END) AS src_bf,
+                    SUM(CASE WHEN danh_gia = '${FAILED}' AND basis = 'INTERVAL' THEN 1 ELSE 0 END) AS basis_interval,
+                    SUM(CASE WHEN danh_gia = '${FAILED}' AND basis = 'MILESTONES' THEN 1 ELSE 0 END) AS basis_milestones${spec.nameSql}
              FROM f13_cause_parcel WHERE ${where.sql} ${groupBy}`,
             where.params,
         );
         const causeRows = await this.db.all(
-            `SELECT ${select}cause_status, cause_code, cause_step, flags, COUNT(*) AS c
+            `SELECT ${select}cause_status, cause_code, cause_detail, cause_reason, cause_step, flags, COUNT(*) AS c
              FROM f13_cause_parcel WHERE ${where.sql} AND danh_gia = '${FAILED}'
-             GROUP BY ${spec.groupBy ? `${spec.groupBy}, ` : ''}cause_status, cause_code, cause_step, flags`,
+             GROUP BY ${spec.groupBy ? `${spec.groupBy}, ` : ''}cause_status, cause_code, cause_detail, cause_reason, cause_step, flags`,
             where.params,
         );
         const hintRows = await this.db.all(
@@ -296,6 +385,7 @@ class CauseAggQueryService {
                 keys,
                 name: row.postman_name ?? null,
                 counts: { n: row.n, passed: row.passed, failed: row.failed, unrated: row.unrated, distinct: row.distinct_bg },
+                extra: row,
                 mix: emptyMix(),
             });
         }
@@ -309,7 +399,15 @@ class CauseAggQueryService {
 
     _finish(group) {
         const metrics = metricsOf(group.counts);
-        return { ...metrics, cause_mix: causeMixOf(group.mix, metrics.failed), hints: group.mix.hints };
+        const extra = group.extra || {};
+        return {
+            ...metrics,
+            cause_mix: causeMixOf(group.mix, metrics.failed),
+            hints: group.mix.hints,
+            arrival_remaining: remainingOf(extra),
+            arrival_source: sourceOf(extra, metrics.failed),
+            basis: { INTERVAL: toNumber(extra.basis_interval), MILESTONES: toNumber(extra.basis_milestones) },
+        };
     }
 
     /** Shares inside a set of sibling rows (the parent group): shortfall share only when the parent is below target. */
@@ -445,7 +543,8 @@ class CauseAggQueryService {
         const direction = String(query.order || '').toLowerCase() === 'asc' ? 'ASC' : 'DESC';
         const rows = await this.db.all(
             `SELECT ngay_do_kiem, ma_bg, ma_bcvh, ma_tuyen, route_scope, ma_buu_ta_first, ten_buu_ta_first, ma_buu_ta_shown, ten_buu_ta_shown,
-                    danh_gia, cause_code, cause_status, cause_step, flags, hints, ma_lo, khong_tron_lo, limit_ms, tct_ms, l_ms, r_ms
+                    danh_gia, cause_code, cause_detail, cause_reason, cause_status, cause_step, flags, hints, ma_lo, khong_tron_lo, limit_ms, tct_ms, l_ms, r_ms,
+                    remaining_at_arrival_ms, a_source, basis
              FROM f13_cause_parcel WHERE ${where.sql}
              ORDER BY ${sort} ${direction}, ngay_do_kiem DESC, ma_bg ASC LIMIT ? OFFSET ?`,
             [...where.params, size, (page - 1) * size],
@@ -462,7 +561,11 @@ class CauseAggQueryService {
                 ma_buu_ta_shown: row.ma_buu_ta_shown,
                 ten_buu_ta_shown: row.ten_buu_ta_shown,
                 danh_gia: row.danh_gia,
-                cause: row.cause_code ? { code: row.cause_code, label: CAUSES[row.cause_code]?.label ?? null } : null,
+                cause: row.cause_code ? { code: row.cause_code, label: CAUSES[row.cause_code]?.label ?? labelOfLine(row.cause_code), detail: row.cause_detail ?? null, line: lineOf(row.cause_code, row.cause_detail) } : null,
+                cause_reason: row.cause_reason ?? null,
+                remaining_at_arrival_ms: row.remaining_at_arrival_ms ?? null,
+                a_source: row.a_source ?? null,
+                basis: row.basis ?? null,
                 cause_status: row.cause_status,
                 cause_step: row.cause_step,
                 flags: splitList(row.flags),
@@ -479,4 +582,4 @@ class CauseAggQueryService {
     }
 }
 
-module.exports = { CauseAggQueryService, resolvePeriod, metricsOf, causeMixOf, CAUSE_ORDER, ROUTE_SCOPES, NO_POSTMAN, MAX_RANGE_DAYS };
+module.exports = { CauseAggQueryService, resolvePeriod, metricsOf, causeMixOf, lineOf, CAUSE_ORDER, REMAINING_BUCKETS, ROUTE_SCOPES, NO_POSTMAN, MAX_RANGE_DAYS };

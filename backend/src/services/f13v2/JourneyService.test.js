@@ -2,7 +2,7 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { JourneyService, parseTime, cleanBagNumber, legHours, median, pickHandover, pickFirstHandover, pickArrival } = require('./JourneyService');
+const { JourneyService, parseTime, cleanBagNumber, legHours, median, pickHandover, pickFirstHandover, pickArrival, parseBatchFileTime, pickBatchFileArrival } = require('./JourneyService');
 
 const DATE = '2026-10-28';
 const OWN = '536250'; // BCVH Hương Thủy
@@ -83,6 +83,7 @@ test('the real parcel checked by the PO: arrival is XND BD1, and the legs follow
         tms: '2026-10-28 07:54:29',
         depart: '2026-10-28 11:35:51',
         arrive: '2026-10-28 13:35:51',
+        arrive_source: 'F41',
         gbt: '2026-10-28 15:02:25',
         gbt_first: '2026-10-28 15:02:25',
         ptc: '2026-10-28 17:12:41',
@@ -288,7 +289,7 @@ test('parcel: the cause, flags, hints and detail come from the classifier; a pas
     assert.equal(byId.PASSED1.danh_gia, 'Đạt');
 });
 
-test('parcel: no F4.1 row (other day, other BCVH) -> chưa đủ căn cứ at T-A with THIEU_F41; several rows -> F41_KHONG_DUY_NHAT; none falls back to another row', async () => {
+test('parcel: no F4.1 row (other day, other BCVH) and no BatchFile arrival -> THIEU_F41 + KHONG_XAC_NHAN_DEN, left to the Chuyên quản (no handover); several rows -> F41_KHONG_DUY_NHAT; none falls back to another F4.1 row', async () => {
     const { service } = serviceWith({
         parcels: [failedWith('NOROW'), failedWith('OTHERDAY'), failedWith('OTHERBCVH'), failedWith('TWOROWS')],
         f41: [
@@ -300,9 +301,10 @@ test('parcel: no F4.1 row (other day, other BCVH) -> chưa đủ căn cứ at T-
     });
     const byId = Object.fromEntries((await service.getParcels(DATE, {})).parcels.map((p) => [p.ma_bg, p]));
     for (const id of ['NOROW', 'OTHERDAY', 'OTHERBCVH']) {
-        assert.deepEqual([byId[id].cause, byId[id].cause_status, byId[id].cause_step, byId[id].flags, byId[id].milestones.arrive], [null, 'CHUA_DU_CAN_CU', 'T-A', ['THIEU_F41'], null], id);
+        assert.deepEqual([byId[id].cause, byId[id].cause_status, byId[id].cause_step, byId[id].flags, byId[id].milestones.arrive], [null, 'CHO_CHUYEN_QUAN', 'T-G', ['THIEU_F41', 'KHONG_XAC_NHAN_DEN', 'THIEU_MOC_G'], null], id);
+        assert.equal(byId[id].cause_reason, 'THIEU_MOC_G', id);
     }
-    assert.deepEqual([byId.TWOROWS.cause_status, byId.TWOROWS.flags, byId.TWOROWS.milestones.arrive], ['CHUA_DU_CAN_CU', ['F41_KHONG_DUY_NHAT'], null]);
+    assert.deepEqual([byId.TWOROWS.cause_status, byId.TWOROWS.flags, byId.TWOROWS.milestones.arrive], ['CHO_CHUYEN_QUAN', ['F41_KHONG_DUY_NHAT', 'KHONG_XAC_NHAN_DEN', 'THIEU_MOC_G'], null]);
 });
 
 test('parcel: the limit comes from the parcel row, there is no 14 h default', async () => {
@@ -313,8 +315,8 @@ test('parcel: the limit comes from the parcel row, there is no 14 h default', as
     });
     const byId = Object.fromEntries((await service.getParcels(DATE, {})).parcels.map((p) => [p.ma_bg, p]));
     assert.deepEqual([byId.NOLIMIT.cause, byId.NOLIMIT.cause_status, byId.NOLIMIT.flags], [null, 'CHUA_DU_CAN_CU', ['THIEU_CHI_TIEU']]);
-    assert.equal(byId.LIMIT12.cause_status, 'CHUA_DU_CAN_CU'); // 5.69 h to the BCVH is within 12 h, no handover row: stops at T-G
-    assert.equal(byId.LIMIT12.cause_step, 'T-G');
+    // 5.69 h to the BCVH is within 12 h and the TCT time (9:18) is within it too while the verdict is Không đạt: left to the Chuyên quản
+    assert.deepEqual([byId.LIMIT12.cause_status, byId.LIMIT12.cause_step, byId.LIMIT12.cause_reason], ['CHO_CHUYEN_QUAN', 'T-E', 'KET_QUA_KHONG_KHOP_CHI_TIEU']);
 });
 
 test('parcel: Không trọn lô keeps the cause and carries the BCVH hint when the arrival is conclusively late', async () => {
@@ -342,4 +344,86 @@ test('lot batches: a parcel listed twice (measured on two days, same scan) is on
     const split = (await mk([scan('X1', '28/10/2026 07:54:29'), scan('X2', '28/10/2026 09:54:29', 'Đạt')]).getParcels(DATE, {})).parcels[0];
     assert.equal(split.khong_tron_lo, true);
     assert.equal(split.lot.tms_batches, 2);
+});
+
+// ---- F13-WHY-DATA-02 R1: arrival from the BatchFile (E2), Phát details and the basis through the service
+const bfRow = (lading, overrides = {}) => ({ lading_code: lading, ma_lo: null, mabc_phat: OWN, xac_nhan_den_bcp: '10/28/2026 1:35:51 PM', ...overrides });
+
+test('BatchFile times (M/D/YYYY h:mm:ss AM/PM) are read as the local clock; empty or malformed ones are not times', () => {
+    assert.equal(parseBatchFileTime('10/28/2026 1:35:51 PM'), parseTime('28/10/2026 13:35:51'));
+    assert.equal(parseBatchFileTime('4/13/2026 12:58:26 PM'), parseTime('13/04/2026 12:58:26')); // 12 PM is noon
+    assert.equal(parseBatchFileTime('12/31/2025 12:05:00 AM'), parseTime('31/12/2025 00:05:00')); // 12 AM is midnight
+    assert.equal(parseBatchFileTime('1/1/2026 9:26:51 AM'), parseTime('01/01/2026 09:26:51'));
+    for (const bad of [null, '', '28/10/2026 13:35:51', 'x', '10/28/2026 1:35:51']) assert.equal(parseBatchFileTime(bad), null, String(bad));
+});
+
+test('pickBatchFileArrival: only the same BCVH counts, an empty value is "never confirmed", the earliest confirmation wins', () => {
+    const rows = [
+        bfRow('X', { xac_nhan_den_bcp: '10/28/2026 3:00:00 PM' }),
+        bfRow('X', { xac_nhan_den_bcp: '10/28/2026 1:00:00 PM' }),
+        bfRow('X', { xac_nhan_den_bcp: '10/28/2026 9:00:00 AM', mabc_phat: OTHER }),
+        bfRow('X', { xac_nhan_den_bcp: '' }),
+    ];
+    assert.equal(pickBatchFileArrival(rows, OWN), parseTime('28/10/2026 13:00:00'));
+    assert.equal(pickBatchFileArrival([bfRow('X', { xac_nhan_den_bcp: '' })], OWN), null);
+    assert.equal(pickBatchFileArrival([], OWN), null);
+    assert.equal(pickBatchFileArrival(undefined, OWN), null);
+});
+
+test('E2: no F4.1 row -> the BatchFile arrival is A (source BF, no D); an F4.1 row wins; BF of another BCVH or empty is not used', async () => {
+    const { service } = serviceWith({
+        parcels: [failedWith('BFONLY'), failedWith('BOTH'), failedWith('BFOTHER'), failedWith('BFEMPTY'), failedWith('NEITHER')],
+        f41: [arrivalRow('BOTH')],
+        lots: [
+            bfRow('BFONLY'), bfRow('BOTH', { xac_nhan_den_bcp: '10/28/2026 1:00:00 PM' }), bfRow('BFOTHER', { mabc_phat: OTHER }), bfRow('BFEMPTY', { xac_nhan_den_bcp: '' }),
+        ],
+        f11: BAG,
+    });
+    const byId = Object.fromEntries((await service.getParcels(DATE, {})).parcels.map((p) => [p.ma_bg, p]));
+    assert.deepEqual([byId.BFONLY.milestones.arrive, byId.BFONLY.milestones.arrive_source, byId.BFONLY.a_source, byId.BFONLY.milestones.depart], ['2026-10-28 13:35:51', 'BF', 'BF', null]);
+    assert.deepEqual(byId.BFONLY.flags, ['THIEU_F41', 'THIEU_MOC_D']); // an arrival is known, the bag (so D) is not
+    assert.equal(byId.BFONLY.cause.code, 'KHAI_THAC_VAN_CHUYEN_CHUA_PHAN_BIET'); // 5.69 h over the limit of 5 h, no D
+    assert.deepEqual([byId.BOTH.milestones.arrive, byId.BOTH.a_source], ['2026-10-28 13:35:51', 'F41']); // F4.1 (13:35:51), not BF (13:00:00)
+    for (const id of ['BFOTHER', 'BFEMPTY', 'NEITHER']) assert.deepEqual([byId[id].milestones.arrive, byId[id].a_source, byId[id].flags.includes('KHONG_XAC_NHAN_DEN')], [null, null, true], id);
+});
+
+test('E2: a BatchFile row with a lot number but no arrival still gives the lot (one read for both)', async () => {
+    const { service } = serviceWith({
+        parcels: [failedWith('L1'), failedWith('L2')],
+        f41: [arrivalRow('L1'), arrivalRow('L2')],
+        f11: BAG,
+        lots: [{ lading_code: 'L1', ma_lo: 'LOT', mabc_phat: OWN, xac_nhan_den_bcp: null }, { lading_code: 'L2', ma_lo: 'LOT', mabc_phat: OWN, xac_nhan_den_bcp: null }, { lading_code: 'ARRIVALONLY', ma_lo: null, mabc_phat: OWN, xac_nhan_den_bcp: '10/28/2026 1:35:51 PM' }],
+        scans: [scan('L1', '28/10/2026 07:54:29'), scan('L2', '28/10/2026 09:54:29')],
+    });
+    const parcels = (await service.getParcels(DATE, {})).parcels;
+    assert.ok(parcels.every((p) => p.ma_lo === 'LOT' && p.khong_tron_lo === true));
+});
+
+test('E4 through the service: handed over on a later day than the arrival -> Phát / Chậm giao bưu tá; handed over in time on the same day -> Phát chậm sau khi giao', async () => {
+    // arrival 28/10 13:35:51 (T 07:54:29: 5.69 h), TCT times chosen to be consistent with the milestones (R inside the tolerance)
+    const same = failedWith('SAMEDAY', { thoi_gian_chi_tieu: '8', thoi_gian_thuc_hien_thuc_te_gio: '9:18' }); // E 17:12:41 = 9.3 h, G 15:02:25 = 7.1 h
+    const nextDay = failedWith('NEXTDAY', { thoi_gian_chi_tieu: '14.5', thoi_gian_ptc: '29/10/2026 09:00:00', thoi_gian_thuc_hien_thuc_te_gio: '15:5' }); // one night (10 h) left out: 15.1 h
+    const { service } = serviceWith({
+        parcels: [same, nextDay],
+        f41: [arrivalRow('SAMEDAY'), arrivalRow('NEXTDAY')],
+        f42: [handoverRow('SAMEDAY', '2026-10-28 15:02:25'), handoverRow('NEXTDAY', '2026-10-29 08:00:00')],
+        f11: BAG,
+    });
+    const byId = Object.fromEntries((await service.getParcels(DATE, {})).parcels.map((p) => [p.ma_bg, p]));
+    assert.deepEqual([byId.SAMEDAY.cause.code, byId.SAMEDAY.cause.detail, byId.SAMEDAY.cause_basis], ['PHAT', 'PHAT_CHAM_SAU_GIAO', 'INTERVAL']);
+    assert.ok(byId.SAMEDAY.remaining_at_arrival_ms > 2 * 3600000 && byId.SAMEDAY.remaining_at_arrival_ms < 3 * 3600000); // 8 h - 5 h 41 min
+    assert.ok(byId.SAMEDAY.hints.includes('DEN_BCVH_CON_IT_GIO'));
+    assert.deepEqual([byId.NEXTDAY.cause.code, byId.NEXTDAY.cause.detail], ['PHAT', 'CHAM_GIAO_BUU_TA']); // T->G 14.1 h is in time, but the day after the arrival
+});
+
+test('the parcel carries the v5 fields: reason, basis, A source, remaining time; a Đạt parcel has none of them', async () => {
+    const { service } = serviceWith({
+        parcels: [failedWith('FAILED2', { thoi_gian_chi_tieu: '5' }), f13('PASSED2', { thoi_gian_chi_tieu: '5' })],
+        f41: [arrivalRow('FAILED2'), arrivalRow('PASSED2')],
+        f11: BAG,
+    });
+    const byId = Object.fromEntries((await service.getParcels(DATE, {})).parcels.map((p) => [p.ma_bg, p]));
+    assert.deepEqual([byId.FAILED2.cause.code, byId.FAILED2.cause_reason, byId.FAILED2.cause_basis, byId.FAILED2.a_source], ['KHAI_THAC', null, 'INTERVAL', 'F41']);
+    assert.ok(byId.FAILED2.remaining_at_arrival_ms < 0); // 5.69 h against a 5 h limit
+    assert.deepEqual([byId.PASSED2.cause, byId.PASSED2.cause_reason, byId.PASSED2.cause_basis, byId.PASSED2.a_source, byId.PASSED2.remaining_at_arrival_ms], [null, null, null, null, null]);
 });

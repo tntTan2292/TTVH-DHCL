@@ -26,7 +26,8 @@ const SOURCES = Object.freeze([
     { key: 'bf', table: 'fact_bf_phat', dateColumn: 'ngay_bf', window: 'bf' },
 ]);
 
-const VERSION_FILES = ['CauseClassifier.js', 'tctIntervals.js', 'JourneyService.js'];
+// The rules and everything that feeds them: a change in any of these marks every built day stale (F13-WHY-DATA-02 added the thresholds and the repository).
+const VERSION_FILES = ['CauseClassifier.js', 'tctIntervals.js', 'JourneyService.js', '../../config/f13CauseConfig.js', '../../repositories/F13JourneyRepository.js'];
 
 /** SHA-256 of the sources of the rules plus the confirmed non-postman route codes (T1). Line endings are normalised. */
 function computeClassifierVersion() {
@@ -80,6 +81,11 @@ function toRow(date, parcel, builtAt, classifierVersion) {
         hints: listText(parcel.hints),
         ma_lo: parcel.ma_lo,
         khong_tron_lo: parcel.khong_tron_lo ? 1 : 0,
+        cause_detail: parcel.cause ? (parcel.cause.detail ?? null) : null,
+        cause_reason: parcel.cause_reason ?? null,
+        remaining_at_arrival_ms: parcel.remaining_at_arrival_ms ?? null,
+        a_source: parcel.a_source ?? null,
+        basis: parcel.cause_basis ?? null,
         limit_ms: detail.limit_ms ?? null,
         tct_ms: detail.tct_ms ?? null,
         l_ms: detail.l_ms ?? null,
@@ -92,7 +98,7 @@ function toRow(date, parcel, builtAt, classifierVersion) {
 const ROW_COLUMNS = [
     'ngay_do_kiem', 'ma_bg', 'ma_bcvh', 'ma_tuyen', 'route_scope', 'ma_buu_ta_first', 'ten_buu_ta_first', 'ma_buu_ta_shown', 'ten_buu_ta_shown',
     'danh_gia', 'cause_code', 'cause_status', 'cause_step', 'flags', 'hints', 'ma_lo', 'khong_tron_lo', 'limit_ms', 'tct_ms', 'l_ms', 'r_ms',
-    'built_at', 'classifier_version',
+    'built_at', 'classifier_version', 'cause_detail', 'cause_reason', 'remaining_at_arrival_ms', 'a_source', 'basis',
 ];
 
 function wrapDb(db) {

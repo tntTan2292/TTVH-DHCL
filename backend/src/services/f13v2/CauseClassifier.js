@@ -1,44 +1,64 @@
 'use strict';
 
-// F13-WHY-DATA-01 (Manifest v4, Business Rules SSOT LOCKED): the one primary cause of a failed F1.3 parcel.
+// F13-WHY-DATA-02 (Business Rules SSOT v5 = v4 + decisions E1-E7): the one primary cause of a failed F1.3 parcel.
 // Pure function, no database, no side effect. It never touches the official result (Đạt / Không đạt, TCT hours): it only reads them.
 //
 // Three independent layers in the answer:
-//   cause   at most one primary cause, only for a Không đạt parcel;
-//   flags   data-quality flags (never a cause);
-//   hints   operating hints (never a cause, never a second cause).
-// "Chưa đủ căn cứ" is a status (with the step where the tree stopped), not a cause.
+//   cause   at most one primary cause, only for a Không đạt parcel (Phát carries a `detail`);
+//   status  CAUSE | CHO_CHUYEN_QUAN (with a `reason`) | CHUA_DU_CAN_CU (no usable milestone at all) | KHONG_PHAN_TICH (Đạt, not rated);
+//   flags   data-quality flags (never a cause), hints   operating hints (never a cause, never a second cause).
 //
-// Tree (an earlier fault wins; a step that cannot be judged stops the tree):
-//   0 Đạt                 -> no analysis
-//   1 Không trọn lô       -> the parcel's lot reached Huế in 2 TMS batches or more (evidence from the whole lot, built by the caller)
-//   2 T -> A over limit   -> arrived at the BCVH late: Khai thác / Vận chuyển by the two legs T->D and D->A, "chưa phân biệt" when
-//                            the two intervals overlap or D is missing
-//   3 T -> G over limit   -> handed to the postman late
-//   4 G -> E              -> delivery late (T -> E is over by definition for a failed parcel)
-//   5 otherwise           -> chưa đủ căn cứ
-// Stage verdicts come from tctIntervals (night rule C, difference R to the official TCT time, Lower/Upper interval): over only when
-// the whole interval is above the limit, equal to the limit is not over. The limit is the parcel's own thoi_gian_chi_tieu: there is
-// no default, no fixed list; without it the parcel gets the flag THIEU_CHI_TIEU and no cause.
+// Stages (E3): Khai thác T->D, Vận chuyển D->A, Phát A->E (Nộp tiền E->cash is never part of the journey).
+// Tree (an earlier fault wins; the later stages are not examined, E5):
+//   0 Đạt / not rated                -> no analysis
+//   1 Không trọn lô                  -> the parcel's lot reached Huế in 2 TMS batches or more (evidence built by the caller)
+//   2 T -> A over the limit          -> Khai thác / Vận chuyển by T->D and D->A ("chưa phân biệt" when D is unknown or the legs overlap)
+//   3 delivery late (A within limit) -> Phát; detail CHAM_GIAO_BUU_TA (T->G over the limit, or G on a later calendar day than A) /
+//                                       PHAT_CHAM_SAU_GIAO (handover in time and on the day of arrival) / none (G missing or invalid)
+//   4 anything that cannot be inferred, or TCT says Không đạt while every milestone is within the limit (E7) -> CHO_CHUYEN_QUAN
+// Basis (E1): INTERVAL when the TCT hours can be recomputed (R valid): stage verdicts come from the Lower / Upper interval of tctIntervals.
+// MILESTONES when they cannot (R invalid): stages are judged on the milestones with night rule C only (T -> last milestone), TCT hours
+// are not reconciled. The limit is the parcel's own thoi_gian_chi_tieu: no default, no list.
+// Time left at arrival (E6, reference only): limit - net T->A. It never changes a cause; it feeds the hint DEN_BCVH_CON_IT_GIO.
 
 const {
-    HOUR_MS, TOLERANCE_MS, VERDICT, parseTctMs, journeyModel, stageOf, verdictOf,
+    HOUR_MS, DAY_MS, TOLERANCE_MS, VERDICT, nightIntervals, stageNetMs, parseTctMs, journeyModel, stageOf, verdictOf,
 } = require('./tctIntervals');
+const { REMAINING_HINT_MS } = require('../../config/f13CauseConfig');
 
 const CAUSES = Object.freeze({
     KHONG_TRON_LO: { group: 'A', objective: true, label: 'Không trọn lô' },
     KHAI_THAC: { group: 'A', objective: true, label: 'Khai thác (đến BCVH quá hạn)' },
     VAN_CHUYEN: { group: 'A', objective: true, label: 'Vận chuyển (đến BCVH quá hạn)' },
     KHAI_THAC_VAN_CHUYEN_CHUA_PHAN_BIET: { group: 'A', objective: true, label: 'Khai thác - Vận chuyển (chưa phân biệt)' },
-    GIAO_BUU_TA_QUA_GIO: { group: 'B', objective: false, label: 'Giao bưu tá quá giờ' },
-    PHAT_MUON: { group: 'B', objective: false, label: 'Phát muộn' },
+    PHAT: { group: 'B', objective: false, label: 'Phát' },
 });
 
-const STATUS = Object.freeze({ CAUSE: 'CAUSE', NOT_ANALYSED: 'KHONG_PHAN_TICH', UNDECIDED: 'CHUA_DU_CAN_CU' });
+const PHAT_DETAILS = Object.freeze({
+    CHAM_GIAO_BUU_TA: { label: 'Chậm giao bưu tá', line: 'GIAO_BUU_TA_QUA_GIO' },
+    PHAT_CHAM_SAU_GIAO: { label: 'Phát chậm sau khi giao', line: 'PHAT_MUON' },
+});
+
+const STATUS = Object.freeze({ CAUSE: 'CAUSE', WAIT_ANALYST: 'CHO_CHUYEN_QUAN', UNDECIDED: 'CHUA_DU_CAN_CU', NOT_ANALYSED: 'KHONG_PHAN_TICH' });
+const BASIS = Object.freeze({ INTERVAL: 'INTERVAL', MILESTONES: 'MILESTONES' });
+
+// Why a parcel is left to the Chuyên quản ("Chờ Chuyên quản phân tích", E5 / E7).
+const REASONS = Object.freeze({
+    TCT_LONGER_THAN_MILESTONES: 'TCT_DAI_HON_MOC', // E7: every milestone within the limit, TCT says Không đạt (TCT may start from an earlier scan)
+    RESULT_NOT_MATCHING_LIMIT: 'KET_QUA_KHONG_KHOP_CHI_TIEU', // the TCT hours are within the limit but the verdict is Không đạt
+    INTERVAL_CUTS_LIMIT: 'KHOANG_CAT_CHI_TIEU', // the interval of a stage crosses the limit
+    LATE_ARRIVAL_OR_HANDOVER: 'CHAM_DEN_HAY_CHAM_GIAO', // no arrival time and T->G over the limit: the two cannot be told apart
+    NO_ARRIVAL_ORDER: 'MOC_A_KHONG_HOP_LE',
+    NO_HANDOVER: 'THIEU_MOC_G',
+    HANDOVER_ORDER: 'MOC_G_KHONG_HOP_LE',
+    NO_DELIVERY: 'THIEU_PTC',
+});
+
 const FLAGS = Object.freeze({
     NO_LIMIT: 'THIEU_CHI_TIEU',
     NO_F41: 'THIEU_F41',
     F41_NOT_UNIQUE: 'F41_KHONG_DUY_NHAT',
+    NO_ARRIVAL: 'KHONG_XAC_NHAN_DEN', // no arrival time in F4.1 nor in the BatchFile
     WRONG_ORDER: 'SAI_TRINH_TU_NGHIEP_VU',
     G_BEFORE_T: 'G_TRUOC_T',
     NO_D: 'THIEU_MOC_D',
@@ -52,9 +72,10 @@ const FLAGS = Object.freeze({
     UNLOCATED: 'UNLOCATED_TCT_EXCLUSION',
     NOT_OVER_LIMIT: 'KET_QUA_KHONG_KHOP_CHI_TIEU',
 });
-const HINTS = Object.freeze({ BCVH_LATE_SIGN: 'DAU_HIEU_CHAM_TAI_BCVH' });
+const HINTS = Object.freeze({ BCVH_LATE_SIGN: 'DAU_HIEU_CHAM_TAI_BCVH', LITTLE_TIME_LEFT: 'DEN_BCVH_CON_IT_GIO' });
 
 const isTime = (value) => Number.isFinite(value);
+const dayOf = (ms) => Math.floor(ms / DAY_MS);
 
 /** The parcel's own limit in ms; null when missing or not a positive number (no fallback). */
 function limitMsOf(limit) {
@@ -68,7 +89,8 @@ function limitMsOf(limit) {
  *   failed        true for a Không đạt parcel
  *   limit         thoi_gian_chi_tieu (hours)
  *   tct           official TCT time "h:mm" (thoi_gian_thuc_hien_thuc_te_gio) or milliseconds as a number
- *   tms, depart, arrive, gbt, ptc   T, D, A, G, E in ms (null when unknown)
+ *   tms, depart, arrive, gbt, ptc   T, D, A, G, E in ms (null when unknown); A is F4.1 by the exact key, else the BatchFile (E2)
+ *   aSource       'F41' | 'BF' | null: where A comes from
  *   khongTronLo   lot evidence from the caller (batches counted over every parcel of the lot)
  *   f41           'OK' | 'NONE' | 'NOT_UNIQUE' (how the F4.1 row was found by the caller)
  */
@@ -76,16 +98,32 @@ function classify(input) {
     const flags = [];
     const hints = [];
     const detail = { limit_ms: null, tct_ms: null, l_ms: null, r_ms: null, raw_r_ms: null, stages: {} };
-    const result = (status, cause, step = null) => ({ status, cause: cause ? { code: cause, ...CAUSES[cause] } : null, step, flags, hints, detail });
+    const out = { basis: null, aSource: null, remaining: null };
+    const answer = (status, causeCode, { sub = null, step = null, reason = null } = {}) => ({
+        status,
+        cause: causeCode ? { code: causeCode, ...CAUSES[causeCode], detail: sub, detail_label: sub ? PHAT_DETAILS[sub].label : null } : null,
+        reason,
+        step,
+        basis: out.basis,
+        a_source: out.aSource,
+        remaining_at_arrival_ms: out.remaining,
+        flags,
+        hints,
+        detail,
+    });
+    const wait = (reason, step) => answer(STATUS.WAIT_ANALYST, null, { reason, step });
+    const unknown = (reason, step) => answer(STATUS.UNDECIDED, null, { reason, step });
 
-    if (!input || !input.failed) return { status: STATUS.NOT_ANALYSED, cause: null, step: null, flags: [], hints: [], detail };
+    if (!input || !input.failed) return { status: STATUS.NOT_ANALYSED, cause: null, reason: null, step: null, basis: null, a_source: null, remaining_at_arrival_ms: null, flags: [], hints: [], detail };
 
     const { tms: T = null, depart: D = null, arrive: A = null, gbt: G = null, ptc: E = null } = input;
     const limitMs = limitMsOf(input.limit);
     detail.limit_ms = limitMs;
+    out.aSource = isTime(A) ? (input.aSource || 'F41') : null;
     if (limitMs === null) flags.push(FLAGS.NO_LIMIT);
     if (input.f41 === 'NONE') flags.push(FLAGS.NO_F41);
     if (input.f41 === 'NOT_UNIQUE') flags.push(FLAGS.F41_NOT_UNIQUE);
+    if (!isTime(A)) flags.push(FLAGS.NO_ARRIVAL);
     if (isTime(G) && isTime(A) && G < A) flags.push(FLAGS.WRONG_ORDER);
     if (isTime(G) && isTime(T) && G < T) flags.push(FLAGS.G_BEFORE_T);
     if (!isTime(E)) flags.push(FLAGS.NO_E);
@@ -105,68 +143,106 @@ function classify(input) {
         if (model.rMs > TOLERANCE_MS) flags.push(FLAGS.UNLOCATED);
     }
 
+    // E1: INTERVAL when TCT hours can be recomputed; else the milestones with night rule C only (T -> E, or the last known milestone).
+    let intervals = null;
+    let endMs = null;
+    if (model.valid) {
+        out.basis = BASIS.INTERVAL;
+        intervals = model.intervals;
+        endMs = E;
+    } else if (isTime(T)) {
+        const known = (isTime(E) && E > T ? [E] : [D, A, G].filter((value) => isTime(value) && value > T));
+        endMs = known.length ? Math.max(...known) : null;
+        if (endMs !== null) {
+            out.basis = BASIS.MILESTONES;
+            intervals = nightIntervals(T, endMs);
+        }
+    }
+
     const stage = (name, from, to) => {
-        const value = stageOf(model, from, to);
-        if (value) detail.stages[name] = { net_ms: value.netMs, lower_ms: value.bounds[0], upper_ms: value.bounds[1], verdict: limitMs === null ? null : verdictOf(value.bounds, limitMs) };
+        if (out.basis === null || !isTime(from) || !isTime(to)) return null;
+        let value = null;
+        if (out.basis === BASIS.INTERVAL) value = stageOf(model, from, to);
+        else if (to >= from && from >= T && to <= endMs) {
+            const netMs = stageNetMs(intervals, from, to);
+            value = { netMs, bounds: [netMs, netMs] };
+        }
+        if (!value) return null;
+        detail.stages[name] = { net_ms: value.netMs, lower_ms: value.bounds[0], upper_ms: value.bounds[1], verdict: limitMs === null ? null : verdictOf(value.bounds, limitMs) };
         return value;
     };
+    const verdictOfStage = (name) => detail.stages[name].verdict;
 
     const arrival = isTime(A) && limitMs !== null ? stage('t_a', T, A) : null;
+    // E6: time left at arrival, reference only (limit - net T->A with night rule C, whatever the basis)
+    if (arrival && limitMs !== null) {
+        out.remaining = limitMs - arrival.netMs;
+        if (out.remaining >= 0 && out.remaining < REMAINING_HINT_MS) hints.push(HINTS.LITTLE_TIME_LEFT);
+    }
 
-    // Step 1: Không trọn lô. Independent of the time model; the hint below needs the time model.
+    // Step 1: Không trọn lô, independent of the time model.
     if (input.khongTronLo) {
-        if (arrival && detail.stages.t_a.verdict === VERDICT.OVER) hints.push(HINTS.BCVH_LATE_SIGN);
-        return result(STATUS.CAUSE, 'KHONG_TRON_LO');
+        if (arrival && verdictOfStage('t_a') === VERDICT.OVER) hints.push(HINTS.BCVH_LATE_SIGN);
+        return answer(STATUS.CAUSE, 'KHONG_TRON_LO');
     }
 
-    if (limitMs === null) return result(STATUS.UNDECIDED, null, 'CHI_TIEU');
-    if (!model.valid) return result(STATUS.UNDECIDED, null, 'THOI_GIAN');
+    if (limitMs === null) return unknown('CHI_TIEU', 'CHI_TIEU');
+    if (out.basis === null) return unknown('KHONG_CO_MOC', 'THOI_GIAN'); // T missing, or no other milestone: nothing to judge
 
-    // Step 2: arrived at the BCVH after the limit.
-    if (!isTime(A)) return result(STATUS.UNDECIDED, null, 'T-A');
-    if (!arrival) {
-        flags.push(FLAGS.A_OUT_OF_ORDER);
-        return result(STATUS.UNDECIDED, null, 'T-A');
-    }
-    const arrivalVerdict = detail.stages.t_a.verdict;
-    if (arrivalVerdict === VERDICT.UNDECIDED) return result(STATUS.UNDECIDED, null, 'T-A');
-    if (arrivalVerdict === VERDICT.OVER) {
-        if (!isTime(D)) flags.push(FLAGS.NO_D);
-        const first = isTime(D) ? stage('t_d', T, D) : null;
-        const second = isTime(D) ? stage('d_a', D, A) : null;
-        if (isTime(D) && !(first && second)) flags.push(FLAGS.D_OUT_OF_ORDER);
-        if (!first || !second) return result(STATUS.CAUSE, 'KHAI_THAC_VAN_CHUYEN_CHUA_PHAN_BIET');
-        if (first.bounds[0] > second.bounds[1]) return result(STATUS.CAUSE, 'KHAI_THAC');
-        if (second.bounds[0] > first.bounds[1]) return result(STATUS.CAUSE, 'VAN_CHUYEN');
-        return result(STATUS.CAUSE, 'KHAI_THAC_VAN_CHUYEN_CHUA_PHAN_BIET');
+    // Step 2: arrival at the BCVH after the limit (Khai thác / Vận chuyển).
+    if (isTime(A)) {
+        if (!arrival) {
+            flags.push(FLAGS.A_OUT_OF_ORDER);
+            return wait(REASONS.NO_ARRIVAL_ORDER, 'T-A');
+        }
+        const arrivalVerdict = verdictOfStage('t_a');
+        if (arrivalVerdict === VERDICT.UNDECIDED) return wait(REASONS.INTERVAL_CUTS_LIMIT, 'T-A');
+        if (arrivalVerdict === VERDICT.OVER) {
+            if (!isTime(D)) flags.push(FLAGS.NO_D);
+            const first = isTime(D) ? stage('t_d', T, D) : null;
+            const second = isTime(D) ? stage('d_a', D, A) : null;
+            if (isTime(D) && !(first && second)) flags.push(FLAGS.D_OUT_OF_ORDER);
+            if (!first || !second) return answer(STATUS.CAUSE, 'KHAI_THAC_VAN_CHUYEN_CHUA_PHAN_BIET');
+            if (first.bounds[0] > second.bounds[1]) return answer(STATUS.CAUSE, 'KHAI_THAC');
+            if (second.bounds[0] > first.bounds[1]) return answer(STATUS.CAUSE, 'VAN_CHUYEN');
+            return answer(STATUS.CAUSE, 'KHAI_THAC_VAN_CHUYEN_CHUA_PHAN_BIET');
+        }
     }
 
-    // Step 3: handed to the postman after the limit (G < A only raises a flag, the stage is judged as it is).
-    if (!isTime(G)) {
-        flags.push(FLAGS.NO_G);
-        return result(STATUS.UNDECIDED, null, 'T-G');
-    }
-    const handover = stage('t_g', T, G);
-    if (!handover) {
-        flags.push(FLAGS.G_OUT_OF_ORDER);
-        return result(STATUS.UNDECIDED, null, 'T-G');
-    }
-    const handoverVerdict = detail.stages.t_g.verdict;
-    if (handoverVerdict === VERDICT.UNDECIDED) return result(STATUS.UNDECIDED, null, 'T-G');
-    if (handoverVerdict === VERDICT.OVER) return result(STATUS.CAUSE, 'GIAO_BUU_TA_QUA_GIO');
-
-    // Step 4: delivery late. T -> E is over for a failed parcel; G -> E must be a valid stage.
-    const delivery = stage('g_e', G, E);
+    // From here the arrival is within the limit, or unknown (E5). Is the delivery late at all? E7: TCT says Không đạt.
+    if (!isTime(E)) return wait(REASONS.NO_DELIVERY, 'T-E');
     const total = stage('t_e', T, E);
-    if (!delivery) {
-        flags.push(FLAGS.G_OUT_OF_ORDER);
-        return result(STATUS.UNDECIDED, null, 'G-E');
+    if (!total) return wait(REASONS.NO_ARRIVAL_ORDER, 'T-E');
+    if (verdictOfStage('t_e') !== VERDICT.OVER) {
+        if (out.basis === BASIS.INTERVAL) {
+            flags.push(FLAGS.NOT_OVER_LIMIT);
+            return wait(REASONS.RESULT_NOT_MATCHING_LIMIT, 'T-E');
+        }
+        return wait(REASONS.TCT_LONGER_THAN_MILESTONES, 'T-E'); // every milestone within the limit, TCT says Không đạt
     }
-    if (detail.stages.t_e.verdict !== VERDICT.OVER) {
-        flags.push(FLAGS.NOT_OVER_LIMIT);
-        return result(STATUS.UNDECIDED, null, 'T-E');
+
+    // Step 3: the handover to the postman, inside the Phát stage (E4).
+    let handover = null;
+    if (!isTime(G)) flags.push(FLAGS.NO_G);
+    else {
+        handover = stage('t_g', T, G);
+        if (!handover) flags.push(FLAGS.G_OUT_OF_ORDER);
     }
-    return total ? result(STATUS.CAUSE, 'PHAT_MUON') : result(STATUS.UNDECIDED, null, 'T-E');
+    if (!isTime(A)) {
+        // E5: no arrival time anywhere. G is after A by nature: T->G in time and delivery late = Phát chậm sau khi giao;
+        // T->G over the limit = a late arrival and a late handover cannot be told apart.
+        if (!isTime(G)) return wait(REASONS.NO_HANDOVER, 'T-G');
+        if (!handover) return wait(REASONS.HANDOVER_ORDER, 'T-G');
+        const handoverVerdict = verdictOfStage('t_g');
+        if (handoverVerdict === VERDICT.WITHIN) return answer(STATUS.CAUSE, 'PHAT', { sub: 'PHAT_CHAM_SAU_GIAO' });
+        if (handoverVerdict === VERDICT.OVER) return wait(REASONS.LATE_ARRIVAL_OR_HANDOVER, 'T-G');
+        return wait(REASONS.INTERVAL_CUTS_LIMIT, 'T-G');
+    }
+    const handoverVerdict = handover ? verdictOfStage('t_g') : null;
+    const nextDay = isTime(G) && dayOf(G) > dayOf(A); // arrived and handed over only the next day
+    if (handoverVerdict === VERDICT.OVER || nextDay) return answer(STATUS.CAUSE, 'PHAT', { sub: 'CHAM_GIAO_BUU_TA' });
+    if (handoverVerdict === VERDICT.WITHIN) return answer(STATUS.CAUSE, 'PHAT', { sub: 'PHAT_CHAM_SAU_GIAO' });
+    return answer(STATUS.CAUSE, 'PHAT'); // G missing, invalid or its interval crosses the limit: the stage is judged on A->E only, no detail
 }
 
-module.exports = { classify, limitMsOf, CAUSES, STATUS, FLAGS, HINTS };
+module.exports = { classify, limitMsOf, CAUSES, PHAT_DETAILS, STATUS, BASIS, REASONS, FLAGS, HINTS };

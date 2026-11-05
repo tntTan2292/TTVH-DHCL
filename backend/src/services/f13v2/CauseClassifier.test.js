@@ -1,198 +1,270 @@
 'use strict';
 
-// F13-WHY-DATA-01 Phase 2: the cause tree of Manifest v4 section 5. Cases C1-C11 come from the design prototype (session scratchpad
-// protoTests.js, not in the repository); expected values derived by hand from the Manifest, not from the code's output.
-// Cases marked "added" are new (Opus review edge cases, PO list of 2026-11-05).
+// F13-WHY-DATA-02 R1: the cause tree of rules v5 (v4 + decisions E1-E7 of docs/10_TICKETS/F13-WHY-DATA-02_MANIFEST.md).
+// Expected values are derived by hand from the manifests, not from the code's output.
 // Run: node --experimental-sqlite --test backend/src/services/f13v2/CauseClassifier.test.js
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { classify, limitMsOf, CAUSES, STATUS, FLAGS, HINTS } = require('./CauseClassifier');
+const { classify, limitMsOf, CAUSES, PHAT_DETAILS, STATUS, BASIS, REASONS, FLAGS, HINTS } = require('./CauseClassifier');
 const { HOUR_MS } = require('./tctIntervals');
+const { REMAINING_HINT_MS } = require('../../config/f13CauseConfig');
 
 const at = (text) => Date.parse(`${text.replace(' ', 'T')}:00Z`);
-// Journey: T 20/10 10:00, D 16:00, A 21/10 12:00, G 14:00, E 20:00. One night (10 h): L = 24 h, net T->A 16 h, T->G 18 h, T->E 24 h.
+// Journey: T 20/10 10:00, D 16:00, A 21/10 12:00, G 14:00, E 20:00. One night (10 h): L = 24 h, net T->A 16 h, T->G 18 h, T->E 24 h, TCT 24:00 (R = 0).
 const base = () => ({
-    failed: true, limit: 12, tct: '24:00', f41: 'OK', khongTronLo: false,
+    failed: true, limit: 12, tct: '24:00', f41: 'OK', aSource: 'F41', khongTronLo: false,
     tms: at('2026-10-20 10:00'), depart: at('2026-10-20 16:00'), arrive: at('2026-10-21 12:00'), gbt: at('2026-10-21 14:00'), ptc: at('2026-10-21 20:00'),
 });
 const run = (over = {}) => classify({ ...base(), ...over });
 const code = (r) => (r.cause ? r.cause.code : null);
+const sub = (r) => (r.cause ? r.cause.detail : null);
 
-test('C1 a Đạt parcel is not analysed: no cause, no flag, no hint', () => {
+// ---------------------------------------------------------------- unchanged v4 behaviour (new vocabulary where v5 renames it)
+test('Đạt or not rated: no analysis, no flag, no hint, no basis', () => {
     const r = classify({ ...base(), failed: false, limit: null, tct: null });
-    assert.deepEqual([r.status, r.cause, r.flags, r.hints], [STATUS.NOT_ANALYSED, null, [], []]);
+    assert.deepEqual([r.status, r.cause, r.reason, r.basis, r.a_source, r.remaining_at_arrival_ms, r.flags, r.hints], [STATUS.NOT_ANALYSED, null, null, null, null, null, [], []]);
 });
 
-test('C2 arrived late, second leg longer -> Vận chuyển', () => assert.equal(code(run()), 'VAN_CHUYEN'));
-test('C3 arrived late, first leg longer (D at 23:00: 11 h against 5 h) -> Khai thác', () => assert.equal(code(run({ depart: at('2026-10-20 23:00') })), 'KHAI_THAC'));
-
-test('C4 D missing -> Khai thác - Vận chuyển (chưa phân biệt) + flag THIEU_MOC_D', () => {
-    const r = run({ depart: null });
-    assert.equal(code(r), 'KHAI_THAC_VAN_CHUYEN_CHUA_PHAN_BIET');
-    assert.deepEqual(r.flags, [FLAGS.NO_D]);
+test('arrival over the limit: second leg longer -> Vận chuyển, first leg longer -> Khai thác, D unknown -> chưa phân biệt (E3)', () => {
+    assert.equal(code(run()), 'VAN_CHUYEN');
+    assert.equal(code(run({ depart: at('2026-10-20 23:00') })), 'KHAI_THAC'); // 11 h against 5 h
+    const noD = run({ depart: null });
+    assert.equal(code(noD), 'KHAI_THAC_VAN_CHUYEN_CHUA_PHAN_BIET');
+    assert.deepEqual(noD.flags, [FLAGS.NO_D]);
+    assert.equal(code(run({ depart: at('2026-10-20 18:00') })), 'KHAI_THAC_VAN_CHUYEN_CHUA_PHAN_BIET'); // 8 h against 8 h
 });
 
-test('C5 A missing (no F4.1 row): chưa đủ căn cứ at T-A, flag THIEU_F41, no cause', () => {
-    const r = run({ arrive: null, f41: 'NONE' });
-    assert.deepEqual([r.status, r.step, code(r), r.flags], [STATUS.UNDECIDED, 'T-A', null, [FLAGS.NO_F41]]);
-});
-
-test('C6 limit missing: flag THIEU_CHI_TIEU, no cause, no fallback to 14 h', () => {
+test('limit missing: flag THIEU_CHI_TIEU, chưa đủ căn cứ, no fallback to 14 h', () => {
     for (const limit of [null, undefined, '', 'abc', 0, -5]) {
         const r = run({ limit });
-        assert.deepEqual([r.status, r.step, code(r), r.flags], [STATUS.UNDECIDED, 'CHI_TIEU', null, [FLAGS.NO_LIMIT]], String(limit));
+        assert.deepEqual([r.status, r.step, r.reason, code(r), r.flags], [STATUS.UNDECIDED, 'CHI_TIEU', 'CHI_TIEU', null, [FLAGS.NO_LIMIT]], String(limit));
     }
-    assert.equal(limitMsOf(null), null);
     assert.equal(limitMsOf('abc'), null);
 });
 
-test('C7 Không trọn lô with a conclusive T->A over limit: cause stays Không trọn lô, hint DAU_HIEU_CHAM_TAI_BCVH, no second cause', () => {
-    const r = run({ khongTronLo: true });
-    assert.equal(code(r), 'KHONG_TRON_LO');
-    assert.deepEqual(r.hints, [HINTS.BCVH_LATE_SIGN]);
-    assert.equal(r.status, STATUS.CAUSE);
-});
-test('C8 Không trọn lô, arrived within the limit (17 h): cause only, no hint', () => {
-    const r = run({ khongTronLo: true, limit: 17 });
-    assert.deepEqual([code(r), r.hints], ['KHONG_TRON_LO', []]);
+test('Không trọn lô wins over everything and keeps the hint DAU_HIEU_CHAM_TAI_BCVH when the arrival is conclusively over the limit', () => {
+    const late = run({ khongTronLo: true });
+    assert.equal(code(late), 'KHONG_TRON_LO');
+    assert.deepEqual(late.hints, [HINTS.BCVH_LATE_SIGN]);
+    for (const over of [{ limit: null }, { arrive: null, aSource: null, f41: 'NONE' }, { ptc: null }, { tct: '99:00' }]) assert.equal(code(run({ khongTronLo: true, ...over })), 'KHONG_TRON_LO');
 });
 
-test('C9 R = 4 h cuts the limit at T->A -> chưa đủ căn cứ, flag UNLOCATED_TCT_EXCLUSION', () => {
-    const r = run({ tct: '20:00' });
-    assert.deepEqual([r.status, r.step, code(r)], [STATUS.UNDECIDED, 'T-A', null]);
-    assert.deepEqual(r.flags, [FLAGS.UNLOCATED]);
-    assert.equal(r.detail.r_ms, 4 * HOUR_MS);
-});
-
-test('C10 G before A: the flag SAI_TRINH_TU_NGHIEP_VU only, analysis goes on (T->A over -> Vận chuyển)', () => {
+test('G before A only raises the flag, the analysis goes on', () => {
     const r = run({ gbt: at('2026-10-21 10:00') });
     assert.equal(code(r), 'VAN_CHUYEN');
     assert.deepEqual(r.flags, [FLAGS.WRONG_ORDER]);
 });
 
-test('C11 TCT 26 h against 24 h of journey (R = -2 h): chưa đủ căn cứ, flag R_KHONG_HOP_LE', () => {
-    const r = run({ tct: '26:00' });
-    assert.deepEqual([r.status, r.step, code(r), r.flags], [STATUS.UNDECIDED, 'THOI_GIAN', null, [FLAGS.BAD_R]]);
-});
-
-// ---- added: the rest of the tree, the tolerance, the limits, the layers
-test('added: limits 12, 14, 15, 16, 17 and other valid values use the parcel own limit (equal is not over)', () => {
+test('limits 12, 14, 15, 16, 17 and other valid values use the parcel own limit (equal is not over)', () => {
     for (const limit of [12, 14, 15, '15', 15.5]) assert.equal(code(run({ limit })), 'VAN_CHUYEN', `limit ${limit}`); // T->A 16 h is over
-    // T->A is 16 h: at 16 and 17 it is within, so the tree goes on to T->G (18 h): over 16 and over 17 -> handover late
-    assert.equal(code(run({ limit: 16 })), 'GIAO_BUU_TA_QUA_GIO');
-    assert.equal(code(run({ limit: 17 })), 'GIAO_BUU_TA_QUA_GIO');
-    assert.equal(code(run({ limit: 18 })), 'PHAT_MUON'); // T->G 18 h equal to the limit is not over; T->E 24 h is
-    assert.equal(code(run({ limit: 19.5 })), 'PHAT_MUON');
+    assert.deepEqual([code(run({ limit: 16 })), sub(run({ limit: 16 }))], ['PHAT', 'CHAM_GIAO_BUU_TA']); // T->A 16 within; T->G 18 over
+    assert.deepEqual([code(run({ limit: 18 })), sub(run({ limit: 18 }))], ['PHAT', 'PHAT_CHAM_SAU_GIAO']); // T->G 18 h equal to the limit is not over; T->E 24 h is
 });
 
-test('added: handover late is judged by T->G (needs G >= T) and delivery late by the remainder G->E', () => {
-    assert.equal(code(run({ limit: 17, gbt: at('2026-10-21 14:00') })), 'GIAO_BUU_TA_QUA_GIO');
-    assert.equal(code(run({ limit: 17, gbt: at('2026-10-21 10:00') })), 'PHAT_MUON'); // T->G = 14 h within 17 h
-    const r = run({ limit: 20, gbt: at('2026-10-21 14:00') });
-    assert.equal(code(r), 'PHAT_MUON');
-    assert.equal(r.detail.stages.t_g.verdict, 'CON_HAN');
-    assert.equal(r.detail.stages.g_e.net_ms, 6 * HOUR_MS);
+// ---------------------------------------------------------------- E1: the basis
+test('E1: R valid keeps the interval method; R inside the tolerance is read as 0', () => {
+    const r = run({ tct: '24:00' });
+    assert.equal(r.basis, BASIS.INTERVAL);
+    assert.equal(r.detail.stages.t_a.lower_ms, 16 * HOUR_MS);
+    const cut = run({ tct: '20:00' }); // R = 4 h: T->A is [12, 16] h, the limit 12 h is inside it
+    assert.deepEqual([cut.status, cut.reason, cut.step, cut.basis, cut.flags], [STATUS.WAIT_ANALYST, REASONS.INTERVAL_CUTS_LIMIT, 'T-A', BASIS.INTERVAL, [FLAGS.UNLOCATED]]);
+    assert.equal(code(run({ tct: '20:00', limit: 11 })), 'KHAI_THAC_VAN_CHUYEN_CHUA_PHAN_BIET'); // interval [12, 16] over 11 h; the two legs' intervals overlap
 });
 
-test('added: G missing, G before T, G after E: chưa đủ căn cứ at the handover step with the right flag', () => {
-    let r = run({ limit: 17, gbt: null });
-    assert.deepEqual([r.status, r.step, r.flags], [STATUS.UNDECIDED, 'T-G', [FLAGS.NO_G]]);
-    r = run({ limit: 17, gbt: at('2026-10-19 09:00') });
-    assert.deepEqual([r.status, r.step, [...r.flags].sort()], [STATUS.UNDECIDED, 'T-G', [FLAGS.G_BEFORE_T, FLAGS.G_OUT_OF_ORDER, FLAGS.WRONG_ORDER].sort()]);
-    r = run({ limit: 17, gbt: at('2026-10-21 22:00') });
-    assert.deepEqual([r.status, r.step], [STATUS.UNDECIDED, 'T-G']);
+test('E1: R invalid -> the stages are judged on the milestones with night rule C only, TCT hours are not reconciled', () => {
+    const r = run({ tct: '26:00' }); // R = -2 h
+    assert.equal(r.basis, BASIS.MILESTONES);
+    assert.deepEqual(r.flags, [FLAGS.BAD_R]);
+    assert.equal(code(r), 'VAN_CHUYEN'); // T->A net 16 h > 12 h, legs 6 h / 10 h
+    assert.equal(r.detail.stages.t_a.net_ms, 16 * HOUR_MS);
+    assert.equal(r.detail.stages.t_a.lower_ms, r.detail.stages.t_a.upper_ms); // no R: the bounds are the milestones themselves
+    for (const tct of ['99:00', -2 * HOUR_MS, null]) assert.equal(run({ tct }).basis, BASIS.MILESTONES, String(tct));
+    // the same milestones give the same cause with a valid and an invalid R
+    assert.equal(code(run({ tct: '24:00' })), code(run({ tct: '26:00' })));
 });
 
-test('added: E missing: no journey model, no cause, flag THIEU_MOC_E (no CHUA_PHAT cause)', () => {
-    const r = run({ ptc: null });
-    assert.deepEqual([r.status, r.step, code(r), r.flags], [STATUS.UNDECIDED, 'THOI_GIAN', null, [FLAGS.NO_E]]);
-    assert.equal(Object.keys(CAUSES).includes('CHUA_PHAT'), false);
-});
-
-test('added: R = -90 000 ms is read as 0 (valid), R = -96 000 ms is not (flag R_KHONG_HOP_LE)', () => {
-    const l = 24 * HOUR_MS;
-    assert.equal(code(run({ tct: l + 90000 })), 'VAN_CHUYEN');
-    const bad = run({ tct: l + 96000 });
-    assert.deepEqual([bad.status, bad.flags], [STATUS.UNDECIDED, [FLAGS.BAD_R]]);
-    assert.equal(bad.detail.raw_r_ms, -96000);
-});
-
-test('added: R = 0 is plain; R = L (TCT 0:00) puts every stage at [0, 0]: within the limit all the way, T->E is not over -> chưa đủ căn cứ', () => {
-    assert.equal(run({ tct: '24:00' }).detail.r_ms, 0);
-    const r = run({ tct: '0:00', limit: 12 });
-    assert.equal(r.detail.r_ms, 24 * HOUR_MS);
-    assert.deepEqual([r.status, r.step, r.flags.includes(FLAGS.NOT_OVER_LIMIT), r.flags.includes(FLAGS.UNLOCATED)], [STATUS.UNDECIDED, 'T-E', true, true]);
-});
-
-test('added: R above L (negative TCT) is not valid', () => {
-    const r = run({ tct: -2 * HOUR_MS });
-    assert.deepEqual([r.status, r.flags], [STATUS.UNDECIDED, [FLAGS.BAD_R]]);
-});
-
-test('added: Khai thác and Vận chuyển intervals that overlap -> chưa phân biệt (no 1 h threshold)', () => {
-    const r = run({ tct: '20:00', limit: 11 }); // R = 4 h: T->D [2, 6] against D->A [6, 10]: 6 is not above 6
-    assert.equal(code(r), 'KHAI_THAC_VAN_CHUYEN_CHUA_PHAN_BIET');
-    assert.deepEqual(r.flags, [FLAGS.UNLOCATED]);
-});
-
-test('added: a gap of 3 h between the legs is decided; a gap of 0 (exact tie) is not; no 1 h threshold', () => {
-    assert.equal(code(run({ depart: at('2026-10-20 16:30') })), 'VAN_CHUYEN'); // 6.5 h against 9.5 h
-    assert.equal(code(run({ depart: at('2026-10-20 17:50') })), 'VAN_CHUYEN'); // 7 h 50 against 8 h 10: a 20 min gap is decided
-    assert.equal(code(run({ depart: at('2026-10-20 18:00') })), 'KHAI_THAC_VAN_CHUYEN_CHUA_PHAN_BIET'); // 8 h against 8 h
-});
-
-test('added: D after A or before T is a flag, the arrival is still over -> chưa phân biệt', () => {
-    for (const depart of [at('2026-10-21 13:00'), at('2026-10-20 08:00')]) {
-        const r = run({ depart });
-        assert.equal(code(r), 'KHAI_THAC_VAN_CHUYEN_CHUA_PHAN_BIET');
-        assert.deepEqual(r.flags, [FLAGS.D_OUT_OF_ORDER]);
+test('E1: a milestone-based night: a night scan with the second night covered is judged the same way as the interval method would', () => {
+    // T 20/10 22:00 -> D 21/10 14:00 -> A 22/10 12:00 -> E 22/10 20:00: raw 46 h, nights 9 + 10 = 19 h, L = 27 h
+    const input = { tms: at('2026-10-20 22:00'), depart: at('2026-10-21 14:00'), arrive: at('2026-10-22 12:00'), gbt: at('2026-10-22 14:00'), ptc: at('2026-10-22 20:00') };
+    for (const tct of ['27:00', '30:00']) {
+        const r = run({ ...input, tct });
+        assert.equal(r.detail.stages.t_a.net_ms, 19 * HOUR_MS, tct);
+        assert.equal(r.detail.stages.t_d.net_ms, 7 * HOUR_MS);
+        assert.equal(r.detail.stages.d_a.net_ms, 12 * HOUR_MS);
+        assert.equal(code(r), 'VAN_CHUYEN');
     }
+    assert.equal(run({ ...input, tct: '27:00' }).basis, BASIS.INTERVAL);
+    assert.equal(run({ ...input, tct: '30:00' }).basis, BASIS.MILESTONES);
 });
 
-test('added: A before T or after E: flag, chưa đủ căn cứ at T-A', () => {
+// ---------------------------------------------------------------- E2 / E3: arrival source and the stages
+test('E2: the source of A is reported; without D (a BatchFile arrival has no bag) Khai thác / Vận chuyển stay "chưa phân biệt"', () => {
+    assert.equal(run().a_source, 'F41');
+    const bf = run({ aSource: 'BF', f41: 'NONE', depart: null });
+    assert.equal(bf.a_source, 'BF');
+    assert.equal(code(bf), 'KHAI_THAC_VAN_CHUYEN_CHUA_PHAN_BIET');
+    assert.deepEqual(bf.flags, [FLAGS.NO_F41, FLAGS.NO_D]);
+    assert.equal(run({ arrive: null, aSource: null, f41: 'NONE' }).a_source, null);
+});
+
+test('E3: Phát is the stage A->E; Nộp tiền is not an input of the journey (an input without it classifies the same)', () => {
+    const r = run({ limit: 20 });
+    assert.equal(code(r), 'PHAT');
+    assert.equal(r.cause.label, 'Phát');
+    assert.equal(Object.keys(r.detail.stages).includes('cash'), false);
+});
+
+// ---------------------------------------------------------------- E4: the two details of Phát
+test('E4: Chậm giao bưu tá = T->G over the limit', () => {
+    const r = run({ limit: 17 }); // T->A 16 h within; T->G 18 h over; T->E 24 h
+    assert.deepEqual([code(r), sub(r), r.cause.detail_label], ['PHAT', 'CHAM_GIAO_BUU_TA', PHAT_DETAILS.CHAM_GIAO_BUU_TA.label]);
+});
+
+test('E4: Chậm giao bưu tá = G on a later calendar day than A (T->G in time, handed over only the next day)', () => {
+    // A 21/10 12:00, G 22/10 08:00, E 22/10 09:00: T->G 36 h and T->E 37 h net (one night), limit 36.5 h
+    const next = run({ limit: 36.5, tct: '37:00', gbt: at('2026-10-22 08:00'), ptc: at('2026-10-22 09:00') });
+    assert.equal(next.detail.stages.t_g.verdict, 'CON_HAN'); // in time by the clock...
+    assert.deepEqual([code(next), sub(next)], ['PHAT', 'CHAM_GIAO_BUU_TA']); // ...but handed over on the day after the arrival
+});
+
+test('E4: Phát chậm sau khi giao = handover in time and on the day of arrival, delivery late', () => {
+    const r = run({ limit: 20 }); // T->G 18 h within, same day as A, T->E 24 h over
+    assert.deepEqual([code(r), sub(r), r.cause.detail_label], ['PHAT', 'PHAT_CHAM_SAU_GIAO', PHAT_DETAILS.PHAT_CHAM_SAU_GIAO.label]);
+    assert.deepEqual(r.flags, []);
+});
+
+test('E4: G missing or invalid -> Phát judged on A->E only, the detail stays empty (flag says why)', () => {
+    let r = run({ limit: 20, gbt: null });
+    assert.deepEqual([code(r), sub(r), r.cause.detail_label, r.flags], ['PHAT', null, null, [FLAGS.NO_G]]);
+    r = run({ limit: 20, gbt: at('2026-10-19 09:00') }); // before T
+    assert.deepEqual([code(r), sub(r)], ['PHAT', null]);
+    assert.ok(r.flags.includes(FLAGS.G_OUT_OF_ORDER) && r.flags.includes(FLAGS.G_BEFORE_T));
+    r = run({ limit: 20, gbt: at('2026-10-21 22:00') }); // after E
+    assert.deepEqual([code(r), sub(r)], ['PHAT', null]);
+    assert.ok(r.flags.includes(FLAGS.G_OUT_OF_ORDER));
+});
+
+// ---------------------------------------------------------------- E5: a missing milestone
+test('E5: A missing in both sources: T->G in time and the delivery late -> Phát chậm sau khi giao; flags say the arrival was never confirmed', () => {
+    const r = run({ limit: 20, arrive: null, aSource: null, f41: 'NONE' });
+    assert.deepEqual([code(r), sub(r), r.a_source], ['PHAT', 'PHAT_CHAM_SAU_GIAO', null]);
+    assert.deepEqual(r.flags, [FLAGS.NO_F41, FLAGS.NO_ARRIVAL]);
+    assert.equal(r.remaining_at_arrival_ms, null);
+});
+
+test('E5: A missing and T->G over the limit: a late arrival and a late handover cannot be told apart -> Chờ Chuyên quản', () => {
+    const r = run({ limit: 12, arrive: null, aSource: null, f41: 'NONE' }); // T->G 18 h
+    assert.deepEqual([r.status, r.reason, r.step, code(r)], [STATUS.WAIT_ANALYST, REASONS.LATE_ARRIVAL_OR_HANDOVER, 'T-G', null]);
+});
+
+test('E5: A and G both missing, or G invalid -> Chờ Chuyên quản; nothing is invented', () => {
+    let r = run({ limit: 20, arrive: null, aSource: null, f41: 'NONE', gbt: null });
+    assert.deepEqual([r.status, r.reason, r.step], [STATUS.WAIT_ANALYST, REASONS.NO_HANDOVER, 'T-G']);
+    r = run({ limit: 20, arrive: null, aSource: null, f41: 'NONE', gbt: at('2026-10-19 09:00') });
+    assert.deepEqual([r.status, r.reason], [STATUS.WAIT_ANALYST, REASONS.HANDOVER_ORDER]);
+});
+
+test('E5: E missing: an arrival over the limit is still judged on the milestones; an arrival in time leaves the delivery to the Chuyên quản', () => {
+    const over = run({ ptc: null });
+    assert.deepEqual([code(over), over.basis], ['VAN_CHUYEN', BASIS.MILESTONES]);
+    assert.deepEqual(over.flags, [FLAGS.NO_E]);
+    const inTime = run({ ptc: null, limit: 17 });
+    assert.deepEqual([inTime.status, inTime.reason, inTime.step], [STATUS.WAIT_ANALYST, REASONS.NO_DELIVERY, 'T-E']);
+});
+
+test('E5: A out of order (before T or after E) -> Chờ Chuyên quản with a flag', () => {
     for (const arrive of [at('2026-10-20 09:00'), at('2026-10-21 21:00')]) {
         const r = run({ arrive });
-        assert.deepEqual([r.status, r.step, r.flags.includes(FLAGS.A_OUT_OF_ORDER)], [STATUS.UNDECIDED, 'T-A', true]);
+        assert.deepEqual([r.status, r.reason, r.step, r.flags.includes(FLAGS.A_OUT_OF_ORDER)], [STATUS.WAIT_ANALYST, REASONS.NO_ARRIVAL_ORDER, 'T-A', true]);
     }
 });
 
-test('added: F4.1 not unique: flag F41_KHONG_DUY_NHAT, no A given by the caller -> chưa đủ căn cứ', () => {
-    const r = run({ arrive: null, f41: 'NOT_UNIQUE' });
-    assert.deepEqual([r.status, r.step, r.flags], [STATUS.UNDECIDED, 'T-A', [FLAGS.F41_NOT_UNIQUE]]);
+test('E5: an earlier fault wins and the later stages are not examined (a late arrival ignores G; Không trọn lô ignores the rest)', () => {
+    assert.equal(code(run({ gbt: null })), 'VAN_CHUYEN');
+    assert.equal(code(run({ gbt: at('2026-10-19 09:00') })), 'VAN_CHUYEN');
+    assert.equal(code(run({ khongTronLo: true, gbt: null })), 'KHONG_TRON_LO');
 });
 
-test('added: Không trọn lô wins even when the limit, F4.1 or the time model are missing (lot evidence is separate); the hint needs them', () => {
-    for (const over of [{ limit: null }, { arrive: null, f41: 'NONE' }, { ptc: null }, { tct: '99:00' }]) {
-        const r = run({ khongTronLo: true, ...over });
-        assert.equal(code(r), 'KHONG_TRON_LO');
-        assert.deepEqual(r.hints, []);
+test('no usable milestone at all (T missing, or nothing after T): "chưa đủ căn cứ", the only use left of that status', () => {
+    for (const over of [{ tms: null }, { depart: null, arrive: null, gbt: null, ptc: null, aSource: null, f41: 'NONE' }]) {
+        const r = run(over);
+        assert.deepEqual([r.status, r.reason, r.step, code(r)], [STATUS.UNDECIDED, 'KHONG_CO_MOC', 'THOI_GIAN', null]);
     }
 });
 
-test('added: at most one cause; the layers are separate arrays; the input is not changed', () => {
+// ---------------------------------------------------------------- E6: time left at arrival (reference only)
+test('E6: remaining = limit - net T->A; the hint DEN_BCVH_CON_IT_GIO for 0 <= remaining < 6 h (threshold from one constant), nothing otherwise', () => {
+    assert.equal(REMAINING_HINT_MS, 6 * HOUR_MS);
+    const r = run({ limit: 17 }); // 17 h - 16 h = 1 h
+    assert.equal(r.remaining_at_arrival_ms, HOUR_MS);
+    assert.deepEqual(r.hints, [HINTS.LITTLE_TIME_LEFT]);
+    assert.equal(run({ limit: 16 }).remaining_at_arrival_ms, 0); // arrived exactly at the limit: in time, nothing left
+    assert.deepEqual(run({ limit: 16 }).hints, [HINTS.LITTLE_TIME_LEFT]);
+    assert.equal(run({ limit: 22 }).remaining_at_arrival_ms, 6 * HOUR_MS); // exactly the threshold: not "under"
+    assert.deepEqual(run({ limit: 22 }).hints, []);
+    assert.deepEqual(run({ limit: 30 }).hints, []); // 14 h left
+    const over = run({ limit: 12 });
+    assert.equal(over.remaining_at_arrival_ms, -4 * HOUR_MS); // already over the limit: no hint, the cause says it
+    assert.deepEqual(over.hints, []);
+    assert.equal(run({ limit: 17, tct: '26:00' }).remaining_at_arrival_ms, HOUR_MS); // same figure on the milestone basis
+});
+
+test('E6: the hint never changes a cause', () => {
+    // same milestones, limits 16 and 18: the hint is there for 16 (0 left) and for 18 (2 h left); the cause follows the stages only
+    assert.deepEqual([code(run({ limit: 16 })), sub(run({ limit: 16 }))], ['PHAT', 'CHAM_GIAO_BUU_TA']);
+    assert.deepEqual([code(run({ limit: 18 })), sub(run({ limit: 18 }))], ['PHAT', 'PHAT_CHAM_SAU_GIAO']);
+    assert.ok(run({ limit: 16 }).hints.includes(HINTS.LITTLE_TIME_LEFT) && run({ limit: 18 }).hints.includes(HINTS.LITTLE_TIME_LEFT));
+    // the same parcel with the hint removed from the picture (limit 30: no hint) still gets a cause only from the stages
+    assert.equal(run({ limit: 30 }).status, STATUS.WAIT_ANALYST); // T->E 24 h within 30 h: E7, not a hint matter
+});
+
+test('E6: Không trọn lô parcels carry the remaining time and the hint too', () => {
+    const r = run({ limit: 17, khongTronLo: true });
+    assert.equal(code(r), 'KHONG_TRON_LO');
+    assert.equal(r.remaining_at_arrival_ms, HOUR_MS);
+    assert.deepEqual(r.hints, [HINTS.LITTLE_TIME_LEFT]);
+});
+
+// ---------------------------------------------------------------- E7: the TCT verdict as given
+test('E7: every milestone within the limit while TCT says Không đạt -> Chờ Chuyên quản, no stage chosen (real April samples of the manifest)', () => {
+    const samples = [
+        // CB294036850VN: TCT 34:14, T->E 23.6 clock h (13.6 net), limit 14
+        { tms: at('2026-04-13 12:48'), arrive: at('2026-04-13 12:58'), gbt: at('2026-04-13 13:04'), ptc: at('2026-04-14 12:23'), tct: '34:14', limit: 14 },
+        // CC579840515VN: TCT 13:26, T->E 11.4 clock h, limit 12
+        { tms: at('2026-04-14 07:15'), arrive: at('2026-04-14 07:52'), gbt: at('2026-04-14 08:21'), ptc: at('2026-04-14 18:36'), tct: '13:26', limit: 12 },
+        // CD460221265VN: TCT 18:36, T->E 24.4 clock h (14.4 net), limit 17
+        { tms: at('2026-04-13 13:10'), arrive: at('2026-04-14 07:55'), gbt: at('2026-04-14 10:01'), ptc: at('2026-04-14 13:33'), tct: '18:36', limit: 17 },
+    ];
+    for (const sample of samples) {
+        const r = classify({ failed: true, f41: 'OK', aSource: 'F41', khongTronLo: false, depart: null, ...sample });
+        assert.deepEqual([r.status, r.reason, r.step, code(r), r.basis], [STATUS.WAIT_ANALYST, REASONS.TCT_LONGER_THAN_MILESTONES, 'T-E', null, BASIS.MILESTONES], String(sample.tct));
+        assert.ok(r.flags.includes(FLAGS.BAD_R));
+    }
+});
+
+test('E7: with a valid R the same situation (TCT within the limit but verdict Không đạt) is a data conflict left to the Chuyên quản', () => {
+    const r = run({ tct: '10:00', limit: 12 }); // R = 14 h valid; T->A interval [2, 10] h within; T->E 10 h within
+    assert.deepEqual([r.status, r.reason, r.basis], [STATUS.WAIT_ANALYST, REASONS.RESULT_NOT_MATCHING_LIMIT, BASIS.INTERVAL]);
+    assert.ok(r.flags.includes(FLAGS.NOT_OVER_LIMIT));
+});
+
+// ---------------------------------------------------------------- layers and invariants
+test('three layers: at most one cause, flags and hints are arrays apart, the input is not changed, statuses and causes are consistent', () => {
     const input = base();
     const copy = JSON.stringify(input);
     const r = classify(input);
     assert.equal(JSON.stringify(input), copy);
     assert.ok(Array.isArray(r.flags) && Array.isArray(r.hints));
-    assert.ok(r.cause === null || typeof r.cause.code === 'string');
     assert.equal(r.flags.some((flag) => Object.keys(CAUSES).includes(flag)), false);
+    for (const over of [{}, { limit: 17 }, { limit: 20 }, { arrive: null, aSource: null, f41: 'NONE' }, { tct: '26:00' }, { ptc: null }, { tms: null }, { khongTronLo: true }]) {
+        const result = run(over);
+        assert.equal(result.status === STATUS.CAUSE, result.cause !== null, JSON.stringify(over));
+        assert.equal(result.status === STATUS.WAIT_ANALYST || result.status === STATUS.UNDECIDED, result.reason !== null, JSON.stringify(over)); // a status without a cause always says why
+        assert.equal(Object.keys(CAUSES).includes('CHUA_PHAT'), false);
+    }
 });
 
-test('added: a TCT time given in milliseconds or as "h:mm" is the same', () => {
+test('a TCT time given in milliseconds or as "h:mm" is the same', () => {
     assert.deepEqual(run({ tct: 24 * HOUR_MS }).detail, run({ tct: '24:00' }).detail);
-});
-
-test('added: a night scan journey is judged on the model, not on raw hours', () => {
-    // T 20/10 22:00 -> D 21/10 14:00 -> A 22/10 12:00 -> E 22/10 20:00: raw 46 h, nights 9 + 10 = 19 h, L = 27 h
-    const r = classify({
-        failed: true, limit: 12, tct: '27:00', f41: 'OK', khongTronLo: false,
-        tms: at('2026-10-20 22:00'), depart: at('2026-10-21 14:00'), arrive: at('2026-10-22 12:00'), gbt: at('2026-10-22 14:00'), ptc: at('2026-10-22 20:00'),
-    });
-    assert.equal(r.detail.l_ms, 27 * HOUR_MS);
-    assert.equal(r.detail.stages.t_a.net_ms, 19 * HOUR_MS);
-    assert.equal(r.detail.stages.t_d.net_ms, 7 * HOUR_MS); // 16 h raw, 9 h of the first night
-    assert.equal(r.detail.stages.d_a.net_ms, 12 * HOUR_MS); // 22 h raw, 10 h of the second night
-    assert.equal(code(r), 'VAN_CHUYEN');
 });
