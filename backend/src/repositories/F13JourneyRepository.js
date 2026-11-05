@@ -15,7 +15,7 @@ class F13JourneyRepository {
     getF13Parcels(date) {
         return all(
             `SELECT ma_bg, ma_bcvh, ten_bcvh, ma_tuyen, ten_tuyen, danh_gia_2026,
-                    thoi_gian_bd10_quet_tms, thoi_gian_ptc, thoi_gian_thuc_hien_thuc_te_gio
+                    thoi_gian_bd10_quet_tms, thoi_gian_ptc, thoi_gian_thuc_hien_thuc_te_gio, thoi_gian_chi_tieu
              FROM fact_f13 WHERE ngay_do_kiem = ?`,
             [date],
         );
@@ -41,7 +41,7 @@ class F13JourneyRepository {
 
     getF41Arrivals(fromDate, toDate) {
         return all(
-            `SELECT ma_bg, ngay_do_kiem, so_hieu_bd10_xnd_bcp, thoi_gian_xnd_bd1
+            `SELECT ma_bg, ngay_do_kiem, ma_bc_phat, so_hieu_bd10_xnd_bcp, thoi_gian_xnd_bd1
              FROM fact_f41 WHERE ngay_do_kiem BETWEEN ? AND ?`,
             [fromDate, toDate],
         );

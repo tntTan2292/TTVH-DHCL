@@ -9,12 +9,18 @@
 //   5 Delivered                   fact_f13.thoi_gian_ptc
 // Legs are clock hours, shown as they are: what counts as a fault also depends on the level-2 mail route of each BCVH.
 //
-// The one cause shown is objective, whatever the milestones say: "Không trọn lô" (the lot did not reach Huế in one piece, not
-// Huế's fault). Same rule as the weekly report (Cách A): the failed parcels of a lot carry 2 TMS batches or more. The lot number
-// comes from BF Phát; a lot with one batch gets no cause here, because the delivery leg cannot be judged yet.
+// F13-WHY-DATA-01 (Manifest v4): every failed parcel gets at most one primary cause from CauseClassifier, with data-quality flags and
+// operating hints beside it. The classifier's inputs are built here:
+//   - the F4.1 arrival row is found by the exact key ma_bg + ngay_do_kiem + ma_bc_phat (none -> no arrival, several -> not unique;
+//     never another day, another BCVH or the last row);
+//   - G for the classifier is the FIRST handover by time in F4.2, success or not (`pickFirstHandover`); the displayed milestone and the
+//     postman name keep `pickHandover` (unchanged);
+//   - "Không trọn lô": the TMS batches of a lot are counted over EVERY parcel of the lot (BF Phát gives the lot number); only a failed
+//     parcel of a lot with 2 batches or more carries the cause, even when it reached the BCVH in time. A lot with one batch gets none.
 
 const { CANONICAL_BCVH_UNITS } = require('../../config/canonicalBcvhUnits');
 const { isRealDate } = require('./periodResolve');
+const { classify } = require('./CauseClassifier');
 
 // A parcel's F4.1 / F4.2 row can carry an earlier or a later date than its F1.3 row.
 const DAYS_BEFORE = 10;
@@ -85,8 +91,31 @@ function pickHandover(rows, ptc) {
     return chosen ? chosen.row : rows[rows.length - 1];
 }
 
+/** F13-WHY-DATA-01: the first handover by time (F4.2), delivery succeeded or not; null when no row has a valid time. */
+function pickFirstHandover(rows) {
+    if (!rows || !rows.length) return null;
+    let chosen = null;
+    let chosenAt = null;
+    for (const row of rows) {
+        const at = parseTime(row.thoi_gian_gbt);
+        if (at !== null && (chosenAt === null || at < chosenAt)) {
+            chosen = row;
+            chosenAt = at;
+        }
+    }
+    return chosen;
+}
+
+/** F13-WHY-DATA-01: the F4.1 row of this parcel on this measurement day for this BCVH. Several rows are not unique: nothing is guessed. */
+function pickArrival(rows, date, bcvh) {
+    const exact = (rows || []).filter((row) => row.ngay_do_kiem === date && String(row.ma_bc_phat ?? '') === String(bcvh ?? ''));
+    if (exact.length === 0) return { row: null, state: 'NONE' };
+    if (exact.length > 1) return { row: null, state: 'NOT_UNIQUE' };
+    return { row: exact[0], state: 'OK' };
+}
+
 /**
- * Per lot: its parcels and TMS batches. The batches decide for every account (a lot is one lot), the parcel counts only cover
+ * Per lot: its parcels and TMS batches (counted over every parcel of the lot, passed or failed). The batches decide for every account (a lot is one lot), the parcel counts only cover
  * the units the account may see, so a BCVH account never learns another unit's volume.
  */
 function buildLots(lotRows, scanRows, allowed) {
@@ -124,7 +153,7 @@ function lotOfParcel(code, lots) {
         failed_tms_batches: lot.failedScans.size,
         first_tms: times.length ? formatTime(Math.min(...times)) : null,
         last_tms: times.length ? formatTime(Math.max(...times)) : null,
-        incomplete: lot.failedScans.size > 1,
+        incomplete: lot.scans.size > 1,
     };
 }
 
@@ -177,8 +206,7 @@ class JourneyService {
         const departures = new Map(f11Rows.map((row) => [cleanBagNumber(row.so_bd10_dong_di_kttinh), row.thoi_gian_bd10_dong_di_kttinh]));
 
         return f13.map((row) => {
-            const arrivalRows = arrivals.get(row.ma_bg) || [];
-            const arrival = arrivalRows.find((item) => item.ngay_do_kiem === date) || arrivalRows[arrivalRows.length - 1] || null;
+            const { row: arrival, state: f41State } = pickArrival(arrivals.get(row.ma_bg), date, row.ma_bcvh);
             const tms = parseTime(row.thoi_gian_bd10_quet_tms);
             const ptc = parseTime(row.thoi_gian_ptc);
             const handover = pickHandover(handovers.get(row.ma_bg), ptc);
@@ -186,7 +214,28 @@ class JourneyService {
             const arrive = arrival ? parseTime(arrival.thoi_gian_xnd_bd1) : null;
             const gbt = handover ? parseTime(handover.thoi_gian_gbt) : null;
             const lot = lotOfParcel(lotOf.get(row.ma_bg), lots);
+            const khongTronLo = Boolean(lot?.incomplete && row.danh_gia_2026 === FAILED);
+            const firstHandover = pickFirstHandover(handovers.get(row.ma_bg));
+            const gbtFirst = firstHandover ? parseTime(firstHandover.thoi_gian_gbt) : null;
+            const analysis = classify({
+                failed: row.danh_gia_2026 === FAILED,
+                khongTronLo,
+                limit: row.thoi_gian_chi_tieu,
+                tct: row.thoi_gian_thuc_hien_thuc_te_gio,
+                f41: f41State,
+                tms,
+                depart,
+                arrive,
+                gbt: gbtFirst,
+                ptc,
+            });
             return {
+                cause: analysis.cause,
+                cause_status: analysis.status,
+                cause_step: analysis.step,
+                flags: analysis.flags,
+                hints: analysis.hints,
+                cause_detail: analysis.detail,
                 lot,
                 ma_lo: lot?.ma_lo ?? null,
                 khong_tron_lo: Boolean(lot?.incomplete && row.danh_gia_2026 === FAILED),
@@ -199,7 +248,7 @@ class JourneyService {
                 ma_buu_ta: handover?.ma_buu_ta || null,
                 ten_buu_ta: handover?.ten_buu_ta || null,
                 so_gio_tct: row.thoi_gian_thuc_hien_thuc_te_gio || null,
-                milestones: { tms: formatTime(tms), depart: formatTime(depart), arrive: formatTime(arrive), gbt: formatTime(gbt), ptc: formatTime(ptc) },
+                milestones: { tms: formatTime(tms), depart: formatTime(depart), arrive: formatTime(arrive), gbt: formatTime(gbt), gbt_first: formatTime(gbtFirst), ptc: formatTime(ptc) },
                 legs: {
                     tms_depart: legHours(tms, depart),
                     depart_arrive: legHours(depart, arrive),
@@ -313,4 +362,4 @@ class JourneyService {
     }
 }
 
-module.exports = { JourneyService, parseTime, cleanBagNumber, legHours, median, pickHandover };
+module.exports = { JourneyService, parseTime, cleanBagNumber, legHours, median, pickHandover, pickFirstHandover, pickArrival };
