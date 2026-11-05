@@ -7,7 +7,7 @@
 - Programme: F1.3 cause rebuild. Data from `F13-WHY-DATA-02` (rules v5, CLOSED) and `F13-WHY-AGG-01` (aggregation layer, P1-P4 accepted).
 - Owner: **Antigravity** (UI/UX, its strength: it designs and builds the screen). Claude Code: backend support only if a figure is missing from the API (ask, do not invent). Opus: independent review of the result.
 - **PO decision 2026-11-05:** Claude gives Antigravity the problem, not a screen design; Antigravity designs and builds; it must not reproduce the UI defects the PO has had to fix recently (section 6).
-- Status: `READY FOR ANTIGRAVITY`. `PO UI Check Required = Yes`. Does not change the Current Ticket.
+- Status: `STEP 1 READY FOR ANTIGRAVITY` (two steps, section 2A; PO 2026-11-05). `PO UI Check Required = Yes`. Does not change the Current Ticket.
 
 ## 2. The problem (PO, in his words, 2026-11-05)
 
@@ -19,6 +19,17 @@ The quality results by day / week / month of every BCVH are already on "Kết qu
 That is the view to build: **not dry, unrelated figures, but one connected picture that answers the user's WHY questions.** The PO does not want the question itself as a menu name: the menu item gets a functional name proposed by Antigravity (PO approves).
 
 Real example the data already gives (Thuận Hóa, 28/10/2026): 72,6 % (1 294 / 1 782), 261 parcels short of 90 %; 5 postman routes = 26,7 % of the volume, 42,3 % on time, 87 % of the shortfall; route "Ô tô Nam giữa" 141 parcels, 19,1 %, 112 of them in one lot that came in several TMS batches (Không trọn lô, objective, before the BCVH).
+
+## 2A. Two steps and the programme order (PO approved 2026-11-05 on Claude's advice)
+
+The screen is delivered in two steps; the PO checks step 1 before step 2 starts.
+
+| Step | Content | Done when |
+|---|---|---|
+| **1** | **BCVH level** (summary in words for the chosen day / week / month: rate, parcels missing against 90 %, the routes that pull it down) and **route level** (postman routes needing attention ranked by parcels missing, each with its main cause in one sentence and its cause mix; "Tuyến khác" apart), menu item, link from "Kết quả chất lượng" | PO UI check of step 1 |
+| **2** | **Postman level** (first-handover postman of a route: volume, failed, cause mix, facts only) and **parcel list** (the parcels behind any figure, with cause / Phát detail / Chờ Chuyên quản reason; a parcel opens Hành trình bưu gửi) | PO UI check of step 2 |
+
+Programme order after this ticket: (3) **Dữ liệu minh chứng** rebuilt as the evidence of every figure (all parcels incl. Đạt, all sources and flags, Excel) and the place where the Chuyên quản analyses the "Chờ Chuyên quản" parcels and corrects a conclusion (decision E8 of F13-WHY-DATA-02: corrections kept, proposed as rules, approved by the PO); (4) **trial at BCVH Thuận Hóa** with its Chuyên quản and Giám đốc for 1-2 weeks, then retire the old "Phân tích tuyến phát" and give the old BCVH analysis page its real name (the menu item "Năng lực và chất lượng tuyến" currently opens it); (5) **Năng lực và chất lượng tuyến** after the PO defines route capacity. The former separate tickets "Phân tích tuyến phát" and "NARRATIVE" are merged into this screen.
 
 ## 3. Data available (backend, ready; do not compute rules in the browser)
 
@@ -66,3 +77,4 @@ If a figure the design needs is not in the API, ask Claude Code; never compute a
 ## 8. Change log
 
 - 2026-11-05: problem written from the PO's own words; ready for Antigravity (Claude Code / Opus 5.5).
+- 2026-11-05: split into step 1 / step 2 and programme order recorded (section 2A), PO approved.
