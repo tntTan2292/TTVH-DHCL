@@ -7,7 +7,7 @@
 - Programme: F1.3 cause rebuild. Data from `F13-WHY-DATA-02` (rules v5, CLOSED) and `F13-WHY-AGG-01` (aggregation layer, P1-P4 accepted).
 - Owner: **Antigravity** (UI/UX, its strength: it designs and builds the screen). Claude Code: backend support only if a figure is missing from the API (ask, do not invent). Opus: independent review of the result.
 - **PO decision 2026-11-05:** Claude gives Antigravity the problem, not a screen design; Antigravity designs and builds; it must not reproduce the UI defects the PO has had to fix recently (section 6).
-- Status: `STEP 1 IMPLEMENTED (0f55278a) - OPUS REVIEW: 3 FIXES FOR ANTIGRAVITY (section 9), THEN PO CHECK` (two steps, section 2A; PO 2026-11-05). `PO UI Check Required = Yes`. Does not change the Current Ticket.
+- Status: `STEP 1 READY FOR PO CHECK (Opus review closed, section 9)` (two steps, section 2A; PO 2026-11-05). `PO UI Check Required = Yes`. Does not change the Current Ticket.
 
 ## 2. The problem (PO, in his words, 2026-11-05)
 
@@ -92,3 +92,7 @@ Repeated independently: `f13WhyHelpers` 6/6, `f13WhyBlocksStandard` 4/4, `report
 | S1-R3 | Low | The Phát sentence lists Chậm giao bưu tá and Phát chậm sau khi giao but not `KHONG_CHI_TIET` (28/10 Thuận Hóa: 123 + 164 of 289). | Add "x không có chi tiết" when it is above 0. |
 
 Outside this ticket (found by the `no-undef` gate): `frontend/src/features/networkMap/postmanCatalog/PostmanCatalogPage.jsx` calls `setLoadingMeta` that is never declared (from `32d67e56`, F13-ROUTE-POSTMAN-IDENTITY-01 Phase 3): the Postman Catalog page throws when it loads its metadata. Reported to the PO; not changed here.
+
+**Re-review of the fixes (2026-11-05, commit `cc9302b8`):** S1-R1, S1-R2, S1-R3 done as asked (eight reason labels with code fallback, used in the route sentence and the diagnostic card; Khai thác - Vận chuyển chưa phân biệt listed; "không có chi tiết" added in both Phát sentences). Gates repeated: `f13WhyHelpers` 7/7, `f13WhyBlocksStandard` 4/4, `reportBlockStandard` 6/6, `appNavigation` 9/9, build OK, `oxlint -D no-undef` 0 on the touched files. **Step 1 review closed - READY FOR PO CHECK.**
+
+PO checklist (step 1): menu F1.3 > "Phân tích nguyên nhân"; from Kết quả chất lượng (Theo ngày / tuần / tháng) click BCVH Thuận Hóa; for 28/10/2026 the summary reads 72,6 %, 309,8 BG short of 90 %, five routes 26,7 % of volume, 42,3 %, 73,1 % of the shortfall; route Ô tô Nam giữa first with Không trọn lô; "Tuyến khác" below, not ranked; Chờ Chuyên quản reasons in Vietnamese; camera on both blocks; click-to-order titles; no horizontal scroll at 90 % zoom; Theo tuần / Theo tháng follow the filter.
