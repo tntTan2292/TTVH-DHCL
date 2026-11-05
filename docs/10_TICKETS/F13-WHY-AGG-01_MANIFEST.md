@@ -7,7 +7,7 @@
 - Programme: F1.3 cause rebuild. Predecessor `F13-WHY-DATA-01` (CLOSED / PO UI PASS, commits `c8b24977`, `7ae159d2`). Next tickets in the agreed order (PO + ChatGPT, 2026-11-05): Hành trình page (cause, flags, hints, filters; UI by Antigravity), Phân tích tuyến phát, Năng lực và chất lượng tuyến (needs a PO definition first), Dữ liệu minh chứng, NARRATIVE, RETIRE.
 - Owner: `Claude Code` (backend, data, tests, documentation, Git). Model discipline: Sonnet 5.5 implements; **Opus reviews independently** (high risk: new derived table, background job); the same model does not self-approve.
 - Branch: `codex/da-impl-006` (as `PROJECT_SNAPSHOT.md`).
-- **Status: `P1-P4 ACCEPTED BY OPUS REVIEW (section 20) - READY FOR PRODUCTION BUILD (needs the PO's agreement)`** (activated 2026-11-05, section 10). The Design of Record v2 (with section 6A and Appendix D) was approved by the PO on 2026-11-05; the Opus pre-implementation review (section 12) found no SSOT or PO issue.
+- **Status: `CLOSED - P1-P4 ACCEPTED, PRODUCTION BUILD DONE AND REFRESH ON (2026-11-05, section 21)`** (activated 2026-11-05, section 10). The Design of Record v2 (with section 6A and Appendix D) was approved by the PO on 2026-11-05; the Opus pre-implementation review (section 12) found no SSOT or PO issue.
 - Relation to `PROJECT_SNAPSHOT.md`: Current Ticket is `F13-ROUTE-POSTMAN-IDENTITY-01` (PAUSED by PO decision). This ticket does **not** replace it and does **not** reactivate it (the same arrangement as `F13-WHY-DATA-01`: "does not change Current Ticket"). On activation the snapshot only receives a "Previous update" line; the PAUSED state of the postman-identity ticket is untouched.
 
 ## 2. Authority and sources
@@ -225,3 +225,11 @@ Repeated independently on the copy: suites one file at a time with `--experiment
 |---|---|---|---|
 | P4-R1 | Low (UI ticket) | `summary` over a whole year takes about 8 s (the P2 GROUP BY over about 1 million rows), a month under 1 s. | The page opens on a day / week / month; a year view needs a day-level aggregate first (own ticket if the PO asks for it). |
 | P4-R2 | Operations | Production build: about 10 minutes for 2026 on a separate writer connection; afterwards `QIS_F13_CAUSE_REFRESH=on` and a backend restart (P3-R2: enable after large backfills). | Done by Claude Code only with the PO's agreement and after checking that no import or backfill is running. |
+
+## 21. Production build and switch (2026-11-05, Claude Code / Opus 5.5, with the PO's agreement "Dựng và bật")
+
+- Before: no auto-backfill job QUEUED or RUNNING, no run open.
+- `node scripts/f13_cause_tool.js build --from 2026-01-01 --to 2026-11-05` on the live database (own connections): run 1 DONE, 306 days built, 0 failed, 16:31-16:39 (about 8 minutes); the backend kept serving.
+- `verify --from 2026-01-01 --to 2026-11-05`: OK, 306 days, 1 814 day x BCVH keys, table = `fact_f13` = `agg_f13_day` = 988 895 rows / 556 756 Đạt / 389 589 Không đạt / 42 550 unrated; 768 rows of other units reported apart.
+- `QIS_F13_CAUSE_REFRESH=on` added to the root `.env` (not in git; remove the line or set `off` and restart to stop it); backend restarted through the supervisor at 16:39 (log `logs/backend-20261105-163958.out.log`: 6 sessions restored; startup resume run 2 DONE for 2026-09-21..2026-11-05 with 0 days to build, all FRESH). `/api/f13/v2/why/*` answers behind sign-in (401 without a session).
+- Open after closure: the F1.3 screen (`F13-WHY-UI-01`); P4-R1 (year view needs a day aggregate) for the UI ticket; P3-R4 (`importTctTimeout01` test) belongs to IMPORT-STUCK-RUN-01.
