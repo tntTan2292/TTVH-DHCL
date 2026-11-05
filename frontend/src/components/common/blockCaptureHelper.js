@@ -144,6 +144,18 @@ export async function captureElementToBlob(element, { captionInfo, captionFontSi
     console.warn('[BlockCapture] error inspecting scroll containers:', e);
   }
 
+  // The filter below only drops no-capture nodes from the picture; the picture is still sized from the live
+  // block, so their room would stay as a blank band. Take them out of the layout while shooting.
+  const hiddenNodes = [];
+  try {
+    element.querySelectorAll('[data-no-capture="true"], .no-capture').forEach((node) => {
+      hiddenNodes.push({ node, prevDisplay: node.style.display });
+      node.style.display = 'none';
+    });
+  } catch (e) {
+    console.warn('[BlockCapture] error hiding no-capture nodes:', e);
+  }
+
   // Create temporary caption footer
   let captionElement = null;
   if (captionInfo) {
@@ -182,6 +194,7 @@ export async function captureElementToBlob(element, { captionInfo, captionFontSi
       node.style.overflowY = prevOverflowY;
       node.style.overflowX = prevOverflowX;
     });
+    hiddenNodes.forEach(({ node, prevDisplay }) => { node.style.display = prevDisplay; });
     // Remove caption
     if (captionElement && captionElement.parentNode) {
       captionElement.parentNode.removeChild(captionElement);
