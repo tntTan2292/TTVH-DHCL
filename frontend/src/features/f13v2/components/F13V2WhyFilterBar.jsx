@@ -124,7 +124,11 @@ export default function F13V2WhyFilterBar({
           {/* BCVH Unit Filter */}
           <div className="flex items-center gap-1.5">
             <Filter className="h-3.5 w-3.5 text-slate-400" />
+            {/* S1-PO1: the browser must not restore an old choice (form restore on reload / back); the key re-creates the
+                select whenever the state or the options change, so what is shown is always the page state. */}
             <select
+              key={`${bcvh}|${unitOptions.map((opt) => opt.value).join(',')}`}
+              autoComplete="off"
               value={bcvh}
               onChange={(e) => onBcvhChange?.(e.target.value)}
               className="rounded-lg border border-slate-200 bg-slate-50/60 px-3 py-1.5 text-xs font-bold text-slate-800 outline-none cursor-pointer"

@@ -64,3 +64,9 @@ test('F13-WHY-UI-01: App.jsx and appNavigation.jsx register the Why page cleanly
   assert.match(appSource, /<Route\s+path="why"/);
   assert.match(appSource, /F13V2WhyPage/);
 });
+
+test('F13-WHY-UI-01 S1-PO1: the unit select cannot show a browser-restored choice', () => {
+  const source = read('./components/F13V2WhyFilterBar.jsx');
+  assert.match(source, /autoComplete="off"/);
+  assert.match(source, /key=\{`\$\{bcvh\}\|/);
+});
