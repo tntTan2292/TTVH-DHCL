@@ -6,7 +6,7 @@
 - Name: `F1.3 "TẠI SAO": one primary cause for every failed parcel (classifier)`
 - Owner: `Claude Code` (PO request in chat 2026-11-04). Does not change Current Ticket.
 - Programme: F1.3 cause rebuild; later tickets: AGG (route / postman / BCVH totals, hot spots), NARRATIVE (sentences), UI (page "Vì sao?"), RETIRE.
-- **Document status (2026-11-05): IMPLEMENTED - READY FOR PO CHECK.** Business Rules SSOT LOCKED (design v4). Backend classifier, Journey wiring and tests are done (124 tests green in the five f13v2 files); no screen was added. `PO UI Check Required = Yes` (page Hành trình: the Không trọn lô count changes, see section 11). This file is the single design record for the ticket.
+- **Document status (2026-11-05): CLOSED - PO UI PASS** (see section 12). Previously: IMPLEMENTED - READY FOR PO CHECK. Business Rules SSOT LOCKED (design v4). Backend classifier, Journey wiring and tests are done (124 tests green in the five f13v2 files); no screen was added. `PO UI Check Required = Yes` (page Hành trình: the Không trọn lô count changes, see section 11). This file is the single design record for the ticket.
 - Workspace when v3 was written: branch `codex/da-impl-006`, HEAD `1885c303`; this manifest and the draft classifier are untracked. SSOT chain in force: `CLAUDE.md` -> `PROJECT_SNAPSHOT.md` (Current Ticket there is still `F13-ROUTE-POSTMAN-IDENTITY-01`, unchanged by this ticket).
 
 Source key: `PO` = Product Owner decision; `Finding` = data fact; `Proposal` = technical proposal, not binding; `Open` = needs PO.
@@ -102,6 +102,7 @@ None for the business rules (all closed, sections 2 and 5 of the former list). T
 - 2026-11-05 (v3.1): PO accepted the 1.5-minute rounding tolerance for R.
 - 2026-11-05 (v3): PO chose night option C; `UNLOCATED_TCT_EXCLUSION` and interval method designed; hint design; test list; rounding finding.
 - 2026-11-05 (v5): implemented (Phase 0-4), review M1 fixed (|R| <= 90 000 ms -> R = 0), Phase 4 results, baseline and residuals recorded; status READY FOR PO CHECK.
+- 2026-11-05 (v6): PO UI PASS, ticket closed (section 12).
 
 ## 11. Results (Phase 0-4, 22-28/10/2026, six BCVH; Thuận Hóa as pilot)
 
@@ -129,3 +130,10 @@ None for the business rules (all closed, sections 2 and 5 of the former list). T
 - The Hành trình page shows a different Không trọn lô number (Thuận Hóa 223 -> 273) and the weekly report of week 43 still says 223: PO UI check.
 - `moc_thoi_gian.py` and `nguyen_nhan_chu_quan.py` of the weekly-report skill still use raw hours (next ticket, before week 44); the screens "Vì sao?", route / postman totals and narrative sentences are not part of this ticket.
 - Real-data cases are checked by a read-only script, not by an automatic test (the database is 4 GB).
+
+## 12. Closure (2026-11-05)
+
+- **PO UI PASS** given in chat on 2026-11-05 ("PASS, đóng ticket") after the backend restart on commit `c8b24977` (no import or backfill was active; supervisor restart, 5 sessions restored).
+- The page offers one day at a time, so on the PO's request Claude Code (Opus) checked the seven days for the PO with the code the backend serves, against HEAD `1885c303`, BCVH Thuận Hóa, read-only: Không trọn lô per day 22/10 27 -> 59, 23/10 8 -> 13, 24/10 20 -> 21, 25/10 0 -> 0, 26/10 5 -> 11, 27/10 43 -> 48, 28/10 120 -> 121; week 223 -> 273. Postman name unchanged for all 11 600 parcels.
+- Correction to section 11: the displayed arrival milestone (and with it the KTC1 departure) is now empty for 3 of the 11 600 Thuận Hóa parcels (EJ542219135VN, CG375903988VN, CH372052938VN) because the old code took an F4.1 row of another day or BCVH; this follows the approved exact key (P1).
+- Follow-ups (not in this ticket): the weekly-report scripts move to the system numbers before week 44; a week view on the redesigned page.
