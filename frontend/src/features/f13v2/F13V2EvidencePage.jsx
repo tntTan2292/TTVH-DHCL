@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Database, FileSpreadsheet, ArrowLeft, AlertCircle, Info } from 'lucide-react';
+import api from '../../api/client.js';
 import { useIndicator } from '../indicator/IndicatorContext.js';
 import { indicatorTheme } from '../indicator/indicatorConfig.js';
 import {
@@ -30,6 +31,8 @@ export default function F13V2EvidencePage() {
   const [layout, setLayout] = useState(null);
   const [catalog, setCatalog] = useState(null);
   const [metaUnits, setMetaUnits] = useState([]);
+  const [weeks, setWeeks] = useState([]);
+  const [months, setMonths] = useState([]);
 
   // Data States
   const [summary, setSummary] = useState(null);
@@ -74,7 +77,7 @@ export default function F13V2EvidencePage() {
     return 'day';
   }, [monthParam, weekParam]);
 
-  // Load Layout, Catalog and Meta once on mount (does not depend on searchParams)
+  // Load Layout, Catalog, Meta, Weeks and Months once on mount (does not depend on searchParams)
   useEffect(() => {
     let cancelled = false;
 
@@ -82,8 +85,10 @@ export default function F13V2EvidencePage() {
       fetchLayout().catch(() => null),
       fetchEvidenceCatalog().catch(() => null),
       fetchDashboardMeta().catch(() => null),
+      api.get('/time-axis/weeks').catch(() => null),
+      api.get('/time-axis/months').catch(() => null),
     ])
-      .then(([layoutRes, catalogRes, metaRes]) => {
+      .then(([layoutRes, catalogRes, metaRes, weeksRes, monthsRes]) => {
         if (cancelled) return;
         if (layoutRes) setLayout(layoutRes);
         if (catalogRes) setCatalog(catalogRes);
@@ -92,6 +97,14 @@ export default function F13V2EvidencePage() {
         if (Array.isArray(bcvhUnits)) {
           setMetaUnits(bcvhUnits);
         }
+
+        const rawWeeks = weeksRes?.data?.data?.weeks || [];
+        const sortedWeeks = [...rawWeeks].sort((a, b) => (b.week_start || '').localeCompare(a.week_start || ''));
+        setWeeks(sortedWeeks);
+
+        const rawMonths = monthsRes?.data?.data?.months || [];
+        const sortedMonths = [...rawMonths].sort((a, b) => (b.month_id || '').localeCompare(a.month_id || ''));
+        setMonths(sortedMonths);
       })
       .catch((err) => {
         if (!cancelled) setPageError(err?.message || 'Không thể tải cấu hình minh chứng');
@@ -102,25 +115,33 @@ export default function F13V2EvidencePage() {
     };
   }, []);
 
-  // Default Anchor Resolution: if URL has no date/week/month, resolve latest day anchor (U1-R5)
+  // Default Anchor Resolution: if URL has no date/week/month, resolve latest day anchor (U1-R5, U1-R7)
   useEffect(() => {
     if (fromParam || toParam || weekParam || monthParam) return;
     let active = true;
 
     resolvePeriod({ kind: 'latest' })
       .then((res) => {
-        if (!active || !res?.day) return;
-        setSearchParams(
-          (prev) => {
-            const next = new globalThis.URLSearchParams(prev);
-            if (!next.get('from')) next.set('from', res.day);
-            if (!next.get('to')) next.set('to', res.day);
-            return next;
-          },
-          { replace: true }
-        );
+        if (!active) return;
+        if (res?.day) {
+          setSearchParams(
+            (prev) => {
+              const next = new globalThis.URLSearchParams(prev);
+              if (!next.get('from')) next.set('from', res.day);
+              if (!next.get('to')) next.set('to', res.day);
+              return next;
+            },
+            { replace: true }
+          );
+        } else {
+          setPageError('Chưa có dữ liệu kỳ để hiển thị minh chứng.');
+        }
       })
-      .catch(() => {});
+      .catch((err) => {
+        if (active) {
+          setPageError(err?.response?.data?.error?.message || err?.message || 'Không thể xác định kỳ dữ liệu mới nhất.');
+        }
+      });
 
     return () => {
       active = false;
@@ -252,22 +273,27 @@ export default function F13V2EvidencePage() {
 
     if (mode === 'day') {
       const res = await resolvePeriod({ kind: 'latest' }).catch(() => null);
-      const day = res?.day || '2026-11-04';
+      const day = res?.day || '';
       setSearchParams(
         (prev) => {
           const next = new globalThis.URLSearchParams(prev);
           next.delete('week');
           next.delete('month');
           next.delete('page');
-          next.set('from', day);
-          next.set('to', day);
+          if (day) {
+            next.set('from', day);
+            next.set('to', day);
+          } else {
+            next.delete('from');
+            next.delete('to');
+          }
           return next;
         },
         { replace: true }
       );
     } else if (mode === 'week') {
       const res = await resolvePeriod({ kind: 'latest' }).catch(() => null);
-      const weekId = res?.week?.id || '2026-W44';
+      const weekId = res?.week?.week_id || weeks[0]?.week_id || '';
       setSearchParams(
         (prev) => {
           const next = new globalThis.URLSearchParams(prev);
@@ -275,14 +301,15 @@ export default function F13V2EvidencePage() {
           next.delete('to');
           next.delete('month');
           next.delete('page');
-          next.set('week', weekId);
+          if (weekId) next.set('week', weekId);
+          else next.delete('week');
           return next;
         },
         { replace: true }
       );
     } else if (mode === 'month') {
       const res = await resolvePeriod({ kind: 'latest' }).catch(() => null);
-      const monthId = res?.month?.id || '2026-11';
+      const monthId = res?.month?.month_id || months[0]?.month_id || '';
       setSearchParams(
         (prev) => {
           const next = new globalThis.URLSearchParams(prev);
@@ -290,7 +317,8 @@ export default function F13V2EvidencePage() {
           next.delete('to');
           next.delete('week');
           next.delete('page');
-          next.set('month', monthId);
+          if (monthId) next.set('month', monthId);
+          else next.delete('month');
           return next;
         },
         { replace: true }
@@ -474,10 +502,10 @@ export default function F13V2EvidencePage() {
         onToDateChange={(val) => updateParam('to', val)}
         weekId={weekParam}
         onWeekChange={(val) => updateParam('week', val)}
-        availableWeeks={layout?.available_weeks || []}
+        availableWeeks={weeks}
         monthId={monthParam}
         onMonthChange={(val) => updateParam('month', val)}
-        availableMonths={layout?.available_months || []}
+        availableMonths={months}
         bcvh={effectiveBcvh}
         onBcvhChange={(val) => updateParam('bcvh', val)}
         unitOptions={unitOptions}

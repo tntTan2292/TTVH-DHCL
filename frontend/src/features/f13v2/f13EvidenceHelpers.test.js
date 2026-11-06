@@ -136,7 +136,7 @@ test('F13-EVIDENCE-01 U1-R6: extractEvidenceSummary extracts non-zero figures fr
       unrated: 0,
       distinct_bg: 1250,
       repeat: 0,
-      rate: 0.84,
+      rate: 84.0,
       shortfall_x10: 750,
       shortfall: 75,
       own_shortfall_x10: 750,
@@ -189,7 +189,7 @@ test('F13-EVIDENCE-01 U1-R6: extractEvidenceSummary extracts non-zero figures fr
   assert.equal(extracted.volume, 1250);
   assert.equal(extracted.passed, 1050);
   assert.equal(extracted.failed, 200);
-  assert.equal(extracted.rate, 0.84);
+  assert.equal(extracted.rate, 84.0);
   assert.equal(extracted.shortfall, 75);
   assert.equal(extracted.analysed, 60);
 
@@ -221,12 +221,12 @@ test('F13-EVIDENCE-01 U1-R6: extractEvidenceSummary extracts non-zero figures fr
     extracted.choChuyenQuan;
   assert.equal(totalCauses, extracted.failed);
 
-  // Assert Vietnamese comma formatting for decimals
-  const rateText = ((extracted.rate || 0) * 100).toFixed(2).replace('.', ',') + '%';
-  assert.equal(rateText, '84,00%');
+  // Assert Vietnamese comma formatting for decimals (U1-R8: raw percentage, 1 decimal place)
+  const rateText = Number(extracted.rate || 0).toFixed(1).replace('.', ',') + '%';
+  assert.equal(rateText, '84,0%');
 
-  const failedRateText = ((extracted.failed / extracted.volume) * 100).toFixed(2).replace('.', ',') + '%';
-  assert.equal(failedRateText, '16,00%');
+  const failedRateText = ((extracted.failed / extracted.volume) * 100).toFixed(1).replace('.', ',') + '%';
+  assert.equal(failedRateText, '16,0%');
 
   const completionRate = extracted.failed > 0 ? extracted.analysed / extracted.failed : 0;
   const completionRateText = ((completionRate || 0) * 100).toFixed(1).replace('.', ',') + '%';

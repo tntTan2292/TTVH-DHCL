@@ -131,10 +131,14 @@ test('F13-EVIDENCE-01 U1-R4: F13V2EvidencePage calls unit helpers with object si
     'Must call resolveEffectiveBcvh({ currentParam: bcvhParam, unitOptions, layout })'
   );
 
-  // 3. Initial load effect runs once on mount
+  // 3. Initial load effect runs once on mount and loads layout, catalog, meta, weeks and months
   assert.ok(
-    pageContent.includes('Promise.all([\n      fetchLayout().catch(() => null),\n      fetchEvidenceCatalog().catch(() => null),\n      fetchDashboardMeta().catch(() => null),\n    ])'),
-    'Must load layout, catalog and meta in mount effect'
+    pageContent.includes('fetchLayout().catch(() => null)') &&
+    pageContent.includes('fetchEvidenceCatalog().catch(() => null)') &&
+    pageContent.includes('fetchDashboardMeta().catch(() => null)') &&
+    pageContent.includes("api.get('/time-axis/weeks').catch(() => null)") &&
+    pageContent.includes("api.get('/time-axis/months').catch(() => null)"),
+    'Must load layout, catalog, meta, weeks and months in mount effect'
   );
   assert.ok(
     pageContent.includes('}, []);\n\n  // Default Anchor Resolution'),
@@ -178,6 +182,46 @@ test('F13-EVIDENCE-01 U1-R5 & U1-R6: F13V2EvidencePage resolves latest anchor an
   assert.ok(
     cardContent.includes(".replace('.', ',')"),
     'SummaryCard must use Vietnamese comma formatting for percentages'
+  );
+});
+
+test('F13-EVIDENCE-01 U1-R7 & U1-R8: Week/Month dynamic axes without hardcoded dates and raw rate display', () => {
+  const pageContent = readSrc('./F13V2EvidencePage.jsx');
+  const cardContent = readSrc('./components/F13V2EvidenceSummaryCard.jsx');
+
+  // U1-R7: resolvePeriod returns week.week_id and month.month_id
+  assert.ok(
+    pageContent.includes('res?.week?.week_id'),
+    'Page must read res.week.week_id'
+  );
+  assert.ok(
+    pageContent.includes('res?.month?.month_id'),
+    'Page must read res.month.month_id'
+  );
+
+  // U1-R7: Passes weeks and months to filter bar, not layout.available_*
+  assert.ok(
+    pageContent.includes('availableWeeks={weeks}'),
+    'Filter bar must receive availableWeeks={weeks}'
+  );
+  assert.ok(
+    pageContent.includes('availableMonths={months}'),
+    'Filter bar must receive availableMonths={months}'
+  );
+
+  // U1-R7: Absolutely no hardcoded periods
+  assert.ok(!pageContent.includes("'2026-W44'"), 'Page must not contain hardcoded 2026-W44');
+  assert.ok(!pageContent.includes("'2026-11'"), 'Page must not contain hardcoded 2026-11');
+  assert.ok(!pageContent.includes("'2026-11-04'"), 'Page must not contain hardcoded 2026-11-04');
+
+  // U1-R8: Rate displayed raw without multiplying by 100
+  assert.ok(
+    cardContent.includes('Number(rate).toFixed(1)'),
+    'Summary card must format rate directly with 1 decimal place'
+  );
+  assert.ok(
+    !cardContent.includes('(rate || 0) * 100'),
+    'Summary card must NOT multiply rate by 100'
   );
 });
 

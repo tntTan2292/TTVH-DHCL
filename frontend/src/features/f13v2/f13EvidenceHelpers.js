@@ -130,7 +130,7 @@ export function extractEvidenceSummary(summary) {
   const passed = Number(totals.passed) || 0;
   const failed = Number(totals.failed) || 0;
   const unrated = Number(totals.unrated) || 0;
-  const rate = totals.rate !== undefined && totals.rate !== null ? Number(totals.rate) : (volume > 0 ? passed / volume : 0);
+  const rate = totals.rate !== undefined && totals.rate !== null ? Number(totals.rate) : (volume > 0 ? (passed / volume) * 100 : 0);
   const shortfall = Number(totals.shortfall) || 0;
 
   const analysed = Number(totals.analysed) || 0;

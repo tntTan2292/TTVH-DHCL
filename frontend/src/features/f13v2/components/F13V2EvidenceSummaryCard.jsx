@@ -106,7 +106,7 @@ export default function F13V2EvidenceSummaryCard({
           <div className="text-xl font-extrabold text-emerald-950">
             {passed.toLocaleString('vi-VN')}
             <span className="text-sm font-bold text-emerald-800 ml-1.5">
-              ({((rate || 0) * 100).toFixed(2).replace('.', ',')}%)
+              ({rate !== null && rate !== undefined ? Number(rate).toFixed(1).replace('.', ',') : '0,0'}%)
             </span>
           </div>
           <div className="text-[11px] text-emerald-800 mt-0.5">
@@ -123,7 +123,7 @@ export default function F13V2EvidenceSummaryCard({
           <div className="text-xl font-extrabold text-rose-950">
             {failed.toLocaleString('vi-VN')}
             <span className="text-sm font-bold text-rose-800 ml-1.5">
-              ({volume > 0 ? ((failed / volume) * 100).toFixed(2).replace('.', ',') : '0,00'}%)
+              ({volume > 0 ? ((failed / volume) * 100).toFixed(1).replace('.', ',') : '0,0'}%)
             </span>
           </div>
           <div className="text-[11px] text-rose-800 mt-0.5">
