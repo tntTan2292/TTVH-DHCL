@@ -100,3 +100,20 @@ Checked independently (not taken from section 9):
 | B1-R4 | Info | `supersedes_id` is read before the insert; two simultaneous saves may name the same predecessor. The current analysis is `MAX(id)`, so nothing is lost. | Accepted. |
 
 Next: B1-R1 by Sonnet, then the backend restart (creates `f13_analysis_log`, routes live) with the usual checks; then U1 (section 5) by Antigravity.
+
+## 11. B1-R1 and backend restart (2026-11-06, Claude Code / Sonnet 5.5)
+
+**B1-R1 (commit `7ff4eb31`).** `EvidenceService._where`: `analysed=yes` = `a_id IS NOT NULL AND danh_gia = 'Không đạt'`; `analysed=no` = its complement (`a_id IS NULL OR danh_gia IS NOT 'Không đạt'`, so a NULL verdict falls in the complement); `analyst_cause` also only on Không đạt parcels. The item still shows an old analysis (`can_analyse` false). New test in `f13v2Evidence.test.js` (16/16): a parcel analysed while Không đạt and then set to Đạt or to unrated: `/why` analysed drops by one and `analysed=yes`, `analyst_cause=KHAI_THAC` of the list equal `/why` `analysed` and `by_cause`, yes + no = the whole list, the item still shows the old analysis. `CauseAggQueryService` 22/22.
+
+**Checks before the restart (read only).** `auto_backfill_job`: no QUEUED or RUNNING job (states CANCELLED, FAILED_TERMINAL, SKIPPED_ALREADY_SUCCESS, SUCCESS only); `auto_backfill_run`: none open (COMPLETED, COMPLETED_WITH_ERRORS, CANCELLED); `auto_backfill_worker_lease` empty; last `import_log` row 01:06 UTC (SUCCESS, 50 minutes earlier), none in the last 10 minutes; no RUNNING `f13_cause_run`; no `supervisor.pause`.
+
+**Restart (08:58 Vietnam time).** Stopped the listeners on 5050 (PID 25144) and 5178 (PID 6600); the supervisor started both again within 20 s: backend PID 20428, front end PID 38196, log `logs/backend-20261106-085817.out.log`.
+
+**After the restart.**
+- Startup log: `[auth] restored 2 session(s)`, `TTVH Backend running on port 5050`, `[f13-cause] run 17 DONE: 0 day(s) built, 0 failed (2026-09-22..2026-11-06, startup)` (the table was already complete); no error line. The err log holds only the usual chokidar ExperimentalWarning and the two "removed a stale profile lock" lines.
+- Database: `f13_analysis_log` exists with indexes `idx_f13_analysis_parcel`, `idx_f13_analysis_bcvh` and the two triggers `trg_f13_analysis_no_update`, `trg_f13_analysis_no_delete`; 0 rows.
+- `GET /api/f13/v2/evidence/catalog` without a login: **401** (also `evidence/list` and `why/summary`: 401). No login was tried on the real backend.
+- DKCL: HUE session re-attached and its queue lane woken; **TCT: saved session not re-attached (`NO_SESSION`)**: no backfill was running, so nothing was lost, but the TCT window needs the PO's DKCL login again before the 07:30 import or any backfill uses that lane.
+- `scripts/realign-handling-entries.js` dry run: 0 entries to change, 0 left as typed, 0 that cannot be realigned: `--apply` not needed, nothing written.
+
+B1 is live. Next: U1 (section 5) by Antigravity.
