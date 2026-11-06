@@ -20,6 +20,7 @@ Filename retained as `CODEX_PROMPT_STANDARD.md` for link continuity. Default exe
 - [10. Technical Validation vs PO UI Acceptance](#10-technical-validation-vs-po-ui-acceptance)
 - [11. Additional PO/User Decision Rule](#11-additional-pouser-decision-rule)
 - [12. Conversation Context Capacity and Fresh-Chat Handoff](#12-conversation-context-capacity-and-fresh-chat-handoff)
+- [12.1 Opus CTO Quota Handoff](#121-opus-cto-quota-handoff)
 - [13. Executor Selection Rule](#13-executor-selection-rule)
 - [13.1 Claude Code Model Selection](#131-claude-code-model-selection)
 - [13.2 CTO Self-Pass Criteria](#132-cto-self-pass-criteria)
@@ -412,6 +413,19 @@ Carry only repository, branch, active ticket or wave, and Product Owner decision
 Never claim an exact token count or context percentage unless the system actually exposes it. Use qualitative indicators such as conversation is becoming very long, multiple completed phases remain in chat history, current decisions are difficult to distinguish from superseded decisions, tool output is dominating the conversation, or response quality may be reduced by context weight.
 
 Do not repeatedly ask for a new chat when the current conversation remains manageable.
+
+## 12.1 Opus CTO Quota Handoff
+
+Product Owner decision, 2026-11-06. Applies whenever `Opus` works as Claude/CTO (claude.ai chat, or a Claude Code session doing CTO work: reviews, scoping, prompts for executors).
+
+Every new message re-reads the whole conversation, so a long CTO conversation costs more quota per step than a fresh `Opus` conversation that starts from the repository. When that point is reached, the CTO must, without being asked:
+
+1. **Tell the Product Owner** in one or two plain Vietnamese sentences that the conversation has become heavier on quota than a new one, and that work continues without loss in a new chat. Signs (qualitative, no invented token counts): several completed phases or tickets in the history, long tool output or pasted reports dominating it, the CTO re-reading documents it already read, earlier decisions becoming hard to tell from current ones, or a system notice that the context was summarised.
+2. **Bring the repository up to date first**: every review, PO decision and next step that exists only in the chat is written into the manifest (or `PROJECT_SNAPSHOT.md`), committed by pathspec, pushed and verified. A PO decision that is only in the chat must not be lost.
+3. **Give a ready-to-paste start prompt** for the new `Opus` CTO chat, in a code block, under about 250 words. It contains: the role (`Opus 5.5 – Claude/CTO` per `DEC-021`), repository and branch, latest remote commit, current ticket(s) and phase, manifest path(s) and the section to read, what is in progress and with which executor, PO decisions of this conversation and where they are recorded, open findings or blockers, operational notes (for example a sign-in the PO must redo), and the exact next action. The prompt tells the new chat to read `CLAUDE.md` -> `PROJECT_SNAPSHOT.md` -> the named manifest sections only, not the full governance chain and not this conversation.
+4. **Stop after the handoff**: the old conversation takes no further work, so two CTO conversations never run in parallel. Executor prompts already handed out stay valid; their reports go to the new chat.
+
+Do not hand off in the middle of a step that leaves the repository inconsistent (half-written manifest, uncommitted review); finish the step first. Do not hand off when the conversation is still manageable (Section 12, last paragraph).
 
 ## 13. Executor Selection Rule
 

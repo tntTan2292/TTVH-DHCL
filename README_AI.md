@@ -197,6 +197,8 @@ Provide a concise fresh-chat handoff containing:
 - next required action
 - unresolved decisions or blockers
 
+When `Opus` works as Claude/CTO and the conversation has become heavier on quota than a fresh one, the CTO tells the Product Owner, writes chat-only decisions into the repository, and hands over a ready-to-paste start prompt for the new CTO chat (`CODEX_PROMPT_STANDARD.md` Section 12.1).
+
 The new conversation must begin from `README_AI.md`, not from copied chat memory alone. Repository Governance is authoritative; conversation history is temporary working context. Do not copy full historical conversations into a new session.
 
 Carry only repository, branch, active ticket or wave, and Product Owner decisions not yet stored in the repository. Repository governance remains authoritative; conversation summaries are only navigation aids.
