@@ -34,17 +34,17 @@ test('positions (HANGTON-HANDLING-01): leaders in two groups, directors and chuy
     assert.deepEqual(resolveAccess({ tier: 'LEADER' }).position, 'LD_TTVH', 'unset leader = lower group');
     assert.equal(resolveAccess({ tier: 'ADMIN' }).position, 'ADMIN');
     // handling is view-only for every leader and for plain staff there is nothing extra
-    assert.deepEqual(bdtp.capabilities, ['hangton.handling.view']);
-    assert.deepEqual(resolveAccess({ tier: 'STAFF', bcvh: ['533140'] }).capabilities, []);
+    assert.deepEqual(bdtp.capabilities, ['hangton.handling.view', 'f13.analysis.view']);
+    assert.deepEqual(resolveAccess({ tier: 'STAFF', bcvh: ['533140'] }).capabilities, ['f13.analysis.view']);
     const director = resolveAccess({ tier: 'STAFF', position: 'GD_BCVH', bcvh: ['533140'] });
     assert.deepEqual(director.hangton.screens, ['office', 'compare', 'items', 'handling']);
-    assert.deepEqual(director.capabilities, ['hangton.handling.view', 'hangton.handling.write']);
+    assert.deepEqual(director.capabilities, ['hangton.handling.view', 'hangton.handling.write', 'f13.analysis.view', 'f13.analysis.write']);
     const specialist = resolveAccess({ tier: 'STAFF', position: 'CHUYEN_QUAN', bcvh: ['533140'], indicators: ['HANGTON'] });
     assert.deepEqual(specialist.hangton.screens, ['overview', 'office', 'compare', 'items', 'handling']);
     assert.equal(specialist.hangton.offices, 'all');
     assert.ok(specialist.capabilities.includes('hangton.handling.approve'));
     // a position of another tier is ignored
-    assert.deepEqual(resolveAccess({ tier: 'STAFF', position: 'LD_BDTP', bcvh: ['533140'] }).capabilities, []);
+    assert.deepEqual(resolveAccess({ tier: 'STAFF', position: 'LD_BDTP', bcvh: ['533140'] }).capabilities, ['f13.analysis.view']);
 });
 
 test('BCVH director / specialist sees F1.1, F1.3, F4.1 for own BCVH only, never F1.2 or the network', () => {

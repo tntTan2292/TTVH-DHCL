@@ -46,6 +46,7 @@ const { applyImportLogAudit01Schema } = require('./migrate_import_log_audit_01_s
 const { applyBfPhat01Schema } = require('./migrate_bf_phat_01_schema');
 const { applyPerfLoad01AggSchema } = require('./migrate_perf_load_01_agg_schema');
 const { applyF13WhyAgg01Schema } = require('./migrate_f13_why_agg_01_schema');
+const { applyF13Evidence01Schema } = require('./migrate_f13_evidence_01_schema');
 const { applyHangtonInventory01Schema } = require('./migrate_hangton_inventory_01_schema');
 const { applyHangtonHandling01Schema } = require('./migrate_hangton_handling_01_schema');
 const { applyOpsJournal01Schema } = require('./migrate_ops_journal_01_schema');
@@ -192,6 +193,7 @@ async function ensureStartupSchemaMigrations(dbPath = activeDbPath) {
     await applyOpsJournal01Schema(dbPath);
     await applyOpsJournal02Schema(dbPath);
     await applyF13WhyAgg01Schema(dbPath);
+    await applyF13Evidence01Schema(dbPath);
 }
 
 // HANGTON-INVENTORY-01: three daily stock snapshots (07:30, 11:30, 21:00). Off in tests, with

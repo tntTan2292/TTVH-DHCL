@@ -103,7 +103,7 @@ test('HANGTON-HANDLING-01: positions are set through the admin API, must fit the
     assert.equal((await call(admin, 'PUT', `/${row.id}`, { tier: 'LEADER', bcvh: [], indicators: [] })).status, 200);
     const asLeader = await userStore.toSessionUser(await userStore.findByUsername('GD1'));
     assert.equal(asLeader.access.position, 'LD_TTVH', 'default of a leader = the lower leader group');
-    assert.deepEqual(asLeader.access.capabilities, ['hangton.handling.view']);
+    assert.deepEqual(asLeader.access.capabilities, ['hangton.handling.view', 'f13.analysis.view']);
 
     // the two leader groups
     assert.equal((await call(admin, 'PUT', `/${row.id}`, { position: 'LD_BDTP' })).status, 200);

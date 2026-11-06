@@ -23,18 +23,21 @@ const CAPABILITIES = Object.freeze({
     // OPS-JOURNAL-01: pick the day's black spots, fill the "6 rõ" rows, assign and print the Nhật ký điều hành (PL06).
     // Held by the Giám đốc TTVH only (and the admin for support). An assignee needs no capability: see opsJournal/visibility.js.
     JOURNAL_MANAGE: 'journal.manage',
+    // F13-EVIDENCE-01 (PO V1): see the analyses of parcels (every position that reaches F1.3) / record one (Chuyên quản and Giám đốc BCVH of the unit; admin for support).
+    F13_ANALYSIS_VIEW: 'f13.analysis.view',
+    F13_ANALYSIS_WRITE: 'f13.analysis.write',
 });
 const C = CAPABILITIES;
 
 const POSITIONS = Object.freeze({
-    ADMIN: { code: 'ADMIN', label: 'Quản trị hệ thống', tier: TIERS.ADMIN, group: GROUPS.SYSTEM, rank: 100, capabilities: [C.HANGTON_HANDLING_VIEW, C.HANGTON_HANDLING_WRITE, C.HANGTON_HANDLING_APPROVE, C.HANGTON_HANDLING_REASONS, C.JOURNAL_MANAGE] },
-    LD_BDTP: { code: 'LD_BDTP', label: 'Lãnh đạo BĐTP', tier: TIERS.LEADER, group: GROUPS.LEADER_BDTP, rank: 90, capabilities: [C.HANGTON_HANDLING_VIEW] },
-    GD_TTVH: { code: 'GD_TTVH', label: 'Giám đốc TTVH', tier: TIERS.LEADER, group: GROUPS.LEADER_TTVH_IT, rank: 85, capabilities: [C.HANGTON_HANDLING_VIEW, C.JOURNAL_MANAGE] },
-    LD_TTVH: { code: 'LD_TTVH', label: 'Lãnh đạo TTVH', tier: TIERS.LEADER, group: GROUPS.LEADER_TTVH_IT, rank: 80, capabilities: [C.HANGTON_HANDLING_VIEW] },
-    IT_BDTP: { code: 'IT_BDTP', label: 'IT BĐTP', tier: TIERS.LEADER, group: GROUPS.LEADER_TTVH_IT, rank: 80, capabilities: [C.HANGTON_HANDLING_VIEW] },
-    CHUYEN_QUAN: { code: 'CHUYEN_QUAN', label: 'Chuyên quản BCVH', tier: TIERS.STAFF, group: GROUPS.BCVH, rank: 50, capabilities: [C.HANGTON_HANDLING_VIEW, C.HANGTON_HANDLING_WRITE, C.HANGTON_HANDLING_APPROVE, C.HANGTON_HANDLING_REASONS] },
-    GD_BCVH: { code: 'GD_BCVH', label: 'Giám đốc BCVH', tier: TIERS.STAFF, group: GROUPS.BCVH, rank: 40, capabilities: [C.HANGTON_HANDLING_VIEW, C.HANGTON_HANDLING_WRITE] },
-    STAFF: { code: 'STAFF', label: 'Chuyên viên', tier: TIERS.STAFF, group: GROUPS.BCVH, rank: 10, capabilities: [] },
+    ADMIN: { code: 'ADMIN', label: 'Quản trị hệ thống', tier: TIERS.ADMIN, group: GROUPS.SYSTEM, rank: 100, capabilities: [C.HANGTON_HANDLING_VIEW, C.HANGTON_HANDLING_WRITE, C.HANGTON_HANDLING_APPROVE, C.HANGTON_HANDLING_REASONS, C.JOURNAL_MANAGE, C.F13_ANALYSIS_VIEW, C.F13_ANALYSIS_WRITE] },
+    LD_BDTP: { code: 'LD_BDTP', label: 'Lãnh đạo BĐTP', tier: TIERS.LEADER, group: GROUPS.LEADER_BDTP, rank: 90, capabilities: [C.HANGTON_HANDLING_VIEW, C.F13_ANALYSIS_VIEW] },
+    GD_TTVH: { code: 'GD_TTVH', label: 'Giám đốc TTVH', tier: TIERS.LEADER, group: GROUPS.LEADER_TTVH_IT, rank: 85, capabilities: [C.HANGTON_HANDLING_VIEW, C.JOURNAL_MANAGE, C.F13_ANALYSIS_VIEW] },
+    LD_TTVH: { code: 'LD_TTVH', label: 'Lãnh đạo TTVH', tier: TIERS.LEADER, group: GROUPS.LEADER_TTVH_IT, rank: 80, capabilities: [C.HANGTON_HANDLING_VIEW, C.F13_ANALYSIS_VIEW] },
+    IT_BDTP: { code: 'IT_BDTP', label: 'IT BĐTP', tier: TIERS.LEADER, group: GROUPS.LEADER_TTVH_IT, rank: 80, capabilities: [C.HANGTON_HANDLING_VIEW, C.F13_ANALYSIS_VIEW] },
+    CHUYEN_QUAN: { code: 'CHUYEN_QUAN', label: 'Chuyên quản BCVH', tier: TIERS.STAFF, group: GROUPS.BCVH, rank: 50, capabilities: [C.HANGTON_HANDLING_VIEW, C.HANGTON_HANDLING_WRITE, C.HANGTON_HANDLING_APPROVE, C.HANGTON_HANDLING_REASONS, C.F13_ANALYSIS_VIEW, C.F13_ANALYSIS_WRITE] },
+    GD_BCVH: { code: 'GD_BCVH', label: 'Giám đốc BCVH', tier: TIERS.STAFF, group: GROUPS.BCVH, rank: 40, capabilities: [C.HANGTON_HANDLING_VIEW, C.HANGTON_HANDLING_WRITE, C.F13_ANALYSIS_VIEW, C.F13_ANALYSIS_WRITE] },
+    STAFF: { code: 'STAFF', label: 'Chuyên viên', tier: TIERS.STAFF, group: GROUPS.BCVH, rank: 10, capabilities: [C.F13_ANALYSIS_VIEW] },
 });
 
 // An account with no stored position gets the least-privileged position of its tier.

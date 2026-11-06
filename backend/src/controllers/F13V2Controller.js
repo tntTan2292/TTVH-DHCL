@@ -11,12 +11,15 @@ const { DaySummaryService } = require('../services/f13v2/DaySummaryService');
 const { JourneyService } = require('../services/f13v2/JourneyService');
 const f13JourneyRepo = require('../repositories/F13JourneyRepository');
 const { CauseAggQueryService } = require('../services/f13v2/CauseAggQueryService');
+const { EvidenceService } = require('../services/f13v2/EvidenceService');
 const { db: sharedDb } = require('../config/db');
 const { resolveBcvh, scopedBcvhList, sendIfOutOfScope } = require('../middleware/accessScope');
 
 const daySummaryService = new DaySummaryService({ repository: factBuuGuiRepo, dashboardService: f13DashboardService });
 const journeyService = new JourneyService({ repository: f13JourneyRepo });
 const causeAggService = new CauseAggQueryService({ db: sharedDb });
+// F13-EVIDENCE-01: evidence list / export / analyses. The append goes through the shared connection (one INSERT, atomic).
+const evidenceService = new EvidenceService({ db: sharedDb, causeAgg: causeAggService, journeyService });
 
 function journeyScope(req) {
     const { date, ma_bcvh: maBcvh } = req.query;
@@ -49,13 +52,17 @@ function whyRequest(req) {
 }
 
 const BAD_REQUEST_CODES = new Set([
-    'INVALID_FILTER', 'NO_DATA', 'INVALID_KIND', 'INVALID_DATE', 'INVALID_RANGE', 'RANGE_TOO_LONG', 'INVALID_BCVH', 'INVALID_WEEK_ID', 'INVALID_MONTH_ID', 'MISSING_PARAM',
+    'INVALID_FILTER', 'NO_DATA', 'EXPORT_TOO_LARGE', 'NOT_FAILED', 'INVALID_CAUSE', 'NOTE_REQUIRED', 'NOTE_TOO_LONG', 'NO_ACTOR', 'INVALID_KIND', 'INVALID_DATE', 'INVALID_RANGE', 'RANGE_TOO_LONG', 'INVALID_BCVH', 'INVALID_WEEK_ID', 'INVALID_MONTH_ID', 'MISSING_PARAM',
 ]);
 
 function sendError(res, error) {
     if (sendIfOutOfScope(res, error)) return;
     if (error?.code === 'OUT_OF_SCOPE') {
         res.status(403).json({ success: false, error: { code: 'OUT_OF_SCOPE', message: error.message } });
+        return;
+    }
+    if (error?.code === 'PARCEL_NOT_FOUND') {
+        res.status(404).json({ success: false, error: { code: error.code, message: error.message } });
         return;
     }
     const status = BAD_REQUEST_CODES.has(error?.code) ? 400 : 500;
@@ -150,6 +157,47 @@ class F13V2Controller {
 
     async getWhyParcels(req, res) {
         await F13V2Controller.why(req, res, (request) => causeAggService.parcels(request.query, request.scope));
+    }
+
+    // ---- F13-EVIDENCE-01 B1
+    async getEvidenceCatalog(req, res) {
+        const { can, CAPABILITIES } = require('../services/auth/access/roles');
+        res.status(200).json({ success: true, data: { ...evidenceService.catalog(), can: { write: can(req.access, CAPABILITIES.F13_ANALYSIS_WRITE) }, position: req.access?.position ?? null } });
+    }
+
+    async getEvidenceList(req, res) {
+        await F13V2Controller.why(req, res, (request) => evidenceService.list(request.query, request.scope));
+    }
+
+    async exportEvidence(req, res) {
+        try {
+            const request = whyRequest(req);
+            const plan = await evidenceService.exportPlan(request.query, request.scope); // size limits first: nothing is streamed when refused
+            res.status(200);
+            res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+            res.setHeader('Content-Disposition', `attachment; filename="minh-chung-f13_${plan.from}_${plan.to}.xlsx"`);
+            res.setHeader('X-Export-Rows', String(plan.total));
+            await evidenceService.exportTo(res, request.query, request.scope);
+        } catch (error) {
+            if (res.headersSent) { res.destroy(error); return; }
+            sendError(res, error);
+        }
+    }
+
+    async postEvidenceAnalysis(req, res) {
+        try {
+            const request = whyRequest({ scope: req.scope, query: {} });
+            const user = req.auth?.user || {};
+            const actor = { id: user.id ?? null, name: user.display_name || user.username || null, position: req.access?.position ?? null };
+            const data = await evidenceService.record(req.body || {}, request.scope, req.access, actor);
+            res.status(201).json({ success: true, data });
+        } catch (error) {
+            sendError(res, error);
+        }
+    }
+
+    async getEvidenceHistory(req, res) {
+        await F13V2Controller.why(req, res, (request) => evidenceService.history(request.query.ngay_do_kiem, request.query.ma_bg, request.scope));
     }
 
     static async why(req, res, handler) {

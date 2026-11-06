@@ -104,7 +104,7 @@ test('access: only director / chuyên quản / admin may write, leaders only vie
     assert.deepEqual(GD_TH.access.hangton.screens, ['office', 'compare', 'items', 'handling']);
     assert.deepEqual(GD_TH.access.hangton.offices, ['533140']);
     const plain = accessOf({ tier: 'STAFF', bcvh: ['533140'] });
-    assert.deepEqual(plain.capabilities, []);
+    assert.deepEqual(plain.capabilities, ['f13.analysis.view']);
     assert.deepEqual(plain.hangton.screens, ['office', 'compare']);
     assert.equal(accessOf({ tier: 'LEADER', position: 'LD_BDTP' }).rank > accessOf({ tier: 'LEADER', position: 'LD_TTVH' }).rank, true);
     assert.deepEqual(accessOf({ tier: 'GUEST' }).capabilities, []);

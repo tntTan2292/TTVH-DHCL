@@ -135,6 +135,18 @@ function metricsOf(counts) {
     };
 }
 
+/** Adds one group of analysed parcels (analyst cause x system conclusion) to a group. */
+function addAnalysedRow(group, row) {
+    const analysed = group.analysed || (group.analysed = { total: 0, by_cause: {}, same: 0, different: 0, no_system_cause: 0 });
+    const count = toNumber(row.c);
+    analysed.total += count;
+    analysed.by_cause[row.a_cause] = (analysed.by_cause[row.a_cause] || 0) + count;
+    const line = row.cause_status === 'CAUSE' && row.cause_code ? lineOf(row.cause_code, row.cause_detail) : null;
+    if (line === null) analysed.no_system_cause += count;
+    else if (line === row.a_cause) analysed.same += count;
+    else analysed.different += count;
+}
+
 function emptyMix() {
     return {
         counts: {},
@@ -417,6 +429,8 @@ class CauseAggQueryService {
              GROUP BY ${spec.groupBy ? `${spec.groupBy}, ` : ''}hints`,
             where.params,
         );
+        // F13-EVIDENCE-01 (PO V2): analyses by the Chuyên quản, counted beside the system figures, which stay as they are.
+        const analysedRows = await this._analysedRows(select, spec, where);
         const keyOf = (row) => spec.keys.map((key) => row[key]).join('|');
         const groups = new Map();
         for (const row of counters) {
@@ -430,6 +444,7 @@ class CauseAggQueryService {
             });
         }
         for (const row of causeRows) addCauseRow(groups.get(keyOf(row)).mix, row);
+        for (const row of analysedRows) addAnalysedRow(groups.get(keyOf(row)), row);
         for (const row of hintRows) {
             const mix = groups.get(keyOf(row)).mix;
             for (const hint of splitList(row.hints)) mix.hints[hint] = (mix.hints[hint] || 0) + toNumber(row.c);
@@ -437,11 +452,29 @@ class CauseAggQueryService {
         return groups;
     }
 
+    /** Failed parcels with a current analysis, by analyst cause and the system's conclusion. [] when the log table does not exist (older database). */
+    async _analysedRows(select, spec, where) {
+        const exists = await this.db.all("SELECT 1 AS x FROM sqlite_master WHERE type = 'table' AND name = 'f13_analysis_log'");
+        if (!exists.length) return [];
+        return this.db.all(
+            `SELECT ${select}a_cause, cause_status, cause_code, cause_detail, COUNT(*) AS c
+             FROM (SELECT p.*, a.cause_code AS a_cause FROM f13_analysis_log a
+                   JOIN f13_cause_parcel p ON p.ngay_do_kiem = a.ngay_do_kiem AND p.ma_bg = a.ma_bg
+                   WHERE a.id IN (SELECT MAX(id) FROM f13_analysis_log GROUP BY ngay_do_kiem, ma_bg)) t
+             WHERE ${where.sql} AND danh_gia = '${FAILED}'
+             GROUP BY ${spec.groupBy ? `${spec.groupBy}, ` : ''}a_cause, cause_status, cause_code, cause_detail`,
+            where.params,
+        );
+    }
+
     _finish(group) {
         const metrics = metricsOf(group.counts);
         const extra = group.extra || {};
+        const analysed = group.analysed || { total: 0, by_cause: {}, same: 0, different: 0, no_system_cause: 0 };
         return {
             ...metrics,
+            analysed: analysed.total,
+            analysed_mix: { by_cause: analysed.by_cause, same_as_system: analysed.same, different_from_system: analysed.different, no_system_cause: analysed.no_system_cause },
             cause_mix: causeMixOf(group.mix, metrics.failed),
             hints: group.mix.hints,
             arrival_remaining: remainingOf(extra),
@@ -622,4 +655,4 @@ class CauseAggQueryService {
     }
 }
 
-module.exports = { CauseAggQueryService, resolvePeriod, metricsOf, causeMixOf, lineOf, CAUSE_ORDER, REMAINING_BUCKETS, ROUTE_SCOPES, NO_POSTMAN, MAX_RANGE_DAYS };
+module.exports = { CauseAggQueryService, labelOfLine, resolvePeriod, metricsOf, causeMixOf, lineOf, CAUSE_ORDER, REMAINING_BUCKETS, ROUTE_SCOPES, NO_POSTMAN, MAX_RANGE_DAYS };

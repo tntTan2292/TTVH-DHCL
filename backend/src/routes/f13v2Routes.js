@@ -8,6 +8,7 @@ const { requireAuth, requireRole } = require('../middleware/authMiddleware');
 const { cachedRead } = require('../middleware/responseCache');
 const { requireModule } = require('../middleware/accessScope');
 const { scopeBcvhResponse } = require('../services/auth/access/scopeResponse');
+const { CAPABILITIES, can } = require('../services/auth/access/roles');
 const controller = require('../controllers/F13V2Controller');
 
 const router = express.Router();
@@ -37,5 +38,15 @@ router.get('/why/bcvh', scopeBcvhResponse({ drop: ['data.total'] }), controller.
 router.get('/why/routes', controller.getWhyRoutes);
 router.get('/why/postmen', controller.getWhyPostmen);
 router.get('/why/parcels', controller.getWhyParcels);
+
+// F13-EVIDENCE-01 B1: evidence list / export, analyses of failed parcels. Same scope rules as /why; the capability decides who may read and write.
+const needs = (capability) => (req, res, next) => (can(req.access, capability)
+    ? next()
+    : res.status(403).json({ success: false, error: { code: 'FORBIDDEN', message: 'Bạn không có quyền truy cập chức năng này' } }));
+router.get('/evidence/catalog', needs(CAPABILITIES.F13_ANALYSIS_VIEW), controller.getEvidenceCatalog);
+router.get('/evidence/list', needs(CAPABILITIES.F13_ANALYSIS_VIEW), controller.getEvidenceList);
+router.get('/evidence/export', needs(CAPABILITIES.F13_ANALYSIS_VIEW), controller.exportEvidence);
+router.get('/evidence/history', needs(CAPABILITIES.F13_ANALYSIS_VIEW), controller.getEvidenceHistory);
+router.post('/evidence/analyses', express.json({ limit: '32kb' }), needs(CAPABILITIES.F13_ANALYSIS_WRITE), controller.postEvidenceAnalysis);
 
 module.exports = router;
