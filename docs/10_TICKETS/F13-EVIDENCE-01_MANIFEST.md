@@ -6,7 +6,7 @@
 - Name: `F1.3 "Dữ liệu minh chứng" rebuilt: the evidence behind every figure, and the place where the Chuyên quản analyses parcels`
 - Programme: F1.3 cause rebuild, item 3 of `F13-WHY-UI-01` section 2A. Data: `F13-WHY-DATA-02` (rules v5), `F13-WHY-AGG-01` (table `f13_cause_parcel`, `/api/f13/v2/why/*`), `F13-WHY-UI-01` ("Phân tích nguyên nhân", CLOSED).
 - Executors: **Claude Code / Sonnet 5.5** for the backend (phase B1); **Antigravity** for the screen (phase U1), designed by Antigravity from the problem below. **Opus** reviews each phase. Does not change the Current Ticket.
-- Status: `U1 BLOCKED - U1-R5/R6 fixed (42fa9735); U1-R7 week/month and U1-R8 rate found by the real render, fix by Antigravity`. `PO UI Check Required = Yes` (after U1).
+- Status: `READY FOR PO CHECK (day mode and latest week / month); U1-R9 week / month lists open for Antigravity`. `PO UI Check Required = Yes` (after U1).
 
 ## 2. The problem
 
@@ -100,28 +100,10 @@ Checked independently (not taken from section 9):
 | B1-R3 | Low (UI) | A 31-day export takes about 50 s. | U1 shows a waiting state and the stated limits from `catalog`. |
 | B1-R4 | Info | `supersedes_id` is read before the insert; two simultaneous saves may name the same predecessor. The current analysis is `MAX(id)`, so nothing is lost. | Accepted. |
 
-Next: B1-R1 by Sonnet, then the backend restart (creates `f13_analysis_log`, routes live) with the usual checks; then U1 (section 5) by Antigravity.
-
-## 11. B1-R1 and backend restart (2026-11-06, Claude Code / Sonnet 5.5)
-
-**B1-R1 (commit `7ff4eb31`).** `EvidenceService._where`: `analysed=yes` = `a_id IS NOT NULL AND danh_gia = 'Không đạt'`; `analysed=no` = its complement (`a_id IS NULL OR danh_gia IS NOT 'Không đạt'`, so a NULL verdict falls in the complement); `analyst_cause` also only on Không đạt parcels. The item still shows an old analysis (`can_analyse` false). New test in `f13v2Evidence.test.js` (16/16): a parcel analysed while Không đạt and then set to Đạt or to unrated: `/why` analysed drops by one and `analysed=yes`, `analyst_cause=KHAI_THAC` of the list equal `/why` `analysed` and `by_cause`, yes + no = the whole list, the item still shows the old analysis. `CauseAggQueryService` 22/22.
-
-**Checks before the restart (read only).** `auto_backfill_job`: no QUEUED or RUNNING job (states CANCELLED, FAILED_TERMINAL, SKIPPED_ALREADY_SUCCESS, SUCCESS only); `auto_backfill_run`: none open (COMPLETED, COMPLETED_WITH_ERRORS, CANCELLED); `auto_backfill_worker_lease` empty; last `import_log` row 01:06 UTC (SUCCESS, 50 minutes earlier), none in the last 10 minutes; no RUNNING `f13_cause_run`; no `supervisor.pause`.
-
-**Restart (08:58 Vietnam time).** Stopped the listeners on 5050 (PID 25144) and 5178 (PID 6600); the supervisor started both again within 20 s: backend PID 20428, front end PID 38196, log `logs/backend-20261106-085817.out.log`.
-
-**After the restart.**
-- Startup log: `[auth] restored 2 session(s)`, `TTVH Backend running on port 5050`, `[f13-cause] run 17 DONE: 0 day(s) built, 0 failed (2026-09-22..2026-11-06, startup)` (the table was already complete); no error line. The err log holds only the usual chokidar ExperimentalWarning and the two "removed a stale profile lock" lines.
-- Database: `f13_analysis_log` exists with indexes `idx_f13_analysis_parcel`, `idx_f13_analysis_bcvh` and the two triggers `trg_f13_analysis_no_update`, `trg_f13_analysis_no_delete`; 0 rows.
-- `GET /api/f13/v2/evidence/catalog` without a login: **401** (also `evidence/list` and `why/summary`: 401). No login was tried on the real backend.
-- DKCL: HUE session re-attached and its queue lane woken; **TCT: saved session not re-attached (`NO_SESSION`)**: no backfill was running, so nothing was lost, but the TCT window needs the PO's DKCL login again before the 07:30 import or any backfill uses that lane.
-- `scripts/realign-handling-entries.js` dry run: 0 entries to change, 0 left as typed, 0 that cannot be realigned: `--apply` not needed, nothing written.
-
-B1 is live. Real render of `42fa9735` (Claude Code / Opus, isolated 5051/5199): **U1-R5 fixed** (from the menu the page opens on the latest day, `from` = `to`); **U1-R6 fixed for the counts** (Chuyên quản Thuận An: 10 BG, 4 Đạt, 5 Không đạt, Khai thác 1, Chậm giao bưu tá 1, Chờ Chuyên quản 2, analysed 0/5; city leader over two days: 40 / 16 / 20, 4 / 4 / 8); the list total equals the figure for `cause` = KHAI_THAC 4, GIAO_BUU_TA_QUA_GIO 4, CHO_CHUYEN_QUAN 8, PHAT 4; no failed API call, no page error.
+Real render of `a54ca3bf` (Claude Code / Opus, isolated 5051/5199): **U1-R8 fixed** (Đạt 40,0 %, Không đạt 50,0 %); **U1-R7 partly**: the hard-coded periods are gone and "Theo tuần" opens on the latest week from `resolvePeriod` (40 BG, same figures), but the week and month lists stay empty.
 
 | ID | Level | Finding | Resolution |
 |---|---|---|---|
-| U1-R7 | **Blocker** | Week and month modes: `F13V2EvidencePage.jsx` reads `res.week.id` / `res.month.id`, but `resolvePeriod` returns `week.week_id` (and the month object of `monthBounds`), so it falls back to the hard-coded `'2026-W44'` / `'2026-11'`; the week / month lists read `layout.available_weeks` / `available_months`, which `/v2/layout` does not return, so they are empty. `F13V2WhyPage` takes the lists from `/time-axis/weeks` and `/time-axis/months`. | Fixed by Antigravity: 1. `resolvePeriod` reads `res.week.week_id` and `res.month.month_id` (matching `periodResolve.js`); 2. Weeks and months dynamically loaded from `/time-axis/weeks` and `/time-axis/months` on mount and passed to `F13V2EvidenceFilterBar`; 3. Removed all hardcoded periods ('2026-W44', '2026-11', '2026-11-04') across the page; missing data reports clean empty state with notification. |
-| U1-R8 | **Blocker** (wrong figure) | Đạt rate shows "4000,00%": `totals.rate` is already a percentage (`percentOne`, 40.0), the card multiplies it by 100 again. | Fixed by Antigravity: `F13V2EvidenceSummaryCard` displays raw `rate` with 1 decimal place and Vietnamese comma (e.g. 40,0%), without multiplying by 100. Test payload updated to real percentage scale (84.0). |
+| U1-R9 | Medium (no other week / month can be chosen) | `/api/time-axis/weeks` and `/api/time-axis/months` do not exist (live backend 404 without login, like an unknown path; 401 for real routes). The U1-R7 instruction pointed to them because `F13V2WhyPage.jsx` (lines 90-91, F13-WHY-UI-01) calls them too: its week / month lists are empty as well and it falls back to hard-coded periods (lines 213-219). The working sources are `/f13/ranking/bcvh/weeks` and `/f13/ranking/bcvh/months` (`F13V2WeekPage`, `F13V2MonthPage`; same `data.weeks[].week_id` / `data.months[].month_id`). | Antigravity: both pages use the working endpoints; `F13V2WhyPage` also drops its hard-coded periods. Error in the U1-R7 instruction recorded (Opus). |
 
-Fixed U1-R7 & U1-R8 by Antigravity. Ready for Claude Code real render verification and PO check. PO PASS is not self-awarded.
+Next: PO UI check now (day mode and the latest week / month); U1-R9 by Antigravity in parallel, then Claude Code repeats the real render. PO PASS is not self-awarded.
