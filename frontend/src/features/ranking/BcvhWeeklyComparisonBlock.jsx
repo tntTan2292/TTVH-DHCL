@@ -495,9 +495,30 @@ export default function BcvhWeeklyComparisonBlock({
   const headCurrent = headerPeriod('current');
   const headCompare = headerPeriod('compare');
 
+  const samePeriodCheckbox = (
+    <label className="flex cursor-pointer items-start gap-2.5 rounded-xl border border-slate-200/90 bg-white px-3 py-2.5 text-xs font-bold text-slate-700 shadow-2xs hover:border-blue-400 transition-[border-color] duration-150">
+      <input
+        type="checkbox"
+        checked={samePeriod}
+        onChange={(e) => setSamePeriod(e.target.checked)}
+        className="mt-0.5 h-4 w-4 shrink-0 cursor-pointer accent-blue-700"
+      />
+      <span className="flex flex-col gap-0.5">
+        <span>So sánh cùng kỳ</span>
+        <span className="text-[11px] font-normal text-slate-500">
+          Chỉ so sánh những ngày đầu tháng có dữ liệu ở cả hai tháng (ví dụ 01–05 của cả hai tháng).
+        </span>
+      </span>
+    </label>
+  );
+
   return (
     <div className="w-full space-y-5">
     <section className="bcvh-weekly-operation-card w-full rounded-2xl border border-slate-200/90 bg-white p-3 sm:p-5 shadow-sm hover:shadow-md transition-[box-shadow,border-color] duration-150 motion-reduce:transition-none">
+      {/* The month page picks the month in its own filter bar (the compared month is the one before): only the "cùng kỳ" tick stays here. */}
+      {controlledPeriod && isMonth ? (
+        <div className="mb-4 flex flex-wrap items-center gap-3">{samePeriodCheckbox}</div>
+      ) : null}
       {/* PO Requirement 2: Dedicated, Independent Filter Toolbar (đưa lên trên cùng để không cản trở chụp ảnh bảng dữ liệu) */}
       {!controlledPeriod && (
         <div className="mb-5 rounded-xl border border-slate-200/90 bg-slate-50/80 p-3.5 sm:p-4 shadow-2xs">
@@ -573,20 +594,7 @@ export default function BcvhWeeklyComparisonBlock({
               <CalendarRange className="h-3.5 w-3.5" />
               So sánh cùng kỳ tháng trước
             </button>
-            <label className="flex cursor-pointer items-start gap-2.5 rounded-xl border border-slate-200/90 bg-white px-3 py-2.5 text-xs font-bold text-slate-700 shadow-2xs hover:border-blue-400 transition-[border-color] duration-150">
-              <input
-                type="checkbox"
-                checked={samePeriod}
-                onChange={(e) => setSamePeriod(e.target.checked)}
-                className="mt-0.5 h-4 w-4 shrink-0 cursor-pointer accent-blue-700"
-              />
-              <span className="flex flex-col gap-0.5">
-                <span>So sánh cùng kỳ</span>
-                <span className="text-[11px] font-normal text-slate-500">
-                  Chỉ so sánh những ngày đầu tháng có dữ liệu ở cả hai tháng (ví dụ 01–05 của cả hai tháng).
-                </span>
-              </span>
-            </label>
+            {samePeriodCheckbox}
             </div>
           </div>
         ) : null}
