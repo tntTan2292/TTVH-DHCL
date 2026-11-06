@@ -6,7 +6,7 @@
 - Name: `F1.3 "Dữ liệu minh chứng" rebuilt: the evidence behind every figure, and the place where the Chuyên quản analyses parcels`
 - Programme: F1.3 cause rebuild, item 3 of `F13-WHY-UI-01` section 2A. Data: `F13-WHY-DATA-02` (rules v5), `F13-WHY-AGG-01` (table `f13_cause_parcel`, `/api/f13/v2/why/*`), `F13-WHY-UI-01` ("Phân tích nguyên nhân", CLOSED).
 - Executors: **Claude Code / Sonnet 5.5** for the backend (phase B1); **Antigravity** for the screen (phase U1), designed by Antigravity from the problem below. **Opus** reviews each phase. Does not change the Current Ticket.
-- Status: `U1 DONE (Antigravity e1c5443b), Opus review PASS (section 12) - READY FOR PO CHECK`. `PO UI Check Required = Yes` (after U1).
+- Status: `U1 BLOCKED - blank page at PO check (U1-R4), fix by Antigravity`. `PO UI Check Required = Yes` (after U1).
 
 ## 2. The problem
 
@@ -136,4 +136,6 @@ B1 is live. Next: U1 (section 5) by Antigravity.
 | U1-R2 | Low (pre-existing, not U1) | `F13V2WhyPage.jsx` lines 249 and 256 (commit `0f55278a`, F13-WHY-UI-01) use bare `URLSearchParams`: `oxlint -D no-undef` reports 2 errors on the folder. | Small follow-up for Sonnet: `globalThis.URLSearchParams` like U1 does; no rule switched off. |
 | U1-R3 | Info | The menu points to the new page before PO acceptance (manifest section 5 allows it; the old route remains reachable by address). | PO check decides; after acceptance the old route redirects. |
 
-Next: PO UI check (checklist in the Antigravity report, summarised for the PO in chat). PO PASS is not self-awarded.
+| U1-R4 | **Blocker (PO check 2026-11-06 09:27)** | `/f13/v2/evidence` renders a blank page. `F13V2EvidencePage.jsx` line 110 calls `buildWhyUnitOptions(layout)`, whose signature is `({ layout, metaUnits })`: on the first render `layout` is `null`, destructuring throws and React unmounts the page. Line 114 calls `resolveEffectiveBcvh(bcvhParam, unitOptions)`, signature `({ currentParam, unitOptions, layout })`. The page also never loads the unit names (`/f13/dashboard/meta`) that `F13V2WhyPage` passes as `metaUnits`. Missed by the Opus review: tests, lint and build do not render the page. | Antigravity fixes (prompt in chat); a render-level check is added so a crash on first render fails a test. |
+
+Next: U1-R4 fix, then the PO UI check again. PO PASS is not self-awarded.
