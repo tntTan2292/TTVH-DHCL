@@ -6,7 +6,7 @@
 - Name: `F1.3 "Dữ liệu minh chứng" rebuilt: the evidence behind every figure, and the place where the Chuyên quản analyses parcels`
 - Programme: F1.3 cause rebuild, item 3 of `F13-WHY-UI-01` section 2A. Data: `F13-WHY-DATA-02` (rules v5), `F13-WHY-AGG-01` (table `f13_cause_parcel`, `/api/f13/v2/why/*`), `F13-WHY-UI-01` ("Phân tích nguyên nhân", CLOSED).
 - Executors: **Claude Code / Sonnet 5.5** for the backend (phase B1); **Antigravity** for the screen (phase U1), designed by Antigravity from the problem below. **Opus** reviews each phase. Does not change the Current Ticket.
-- Status: `U1 BLOCKED - blank page at PO check (U1-R4), fix by Antigravity`. `PO UI Check Required = Yes` (after U1).
+- Status: `U1 BLOCKED - U1-R4 fixed (7d8e5f1b), U1-R5 and U1-R6 found by a real render, fix by Antigravity`. `PO UI Check Required = Yes` (after U1).
 
 ## 2. The problem
 
@@ -135,7 +135,11 @@ B1 is live. Next: U1 (section 5) by Antigravity.
 | U1-R1 | Low | When the evidence-only filters `analysed`, `analyst_cause` or `search` are set, the summary card (from `/why/summary`, which ignores them) no longer equals the list total. | Acceptable by design (system figures of the period / unit); the PO checks whether a hint "Tổng quan không áp dụng lọc phân tích / tìm kiếm" is wanted. |
 | U1-R2 | Low (pre-existing, not U1) | `F13V2WhyPage.jsx` lines 249 and 256 (commit `0f55278a`, F13-WHY-UI-01) use bare `URLSearchParams`: `oxlint -D no-undef` reports 2 errors on the folder. | Small follow-up for Sonnet: `globalThis.URLSearchParams` like U1 does; no rule switched off. |
 | U1-R3 | Info | The menu points to the new page before PO acceptance (manifest section 5 allows it; the old route remains reachable by address). | PO check decides; after acceptance the old route redirects. |
-
 | U1-R4 | **Blocker (PO check 2026-11-06 09:27)** | `/f13/v2/evidence` renders a blank page. `F13V2EvidencePage.jsx` line 110 calls `buildWhyUnitOptions(layout)`, whose signature is `({ layout, metaUnits })`: on the first render `layout` is `null`, destructuring throws and React unmounts the page. Line 114 calls `resolveEffectiveBcvh(bcvhParam, unitOptions)`, signature `({ currentParam, unitOptions, layout })`. The page also never loads the unit names (`/f13/dashboard/meta`) that `F13V2WhyPage` passes as `metaUnits`. Missed by the Opus review: tests, lint and build do not render the page. | Fixed by Antigravity: 1. `buildWhyUnitOptions({ layout, metaUnits })` with metaUnits loaded from `/f13/dashboard/meta`; 2. `resolveEffectiveBcvh({ currentParam: bcvhParam, unitOptions, layout })`; 3. mount effect runs once on mount; 4. audited props (`SortableTh` field & sort, `BlockCaptureButton` blockTitle); 5. render-level state resolution tests added (53/53 pass, npm run build clean, 0 oxlint warnings/errors). |
 
-Next: PO UI check of /f13/v2/evidence. PO PASS is not self-awarded.
+| U1-R5 | **Blocker** (real render, isolated 5051/5199, 2026-11-06) | Opened from the menu (no date in the address) the page shows "Yêu cầu from và to, hoặc week, hoặc month", zero figures and an empty list: it waits for `layout.latest_date`, which `/v2/layout` does not return. `F13V2WhyPage` resolves the default day with `resolvePeriod({ kind: 'latest' })` and sets `from` = `to`. | Antigravity: same default as `F13V2WhyPage` (lines 118-153). |
+| U1-R6 | **Blocker** (same render) | The summary card is always 0 (volume, Đạt, Không đạt, cause lines, analysed) while the list shows 20 / 40 rows: it reads `summary.system`, `summary.causes`, `summary.analysed`, but `/why/summary` returns `data.totals` (`volume`, `passed`, `failed`, `unrated`, `rate`, `cause_mix`, `analysed`, `analysed_mix`). Rate shown "0.00%" next to "0,00%". | Antigravity: read `totals` with the real field names (as `F13V2WhyDiagnosticCard` does), Vietnamese decimal comma everywhere; a test with a real `/why/summary` payload. |
+
+Real render after `7d8e5f1b` (Claude Code / Opus; Playwright on an isolated backend seeded like `f13v2Evidence.test.js`, no live data): the page renders (U1-R4 fixed); with a date in the address the list, the detail modal (milestones and sources) and the analysis modal work; the Chuyên quản sees 10 Ghi buttons on the failed parcels of the unit, a city leader sees 40 rows and none; saving "Khai thác" on a waiting parcel without a note succeeds (one POST, no error).
+
+Next: U1-R5 and U1-R6 by Antigravity, then Claude Code repeats the real render before the PO check. PO PASS is not self-awarded.
