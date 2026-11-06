@@ -6,7 +6,7 @@
 - Name: `F1.3 "Dữ liệu minh chứng" rebuilt: the evidence behind every figure, and the place where the Chuyên quản analyses parcels`
 - Programme: F1.3 cause rebuild, item 3 of `F13-WHY-UI-01` section 2A. Data: `F13-WHY-DATA-02` (rules v5), `F13-WHY-AGG-01` (table `f13_cause_parcel`, `/api/f13/v2/why/*`), `F13-WHY-UI-01` ("Phân tích nguyên nhân", CLOSED).
 - Executors: **Claude Code / Sonnet 5.5** for the backend (phase B1); **Antigravity** for the screen (phase U1), designed by Antigravity from the problem below. **Opus** reviews each phase. Does not change the Current Ticket.
-- Status: `READY - B1 FOR CLAUDE CODE, THEN U1 FOR ANTIGRAVITY`. `PO UI Check Required = Yes` (after U1).
+- Status: `B1 ACCEPTED (Opus, section 10) - B1 follow-up R1 and backend restart for Claude Code / Sonnet; U1 for Antigravity`. `PO UI Check Required = Yes` (after U1).
 
 ## 2. The problem
 
@@ -56,6 +56,7 @@ Never change the official F1.3 data or the cause rules; analyses never change th
 
 - 2026-11-06: problem and PO decisions V1-V4 recorded (Claude Code / Opus 5.5).
 - 2026-11-06: B1 implemented (section 9), for Opus review.
+- 2026-11-06: B1 reviewed and accepted (section 10, Claude Code / Opus 5.5).
 
 ## 9. B1 results (2026-11-06, Claude Code / Sonnet 5.5; for Opus review, not self-approved)
 
@@ -78,3 +79,24 @@ Never change the official F1.3 data or the cause rules; analyses never change th
 - Not done by design: no screen, no change to cause rules or official data, no restart.
 
 READY FOR OPUS REVIEW.
+
+## 10. Opus review of B1 (2026-11-06, Claude Code / Opus 5.5; commit `224dd196`)
+
+**Verdict: B1 ACCEPTED - V1-V4 implemented as decided, system figures unchanged, count parity 0 differences. No blocker; one small follow-up (B1-R1) before the restart.**
+
+Checked independently (not taken from section 9):
+- **Write permission (V1, V3, V4).** `f13.analysis.write` only on `CHUYEN_QUAN`, `GD_BCVH`, `ADMIN` (`roles.js`); the route refuses without it (403 `FORBIDDEN`). `record()` refuses a parcel outside `scopedBcvhList` (403 `OUT_OF_SCOPE`) and any city-wide account other than the admin (scope `null`), a parcel that is not Không đạt (`NOT_FAILED`), a cause outside the V4 list (`INVALID_CAUSE`, also a table CHECK and a load-time guard that the two lists are identical), a missing note for Khác / an explained parcel / a different choice (`NOTE_REQUIRED`), over 1 000 characters. The rule "note also when confirming an explained parcel" is V3 read literally ("a reason is then mandatory"), accepted.
+- **Append-only.** `f13_analysis_log` has BEFORE UPDATE / BEFORE DELETE triggers that abort; the service has no UPDATE or DELETE; current = `MAX(id)` per parcel; history newest first with the system conclusion at that time and `classifier_version`. No foreign key to the rebuildable cause table (correct).
+- **V2.** `/why/*` only gains `analysed` and `analysed_mix` (a separate query over failed parcels with the same WHERE); counters, cause mix and hints are computed exactly as before; `/why` is not response-cached, so the analysed counts are current.
+- **Evidence = figure.** One WHERE builder (`CauseAggQueryService._where`, `forParcels`) for figures, `/why/parcels`, the evidence list, its count and the export. Parity rerun on the live file read-only (`scripts/f13_evidence_parity.js --readonly`, opened `OPEN_READONLY`, the log as an empty TEMP table): **6 380 checks, 0 differences, 61 s**. Export = whole filtered set by day, limits checked before the first byte.
+- **Restrictions.** No write statement outside the INSERT into the log; the parity script writes nothing to the file; no `eslint-disable`, `.only` or `skip` added (the backend has no ESLint config; nothing switched off). The three edited old tests only add the new capability to exact lists.
+- Suites rerun one file at a time with `--experimental-sqlite`: `f13v2Evidence` 15/15, `CauseAggQueryService` 22/22, `migrate_f13_evidence_01_schema` 2/2, `resolveAccess` 10/10.
+
+| ID | Level | Finding | Resolution |
+|---|---|---|---|
+| B1-R1 | Low (fix before restart) | `analysed=yes / no` of the list tests only `a_id`, while `/why` `analysed` counts failed parcels only. A parcel analysed while Không đạt that becomes Đạt or unrated after a TCT reload or cause rebuild would be in `analysed=yes` but not in the `/why` figure: count parity breaks for that filter. | Sonnet: `analysed=yes` = `a_id IS NOT NULL AND danh_gia = 'Không đạt'`, `analysed=no` = its complement; same for `analyst_cause`; the item keeps showing an old analysis; one test with a parcel whose verdict changes after the analysis. |
+| B1-R2 | Low (UI) | System line `PHAT_KHONG_CHI_TIET` (Phát without detail, about 25 BG a week) has no analyst choice of its own: any choice counts as "different" and needs a note. | Accepted (the analyst states the Phát detail); U1 says so beside the choice. |
+| B1-R3 | Low (UI) | A 31-day export takes about 50 s. | U1 shows a waiting state and the stated limits from `catalog`. |
+| B1-R4 | Info | `supersedes_id` is read before the insert; two simultaneous saves may name the same predecessor. The current analysis is `MAX(id)`, so nothing is lost. | Accepted. |
+
+Next: B1-R1 by Sonnet, then the backend restart (creates `f13_analysis_log`, routes live) with the usual checks; then U1 (section 5) by Antigravity.
