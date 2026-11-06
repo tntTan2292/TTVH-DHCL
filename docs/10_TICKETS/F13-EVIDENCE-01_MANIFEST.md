@@ -6,7 +6,7 @@
 - Name: `F1.3 "Dữ liệu minh chứng" rebuilt: the evidence behind every figure, and the place where the Chuyên quản analyses parcels`
 - Programme: F1.3 cause rebuild, item 3 of `F13-WHY-UI-01` section 2A. Data: `F13-WHY-DATA-02` (rules v5), `F13-WHY-AGG-01` (table `f13_cause_parcel`, `/api/f13/v2/why/*`), `F13-WHY-UI-01` ("Phân tích nguyên nhân", CLOSED).
 - Executors: **Claude Code / Sonnet 5.5** for the backend (phase B1); **Antigravity** for the screen (phase U1), designed by Antigravity from the problem below. **Opus** reviews each phase. Does not change the Current Ticket.
-- Status: `B1 ACCEPTED (Opus, section 10) - B1 follow-up R1 and backend restart for Claude Code / Sonnet; U1 for Antigravity`. `PO UI Check Required = Yes` (after U1).
+- Status: `U1 DONE (Antigravity e1c5443b), Opus review PASS (section 12) - READY FOR PO CHECK`. `PO UI Check Required = Yes` (after U1).
 
 ## 2. The problem
 
@@ -57,6 +57,7 @@ Never change the official F1.3 data or the cause rules; analyses never change th
 - 2026-11-06: problem and PO decisions V1-V4 recorded (Claude Code / Opus 5.5).
 - 2026-11-06: B1 implemented (section 9), for Opus review.
 - 2026-11-06: B1 reviewed and accepted (section 10, Claude Code / Opus 5.5).
+- 2026-11-06: U1 built by Antigravity (`e1c5443b`), reviewed by Opus (section 12); READY FOR PO CHECK.
 
 ## 9. B1 results (2026-11-06, Claude Code / Sonnet 5.5; for Opus review, not self-approved)
 
@@ -117,3 +118,22 @@ Next: B1-R1 by Sonnet, then the backend restart (creates `f13_analysis_log`, rou
 - `scripts/realign-handling-entries.js` dry run: 0 entries to change, 0 left as typed, 0 that cannot be realigned: `--apply` not needed, nothing written.
 
 B1 is live. Next: U1 (section 5) by Antigravity.
+
+## 12. U1 and its Opus review (2026-11-06; Antigravity commit `e1c5443b`, review Claude Code / Opus 5.5)
+
+**Built (front end only).** Route `/f13/v2/evidence`; the F1.3 menu item "Dữ liệu minh chứng" now opens it; the old `/f13/evidence` route stays until the PO accepts. `F13V2EvidencePage` with filter bar, summary card, table, detail modal (five milestones and their sources, TCT hours and limit, flags, hints, link to Hành trình bưu gửi), analysis modal (V4 list from the catalog, note rule, history tab), Excel export with waiting state and stated limits; "Mở minh chứng" in the parcel list of "Phân tích nguyên nhân". Helpers and two test files.
+
+**Review verdict: PASS technically - READY FOR PO CHECK. No blocker.**
+- **Figure -> evidence.** The link carries the parcel-list filter of `/why`, which the backend itself echoes (`_filterEcho`: `from`, `to`, `bcvh`, `route`, `route_scope`, `postman`, plus the clicked `verdict` / `cause`); the page reads every one of these and the other /why keys and sends them unchanged to `/evidence/list`, so the list total is the clicked figure (backend parity, section 9-10).
+- **Summary** comes from `/why/summary` with the same filter, not from the page rows (V2: system figures plus `analysed` / `analysed_mix`).
+- **Write gating** `catalog.can.write && item.can_analyse`; the note rule in the form matches the backend (Khác, or a system line present); API errors shown as returned; scope stays on the server.
+- **Sorting** by column titles works on the 50 rows of the page and says so; the server order (priority / date) is the order of the whole list.
+- Reran: `node --test` of `f13EvidenceHelpers`, `f13EvidenceBlocksStandard`, `f13WhyHelpers`, `f13WhyBlocksStandard`, `reportBlockStandard`: 40/40; `oxlint -D no-undef` on `src/features/f13v2/`, `App.jsx`, `appNavigation.jsx`: the U1 files clean; `npm run build` OK. No `eslint-disable` / `oxlint-disable`, no purple or dark fills, camera button on the summary card, table and detail.
+
+| ID | Level | Finding | Resolution |
+|---|---|---|---|
+| U1-R1 | Low | When the evidence-only filters `analysed`, `analyst_cause` or `search` are set, the summary card (from `/why/summary`, which ignores them) no longer equals the list total. | Acceptable by design (system figures of the period / unit); the PO checks whether a hint "Tổng quan không áp dụng lọc phân tích / tìm kiếm" is wanted. |
+| U1-R2 | Low (pre-existing, not U1) | `F13V2WhyPage.jsx` lines 249 and 256 (commit `0f55278a`, F13-WHY-UI-01) use bare `URLSearchParams`: `oxlint -D no-undef` reports 2 errors on the folder. | Small follow-up for Sonnet: `globalThis.URLSearchParams` like U1 does; no rule switched off. |
+| U1-R3 | Info | The menu points to the new page before PO acceptance (manifest section 5 allows it; the old route remains reachable by address). | PO check decides; after acceptance the old route redirects. |
+
+Next: PO UI check (checklist in the Antigravity report, summarised for the PO in chat). PO PASS is not self-awarded.
