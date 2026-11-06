@@ -6,7 +6,7 @@
 - Name: `F1.3 "Dữ liệu minh chứng" rebuilt: the evidence behind every figure, and the place where the Chuyên quản analyses parcels`
 - Programme: F1.3 cause rebuild, item 3 of `F13-WHY-UI-01` section 2A. Data: `F13-WHY-DATA-02` (rules v5), `F13-WHY-AGG-01` (table `f13_cause_parcel`, `/api/f13/v2/why/*`), `F13-WHY-UI-01` ("Phân tích nguyên nhân", CLOSED).
 - Executors: **Claude Code / Sonnet 5.5** for the backend (phase B1); **Antigravity** for the screen (phase U1), designed by Antigravity from the problem below. **Opus** reviews each phase. Does not change the Current Ticket.
-- Status: `READY FOR PO CHECK (day mode and latest week / month); U1-R9 week / month lists open for Antigravity`. `PO UI Check Required = Yes` (after U1).
+- Status: `READY FOR PO CHECK (day, week and month modes; U1-R9 fixed in d92c6828 and checked on a real render)`. `PO UI Check Required = Yes` (after U1).
 
 ## 2. The problem
 
@@ -107,3 +107,10 @@ Real render of `a54ca3bf` (Claude Code / Opus, isolated 5051/5199): **U1-R8 fixe
 | U1-R9 | Medium (no other week / month can be chosen) | `/api/time-axis/weeks` and `/api/time-axis/months` do not exist (live backend 404 without login, like an unknown path; 401 for real routes). The U1-R7 instruction pointed to them because `F13V2WhyPage.jsx` (lines 90-91, F13-WHY-UI-01) calls them too: its week / month lists are empty as well and it falls back to hard-coded periods (lines 213-219). The working sources are `/f13/ranking/bcvh/weeks` and `/f13/ranking/bcvh/months` (`F13V2WeekPage`, `F13V2MonthPage`; same `data.weeks[].week_id` / `data.months[].month_id`). | Fixed by Antigravity: 1. `F13V2EvidencePage.jsx` switched to `/f13/ranking/bcvh/weeks` and `/f13/ranking/bcvh/months`; 2. `F13V2WhyPage.jsx` switched similarly, dropped hard-coded periods ('2026-W44', '2026-10', '2026-11-04') and fixed bare URLSearchParams; 3. Static test added verifying no file in `features/f13v2` calls `/time-axis/`. |
 
 Fixed U1-R9 by Antigravity. Ready for Claude Code real render verification and PO check. PO PASS is not self-awarded.
+
+Real render of `d92c6828` (Claude Code / Opus, isolated 5051/5199, the real `f13Routes` mounted, seed of 21/09, 19/10 and 20/10; no live login): **U1-R9 fixed.** Both pages call `/api/f13/ranking/bcvh/weeks` and `/months` (200), no `/time-axis/` call, no page error.
+- `/f13/v2/evidence`: week list Tuần 42 / Tuần 38, month list Tháng 10 / Tháng 9. W42 40 BG, W38 20 BG, 2026-10 40 BG, 2026-09 20 BG. The URL follows each choice.
+- `/f13/v2/why`: same lists. Tuần 38 gives N 20, Đạt 8, Không đạt 10 (2 not rated), the same as the seed. The hard-coded periods are gone (diff read).
+- Checks rerun: `node --test f13Evidence*.test.js f13Why*.test.js` 40/40. `oxlint -D no-undef src/features/f13v2/`: the two pages are clean. One error is left outside this fix, `f13v2Helpers.js:189` (`URLSearchParams`, same false positive as U1-R2).
+
+Still open: U1-R1 (whether the summary block gets a note, PO to decide). Next: PO UI check in day / week / month. On PO PASS: redirect `/f13/evidence` to `/f13/v2/evidence`, then close the ticket. PO PASS is not self-awarded.
