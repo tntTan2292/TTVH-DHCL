@@ -632,6 +632,12 @@ export default function IntegratedTrendRiskWorkspace({
             className="border-none bg-transparent text-xs font-semibold text-slate-800 focus:outline-none cursor-pointer"
             aria-label={indicator.unitLabel === 'Đơn vị chấp nhận' ? 'Bộ lọc đơn vị chấp nhận' : 'Bộ lọc BCVH'}
           >
+            {/* A value outside the list must never look like the first unit: say what the view really is. */}
+            {!bcvhOptions.some((option) => option.value === (maBcvh || 'all')) ? (
+              <option value={maBcvh || 'all'} disabled>
+                {(maBcvh || 'all') === 'all' ? 'Toàn bộ phạm vi được cấp quyền' : String(maBcvh)}
+              </option>
+            ) : null}
             {bcvhOptions.map((option) => (
               <option key={option.value} value={option.value}>
                 {option.label}

@@ -238,12 +238,15 @@ export default function F13V2DayPage() {
         ? `${selectedBcvhUnit.ten_bcvh} (${bcvhParam})`
         : `BCVH ${bcvhParam}`;
 
+  // The trend dropdown: a city-wide account gets "Tất cả" on top (it is the default view); a scoped account only its own units.
   const bcvhOptions = useMemo(() => {
-    return metaUnits.map((u) => ({
+    const units = (isScoped ? scopedUnits || [] : metaUnits).map((u) => ({
       value: u.ma_bcvh,
       label: u.ten_bcvh ? `${u.ten_bcvh} (${u.ma_bcvh})` : `BCVH ${u.ma_bcvh}`,
     }));
-  }, [metaUnits]);
+    if (layout?.units?.allow_all !== true || !units.length) return units;
+    return [{ value: 'all', label: `Tất cả ${indicator.unitLabel || 'BCVH'}` }, ...units];
+  }, [isScoped, scopedUnits, metaUnits, layout, indicator.unitLabel]);
 
   return (
     <BcvhUnitsProvider units={isScoped || indicator.dynamicUnits ? scopedUnits : null} scoped={isScoped}>

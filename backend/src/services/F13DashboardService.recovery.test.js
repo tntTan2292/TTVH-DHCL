@@ -263,7 +263,7 @@ test('daily nationwide rank helper uses one batched query and Checkpoint 004 ord
 
   assert.match(source, /getNationalRanksForDates\(dates = \[\]\)/);
   assert.match(source, /WHERE ngay_do_kiem IN \(\$\{placeholders\}\)/);
-  assert.match(source, /ORDER BY ngay_do_kiem ASC, tl_ptc_dung_qd_ct DESC, sl_bg_ptc DESC/);
+  assert.match(source, /ORDER BY ngay_do_kiem ASC, \(sl_ptc_dung_qd_ct \* 1\.0 \/ NULLIF\(sl_bg_ptc, 0\)\) DESC, sl_bg_ptc DESC/);
   assert.doesNotMatch(source, /for \(const date.*await this\._getNationalRankForDate/s);
 });
 

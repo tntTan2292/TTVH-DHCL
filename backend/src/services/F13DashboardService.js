@@ -360,7 +360,7 @@ class F13DashboardService {
                 tl_ptc_dung_qd_ct
             FROM fact_f13_national
             WHERE ngay_do_kiem = ?
-            ORDER BY tl_ptc_dung_qd_ct DESC, sl_bg_ptc DESC
+            ORDER BY (sl_ptc_dung_qd_ct * 1.0 / NULLIF(sl_bg_ptc, 0)) DESC, sl_bg_ptc DESC
         `, [dateStr]);
 
         if (!rows.length) return null;
@@ -479,7 +479,7 @@ class F13DashboardService {
                 tl_ptc_dung_qd_ct
             FROM fact_f13_national
             WHERE ngay_do_kiem IN (${placeholders})
-            ORDER BY ngay_do_kiem ASC, tl_ptc_dung_qd_ct DESC, sl_bg_ptc DESC
+            ORDER BY ngay_do_kiem ASC, (sl_ptc_dung_qd_ct * 1.0 / NULLIF(sl_bg_ptc, 0)) DESC, sl_bg_ptc DESC
         `, uniqueDates);
 
         const rowsByDate = rows.reduce((acc, row) => {
