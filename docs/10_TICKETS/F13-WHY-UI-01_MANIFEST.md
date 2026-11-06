@@ -7,7 +7,7 @@
 - Programme: F1.3 cause rebuild. Data from `F13-WHY-DATA-02` (rules v5, CLOSED) and `F13-WHY-AGG-01` (aggregation layer, P1-P4 accepted).
 - Owner: **Antigravity** (UI/UX, its strength: it designs and builds the screen). Claude Code: backend support only if a figure is missing from the API (ask, do not invent). Opus: independent review of the result.
 - **PO decision 2026-11-05:** Claude gives Antigravity the problem, not a screen design; Antigravity designs and builds; it must not reproduce the UI defects the PO has had to fix recently (section 6).
-- Status: `STEP 1 PO UI PASS (2026-11-05); STEP 2 READY FOR ANTIGRAVITY` (two steps, section 2A; PO 2026-11-05). `PO UI Check Required = Yes`. Does not change the Current Ticket.
+- Status: `STEP 1 PO UI PASS; STEP 2 READY FOR PO CHECK (Opus review closed, section 10)` (two steps, section 2A; PO 2026-11-05). `PO UI Check Required = Yes`. Does not change the Current Ticket.
 
 ## 2. The problem (PO, in his words, 2026-11-05)
 
@@ -105,3 +105,16 @@ PO checklist (step 1): menu F1.3 > "Phân tích nguyên nhân"; from Kết quả
 **PO re-check of S1-PO1 (2026-11-05):** "Tất cả BCVH" now exists and the page opens on it, but the select still showed BCVH A Lưới. Cause (Claude Code): the page state and the option list were right (simulated with the live layout contract: options `all, 535790, ...`, resolved value `all`); the browser restored the select's previous choice (A Lưới, chosen in the earlier check) on reload, and a controlled select whose props do not change is not re-applied by React. Fix (Claude Code, small): `autoComplete="off"` and a `key` built from the value and the option list on the unit select of `F13V2WhyFilterBar.jsx`, so the select is re-created whenever the state or the options change; source test added in `f13WhyBlocksStandard.test.js` (5/5). Gates: `f13WhyHelpers` 11/11, build OK, `no-undef` 0 on the file. Back to the PO for the re-check (reload the page once).
 
 **Step 1 PO UI PASS (2026-11-05, in chat: "PASS bước 1")** after the S1-PO1 re-check (commits `0f55278a`, `cc9302b8`, `9952b476`, `bfcb7482`, `ff65ba3d`). Step 2 (postman level and parcel list, section 2A) handed to Antigravity.
+
+## 10. Opus review of step 2 (2026-11-06, Claude Code / Opus 5.5; commit `fb05ffa3` by Antigravity)
+
+**Verdict: step 2 sound - every figure opens exactly its parcels; one rule-11 breach fixed by Claude Code.**
+
+- Gates repeated: `f13WhyHelpers` 15/15, `f13WhyBlocksStandard` 7/7, `reportBlockStandard` 6/6, `f13v2Helpers` 11/11, `appNavigation` 9/9; build OK; `oxlint -D no-undef` on `src/features/f13v2`: browser globals only.
+- **Count parity on live data (read only, through the service the page calls):** for 28/10/2026, week 2026-W44 and October 2026, for the city total, every BCVH, its first four routes and their first three postmen: volume, Đạt, Không đạt, every cause line (incl. Phát details and "không có chi tiết"), Chờ Chuyên quản and each of its reasons, and the four time-left buckets - opened with the same filters the page builds (`{...row.filter, verdict / cause / reason / remaining}`): **4 925 checks, 0 differences**.
+- The parcel link `/f13/v2/hanh-trinh?date=&search=&bcvh=` matches the parameters `F13V2JourneyPage` reads.
+- **Rule 11 breach (fixed):** the report says no disable directive is left, but `F13V2WhyParcelModal.jsx` had `// eslint-disable-line react-hooks/exhaustive-deps` on the open/filter effect. Claude Code removed it: the effect now depends on `[isOpen, filter, loadParcels]` and reads the current sort through a ref, same behaviour (reopen on page 1 with the sort in force). Gates re-run green.
+- Low (for the PO's eye): route and postman cause chips show Không trọn lô, Khai thác, Vận chuyển, Phát and Chờ Chuyên quản; "Khai thác - Vận chuyển chưa phân biệt" has no chip at those two levels (it is in the BCVH card), so the chips of a route may not add up to its failed count when that cause occurs.
+- An uncommitted blank-line edit by Antigravity on `F13V2WhyPostmanSubTable.jsx` is left as it is (not part of this review).
+
+PO checklist (step 2): expand a postman route with "Bưu tá"; the first-handover postmen and "Chưa có bưu tá" appear with volume, failed and cause chips, the neutral footnote; click any number or chip (BCVH card, route, postman, a Chờ Chuyên quản reason, a time-left bucket): the list opens with the same count; causes and reasons in Vietnamese; "Xem hành trình" opens Hành trình bưu gửi on that parcel and day.

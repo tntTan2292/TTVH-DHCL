@@ -32,6 +32,9 @@ export default function F13V2WhyParcelModal({
   const [error, setError] = useState(null);
   const [page, setPage] = useState(1);
   const [sort, setSort] = useState({ field: 'ngay_do_kiem', direction: 'desc' });
+  // The sort in force when the list (re)opens: read through a ref so the open/filter effect depends only on what opens it.
+  const sortRef = useRef(sort);
+  sortRef.current = sort;
 
   const loadParcels = useCallback(async (targetPage, currentSort) => {
     if (!filter) return;
@@ -61,13 +64,13 @@ export default function F13V2WhyParcelModal({
   useEffect(() => {
     if (isOpen && filter) {
       setPage(1);
-      loadParcels(1, sort);
+      loadParcels(1, sortRef.current);
     } else {
       setParcels([]);
       setMeta(null);
       setError(null);
     }
-  }, [isOpen, filter]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [isOpen, filter, loadParcels]);
 
   // Handle page change
   const handlePageChange = (newPage) => {
