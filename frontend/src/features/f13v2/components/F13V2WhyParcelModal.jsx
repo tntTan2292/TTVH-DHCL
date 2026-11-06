@@ -139,6 +139,18 @@ export default function F13V2WhyParcelModal({
           </div>
 
           <div className="flex items-center gap-2" data-no-capture="true">
+            <a
+              href={`/f13/v2/evidence?${new globalThis.URLSearchParams(
+                Object.fromEntries(
+                  Object.entries(filter || {}).filter(([, v]) => v !== undefined && v !== null && v !== '' && v !== 'all')
+                )
+              ).toString()}`}
+              title="Mở toàn bộ danh sách trong màn hình Dữ liệu minh chứng"
+              className="flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50/70 px-2.5 py-1 text-xs font-bold text-blue-700 hover:bg-blue-100 transition-colors"
+            >
+              <span>Mở minh chứng</span>
+              <ExternalLink className="h-3.5 w-3.5" />
+            </a>
             <BlockCaptureButton
               targetRef={modalContentRef}
               blockTitle={title || 'Danh sách bưu gửi minh chứng'}

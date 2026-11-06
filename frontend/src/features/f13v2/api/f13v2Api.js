@@ -78,3 +78,46 @@ export async function fetchWhyParcels(params = {}, apiBase = '/f13') {
   const response = await api.get(`${apiBase}/v2/why/parcels`, { params: cleanParams });
   return response?.data?.data || null;
 }
+
+// F13-EVIDENCE-01: Evidence list, catalog, history, export and analysis APIs
+export async function fetchEvidenceCatalog(apiBase = '/f13') {
+  const response = await api.get(`${apiBase}/v2/evidence/catalog`);
+  return response?.data?.data || null;
+}
+
+export async function fetchEvidenceList(params = {}, apiBase = '/f13') {
+  const cleanParams = Object.fromEntries(
+    Object.entries(params).filter(([, v]) => v !== undefined && v !== null && v !== '' && v !== 'all')
+  );
+  const response = await api.get(`${apiBase}/v2/evidence/list`, { params: cleanParams });
+  return response?.data?.data || null;
+}
+
+export async function fetchEvidenceHistory({ ngay_do_kiem, ma_bg }, apiBase = '/f13') {
+  const response = await api.get(`${apiBase}/v2/evidence/history`, {
+    params: { ngay_do_kiem, ma_bg },
+  });
+  return response?.data?.data || null;
+}
+
+export async function postEvidenceAnalysis({ ngay_do_kiem, ma_bg, cause, note }, apiBase = '/f13') {
+  const response = await api.post(`${apiBase}/v2/evidence/analyses`, {
+    ngay_do_kiem,
+    ma_bg,
+    cause,
+    note: note || '',
+  });
+  return response?.data?.data || null;
+}
+
+export async function downloadEvidenceExport(params = {}, apiBase = '/f13') {
+  const cleanParams = Object.fromEntries(
+    Object.entries(params).filter(([, v]) => v !== undefined && v !== null && v !== '' && v !== 'all')
+  );
+  const response = await api.get(`${apiBase}/v2/evidence/export`, {
+    params: cleanParams,
+    responseType: 'blob',
+  });
+  return response;
+}
+
