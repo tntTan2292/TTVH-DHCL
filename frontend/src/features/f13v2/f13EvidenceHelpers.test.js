@@ -9,6 +9,7 @@ import {
   sortEvidenceInPage,
   buildEvidenceExportFilename,
 } from './f13EvidenceHelpers.js';
+import { buildWhyUnitOptions, resolveEffectiveBcvh } from './f13WhyHelpers.js';
 
 test('f13EvidenceHelpers: formatAnalystCause translates codes to Vietnamese', () => {
   assert.equal(formatAnalystCause('KHONG_TRON_LO'), 'Không trọn lô');
@@ -71,3 +72,57 @@ test('f13EvidenceHelpers: buildEvidenceExportFilename builds clean filename', ()
   assert.equal(buildEvidenceExportFilename('2026-10-01', '2026-10-31'), 'minh-chung-f13_2026-10-01_2026-10-31.xlsx');
   assert.equal(buildEvidenceExportFilename('2026-10-01', null), 'minh-chung-f13_2026-10-01_2026-10-01.xlsx');
 });
+
+test('F13-EVIDENCE-01 U1-R4: Evidence page initial render state resolution never throws when layout is null or real mock', () => {
+  // Pass 1: First render where layout is null and metaUnits is empty
+  let initialOptions;
+  let initialBcvh;
+  assert.doesNotThrow(() => {
+    initialOptions = buildWhyUnitOptions({ layout: null, metaUnits: [] });
+    initialBcvh = resolveEffectiveBcvh({ currentParam: 'all', unitOptions: initialOptions, layout: null });
+  }, 'First render with layout=null must never throw');
+  assert.deepEqual(initialOptions, []);
+  assert.equal(initialBcvh, 'all');
+
+  // Pass 2: Layout loaded with mock city-wide account
+  const mockCityLayout = {
+    units: { allow_all: true, bcvh: ['530000', '530001'] },
+    latest_date: '2026-11-05',
+  };
+  const mockMetaUnits = [
+    { ma_bcvh: '530000', ten_bcvh: 'BCVH Trung tâm' },
+    { ma_bcvh: '530001', ten_bcvh: 'BCVH Thuận An' },
+  ];
+  let cityOptions;
+  let cityBcvh;
+  assert.doesNotThrow(() => {
+    cityOptions = buildWhyUnitOptions({ layout: mockCityLayout, metaUnits: mockMetaUnits });
+    cityBcvh = resolveEffectiveBcvh({ currentParam: 'all', unitOptions: cityOptions, layout: mockCityLayout });
+  }, 'Render with mock city layout must resolve cleanly');
+  assert.equal(cityOptions.length, 3);
+  assert.equal(cityOptions[0].value, 'all');
+  assert.equal(cityOptions[0].label, 'Tất cả BCVH');
+  assert.equal(cityBcvh, 'all');
+
+  // Pass 3: Layout loaded with mock scoped account
+  const mockScopedLayout = {
+    units: { allow_all: false, bcvh: ['530001'] },
+  };
+  let scopedOptions;
+  let scopedBcvh;
+  assert.doesNotThrow(() => {
+    scopedOptions = buildWhyUnitOptions({ layout: mockScopedLayout, metaUnits: mockMetaUnits });
+    scopedBcvh = resolveEffectiveBcvh({ currentParam: 'all', unitOptions: scopedOptions, layout: mockScopedLayout });
+  }, 'Render with mock scoped layout must resolve cleanly');
+  assert.equal(scopedOptions.length, 1);
+  assert.equal(scopedOptions[0].value, '530001');
+  assert.equal(scopedBcvh, '530001'); // forced fallback from 'all' to allowed unit
+
+  // Pass 4: Defensive empty call
+  assert.doesNotThrow(() => {
+    buildWhyUnitOptions();
+    resolveEffectiveBcvh();
+  }, 'Calling without arguments must not throw');
+});
+
+

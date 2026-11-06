@@ -80,6 +80,11 @@ export async function fetchWhyParcels(params = {}, apiBase = '/f13') {
 }
 
 // F13-EVIDENCE-01: Evidence list, catalog, history, export and analysis APIs
+export async function fetchDashboardMeta(apiBase = '/f13') {
+  const response = await api.get(`${apiBase}/dashboard/meta`);
+  return response?.data?.data || null;
+}
+
 export async function fetchEvidenceCatalog(apiBase = '/f13') {
   const response = await api.get(`${apiBase}/v2/evidence/catalog`);
   return response?.data?.data || null;

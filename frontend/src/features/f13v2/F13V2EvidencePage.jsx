@@ -7,6 +7,7 @@ import {
   fetchLayout,
   resolvePeriod,
   fetchWhySummary,
+  fetchDashboardMeta,
   fetchEvidenceCatalog,
   fetchEvidenceList,
   downloadEvidenceExport,
@@ -28,6 +29,7 @@ export default function F13V2EvidencePage() {
   // Layout & Catalog State
   const [layout, setLayout] = useState(null);
   const [catalog, setCatalog] = useState(null);
+  const [metaUnits, setMetaUnits] = useState([]);
 
   // Data States
   const [summary, setSummary] = useState(null);
@@ -72,19 +74,29 @@ export default function F13V2EvidencePage() {
     return 'day';
   }, [monthParam, weekParam]);
 
-  // Load Layout and Catalog on mount
+  // Load Layout, Catalog and Meta once on mount (does not depend on searchParams)
   useEffect(() => {
     let cancelled = false;
 
-    Promise.all([fetchLayout(), fetchEvidenceCatalog()])
-      .then(([layoutRes, catalogRes]) => {
+    Promise.all([
+      fetchLayout().catch(() => null),
+      fetchEvidenceCatalog().catch(() => null),
+      fetchDashboardMeta().catch(() => null),
+    ])
+      .then(([layoutRes, catalogRes, metaRes]) => {
         if (cancelled) return;
-        setLayout(layoutRes);
-        setCatalog(catalogRes);
+        if (layoutRes) setLayout(layoutRes);
+        if (catalogRes) setCatalog(catalogRes);
+
+        const bcvhUnits = metaRes?.bcvh_units;
+        if (Array.isArray(bcvhUnits)) {
+          setMetaUnits(bcvhUnits);
+        }
 
         // Auto-select initial date if missing
-        const latestDate = layoutRes?.latest_date;
-        if (latestDate && !searchParams.get('from') && !searchParams.get('week') && !searchParams.get('month')) {
+        const latestDate = layoutRes?.latest_date || metaRes?.max_date;
+        const currentUrl = new globalThis.URLSearchParams(globalThis.location?.search);
+        if (latestDate && !currentUrl.get('from') && !currentUrl.get('week') && !currentUrl.get('month')) {
           setSearchParams(
             (prev) => {
               const next = new globalThis.URLSearchParams(prev);
@@ -102,16 +114,17 @@ export default function F13V2EvidencePage() {
     return () => {
       cancelled = true;
     };
-  }, [searchParams, setSearchParams]);
+  }, [setSearchParams]);
 
   // Compute unit options with S1-PO1 guarantee
   const unitOptions = useMemo(() => {
-    return buildWhyUnitOptions(layout);
-  }, [layout]);
+    return buildWhyUnitOptions({ layout, metaUnits });
+  }, [layout, metaUnits]);
 
+  // Scoped unit resolution: guaranteed to always be one of unitOptions
   const effectiveBcvh = useMemo(() => {
-    return resolveEffectiveBcvh(bcvhParam, unitOptions);
-  }, [bcvhParam, unitOptions]);
+    return resolveEffectiveBcvh({ currentParam: bcvhParam, unitOptions, layout });
+  }, [bcvhParam, unitOptions, layout]);
 
   // Sync effective BCVH to searchParams if needed
   useEffect(() => {

@@ -81,8 +81,7 @@ export default function F13V2EvidenceDetailModal({
           <div className="flex items-center gap-2" data-no-capture="true">
             <BlockCaptureButton
               targetRef={modalRef}
-              title={`Minh_chung_${item.ma_bg}`}
-              ariaLabel="Chụp ảnh minh chứng bưu gửi"
+              blockTitle={`Minh_chung_${item.ma_bg}`}
             />
             <button
               type="button"

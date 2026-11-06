@@ -71,8 +71,7 @@ export default function F13V2EvidenceSummaryCard({
 
         <BlockCaptureButton
           targetRef={cardRef}
-          title="Tong_quan_minh_chung_F13"
-          ariaLabel="Chụp ảnh khối tổng quan minh chứng"
+          blockTitle="Tong_quan_minh_chung_F13"
         />
       </div>
 

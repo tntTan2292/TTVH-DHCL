@@ -67,8 +67,7 @@ export default function F13V2EvidenceTable({
         <div className="flex items-center gap-2">
           <BlockCaptureButton
             targetRef={cardRef}
-            title="Danh_sach_minh_chung_F13"
-            ariaLabel="Chụp ảnh danh sách minh chứng"
+            blockTitle="Danh_sach_minh_chung_F13"
           />
         </div>
       </div>
@@ -99,72 +98,64 @@ export default function F13V2EvidenceTable({
             <tr className="border-b border-slate-200 bg-slate-50/90 text-slate-700 font-bold select-none">
               <th className="px-3 py-2.5 w-12 text-center">STT</th>
               <SortableTh
-                columnKey="ma_bg"
-                currentSort={inPageSortField}
-                currentDirection={inPageSortDir}
+                field="ma_bg"
+                sort={{ field: inPageSortField, direction: inPageSortDir }}
                 onSort={handleSortChange}
                 className="px-3 py-2.5 font-bold"
               >
                 Mã bưu gửi
               </SortableTh>
               <SortableTh
-                columnKey="ngay_do_kiem"
-                currentSort={inPageSortField}
-                currentDirection={inPageSortDir}
+                field="ngay_do_kiem"
+                sort={{ field: inPageSortField, direction: inPageSortDir }}
                 onSort={handleSortChange}
                 className="px-3 py-2.5 font-bold"
               >
                 Ngày đo
               </SortableTh>
               <SortableTh
-                columnKey="ma_bcvh"
-                currentSort={inPageSortField}
-                currentDirection={inPageSortDir}
+                field="ma_bcvh"
+                sort={{ field: inPageSortField, direction: inPageSortDir }}
                 onSort={handleSortChange}
                 className="px-3 py-2.5 font-bold"
               >
                 BCVH / Tuyến
               </SortableTh>
               <SortableTh
-                columnKey="postman"
-                currentSort={inPageSortField}
-                currentDirection={inPageSortDir}
+                field="postman"
+                sort={{ field: inPageSortField, direction: inPageSortDir }}
                 onSort={handleSortChange}
                 className="px-3 py-2.5 font-bold"
               >
                 Bưu tá bàn giao đầu
               </SortableTh>
               <SortableTh
-                columnKey="danh_gia"
-                currentSort={inPageSortField}
-                currentDirection={inPageSortDir}
+                field="danh_gia"
+                sort={{ field: inPageSortField, direction: inPageSortDir }}
                 onSort={handleSortChange}
                 className="px-3 py-2.5 font-bold text-center"
               >
                 Đánh giá
               </SortableTh>
               <SortableTh
-                columnKey="tct_hours"
-                currentSort={inPageSortField}
-                currentDirection={inPageSortDir}
+                field="tct_hours"
+                sort={{ field: inPageSortField, direction: inPageSortDir }}
                 onSort={handleSortChange}
                 className="px-3 py-2.5 font-bold text-right"
               >
                 Giờ TCT / Hạn
               </SortableTh>
               <SortableTh
-                columnKey="system_cause"
-                currentSort={inPageSortField}
-                currentDirection={inPageSortDir}
+                field="system_cause"
+                sort={{ field: inPageSortField, direction: inPageSortDir }}
                 onSort={handleSortChange}
                 className="px-3 py-2.5 font-bold"
               >
                 Nguyên nhân Hệ thống
               </SortableTh>
               <SortableTh
-                columnKey="analyst_cause"
-                currentSort={inPageSortField}
-                currentDirection={inPageSortDir}
+                field="analyst_cause"
+                sort={{ field: inPageSortField, direction: inPageSortDir }}
                 onSort={handleSortChange}
                 className="px-3 py-2.5 font-bold"
               >

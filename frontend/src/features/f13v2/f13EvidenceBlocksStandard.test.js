@@ -115,3 +115,35 @@ test('F13-EVIDENCE-01: App.jsx and appNavigation.jsx register the Evidence page 
   // Registered in navigation menu
   assert.ok(navContent.includes("path: '/f13/v2/evidence'"), 'appNavigation.jsx must point Dữ liệu minh chứng to /f13/v2/evidence');
 });
+
+test('F13-EVIDENCE-01 U1-R4: F13V2EvidencePage calls unit helpers with object signatures and mounts once', () => {
+  const pageContent = readSrc('./F13V2EvidencePage.jsx');
+
+  // 1. buildWhyUnitOptions with { layout, metaUnits }
+  assert.ok(
+    pageContent.includes('buildWhyUnitOptions({ layout, metaUnits })'),
+    'Must call buildWhyUnitOptions({ layout, metaUnits })'
+  );
+
+  // 2. resolveEffectiveBcvh with { currentParam: bcvhParam, unitOptions, layout }
+  assert.ok(
+    pageContent.includes('resolveEffectiveBcvh({ currentParam: bcvhParam, unitOptions, layout })'),
+    'Must call resolveEffectiveBcvh({ currentParam: bcvhParam, unitOptions, layout })'
+  );
+
+  // 3. Initial load effect runs once on mount
+  assert.ok(
+    pageContent.includes('Promise.all([\n      fetchLayout().catch(() => null),\n      fetchEvidenceCatalog().catch(() => null),\n      fetchDashboardMeta().catch(() => null),\n    ])'),
+    'Must load layout, catalog and meta in mount effect'
+  );
+  assert.ok(
+    pageContent.includes('}, [setSearchParams]);\n\n  // Compute unit options with S1-PO1 guarantee'),
+    'Initial effect must have dependency array [setSearchParams]'
+  );
+
+  // 4. MetaUnits state exists and is populated
+  assert.ok(pageContent.includes('const [metaUnits, setMetaUnits] = useState([]);'), 'Must define metaUnits state');
+  assert.ok(pageContent.includes('fetchDashboardMeta'), 'Must import and call fetchDashboardMeta');
+});
+
+

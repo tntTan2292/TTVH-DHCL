@@ -103,7 +103,7 @@ export function formatSharePercent(ratio) {
  * For a city-wide account (allow_all === true), adds "Tất cả BCVH" at the top with value="all".
  * For a one-unit/scoped account, contains ONLY the allowed units (never "Tất cả BCVH").
  */
-export function buildWhyUnitOptions({ layout, metaUnits = [] }) {
+export function buildWhyUnitOptions({ layout, metaUnits = [] } = {}) {
   const allowAll = layout?.units?.allow_all === true;
   const allowedCodes = Array.isArray(layout?.units?.bcvh) ? layout.units.bcvh : [];
 
@@ -148,7 +148,7 @@ export function buildWhyUnitOptions({ layout, metaUnits = [] }) {
  * Resolves the effective BCVH value, guaranteeing that the returned value
  * is ALWAYS one of the options in unitOptions.
  */
-export function resolveEffectiveBcvh({ currentParam, unitOptions = [], layout }) {
+export function resolveEffectiveBcvh({ currentParam, unitOptions = [], layout } = {}) {
   if (!unitOptions || unitOptions.length === 0) return 'all';
 
   const validValues = new Set(unitOptions.map((opt) => opt.value));
