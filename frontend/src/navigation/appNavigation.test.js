@@ -169,7 +169,7 @@ test('F1.3 navigation shows the time axis and the Chuyên đề pages (old Bản
   assert.equal(f13SubItemsText.includes("'/f13/dashboard'"), false, 'the old Bảng điều hành is retired');
   assert.match(f13SubItemsText, /name: 'Năng lực và chất lượng tuyến',\s*path: '\/f13\/ranking\/bcvh'/);
   assert.match(f13SubItemsText, /name: 'Phân tích tuyến phát',\s*path: '\/f13\/ranking\/route'/);
-  assert.match(f13SubItemsText, /name: 'Dữ liệu minh chứng',\s*path: '\/f13\/evidence'/);
+  assert.match(f13SubItemsText, /name: 'Dữ liệu minh chứng',\s*path: '\/f13\/v2\/evidence'/);
 
   assert.equal(f13SubItemsText.includes('/f13/pareto'), false, 'Pareto / RCA must be hidden from F1.3 navigation');
   assert.equal(f13SubItemsText.includes('/f13/message'), false, 'Message Center must be hidden from F1.3 navigation');
