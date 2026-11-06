@@ -37,6 +37,11 @@ class DkclSessionKeepAlive {
         // a sign-in at 07:32 left the 07:30 daily import idle until someone pressed "Tiếp tục Run" (2026-10-27).
         // server.js wires it to wakeAutoBackfillQueue(); tests and tools leave it unset.
         onSessionValid = null,
+        // Called on every look that finds a source SESSION_VALID with no change of status. onSessionValid only fires on a
+        // change, so a run parked in WAITING_AUTH while the keep-alive still saw the session valid (the job found the portal
+        // page gone, the PO signed in again) was never resumed (IMPORT-AUTH-RESUME-01, 2026-11-06: run 7198e644, 16 TCT days).
+        // server.js wires it to the resume of the runs waiting for that source; it returns the resumed run ids.
+        onSessionStillValid = null,
         // After a restart a window that could not be re-attached (the old browser was still closing, the profile was busy) is
         // tried again quickly a few times before the long cooldown applies, so a restart does not need a manual sign-in.
         startupRetryMs = 2 * 60 * 1000,
@@ -54,6 +59,7 @@ class DkclSessionKeepAlive {
         this.logDir = logDir || path.resolve(__dirname, '../../../Data DKCL/BrowserProfiles');
         this.logger = logger;
         this.onSessionValid = onSessionValid;
+        this.onSessionStillValid = onSessionStillValid;
         this.idleSweep = idleSweep;
         this.startupRetryMs = startupRetryMs;
         this.startupRetryLimit = startupRetryLimit;
@@ -122,6 +128,7 @@ class DkclSessionKeepAlive {
                 }
                 const change = this.note(source, status);
                 if (change) changes.push(change);
+                if (status === 'SESSION_VALID' && !change) await this.resumeStillValid(source);
                 if (status === 'SESSION_VALID' && this.idleSweep) {
                     try { await this.idleSweep(source); } catch (_) { /* cleanup only: never disturb the keep-alive */ }
                 }
@@ -192,6 +199,19 @@ class DkclSessionKeepAlive {
                 .catch(failed);
         } catch (error) {
             failed(error);
+        }
+    }
+
+    /** The source is still valid: resume any run still waiting for its sign-in; logged only when one was resumed. */
+    async resumeStillValid(source) {
+        if (!this.onSessionStillValid) return;
+        try {
+            const resumed = await this.onSessionStillValid(source);
+            if (Array.isArray(resumed) && resumed.length > 0) {
+                this.append(`${new Date(this.clock()).toISOString()} ${source} still valid: ${resumed.length} run(s) waiting for a sign-in resumed`);
+            }
+        } catch (error) {
+            this.append(`${new Date(this.clock()).toISOString()} ${source} still valid: resume failed (${error?.code || error?.message})`);
         }
     }
 

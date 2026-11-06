@@ -82,3 +82,63 @@ test('a source that could not be re-attached after a start is looked at again qu
     const log = fs.readFileSync(path.join(logDir, 'session-watch.log'), 'utf8');
     assert.match(log, /saved session not re-attached \(AUTHENTICATION_REQUIRED\)/);
 });
+
+// IMPORT-AUTH-RESUME-01 (2026-11-06): the keep-alive saw TCT valid from 07:20, the 07:30 job found the portal page gone and
+// parked the run in WAITING_AUTH, the PO signed in again -- no status change, so nothing resumed the 16 TCT days.
+test('a source that stays valid resumes the runs still waiting for its sign-in, logged only when one was resumed', async () => {
+    const logDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ka-still-'));
+    const woken = [];
+    const stillValid = [];
+    let waiting = [];
+    const keepAlive = new DkclSessionKeepAlive({
+        sessionService: fakeService({ HUE: 'SESSION_VALID', TCT: 'SESSION_VALID' }),
+        onSessionValid: (source) => woken.push(source),
+        onSessionStillValid: async (source) => { stillValid.push(source); if (source !== 'TCT') return []; const ids = waiting; waiting = []; return ids; },
+        logDir,
+        logger: { log() {} },
+    });
+    await keepAlive.tick();
+    assert.deepEqual(woken, ['HUE', 'TCT']);
+    assert.deepEqual(stillValid, [], 'a change goes through onSessionValid only');
+    waiting = ['7198e644'];
+    await keepAlive.tick();
+    assert.deepEqual(stillValid, ['HUE', 'TCT']);
+    assert.deepEqual(woken, ['HUE', 'TCT'], 'no extra change-wake');
+    await keepAlive.tick();
+    const lines = fs.readFileSync(path.join(logDir, 'session-watch.log'), 'utf8').split('\n').filter((line) => line.includes('still valid'));
+    assert.equal(lines.length, 1, 'one log line, for the tick that resumed a run');
+    assert.match(lines[0], /TCT still valid: 1 run\(s\) waiting for a sign-in resumed/);
+});
+
+test('a failing still-valid resume is logged and never disturbs the keep-alive', async () => {
+    const logDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ka-still-fail-'));
+    const keepAlive = new DkclSessionKeepAlive({
+        sessionService: fakeService({ HUE: 'SESSION_VALID', TCT: 'SESSION_VALID' }),
+        onSessionStillValid: async () => { const error = new Error('busy'); error.code = 'SQLITE_BUSY'; throw error; },
+        logDir,
+        logger: { log() {} },
+    });
+    await keepAlive.tick();
+    await keepAlive.tick();
+    assert.match(fs.readFileSync(path.join(logDir, 'session-watch.log'), 'utf8'), /still valid: resume failed \(SQLITE_BUSY\)/);
+});
+
+test('a finished manual sign-in notifies the sign-in-ready listeners with the source', async () => {
+    const { DkclSessionPreflightService, onInteractiveLoginReady } = require('./src/services/dkclSessionPreflightService');
+    const service = new DkclSessionPreflightService();
+    service.transitionEntry = () => {};
+    service.hideWindowIfVisible = async () => {};
+    const seen = [];
+    const off = onInteractiveLoginReady((source) => seen.push(source));
+    const offThrowing = onInteractiveLoginReady(() => { throw new Error('listener boom'); });
+    try {
+        await service.awaitInteractiveLogin({ source: 'TCT' }, {}, { waitInteractiveAuthentication: async () => {} }, 'profile');
+        assert.deepEqual(seen, ['TCT']);
+        const failing = { waitInteractiveAuthentication: async () => { const e = new Error('timeout'); e.code = 'AUTHENTICATION_REQUIRED'; throw e; }, close: async () => {} };
+        await service.awaitInteractiveLogin({ source: 'HUE', displayName: 'Huế' }, {}, failing, 'profile');
+        assert.deepEqual(seen, ['TCT'], 'a sign-in that timed out does not notify');
+    } finally {
+        off();
+        offThrowing();
+    }
+});

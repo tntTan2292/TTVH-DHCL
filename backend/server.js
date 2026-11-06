@@ -236,6 +236,13 @@ function startHomeWarmup() {
 // keep-alive (on unless DKCL_KEEPALIVE_ENABLED=false). Neither signs in: the DKCL sign-in has a captcha.
 let autoImportSchedule = null;
 let sessionKeepAlive = null;
+// Resumes the runs waiting for a sign-in of `source`; the queue lanes are woken only when one was resumed.
+async function resumeAuthWaitAndWake(source) {
+    const runtime = require('./src/services/autoBackfillQueueRuntime');
+    const resumed = await runtime.getAutoBackfillQueueService().resumeAuthWaitForLane(source);
+    if (resumed.length > 0) runtime.wakeAutoBackfillQueue();
+    return resumed;
+}
 function startAutoImportSchedule() {
     const { AutoImportScheduler } = require('./src/services/autoImportScheduler');
     const { DkclSessionKeepAlive } = require('./src/services/dkclSessionKeepAlive');
@@ -258,8 +265,12 @@ function startAutoImportSchedule() {
             runtime.wakeAutoBackfillQueue();
             return resumed;
         },
+        // IMPORT-AUTH-RESUME-01: a source that stays valid still resumes a run that went WAITING_AUTH in the meantime
+        onSessionStillValid: resumeAuthWaitAndWake,
     });
     sessionKeepAlive.start();
+    // IMPORT-AUTH-RESUME-01: a finished manual sign-in resumes the runs waiting for that source at once
+    require('./src/services/dkclSessionPreflightService').onInteractiveLoginReady((source) => resumeAuthWaitAndWake(source));
     // The queue lanes start only after the first keep-alive look has re-attached the DKCL windows from the saved sessions
     // (or after 4 minutes at the latest): draining earlier finds no session and parks the lanes in WAITING_AUTH.
     const { startAutoBackfillCoordinator } = require('./src/services/autoBackfillQueueRuntime');

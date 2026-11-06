@@ -110,6 +110,25 @@ function getSourceLock(source) {
 
 const globalRegistry = new Map();
 
+// IMPORT-AUTH-RESUME-01: called with the source when a manual sign-in in the visible window has finished (the report page is
+// ready and the window hidden). Module-level because the controller and the keep-alive use different service instances.
+// server.js registers the resume of the runs waiting for that source, so the queue continues right after the sign-in
+// instead of at the next keep-alive look. A listener failure never disturbs the sign-in.
+const loginReadyListeners = new Set();
+function onInteractiveLoginReady(listener) {
+    loginReadyListeners.add(listener);
+    return () => loginReadyListeners.delete(listener);
+}
+function notifyInteractiveLoginReady(source) {
+    for (const listener of loginReadyListeners) {
+        try {
+            Promise.resolve(listener(source)).catch((error) => console.warn(`[DKCL] ${source} sign-in ready listener failed: ${error?.code || error?.message}`));
+        } catch (error) {
+            console.warn(`[DKCL] ${source} sign-in ready listener failed: ${error?.code || error?.message}`);
+        }
+    }
+}
+
 // Background (non-interactive) preflight clients currently alive per source; a leftover-profile cleanup must
 // never run while one of them may be holding the profile.
 const headlessProbesInFlight = new Map();
@@ -362,6 +381,7 @@ class DkclSessionPreflightService {
                 backgroundReady: true,
                 profileDir
             });
+            notifyInteractiveLoginReady(sourceConfig.source);
         } catch (err) {
             // AUTO-IMPORT-013: waitInteractiveAuthentication() throws AUTHENTICATION_REQUIRED
             // from exactly one place — waitForManualAuthentication() returning false after its
@@ -1418,5 +1438,6 @@ module.exports = {
     DKCL_LEGACY_STATES,
     globalRegistry,
     getSourceLock,
-    SourceOperationLock
+    SourceOperationLock,
+    onInteractiveLoginReady
 };
