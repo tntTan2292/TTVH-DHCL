@@ -1,6 +1,6 @@
 # IMPORT-AUTH-RESUME-01 — Đăng nhập lại TCT xong mà lần nạp vẫn đứng ở "Chờ đăng nhập"
 
-Trạng thái: IMPLEMENTED / TECH PASS (2026-11-06). Người làm: Claude Code (Opus 5.5), PO mở ticket. Không đổi Current Ticket, API, công thức KPI hay cấu trúc cơ sở dữ liệu. PO UI Check Required: Không (chỉ hành vi backend; PO xác nhận lần nạp chạy tiếp ở lần đăng nhập kế tiếp).
+Trạng thái: CLOSED (2026-11-06) — TECH PASS; PO đã khởi động lại backend và xác nhận lần nạp chạy tốt. Người làm: Claude Code (Opus 5.5), PO mở ticket. Không đổi Current Ticket, API, công thức KPI hay cấu trúc cơ sở dữ liệu. PO UI Check Required: Không (chỉ hành vi backend; PO xác nhận lần nạp chạy tiếp ở lần đăng nhập kế tiếp).
 
 ## 1. Sự cố (06/11, nạp tự động 07:30)
 
@@ -27,5 +27,5 @@ Trạng thái: IMPLEMENTED / TECH PASS (2026-11-06). Người làm: Claude Code 
 
 ## 5. Còn lại
 
-- Bản sửa có hiệu lực sau khi khởi động lại backend. Lần chạy `7198e644` đang đứng cần PO bấm "Tiếp tục Run" một lần, hoặc chờ vòng keep-alive đầu tiên sau khi khởi động lại.
+- Đã khởi động lại backend (06/11); PO xác nhận lần nạp chạy tiếp và chạy tốt.
 - Nếu keep-alive thấy phiên hợp lệ mà job vẫn thấy trang cổng mất, lần chạy sẽ được thử lại mỗi vòng keep-alive (mặc định 10 phút, mỗi vòng một lượt thử). Vòng lặp này có giới hạn và vô hại, nhưng cho thấy phép kiểm tra phiên của keep-alive và của job chưa khớp nhau. Theo dõi trong `session-watch.log`.
