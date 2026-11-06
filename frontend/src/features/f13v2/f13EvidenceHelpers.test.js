@@ -8,6 +8,7 @@ import {
   formatMilestoneState,
   sortEvidenceInPage,
   buildEvidenceExportFilename,
+  extractEvidenceSummary,
 } from './f13EvidenceHelpers.js';
 import { buildWhyUnitOptions, resolveEffectiveBcvh } from './f13WhyHelpers.js';
 
@@ -124,5 +125,113 @@ test('F13-EVIDENCE-01 U1-R4: Evidence page initial render state resolution never
     resolveEffectiveBcvh();
   }, 'Calling without arguments must not throw');
 });
+
+test('F13-EVIDENCE-01 U1-R6: extractEvidenceSummary extracts non-zero figures from real /why/summary payload', () => {
+  // Real payload structure produced by CauseAggQueryService.summary (lines 470-520)
+  const realWhySummaryPayload = {
+    totals: {
+      volume: 1250,
+      passed: 1050,
+      failed: 200,
+      unrated: 0,
+      distinct_bg: 1250,
+      repeat: 0,
+      rate: 0.84,
+      shortfall_x10: 750,
+      shortfall: 75,
+      own_shortfall_x10: 750,
+      own_shortfall: 75,
+      net_contribution_x10: 750,
+      net_contribution: 75,
+      analysed: 60,
+      analysed_mix: {
+        by_cause: {
+          KHONG_TRON_LO: 15,
+          KHAI_THAC: 25,
+          VAN_CHUYEN: 10,
+          KHAC: 10,
+        },
+        same_as_system: 35,
+        different_from_system: 20,
+        no_system_cause: 5,
+      },
+      cause_mix: {
+        lines: [
+          { code: 'KHONG_TRON_LO', count: 30, share: 0.15 },
+          { code: 'KHAI_THAC', count: 40, share: 0.20 },
+          { code: 'VAN_CHUYEN', count: 25, share: 0.125 },
+          { code: 'KHAI_THAC_VAN_CHUYEN_CHUA_PHAN_BIET', count: 15, share: 0.075 },
+        ],
+        phat: {
+          count: 50,
+          share: 0.25,
+          by_detail: {
+            CHAM_GIAO_BUU_TA: 30,
+            PHAT_CHAM_SAU_GIAO: 15,
+            KHONG_CHI_TIET: 5,
+          },
+        },
+        cho_chuyen_quan: {
+          count: 40,
+          share: 0.20,
+          by_reason: {},
+        },
+      },
+    },
+    meta: {
+      basis: 'BG_DAY_ROWS',
+    },
+  };
+
+  const extracted = extractEvidenceSummary(realWhySummaryPayload);
+
+  // Assert non-zero primary KPI metrics
+  assert.equal(extracted.volume, 1250);
+  assert.equal(extracted.passed, 1050);
+  assert.equal(extracted.failed, 200);
+  assert.equal(extracted.rate, 0.84);
+  assert.equal(extracted.shortfall, 75);
+  assert.equal(extracted.analysed, 60);
+
+  // Assert Chuyên quản review breakdown
+  assert.equal(extracted.sameAsSystem, 35);
+  assert.equal(extracted.diffFromSystem, 20);
+  assert.equal(extracted.noSystemCause, 5);
+  assert.equal(extracted.byCause.KHAI_THAC, 25);
+
+  // Assert non-zero cause line counts
+  assert.equal(extracted.khongTronLo, 30);
+  assert.equal(extracted.khaiThac, 40);
+  assert.equal(extracted.vanChuyen, 25);
+  assert.equal(extracted.ktVcChuaPhanBiet, 15);
+  assert.equal(extracted.chamGiao, 30);
+  assert.equal(extracted.phatCham, 15);
+  assert.equal(extracted.phatChuaRo, 5);
+  assert.equal(extracted.choChuyenQuan, 40);
+
+  // Sum of causes matches failed parcels (30+40+25+15+30+15+5+40 = 200)
+  const totalCauses =
+    extracted.khongTronLo +
+    extracted.khaiThac +
+    extracted.vanChuyen +
+    extracted.ktVcChuaPhanBiet +
+    extracted.chamGiao +
+    extracted.phatCham +
+    extracted.phatChuaRo +
+    extracted.choChuyenQuan;
+  assert.equal(totalCauses, extracted.failed);
+
+  // Assert Vietnamese comma formatting for decimals
+  const rateText = ((extracted.rate || 0) * 100).toFixed(2).replace('.', ',') + '%';
+  assert.equal(rateText, '84,00%');
+
+  const failedRateText = ((extracted.failed / extracted.volume) * 100).toFixed(2).replace('.', ',') + '%';
+  assert.equal(failedRateText, '16,00%');
+
+  const completionRate = extracted.failed > 0 ? extracted.analysed / extracted.failed : 0;
+  const completionRateText = ((completionRate || 0) * 100).toFixed(1).replace('.', ',') + '%';
+  assert.equal(completionRateText, '30,0%');
+});
+
 
 

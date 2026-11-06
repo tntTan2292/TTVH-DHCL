@@ -137,13 +137,48 @@ test('F13-EVIDENCE-01 U1-R4: F13V2EvidencePage calls unit helpers with object si
     'Must load layout, catalog and meta in mount effect'
   );
   assert.ok(
-    pageContent.includes('}, [setSearchParams]);\n\n  // Compute unit options with S1-PO1 guarantee'),
-    'Initial effect must have dependency array [setSearchParams]'
+    pageContent.includes('}, []);\n\n  // Default Anchor Resolution'),
+    'Initial effect must have dependency array []'
   );
 
   // 4. MetaUnits state exists and is populated
   assert.ok(pageContent.includes('const [metaUnits, setMetaUnits] = useState([]);'), 'Must define metaUnits state');
   assert.ok(pageContent.includes('fetchDashboardMeta'), 'Must import and call fetchDashboardMeta');
+});
+
+test('F13-EVIDENCE-01 U1-R5 & U1-R6: F13V2EvidencePage resolves latest anchor and SummaryCard reads real totals schema', () => {
+  const pageContent = readSrc('./F13V2EvidencePage.jsx');
+  const cardContent = readSrc('./components/F13V2EvidenceSummaryCard.jsx');
+
+  // U1-R5: Default day anchor resolution via resolvePeriod({ kind: 'latest' })
+  assert.ok(
+    pageContent.includes("resolvePeriod({ kind: 'latest' })"),
+    'Page must resolve default day anchor with resolvePeriod({ kind: "latest" })'
+  );
+  assert.ok(
+    pageContent.includes("next.set('from', res.day)"),
+    'Page must set from = res.day'
+  );
+  assert.ok(
+    pageContent.includes("next.set('to', res.day)"),
+    'Page must set to = res.day'
+  );
+
+  // U1-R6: Reads real totals schema, no references to summary.system or summary.causes
+  assert.ok(
+    !cardContent.includes('summary?.system') && !cardContent.includes('summary?.causes'),
+    'SummaryCard must not reference non-existent summary.system or summary.causes'
+  );
+  assert.ok(
+    cardContent.includes('extractEvidenceSummary'),
+    'SummaryCard must extract data via extractEvidenceSummary'
+  );
+
+  // Decimal comma formatting everywhere
+  assert.ok(
+    cardContent.includes(".replace('.', ',')"),
+    'SummaryCard must use Vietnamese comma formatting for percentages'
+  );
 });
 
 

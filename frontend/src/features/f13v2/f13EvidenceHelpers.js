@@ -120,3 +120,66 @@ export function buildEvidenceExportFilename(from, to) {
   return `minh-chung-f13_${fromStr}_${toStr}.xlsx`;
 }
 
+/**
+ * Extracts normalized summary metrics from /api/f13/v2/why/summary payload.
+ * Schema matches CauseAggQueryService.summary (totals object).
+ */
+export function extractEvidenceSummary(summary) {
+  const totals = summary?.totals || summary || {};
+  const volume = Number(totals.volume) || 0;
+  const passed = Number(totals.passed) || 0;
+  const failed = Number(totals.failed) || 0;
+  const unrated = Number(totals.unrated) || 0;
+  const rate = totals.rate !== undefined && totals.rate !== null ? Number(totals.rate) : (volume > 0 ? passed / volume : 0);
+  const shortfall = Number(totals.shortfall) || 0;
+
+  const analysed = Number(totals.analysed) || 0;
+  const analysedMix = totals.analysed_mix || {};
+  const sameAsSystem = Number(analysedMix.same_as_system) || 0;
+  const diffFromSystem = Number(analysedMix.different_from_system) || 0;
+  const noSystemCause = Number(analysedMix.no_system_cause) || 0;
+  const byCause = analysedMix.by_cause || {};
+
+  const causeMix = totals.cause_mix || {};
+  const lines = Array.isArray(causeMix.lines) ? causeMix.lines : [];
+  const getLine = (code) => lines.find((l) => l.code === code) || { count: 0, share: 0 };
+
+  const khongTronLo = getLine('KHONG_TRON_LO');
+  const khaiThac = getLine('KHAI_THAC');
+  const vanChuyen = getLine('VAN_CHUYEN');
+  const ktVcChuaPhanBiet = getLine('KHAI_THAC_VAN_CHUYEN_CHUA_PHAN_BIET');
+
+  const phat = causeMix.phat || { count: 0, share: 0, by_detail: {} };
+  const chamGiao = Number(phat.by_detail?.CHAM_GIAO_BUU_TA) || 0;
+  const phatCham = Number(phat.by_detail?.PHAT_CHAM_SAU_GIAO) || 0;
+  const phatChuaRo = Number(phat.by_detail?.KHONG_CHI_TIET) || 0;
+
+  const choChuyenQuan = causeMix.cho_chuyen_quan || { count: 0, share: 0, by_reason: {} };
+
+  return {
+    volume,
+    passed,
+    failed,
+    unrated,
+    rate,
+    shortfall,
+    analysed,
+    same_as_system: sameAsSystem,
+    different_from_system: diffFromSystem,
+    no_system_cause: noSystemCause,
+    sameAsSystem,
+    diffFromSystem,
+    noSystemCause,
+    byCause,
+    khongTronLo: Number(khongTronLo.count) || 0,
+    khaiThac: Number(khaiThac.count) || 0,
+    vanChuyen: Number(vanChuyen.count) || 0,
+    ktVcChuaPhanBiet: Number(ktVcChuaPhanBiet.count) || 0,
+    chamGiao,
+    phatCham,
+    phatChuaRo,
+    choChuyenQuan: Number(choChuyenQuan.count) || 0,
+  };
+}
+
+

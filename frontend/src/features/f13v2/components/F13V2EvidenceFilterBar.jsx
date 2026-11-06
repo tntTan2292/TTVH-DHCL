@@ -243,10 +243,10 @@ export default function F13V2EvidenceFilterBar({
             <option value="KHONG_TRON_LO">Không trọn lô</option>
             <option value="KHAI_THAC">Khai thác</option>
             <option value="VAN_CHUYEN">Vận chuyển</option>
-            <option value="CHUA_PHAN_BIET">Khai thác - VC chưa phân biệt</option>
-            <option value="PHAT_CHAM_GIAO_BT">Phát - Chậm giao bưu tá</option>
+            <option value="KHAI_THAC_VAN_CHUYEN_CHUA_PHAN_BIET">Khai thác - VC chưa phân biệt</option>
+            <option value="GIAO_BUU_TA_QUA_GIO">Phát - Chậm giao bưu tá</option>
             <option value="PHAT_MUON">Phát - Phát chậm sau khi giao</option>
-            <option value="PHAT_CHUA_RO">Phát - Chưa rõ chi tiết</option>
+            <option value="PHAT_KHONG_CHI_TIET">Phát - Chưa rõ chi tiết</option>
             <option value="CHO_CHUYEN_QUAN">Chờ Chuyên quản phân tích</option>
           </select>
         </div>

@@ -92,20 +92,6 @@ export default function F13V2EvidencePage() {
         if (Array.isArray(bcvhUnits)) {
           setMetaUnits(bcvhUnits);
         }
-
-        // Auto-select initial date if missing
-        const latestDate = layoutRes?.latest_date || metaRes?.max_date;
-        const currentUrl = new globalThis.URLSearchParams(globalThis.location?.search);
-        if (latestDate && !currentUrl.get('from') && !currentUrl.get('week') && !currentUrl.get('month')) {
-          setSearchParams(
-            (prev) => {
-              const next = new globalThis.URLSearchParams(prev);
-              if (!next.get('from')) next.set('from', latestDate);
-              return next;
-            },
-            { replace: true }
-          );
-        }
       })
       .catch((err) => {
         if (!cancelled) setPageError(err?.message || 'Không thể tải cấu hình minh chứng');
@@ -114,7 +100,32 @@ export default function F13V2EvidencePage() {
     return () => {
       cancelled = true;
     };
-  }, [setSearchParams]);
+  }, []);
+
+  // Default Anchor Resolution: if URL has no date/week/month, resolve latest day anchor (U1-R5)
+  useEffect(() => {
+    if (fromParam || toParam || weekParam || monthParam) return;
+    let active = true;
+
+    resolvePeriod({ kind: 'latest' })
+      .then((res) => {
+        if (!active || !res?.day) return;
+        setSearchParams(
+          (prev) => {
+            const next = new globalThis.URLSearchParams(prev);
+            if (!next.get('from')) next.set('from', res.day);
+            if (!next.get('to')) next.set('to', res.day);
+            return next;
+          },
+          { replace: true }
+        );
+      })
+      .catch(() => {});
+
+    return () => {
+      active = false;
+    };
+  }, [fromParam, toParam, weekParam, monthParam, setSearchParams]);
 
   // Compute unit options with S1-PO1 guarantee
   const unitOptions = useMemo(() => {
@@ -186,7 +197,7 @@ export default function F13V2EvidencePage() {
 
   // Fetch Summary data directly from /api/f13/v2/why/summary (Requirement 3)
   const loadSummaryData = useCallback(() => {
-    if (!layout) return;
+    if (!layout || (!fromParam && !toParam && !weekParam && !monthParam)) return;
     setSummaryLoading(true);
 
     fetchWhySummary(activeFilters)
@@ -199,11 +210,11 @@ export default function F13V2EvidencePage() {
       .finally(() => {
         setSummaryLoading(false);
       });
-  }, [layout, activeFilters]);
+  }, [layout, activeFilters, fromParam, toParam, weekParam, monthParam]);
 
   // Fetch Evidence List (Requirement 2: 50 items/page)
   const loadListData = useCallback(() => {
-    if (!layout) return;
+    if (!layout || (!fromParam && !toParam && !weekParam && !monthParam)) return;
     setListLoading(true);
     setPageError('');
 
@@ -224,7 +235,7 @@ export default function F13V2EvidencePage() {
       .finally(() => {
         setListLoading(false);
       });
-  }, [layout, activeFilters, pageParam]);
+  }, [layout, activeFilters, pageParam, fromParam, toParam, weekParam, monthParam]);
 
   // Trigger loads when filters or page change
   useEffect(() => {
@@ -238,24 +249,25 @@ export default function F13V2EvidencePage() {
   // Filter Update Handlers
   const handlePeriodModeChange = async (mode) => {
     if (mode === periodMode) return;
-    const latestDate = layout?.latest_date || '';
 
     if (mode === 'day') {
-      const res = await resolvePeriod({ kind: 'day', value: 'latest', latestDate });
+      const res = await resolvePeriod({ kind: 'latest' }).catch(() => null);
+      const day = res?.day || '2026-11-04';
       setSearchParams(
         (prev) => {
           const next = new globalThis.URLSearchParams(prev);
           next.delete('week');
           next.delete('month');
           next.delete('page');
-          if (res?.from) next.set('from', res.from);
-          if (res?.to) next.set('to', res.to);
+          next.set('from', day);
+          next.set('to', day);
           return next;
         },
         { replace: true }
       );
     } else if (mode === 'week') {
-      const res = await resolvePeriod({ kind: 'week', value: 'latest', latestDate });
+      const res = await resolvePeriod({ kind: 'latest' }).catch(() => null);
+      const weekId = res?.week?.id || '2026-W44';
       setSearchParams(
         (prev) => {
           const next = new globalThis.URLSearchParams(prev);
@@ -263,13 +275,14 @@ export default function F13V2EvidencePage() {
           next.delete('to');
           next.delete('month');
           next.delete('page');
-          if (res?.label) next.set('week', res.label);
+          next.set('week', weekId);
           return next;
         },
         { replace: true }
       );
     } else if (mode === 'month') {
-      const res = await resolvePeriod({ kind: 'month', value: 'latest', latestDate });
+      const res = await resolvePeriod({ kind: 'latest' }).catch(() => null);
+      const monthId = res?.month?.id || '2026-11';
       setSearchParams(
         (prev) => {
           const next = new globalThis.URLSearchParams(prev);
@@ -277,7 +290,7 @@ export default function F13V2EvidencePage() {
           next.delete('to');
           next.delete('week');
           next.delete('page');
-          if (res?.label) next.set('month', res.label);
+          next.set('month', monthId);
           return next;
         },
         { replace: true }

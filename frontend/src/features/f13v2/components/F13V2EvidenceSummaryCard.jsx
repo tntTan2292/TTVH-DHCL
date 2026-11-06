@@ -4,7 +4,7 @@ import BlockCaptureButton from '../../../components/common/BlockCaptureButton.js
 import { useIndicator } from '../../indicator/IndicatorContext.js';
 import { indicatorTheme } from '../../indicator/indicatorConfig.js';
 import { formatShortfall } from '../f13WhyHelpers.js';
-import { formatAnalystCause } from '../f13EvidenceHelpers.js';
+import { formatAnalystCause, extractEvidenceSummary } from '../f13EvidenceHelpers.js';
 
 export default function F13V2EvidenceSummaryCard({
   summary = null,
@@ -31,20 +31,26 @@ export default function F13V2EvidenceSummaryCard({
     );
   }
 
-  const sys = summary?.system || {};
-  const total = sys.total || 0;
-  const passed = sys.passed || 0;
-  const failed = sys.failed || 0;
-  const rate = sys.rate !== undefined && sys.rate !== null ? sys.rate : (total > 0 ? passed / total : 0);
-  const shortfall = sys.shortfall || 0;
-  const causes = summary?.causes || {};
-
-  const analysed = summary?.analysed || 0;
-  const analysedMix = summary?.analysed_mix || {};
-  const sameAsSystem = analysedMix.same_as_system || 0;
-  const diffFromSystem = analysedMix.different_from_system || 0;
-  const noSystemCause = analysedMix.no_system_cause || 0;
-  const byCause = analysedMix.by_cause || {};
+  const {
+    volume,
+    passed,
+    failed,
+    rate,
+    shortfall,
+    analysed,
+    same_as_system,
+    different_from_system,
+    no_system_cause,
+    byCause,
+    khongTronLo,
+    khaiThac,
+    vanChuyen,
+    ktVcChuaPhanBiet,
+    chamGiao,
+    phatCham,
+    phatChuaRo,
+    choChuyenQuan,
+  } = extractEvidenceSummary(summary);
 
   const completionRate = failed > 0 ? analysed / failed : 0;
 
@@ -84,7 +90,7 @@ export default function F13V2EvidenceSummaryCard({
             <Target className="h-4 w-4 text-slate-400" />
           </div>
           <div className="text-xl font-extrabold text-slate-900">
-            {total.toLocaleString('vi-VN')}
+            {volume.toLocaleString('vi-VN')}
           </div>
           <div className="text-[11px] text-slate-500 mt-0.5">
             Toàn bộ bưu gửi F1.3 trong kỳ
@@ -100,7 +106,7 @@ export default function F13V2EvidenceSummaryCard({
           <div className="text-xl font-extrabold text-emerald-950">
             {passed.toLocaleString('vi-VN')}
             <span className="text-sm font-bold text-emerald-800 ml-1.5">
-              ({(rate * 100).toFixed(2)}%)
+              ({((rate || 0) * 100).toFixed(2).replace('.', ',')}%)
             </span>
           </div>
           <div className="text-[11px] text-emerald-800 mt-0.5">
@@ -117,7 +123,7 @@ export default function F13V2EvidenceSummaryCard({
           <div className="text-xl font-extrabold text-rose-950">
             {failed.toLocaleString('vi-VN')}
             <span className="text-sm font-bold text-rose-800 ml-1.5">
-              ({total > 0 ? ((failed / total) * 100).toFixed(2) : '0,00'}%)
+              ({volume > 0 ? ((failed / volume) * 100).toFixed(2).replace('.', ',') : '0,00'}%)
             </span>
           </div>
           <div className="text-[11px] text-rose-800 mt-0.5">
@@ -138,7 +144,7 @@ export default function F13V2EvidenceSummaryCard({
             </span>
           </div>
           <div className="text-[11px] text-blue-800 mt-0.5">
-            Hoàn thành {(completionRate * 100).toFixed(1)}% bưu gửi trượt
+            Hoàn thành {((completionRate || 0) * 100).toFixed(1).replace('.', ',')}% bưu gửi trượt
           </div>
         </div>
       </div>
@@ -164,7 +170,7 @@ export default function F13V2EvidenceSummaryCard({
               className="flex items-center justify-between p-2 rounded-lg bg-white border border-slate-200/70 hover:border-blue-300 hover:bg-blue-50/40 transition-colors cursor-pointer text-left"
             >
               <span className="text-slate-700">Không trọn lô</span>
-              <span className="font-bold text-slate-900">{causes.khong_tron_lo || 0}</span>
+              <span className="font-bold text-slate-900">{khongTronLo.toLocaleString('vi-VN')}</span>
             </button>
 
             <button
@@ -173,7 +179,7 @@ export default function F13V2EvidenceSummaryCard({
               className="flex items-center justify-between p-2 rounded-lg bg-white border border-slate-200/70 hover:border-blue-300 hover:bg-blue-50/40 transition-colors cursor-pointer text-left"
             >
               <span className="text-slate-700">Khai thác quá hạn</span>
-              <span className="font-bold text-slate-900">{causes.khai_thac || 0}</span>
+              <span className="font-bold text-slate-900">{khaiThac.toLocaleString('vi-VN')}</span>
             </button>
 
             <button
@@ -182,25 +188,25 @@ export default function F13V2EvidenceSummaryCard({
               className="flex items-center justify-between p-2 rounded-lg bg-white border border-slate-200/70 hover:border-blue-300 hover:bg-blue-50/40 transition-colors cursor-pointer text-left"
             >
               <span className="text-slate-700">Vận chuyển quá hạn</span>
-              <span className="font-bold text-slate-900">{causes.van_chuyen || 0}</span>
+              <span className="font-bold text-slate-900">{vanChuyen.toLocaleString('vi-VN')}</span>
             </button>
 
             <button
               type="button"
-              onClick={() => onFilterCause?.('CHUA_PHAN_BIET')}
+              onClick={() => onFilterCause?.('KHAI_THAC_VAN_CHUYEN_CHUA_PHAN_BIET')}
               className="flex items-center justify-between p-2 rounded-lg bg-white border border-slate-200/70 hover:border-blue-300 hover:bg-blue-50/40 transition-colors cursor-pointer text-left"
             >
               <span className="text-slate-700">KT-VC chưa phân biệt</span>
-              <span className="font-bold text-slate-900">{causes.chua_phan_biet || 0}</span>
+              <span className="font-bold text-slate-900">{ktVcChuaPhanBiet.toLocaleString('vi-VN')}</span>
             </button>
 
             <button
               type="button"
-              onClick={() => onFilterCause?.('PHAT_CHAM_GIAO_BT')}
+              onClick={() => onFilterCause?.('GIAO_BUU_TA_QUA_GIO')}
               className="flex items-center justify-between p-2 rounded-lg bg-white border border-slate-200/70 hover:border-blue-300 hover:bg-blue-50/40 transition-colors cursor-pointer text-left"
             >
               <span className="text-slate-700">Chậm giao bưu tá</span>
-              <span className="font-bold text-slate-900">{causes.phat_cham_giao_bt || 0}</span>
+              <span className="font-bold text-slate-900">{chamGiao.toLocaleString('vi-VN')}</span>
             </button>
 
             <button
@@ -209,16 +215,16 @@ export default function F13V2EvidenceSummaryCard({
               className="flex items-center justify-between p-2 rounded-lg bg-white border border-slate-200/70 hover:border-blue-300 hover:bg-blue-50/40 transition-colors cursor-pointer text-left"
             >
               <span className="text-slate-700">Phát chậm sau khi giao</span>
-              <span className="font-bold text-slate-900">{causes.phat_muon || 0}</span>
+              <span className="font-bold text-slate-900">{phatCham.toLocaleString('vi-VN')}</span>
             </button>
 
             <button
               type="button"
-              onClick={() => onFilterCause?.('PHAT_CHUA_RO')}
+              onClick={() => onFilterCause?.('PHAT_KHONG_CHI_TIET')}
               className="flex items-center justify-between p-2 rounded-lg bg-white border border-slate-200/70 hover:border-blue-300 hover:bg-blue-50/40 transition-colors cursor-pointer text-left"
             >
               <span className="text-slate-700">Phát chưa rõ chi tiết</span>
-              <span className="font-bold text-slate-900">{causes.phat_chua_ro || 0}</span>
+              <span className="font-bold text-slate-900">{phatChuaRo.toLocaleString('vi-VN')}</span>
             </button>
 
             <button
@@ -227,7 +233,7 @@ export default function F13V2EvidenceSummaryCard({
               className="flex items-center justify-between p-2 rounded-lg bg-amber-50/80 border border-amber-200/80 hover:bg-amber-100/60 transition-colors cursor-pointer text-left"
             >
               <span className="font-semibold text-amber-900">Chờ Chuyên quản</span>
-              <span className="font-extrabold text-amber-950">{causes.cho_chuyen_quan || 0}</span>
+              <span className="font-extrabold text-amber-950">{choChuyenQuan.toLocaleString('vi-VN')}</span>
             </button>
           </div>
         </div>
@@ -253,7 +259,7 @@ export default function F13V2EvidenceSummaryCard({
             >
               <span className="text-[11px] font-medium text-emerald-800">Trùng khớp HT</span>
               <span className="text-base font-extrabold text-emerald-950 mt-0.5">
-                {sameAsSystem.toLocaleString('vi-VN')}
+                {same_as_system.toLocaleString('vi-VN')}
               </span>
             </button>
 
@@ -264,7 +270,7 @@ export default function F13V2EvidenceSummaryCard({
             >
               <span className="text-[11px] font-medium text-amber-800">Khác kết luận HT</span>
               <span className="text-base font-extrabold text-amber-950 mt-0.5">
-                {diffFromSystem.toLocaleString('vi-VN')}
+                {different_from_system.toLocaleString('vi-VN')}
               </span>
             </button>
 
@@ -275,7 +281,7 @@ export default function F13V2EvidenceSummaryCard({
             >
               <span className="text-[11px] font-medium text-blue-800">Chưa có KL HT</span>
               <span className="text-base font-extrabold text-blue-950 mt-0.5">
-                {noSystemCause.toLocaleString('vi-VN')}
+                {no_system_cause.toLocaleString('vi-VN')}
               </span>
             </button>
           </div>
@@ -295,7 +301,7 @@ export default function F13V2EvidenceSummaryCard({
                     className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-white border border-slate-200 text-xs text-slate-700 hover:border-blue-400 hover:bg-blue-50 transition-colors cursor-pointer"
                   >
                     <span>{formatAnalystCause(cCode)}:</span>
-                    <span className="font-bold text-slate-900">{count}</span>
+                    <span className="font-bold text-slate-900">{(count || 0).toLocaleString('vi-VN')}</span>
                   </button>
                 ))
               ) : (
