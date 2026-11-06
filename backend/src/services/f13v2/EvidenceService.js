@@ -125,14 +125,15 @@ class EvidenceService {
         const params = [...base.params];
         if (filter.analysed !== undefined && filter.analysed !== null && filter.analysed !== '') {
             const value = String(filter.analysed).toLowerCase();
-            if (['yes', 'true', '1'].includes(value)) clauses.push('a_id IS NOT NULL');
-            else if (['no', 'false', '0'].includes(value)) clauses.push('a_id IS NULL');
+            // like /why, only failed parcels count as analysed (B1-R1); the item of any other parcel still shows its old analysis
+            if (['yes', 'true', '1'].includes(value)) clauses.push(`a_id IS NOT NULL AND danh_gia = '${FAILED}'`);
+            else if (['no', 'false', '0'].includes(value)) clauses.push(`(a_id IS NULL OR danh_gia IS NOT '${FAILED}')`); // the complement of analysed=yes
             else throw fail('INVALID_FILTER', 'analysed phải là yes hoặc no');
         }
         if (filter.analyst_cause) {
             const cause = String(filter.analyst_cause);
             if (!CAUSE_BY_CODE.has(cause)) throw fail('INVALID_FILTER', 'analyst_cause không hợp lệ');
-            clauses.push('a_cause = ?');
+            clauses.push(`a_cause = ? AND danh_gia = '${FAILED}'`);
             params.push(cause);
         }
         if (filter.search) {

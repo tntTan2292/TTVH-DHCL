@@ -442,6 +442,38 @@ test('/why system figures are the same whatever has been analysed; the analysed 
     assert.ok(ownTotals.body.data.rows.every((row) => row.ma_bcvh === B));
 });
 
+test('B1-R1: a parcel analysed while Không đạt and later Đạt or unrated is not "analysed" in the list either: analysed=yes of the list = analysed of /why', async () => {
+    const admin = session('ADMIN');
+    const target = parcelKey(D2, B, 9);
+    assert.equal((await post(admin, { ...target, cause: 'KHAI_THAC' })).status, 201);
+    const figures = async () => {
+        const total = async (extra) => (await get_(admin, `/evidence/list?${PERIOD}${extra}&page_size=1`)).body.data.meta.total;
+        const why = (await get_(admin, `/why/summary?${PERIOD}`)).body.data.totals;
+        return { why: why.analysed, yes: await total('&analysed=yes'), no: await total('&analysed=no'), all: await total(''), byCause: await total('&analyst_cause=KHAI_THAC'), whyByCause: why.analysed_mix.by_cause.KHAI_THAC || 0 };
+    };
+    try {
+        const failed = await figures();
+        assert.equal(failed.yes, failed.why);
+        assert.equal(failed.byCause, failed.whyByCause);
+        assert.equal(failed.yes + failed.no, failed.all);
+        for (const verdict of ['Đạt', null]) { // a TCT reload or a cause rebuild changes the verdict after the analysis
+            await run('UPDATE f13_cause_parcel SET danh_gia = ? WHERE ngay_do_kiem = ? AND ma_bg = ?', [verdict, target.ngay_do_kiem, target.ma_bg]);
+            const changed = await figures();
+            assert.equal(changed.why, failed.why - 1, `/why no longer counts the parcel (${verdict})`);
+            assert.equal(changed.yes, changed.why, `list analysed=yes = /why analysed (${verdict})`);
+            assert.equal(changed.byCause, changed.whyByCause, `analyst_cause = /why by_cause (${verdict})`);
+            assert.equal(changed.yes + changed.no, changed.all, `yes and no still split the whole list (${verdict})`);
+            assert.equal(changed.no, failed.no + 1);
+            // the item still shows the old analysis, and the history keeps it
+            const item = (await get_(admin, `/evidence/list?from=${target.ngay_do_kiem}&to=${target.ngay_do_kiem}&bcvh=${B}&search=${target.ma_bg}`)).body.data.items[0];
+            assert.equal(item.analysis.cause, 'KHAI_THAC');
+            assert.equal(item.can_analyse, false);
+        }
+    } finally {
+        await run("UPDATE f13_cause_parcel SET danh_gia = 'Không đạt' WHERE ngay_do_kiem = ? AND ma_bg = ?", [target.ngay_do_kiem, target.ma_bg]);
+    }
+});
+
 test('the analysis table is the only new write: the official tables keep their row counts', async () => {
     assert.equal(Number((await get('SELECT COUNT(*) AS n FROM fact_f13')).n), 40);
     assert.equal(Number((await get('SELECT COUNT(*) AS n FROM f13_cause_parcel')).n), 40);
