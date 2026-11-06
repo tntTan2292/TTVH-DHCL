@@ -87,8 +87,8 @@ export default function F13V2WhyPage() {
     Promise.all([
       fetchLayout(indicator.apiBase).catch(() => null),
       api.get('/f13/dashboard/meta').catch(() => null),
-      api.get('/time-axis/weeks').catch(() => null),
-      api.get('/time-axis/months').catch(() => null),
+      api.get('/f13/ranking/bcvh/weeks').catch(() => null),
+      api.get('/f13/ranking/bcvh/months').catch(() => null),
     ]).then(([layoutRes, metaRes, weeksRes, monthsRes]) => {
       if (!active) return;
       if (layoutRes) setLayout(layoutRes);
@@ -125,7 +125,7 @@ export default function F13V2WhyPage() {
         if (!active || !res?.day) return;
         setSearchParams(
           (prev) => {
-            const next = new URLSearchParams(prev);
+            const next = new globalThis.URLSearchParams(prev);
             if (!next.get('from')) next.set('from', res.day);
             if (!next.get('to')) next.set('to', res.day);
             return next;
@@ -137,7 +137,7 @@ export default function F13V2WhyPage() {
         if (latestDate && active) {
           setSearchParams(
             (prev) => {
-              const next = new URLSearchParams(prev);
+              const next = new globalThis.URLSearchParams(prev);
               if (!next.get('from')) next.set('from', latestDate);
               if (!next.get('to')) next.set('to', latestDate);
               return next;
@@ -203,57 +203,59 @@ export default function F13V2WhyPage() {
   const handlePeriodModeChange = (newMode) => {
     if (newMode === periodMode) return;
 
-    const next = new URLSearchParams(searchParams);
+    const next = new globalThis.URLSearchParams(searchParams);
     next.delete('from');
     next.delete('to');
     next.delete('week');
     next.delete('month');
 
     if (newMode === 'week') {
-      const defWeek = weeks[0]?.week_id || '2026-W44';
-      next.set('week', defWeek);
+      const defWeek = weeks[0]?.week_id || '';
+      if (defWeek) next.set('week', defWeek);
     } else if (newMode === 'month') {
-      const defMonth = months[0]?.month_id || '2026-10';
-      next.set('month', defMonth);
+      const defMonth = months[0]?.month_id || '';
+      if (defMonth) next.set('month', defMonth);
     } else {
-      const defDay = latestDate || '2026-11-04';
-      next.set('from', defDay);
-      next.set('to', defDay);
+      const defDay = latestDate || '';
+      if (defDay) {
+        next.set('from', defDay);
+        next.set('to', defDay);
+      }
     }
 
     setSearchParams(next);
   };
 
   const handleFromDateChange = (val) => {
-    const next = new URLSearchParams(searchParams);
+    const next = new globalThis.URLSearchParams(searchParams);
     if (val) next.set('from', val);
     else next.delete('from');
     setSearchParams(next);
   };
 
   const handleToDateChange = (val) => {
-    const next = new URLSearchParams(searchParams);
+    const next = new globalThis.URLSearchParams(searchParams);
     if (val) next.set('to', val);
     else next.delete('to');
     setSearchParams(next);
   };
 
   const handleWeekChange = (val) => {
-    const next = new URLSearchParams(searchParams);
+    const next = new globalThis.URLSearchParams(searchParams);
     if (val) next.set('week', val);
     else next.delete('week');
     setSearchParams(next);
   };
 
   const handleMonthChange = (val) => {
-    const next = new URLSearchParams(searchParams);
+    const next = new globalThis.URLSearchParams(searchParams);
     if (val) next.set('month', val);
     else next.delete('month');
     setSearchParams(next);
   };
 
   const handleBcvhChange = (val) => {
-    const next = new URLSearchParams(searchParams);
+    const next = new globalThis.URLSearchParams(searchParams);
     if (!val || val === 'all') next.delete('bcvh');
     else next.set('bcvh', val);
     setSearchParams(next);

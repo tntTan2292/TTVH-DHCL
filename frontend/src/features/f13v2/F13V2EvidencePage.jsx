@@ -85,8 +85,8 @@ export default function F13V2EvidencePage() {
       fetchLayout().catch(() => null),
       fetchEvidenceCatalog().catch(() => null),
       fetchDashboardMeta().catch(() => null),
-      api.get('/time-axis/weeks').catch(() => null),
-      api.get('/time-axis/months').catch(() => null),
+      api.get('/f13/ranking/bcvh/weeks').catch(() => null),
+      api.get('/f13/ranking/bcvh/months').catch(() => null),
     ])
       .then(([layoutRes, catalogRes, metaRes, weeksRes, monthsRes]) => {
         if (cancelled) return;

@@ -136,8 +136,8 @@ test('F13-EVIDENCE-01 U1-R4: F13V2EvidencePage calls unit helpers with object si
     pageContent.includes('fetchLayout().catch(() => null)') &&
     pageContent.includes('fetchEvidenceCatalog().catch(() => null)') &&
     pageContent.includes('fetchDashboardMeta().catch(() => null)') &&
-    pageContent.includes("api.get('/time-axis/weeks').catch(() => null)") &&
-    pageContent.includes("api.get('/time-axis/months').catch(() => null)"),
+    pageContent.includes("api.get('/f13/ranking/bcvh/weeks').catch(() => null)") &&
+    pageContent.includes("api.get('/f13/ranking/bcvh/months').catch(() => null)"),
     'Must load layout, catalog, meta, weeks and months in mount effect'
   );
   assert.ok(
@@ -223,6 +223,39 @@ test('F13-EVIDENCE-01 U1-R7 & U1-R8: Week/Month dynamic axes without hardcoded d
     !cardContent.includes('(rate || 0) * 100'),
     'Summary card must NOT multiply rate by 100'
   );
+});
+
+test('F13-EVIDENCE-01 U1-R9: Static check that no file in features/f13v2 calls /time-axis/', () => {
+  const f13v2Dir = path.resolve(__dirname);
+  const getAllFiles = (dir) => {
+    let results = [];
+    const list = fs.readdirSync(dir);
+    for (const file of list) {
+      const fullPath = path.resolve(dir, file);
+      const stat = fs.statSync(fullPath);
+      if (stat && stat.isDirectory()) {
+        results = results.concat(getAllFiles(fullPath));
+      } else if ((file.endsWith('.js') || file.endsWith('.jsx')) && !file.endsWith('.test.js')) {
+        results.push(fullPath);
+      }
+    }
+    return results;
+  };
+
+  const files = getAllFiles(f13v2Dir);
+  for (const filePath of files) {
+    const content = fs.readFileSync(filePath, 'utf8');
+    assert.ok(
+      !content.includes('/time-axis/'),
+      `File ${path.relative(f13v2Dir, filePath)} must not call or reference /time-axis/ (use /f13/ranking/bcvh/weeks and /months instead)`
+    );
+  }
+
+  // Also verify F13V2WhyPage has no hardcoded periods
+  const whyContent = readSrc('./F13V2WhyPage.jsx');
+  assert.ok(!whyContent.includes("'2026-W44'"), 'F13V2WhyPage must not contain hardcoded 2026-W44');
+  assert.ok(!whyContent.includes("'2026-10'"), 'F13V2WhyPage must not contain hardcoded 2026-10');
+  assert.ok(!whyContent.includes("'2026-11-04'"), 'F13V2WhyPage must not contain hardcoded 2026-11-04');
 });
 
 
