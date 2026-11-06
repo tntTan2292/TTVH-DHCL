@@ -1,6 +1,20 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { isNavItemActive, translateLegacyF13DashboardSearch } from './urlPreservation.js';
+import { isNavItemActive, translateLegacyEvidenceSearch, translateLegacyF13DashboardSearch } from './urlPreservation.js';
+
+test('an old /f13/evidence link opens /f13/v2/evidence with the new parameter names', () => {
+  const parse = (search) => Object.fromEntries(new URLSearchParams(translateLegacyEvidenceSearch(search)));
+  assert.deepEqual(
+    parse('?from_date=2026-10-22&to_date=2026-10-28&bcvh_id=537015&bcvh_name=Thuan%20An&route_id=53701501&route_name=X&status=failed&shipment_id=ABC123&sort=delay_hours&page=3&reason=late&return_to=%2Ff13%2Franking%2Froute'),
+    { from: '2026-10-22', to: '2026-10-28', bcvh: '537015', route: '53701501', verdict: 'Không đạt', search: 'ABC123' },
+  );
+  assert.equal(parse('?status=passed').verdict, 'Đạt');
+  assert.deepEqual(parse('?status=all&bcvh_id=all&route_id=all&period=week'), {});
+  assert.equal(parse('?status=returned').verdict, undefined);
+  assert.deepEqual(parse('?from_date=2026-10-22'), { from: '2026-10-22', to: '2026-10-22' });
+  assert.deepEqual(parse('?search=XYZ'), { search: 'XYZ' });
+  assert.equal(translateLegacyEvidenceSearch(''), '');
+});
 
 test('Kết quả chất lượng stays lit on its three tabs and nowhere else', () => {
   const item = { path: '/f41/v2/ngay', activePaths: ['/f41/v2/tuan', '/f41/v2/thang'] };

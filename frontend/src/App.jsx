@@ -27,8 +27,7 @@ import HangTonPage from './features/hangton/HangTonPage';
 import BcvhRankingPage from './features/ranking/BcvhRankingPage';
 import RoutePerformancePage from './features/route/RoutePerformancePage';
 import { translateLegacyViolationsSearch } from './features/route/routeViolationEvidenceData';
-import { translateLegacyF13DashboardSearch } from './navigation/urlPreservation';
-import ShipmentPerformancePage from './features/shipment/ShipmentPerformancePage';
+import { translateLegacyEvidenceSearch, translateLegacyF13DashboardSearch } from './navigation/urlPreservation';
 import ServicePointsPage from './features/networkMap/ServicePointsPage';
 import Level2RoutesPage from './features/networkMap/Level2RoutesPage';
 import DeliveryRoutesPage from './features/networkMap/DeliveryRoutesPage';
@@ -62,7 +61,13 @@ function HomeRoute() {
 // (from_date, bcvh_id, bcvh_name, route_id, route_name, shipment_id, ...).
 function LegacyShipmentRedirect() {
   const location = useLocation();
-  return <Navigate to={`/f13/evidence${location.search}`} replace />;
+  return <Navigate to={`/f13/v2/evidence${translateLegacyEvidenceSearch(location.search)}`} replace />;
+}
+
+// /f13/evidence (the old shipment list) is replaced by /f13/v2/evidence (PO 2026-11-06, F13-EVIDENCE-01): old links keep period, unit, route, verdict and search.
+function LegacyEvidenceRedirect() {
+  const location = useLocation();
+  return <Navigate to={`/f13/v2/evidence${translateLegacyEvidenceSearch(location.search)}`} replace />;
 }
 
 // /f13/ranking/route/violations is not deleted (Product Owner Phase 3 decision,
@@ -78,7 +83,7 @@ function LegacyShipmentRedirect() {
 function LegacyRouteViolationsRedirect() {
   const location = useLocation();
   const translated = translateLegacyViolationsSearch(location.search);
-  return <Navigate to={`/f13/evidence${translated ? `?${translated}` : ''}`} replace />;
+  return <Navigate to={`/f13/v2/evidence${translateLegacyEvidenceSearch(translated ? `?${translated}` : '')}`} replace />;
 }
 
 // TIME-AXIS-TEMPLATE-01: Theo ngày / tuần / tháng of the other indicators (PO accepted 2026-11-03).
@@ -161,7 +166,7 @@ function App() {
               <Route path="ranking/route/violations" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN, ROLE_VIEWER]}><LegacyRouteViolationsRedirect /></ProtectedRoute>} />
               <Route path="ranking/shipment" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN, ROLE_VIEWER]}><LegacyShipmentRedirect /></ProtectedRoute>} />
               <Route path="pareto" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN]}><PlaceholderPage title="Pareto / RCA" /></ProtectedRoute>} />
-              <Route path="evidence" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN, ROLE_VIEWER]}><ShipmentPerformancePage /></ProtectedRoute>} />
+              <Route path="evidence" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN, ROLE_VIEWER]}><LegacyEvidenceRedirect /></ProtectedRoute>} />
               <Route path="message" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN]}><PlaceholderPage title="Message Center" /></ProtectedRoute>} />
             </Route>
 

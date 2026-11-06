@@ -25,6 +25,28 @@ export function translateLegacyF13DashboardSearch(search) {
   return query ? `?${query}` : '';
 }
 
+// The old /f13/evidence page (ShipmentPerformancePage) is replaced by /f13/v2/evidence (PO 2026-11-06): an old link keeps its period and unit.
+// from_date/to_date -> from/to, bcvh_id -> bcvh, route_id -> route, status failed/passed -> verdict, shipment_id (or search) -> search.
+// Names, sort, paging, reason, period and return_to have no equivalent in the new page and are dropped; status all/returned means no verdict.
+export function translateLegacyEvidenceSearch(search) {
+  const params = new URLSearchParams(search);
+  const translated = new URLSearchParams();
+  const fromDate = params.get('from_date') || params.get('date') || params.get('to_date');
+  const toDate = params.get('to_date') || params.get('date') || params.get('from_date');
+  if (fromDate) translated.set('from', fromDate);
+  if (toDate) translated.set('to', toDate);
+  const bcvh = params.get('bcvh_id') || params.get('ma_bcvh');
+  if (bcvh && bcvh !== 'all') translated.set('bcvh', bcvh);
+  const route = params.get('route_id');
+  if (route && route !== 'all') translated.set('route', route);
+  const verdict = { failed: 'Không đạt', passed: 'Đạt' }[params.get('status')];
+  if (verdict) translated.set('verdict', verdict);
+  const needle = params.get('shipment_id') || params.get('search');
+  if (needle) translated.set('search', needle);
+  const query = translated.toString();
+  return query ? `?${query}` : '';
+}
+
 export function buildPreservedSearchString(searchParamsOrString) {
   const params = typeof searchParamsOrString === 'string'
     ? new URLSearchParams(searchParamsOrString)

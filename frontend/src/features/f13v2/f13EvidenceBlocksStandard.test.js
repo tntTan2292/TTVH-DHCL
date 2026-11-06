@@ -109,8 +109,10 @@ test('F13-EVIDENCE-01: App.jsx and appNavigation.jsx register the Evidence page 
   assert.ok(appContent.includes("import F13V2EvidencePage from './features/f13v2/F13V2EvidencePage';"), 'App.jsx must import F13V2EvidencePage');
   assert.ok(appContent.includes('<Route path="evidence" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN, ROLE_VIEWER]}><F13V2EvidencePage /></ProtectedRoute>} />'), 'App.jsx must register evidence route');
 
-  // Old route preserved until PO acceptance
-  assert.ok(appContent.includes('<Route path="evidence" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN, ROLE_VIEWER]}><ShipmentPerformancePage /></ProtectedRoute>} />'), 'App.jsx must preserve legacy evidence route');
+  // PO accepted 2026-11-06: the old /f13/evidence redirects to /f13/v2/evidence with the new parameter names
+  assert.ok(appContent.includes('<Route path="evidence" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN, ROLE_VIEWER]}><LegacyEvidenceRedirect /></ProtectedRoute>} />'), 'App.jsx must redirect the legacy evidence route');
+  assert.ok(!appContent.includes('ShipmentPerformancePage'), 'App.jsx must no longer mount the old shipment page');
+  assert.ok(appContent.includes('translateLegacyEvidenceSearch'), 'the redirect translates the old parameters');
 
   // Registered in navigation menu
   assert.ok(navContent.includes("path: '/f13/v2/evidence'"), 'appNavigation.jsx must point Dữ liệu minh chứng to /f13/v2/evidence');

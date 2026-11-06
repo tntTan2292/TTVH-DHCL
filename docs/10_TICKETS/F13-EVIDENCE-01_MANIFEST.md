@@ -6,7 +6,7 @@
 - Name: `F1.3 "Dữ liệu minh chứng" rebuilt: the evidence behind every figure, and the place where the Chuyên quản analyses parcels`
 - Programme: F1.3 cause rebuild, item 3 of `F13-WHY-UI-01` section 2A. Data: `F13-WHY-DATA-02` (rules v5), `F13-WHY-AGG-01` (table `f13_cause_parcel`, `/api/f13/v2/why/*`), `F13-WHY-UI-01` ("Phân tích nguyên nhân", CLOSED).
 - Executors: **Claude Code / Sonnet 5.5** for the backend (phase B1); **Antigravity** for the screen (phase U1), designed by Antigravity from the problem below. **Opus** reviews each phase. Does not change the Current Ticket.
-- Status: `READY FOR PO CHECK (day, week and month modes; U1-R9 fixed in d92c6828 and checked on a real render)`. `PO UI Check Required = Yes` (after U1).
+- Status: `CLOSED / PO UI PASS (2026-11-06; /f13/v2/evidence and /f13/v2/why checked by the PO in day, week and month modes)`. `PO UI Check Required = Yes` (after U1).
 
 ## 2. The problem
 
@@ -58,6 +58,7 @@ Never change the official F1.3 data or the cause rules; analyses never change th
 - 2026-11-06: B1 implemented (section 9), for Opus review.
 - 2026-11-06: B1 reviewed and accepted (section 10, Claude Code / Opus 5.5).
 - 2026-11-06: U1 built by Antigravity (`e1c5443b`), reviewed by Opus (section 12); READY FOR PO CHECK.
+- 2026-11-06: PO UI PASS; old `/f13/evidence` redirected to `/f13/v2/evidence`; ticket closed (section 11, Claude Code / Sonnet 5.5).
 
 ## 9. B1 results (2026-11-06, Claude Code / Sonnet 5.5; for Opus review, not self-approved)
 
@@ -114,3 +115,23 @@ Real render of `d92c6828` (Claude Code / Opus, isolated 5051/5199, the real `f13
 - Checks rerun: `node --test f13Evidence*.test.js f13Why*.test.js` 40/40. `oxlint -D no-undef src/features/f13v2/`: the two pages are clean. One error is left outside this fix, `f13v2Helpers.js:189` (`URLSearchParams`, same false positive as U1-R2).
 
 Still open: U1-R1 (whether the summary block gets a note, PO to decide). Next: PO UI check in day / week / month. On PO PASS: redirect `/f13/evidence` to `/f13/v2/evidence`, then close the ticket. PO PASS is not self-awarded.
+
+## 11. Closure (2026-11-06, Claude Code / Sonnet 5.5)
+
+PO UI PASS: the PO accepted `/f13/v2/evidence` and `/f13/v2/why` in day, week and month modes. The menu item "Dữ liệu minh chứng" already points to `/f13/v2/evidence` (`72def0ed`).
+
+**Redirect of the old page.** `/f13/evidence` (old `ShipmentPerformancePage`) is now `LegacyEvidenceRedirect` in `App.jsx`, with `translateLegacyEvidenceSearch` (`frontend/src/navigation/urlPreservation.js`):
+
+| Old | New |
+|---|---|
+| `from_date`, `to_date` (or `date`; one given = both) | `from`, `to` |
+| `bcvh_id` (or `ma_bcvh`) | `bcvh` |
+| `route_id` | `route` |
+| `status=failed` / `passed` | `verdict=Không đạt` / `Đạt` |
+| `shipment_id`, else `search` | `search` |
+
+`all` values, `status=all` / `returned`, names, sort, page, `reason`, `period` and `return_to` have no equivalent and are dropped. `/f13/ranking/shipment` and `/f13/ranking/route/violations` now go to `/f13/v2/evidence` through the same translation, so a bookmark keeps its day, unit and route. The old page file and its own tests stay in the repository (unmounted).
+
+**Tests.** `urlPreservation.test.js` (new case for every mapping and every dropped value); `App.role-routing.test.js` and `f13EvidenceBlocksStandard.test.js` updated from "legacy route preserved" to "legacy route redirects". `node --test` on those two plus `appNavigation`, `urlPreservation`, `RouteViolationEvidencePage.retired`: 28/28; `vite build` OK; `oxlint` clean on the changed files.
+
+Not changed: backend, official F1.3 data, cause rules, `/why` figures. Ticket CLOSED.
