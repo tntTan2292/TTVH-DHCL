@@ -7,7 +7,7 @@
 - Programme: F1.3 cause rebuild. Data from `F13-WHY-DATA-02` (rules v5, CLOSED) and `F13-WHY-AGG-01` (aggregation layer, P1-P4 accepted).
 - Owner: **Antigravity** (UI/UX, its strength: it designs and builds the screen). Claude Code: backend support only if a figure is missing from the API (ask, do not invent). Opus: independent review of the result.
 - **PO decision 2026-11-05:** Claude gives Antigravity the problem, not a screen design; Antigravity designs and builds; it must not reproduce the UI defects the PO has had to fix recently (section 6).
-- Status: `STEP 1 PO UI PASS; STEP 2 READY FOR PO CHECK (Opus review closed, section 10)` (two steps, section 2A; PO 2026-11-05). `PO UI Check Required = Yes`. Does not change the Current Ticket.
+- Status: `CLOSED - PO UI PASS (step 1 and step 2, 2026-11-06)` (two steps, section 2A; PO 2026-11-05). `PO UI Check Required = Yes`. Does not change the Current Ticket.
 
 ## 2. The problem (PO, in his words, 2026-11-05)
 
@@ -118,3 +118,5 @@ PO checklist (step 1): menu F1.3 > "Phân tích nguyên nhân"; from Kết quả
 - An uncommitted blank-line edit by Antigravity on `F13V2WhyPostmanSubTable.jsx` is left as it is (not part of this review).
 
 PO checklist (step 2): expand a postman route with "Bưu tá"; the first-handover postmen and "Chưa có bưu tá" appear with volume, failed and cause chips, the neutral footnote; click any number or chip (BCVH card, route, postman, a Chờ Chuyên quản reason, a time-left bucket): the list opens with the same count; causes and reasons in Vietnamese; "Xem hành trình" opens Hành trình bưu gửi on that parcel and day.
+
+**Step 2 PO UI PASS (2026-11-06, in chat: "PASS bước 2"). Ticket CLOSED.** Commits: step 2 `fb05ffa3`, rule-11 fix `c802f7d7`. Open for later (not blocking): a "Khai thác - Vận chuyển chưa phân biệt" chip at route and postman level (section 10). Next in the programme (section 2A): Dữ liệu minh chứng with the Chuyên quản analysis (E8), then the Thuận Hóa trial.
