@@ -6,7 +6,7 @@
 - Name: `F1.3 route capacity and daily load`
 - Owner: Claude Code / Opus 5.5 (scope, review, real render). **B1 backend: Claude Code / Sonnet 5.5. U1 screen: Antigravity** (after B1 is accepted). Does not change the Current Ticket.
 - Branch: `codex/da-impl-006`.
-- **Status: `B1 CODE ACCEPTED (Opus review, section 7); rule C2 to be revised - PO choice open (section 7)`**. `PO UI Check Required = Yes` (after U1).
+- **Status: `B2 READY FOR SONNET` (rules of section 9 replace C2-C3; B1 code accepted)**. `PO UI Check Required = Yes` (after U1).
 
 ## 2. PO decisions (2026-11-07, in chat, plan approved)
 
@@ -101,4 +101,18 @@ PO: capacity must follow the **TCT norm** (định mức):
 
 Data check (read only, October 2026, `fact_f13.loai_tuyen_phat`): 30 routes "Tuyến phát trung tâm tỉnh, thành phố (02 lần/ngày)", 67 "Tuyến phát xã (01 lần/ ngày)", 6 "Tuyến phát xã (02 lần/ngày)"; also 8 "Tuyến phát trung tâm quận, huyện, thị xã (01 / 02 lần)", 2 "Tuyến phát xã trung tâm tỉnh, thành phố (02 lần/ngày)", 2 "Tuyến phát thời vụ", 1 "Tuyến phát Khu công nghiệp", 8 "Tuyến phát lưu tại bưu cục" (Phát tại quầy, out of scope), and "Khong Xac Dinh". N3 routes in the data: Phú Lộc `Khe Tre_02`, `Nam Đông_01`, `Nam Đông_02`, `Long Quảng_01`, `Long Quảng_02` (by name), and the 13 routes of BCVH A Lưới (535790). With N1 / N2, 7 of 48 town routes and 6 of 83 commune routes have an October daily average above the norm.
 
-Open for the PO before Sonnet changes B1: the norm of the other route types listed above, whether D3 (own history) is dropped or kept as a reference column, and whether a day with several postmen on one route compares the volume per postman with the norm.
+Answered by the PO the same day: see section 9.
+
+## 9. Final rules (PO 2026-11-07) - B2 scope for Sonnet
+
+They replace C2-C3; C4-C7 stay.
+
+| ID | Rule |
+|---|---|
+| N1 | Norm by `fact_f13.loai_tuyen_phat` of the route (most frequent value in the period): **80 BG / day** for "Tuyến phát trung tâm tỉnh, thành phố", "Tuyến phát trung tâm quận, huyện, thị xã" (01 or 02 lần) and "Tuyến phát xã trung tâm tỉnh, thành phố"; **50 BG / day** for "Tuyến phát xã" (01 or 02 lần) and "Tuyến phát Khu công nghiệp". Matching by normalised text prefix, the table in `CAPACITY_CONFIG`. |
+| N2 | **Not judged on volume** (`KHONG_AP_DUNG` with a reason): "Tuyến phát thời vụ"; the special routes = every route of BCVH A Lưới (535790) and the Phú Lộc (537220) routes whose name starts with Khe Tre, Nam Đông or Long Quảng (list in config); Phát tại quầy / OTHER / "Khong Xac Dinh" / "Tuyến phát hoàn" / no type. |
+| N3 | The norm is per **postman per day**. Each F1.3 parcel of the route is given to its postman: `ma_buu_ta_shown` of the cause table (the delivering handover, F4.2); if empty, `fact_bf_phat.postman_code` of the same parcel at that BCVH (day of measurement or the next day), name from `dm_buu_ta`; else "Chưa xác định bưu tá" (counted, never judged). Example PO: route TMĐT 1, 150 BG = A 50, B 60, C 40. |
+| N4 | State of a postman-day: **VUOT_DINH_MUC** when his volume > norm, else **TRONG_DINH_MUC** ("đang ổn", whatever the ups and downs). A route-day is VUOT_DINH_MUC when at least one of its postmen is; the response lists the postmen with volume and state. |
+| N5 | The own-history capacity (D3: days at or above min(90 %, own median rate), P90, at least 5 days, routes under 5 BG a day median -> null) is kept as a **reference column only**, never a state. |
+
+B2 changes: `RouteCapacity.js` (norm table, special routes, postman-day state, D3 as reference), `RouteCapacityService.js` (route type, per-postman volume with the BatchFile fallback, names from `dm_buu_ta`), the two handlers' output, tests for N1-N5 (prefix matching of every type seen in the data, special routes by BCVH and by name, the 150 = 50 / 60 / 40 example, BatchFile fallback, unknown postman, D3 reference). Measure again on a copy: postman-days over the norm by BCVH and route type for October, and the parcels with no postman found. Same restrictions as section 3.
