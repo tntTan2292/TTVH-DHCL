@@ -135,3 +135,40 @@ PO UI PASS: the PO accepted `/f13/v2/evidence` and `/f13/v2/why` in day, week an
 **Tests.** `urlPreservation.test.js` (new case for every mapping and every dropped value); `App.role-routing.test.js` and `f13EvidenceBlocksStandard.test.js` updated from "legacy route preserved" to "legacy route redirects". `node --test` on those two plus `appNavigation`, `urlPreservation`, `RouteViolationEvidencePage.retired`: 28/28; `vite build` OK; `oxlint` clean on the changed files.
 
 Not changed: backend, official F1.3 data, cause rules, `/why` figures. Ticket CLOSED.
+
+## 12. Record restored (2026-11-07, Claude Code / Opus 5.5)
+
+Commit `5190d8c1` deleted the old section 11 (B1-R1 and the backend restart, written in `2b5a98fa`) and the U1-R7 / U1-R8 rows by mistake. They are copied back below, word for word from `5190d8c1^`.
+
+### B1-R1 and backend restart (2026-11-06, Claude Code / Sonnet 5.5)
+
+**B1-R1 (commit `7ff4eb31`).** `EvidenceService._where`: `analysed=yes` = `a_id IS NOT NULL AND danh_gia = 'Không đạt'`; `analysed=no` = its complement (`a_id IS NULL OR danh_gia IS NOT 'Không đạt'`, so a NULL verdict falls in the complement); `analyst_cause` also only on Không đạt parcels. The item still shows an old analysis (`can_analyse` false). New test in `f13v2Evidence.test.js` (16/16): a parcel analysed while Không đạt and then set to Đạt or to unrated: `/why` analysed drops by one and `analysed=yes`, `analyst_cause=KHAI_THAC` of the list equal `/why` `analysed` and `by_cause`, yes + no = the whole list, the item still shows the old analysis. `CauseAggQueryService` 22/22.
+
+**Checks before the restart (read only).** `auto_backfill_job`: no QUEUED or RUNNING job (states CANCELLED, FAILED_TERMINAL, SKIPPED_ALREADY_SUCCESS, SUCCESS only); `auto_backfill_run`: none open (COMPLETED, COMPLETED_WITH_ERRORS, CANCELLED); `auto_backfill_worker_lease` empty; last `import_log` row 01:06 UTC (SUCCESS, 50 minutes earlier), none in the last 10 minutes; no RUNNING `f13_cause_run`; no `supervisor.pause`.
+
+**Restart (08:58 Vietnam time).** Stopped the listeners on 5050 (PID 25144) and 5178 (PID 6600); the supervisor started both again within 20 s: backend PID 20428, front end PID 38196, log `logs/backend-20261106-085817.out.log`.
+
+**After the restart.**
+- Startup log: `[auth] restored 2 session(s)`, `TTVH Backend running on port 5050`, `[f13-cause] run 17 DONE: 0 day(s) built, 0 failed (2026-09-22..2026-11-06, startup)` (the table was already complete); no error line. The err log holds only the usual chokidar ExperimentalWarning and the two "removed a stale profile lock" lines.
+- Database: `f13_analysis_log` exists with indexes `idx_f13_analysis_parcel`, `idx_f13_analysis_bcvh` and the two triggers `trg_f13_analysis_no_update`, `trg_f13_analysis_no_delete`; 0 rows.
+- `GET /api/f13/v2/evidence/catalog` without a login: **401** (also `evidence/list` and `why/summary`: 401). No login was tried on the real backend.
+- DKCL: HUE session re-attached and its queue lane woken; **TCT: saved session not re-attached (`NO_SESSION`)**: no backfill was running, so nothing was lost, but the TCT window needs the PO's DKCL login again before the 07:30 import or any backfill uses that lane.
+- `scripts/realign-handling-entries.js` dry run: 0 entries to change, 0 left as typed, 0 that cannot be realigned: `--apply` not needed, nothing written.
+
+B1 is live. Real render of `42fa9735` (Claude Code / Opus, isolated 5051/5199): **U1-R5 fixed** (from the menu the page opens on the latest day, `from` = `to`); **U1-R6 fixed for the counts** (Chuyên quản Thuận An: 10 BG, 4 Đạt, 5 Không đạt, Khai thác 1, Chậm giao bưu tá 1, Chờ Chuyên quản 2, analysed 0/5; city leader over two days: 40 / 16 / 20, 4 / 4 / 8); the list total equals the figure for `cause` = KHAI_THAC 4, GIAO_BUU_TA_QUA_GIO 4, CHO_CHUYEN_QUAN 8, PHAT 4; no failed API call, no page error.
+
+| ID | Level | Finding | Resolution |
+|---|---|---|---|
+| U1-R7 | **Blocker** | Week and month modes: `F13V2EvidencePage.jsx` reads `res.week.id` / `res.month.id`, but `resolvePeriod` returns `week.week_id` (and the month object of `monthBounds`), so it falls back to the hard-coded `'2026-W44'` / `'2026-11'`; the week / month lists read `layout.available_weeks` / `available_months`, which `/v2/layout` does not return, so they are empty. `F13V2WhyPage` takes the lists from `/time-axis/weeks` and `/time-axis/months`. | Fixed by Antigravity: 1. `resolvePeriod` reads `res.week.week_id` and `res.month.month_id` (matching `periodResolve.js`); 2. Weeks and months dynamically loaded from `/time-axis/weeks` and `/time-axis/months` on mount and passed to `F13V2EvidenceFilterBar`; 3. Removed all hardcoded periods ('2026-W44', '2026-11', '2026-11-04') across the page; missing data reports clean empty state with notification. |
+| U1-R8 | **Blocker** (wrong figure) | Đạt rate shows "4000,00%": `totals.rate` is already a percentage (`percentOne`, 40.0), the card multiplies it by 100 again. | Fixed by Antigravity: `F13V2EvidenceSummaryCard` displays raw `rate` with 1 decimal place and Vietnamese comma (e.g. 40,0%), without multiplying by 100. Test payload updated to real percentage scale (84.0). |
+
+### Real render of the redirect (2026-11-07, Claude Code / Opus; commit `36771fe6`, isolated 5051/5199, no live login)
+
+| Old link | Lands on | List |
+|---|---|---|
+| `/f13/evidence?from_date=2026-10-19&to_date=2026-10-20&bcvh_id=537015&route_id=53701501&status=failed&reason=delayed_cash&return_to=x` | `/f13/v2/evidence?from=2026-10-19&to=2026-10-20&bcvh=537015&route=53701501&verdict=Không đạt` | 2 BG (seed: 1 a day) |
+| `/f13/evidence?from_date=2026-10-20&status=passed&shipment_id=BG537015201` | `?from=2026-10-20&to=2026-10-20&verdict=Đạt&search=BG537015201` | 1 BG |
+| `/f13/ranking/route/violations?date=2026-10-19&bcvh_id=535790&route_id=53579000` | `?from=2026-10-19&to=2026-10-19&bcvh=535790&route=53579000` | 4 BG |
+| `/f13/ranking/shipment?from_date=2026-10-19&to_date=2026-10-19&bcvh_id=537015` | `?from=2026-10-19&to=2026-10-19&bcvh=537015` | 10 BG |
+
+No page error. The F1.3 menu reads Kết quả chất lượng, Phân tích nguyên nhân, Dữ liệu minh chứng, Hành trình bưu gửi, Phân tích tuyến phát, Năng lực và chất lượng tuyến. Note: the page keeps `bcvh` only when the unit is in the account's unit list (`resolveEffectiveBcvh`); otherwise it falls back to the account's own scope.
