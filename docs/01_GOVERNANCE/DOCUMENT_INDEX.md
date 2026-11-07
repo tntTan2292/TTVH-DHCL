@@ -957,6 +957,7 @@ Current Ticket remains `F13-BCVH-MONTHLY-CUMULATIVE-01`; this Admin scope must n
 | Path / Pattern | Type | Purpose Summary | Authority | Status | When Read | Importance |
 | --- | --- | --- | --- | --- | --- | --- |
 | `docs/03_PLANNING/TTVH-DHCL-UPGRADE-ROADMAP-01.md` | Cross-ticket Coordination Roadmap | Groups the F1.3 and Administration upgrades, records the intended four-ticket sequence, preserves scope boundaries, and prevents automatic activation or scope mixing across chats/executors. | L2 | `ACTIVE COORDINATION ROADMAP` | After PROJECT_SNAPSHOT and the Current Manifest/Checkpoint when continuing this upgrade program. | Mandatory |
+| `docs/03_PLANNING/F13-GOLIVE-PLAN-01.md` | Programme Plan | F1.3 complete before the official start (PO 2026-11-07, no trial wait): the PO problem statement against what is built, gaps G0-G7 (Hương Trà rule, Hành trình route table, route capacity, rule-proposal approval, per-route narrative with lot and tồn / hoàn hints, U1-R1 note, retire old pages, go-live check). `PROPOSED`. |
 
 This roadmap supplements but never replaces each ticket's Manifest, Checkpoint, Design of Record, review or Product Owner gate.
 
