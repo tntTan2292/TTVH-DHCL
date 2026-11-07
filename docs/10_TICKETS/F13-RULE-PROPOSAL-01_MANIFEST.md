@@ -6,7 +6,7 @@
 - Name: `F1.3 "Đề xuất quy tắc": Chuyên quản corrections grouped as proposals, approved or rejected by the PO`
 - Owner: Claude Code / Opus 5.5 (scope, review, real render). **B1 backend: Claude Code / Sonnet 5.5. U1 screen: Antigravity** (after B1 is accepted). Does not change the Current Ticket.
 - Branch: `codex/da-impl-006`.
-- **Status: `B1 DONE - READY FOR OPUS REVIEW`**. `PO UI Check Required = Yes` (after U1).
+- **Status: `B1 ACCEPTED (Opus review, section 7) - live after the next backend restart; U1 ready for Antigravity`**. `PO UI Check Required = Yes` (after U1).
 
 ## 2. PO decisions
 
@@ -47,3 +47,22 @@ Page "Đề xuất quy tắc" in the F1.3 menu for the admin tier: list by statu
 - **Decision rules chosen by me, for review**: note mandatory for APPROVE / REJECT; APPLIED needs `ticket_id` and the current status APPROVED (409 `NOT_APPROVED` otherwise); a key with no current group is 404 for a new decision; a past decision on a key whose group vanished is still readable via `GET /:key` (`active: false`). Snapshot stores parcels, bcvh, analysts, first/last date, still_system_conclusion.
 - **Tests** (all run with `--experimental-sqlite`, one file at a time): `src/routes/f13v2RuleProposal.test.js` 8/8 (capability, empty log, 403 for CHUYEN_QUAN / GD_BCVH / LD_BDTP / GD_TTVH / STAFF, grouping with a twice-analysed parcel and an equal-to-system choice, decision rules, append-only chain and triggers, analysis log unchanged); `migrate_f13_rule_proposal_01_schema.test.js` 2/2. Neighbours unchanged: evidence migration 2/2, `server.startupMigrations` 1/1, `f13v2Evidence` 16/16, `adminUserRoutes` 3/3, `resolveAccess` 10/10, `handling` 21/21.
 - **Not done / for Opus**: no real-data run (the live table does not exist yet); no frontend (U1).
+
+## 7. Opus review of B1 (2026-11-07, Claude Code / Opus 5.5; commit `f7e4f4c4`)
+
+**Verdict: B1 ACCEPTED.** P1-P5 implemented as written; no write outside the new table; nothing changes a figure.
+
+Checked independently:
+- **Grouping (P1).** Latest row per parcel (`MAX(id)` on `ngay_do_kiem` + `ma_bg`); "differs" = `cause_code IS NOT COALESCE(system_line, '')`, the same codes `EvidenceService.record` uses for its "different choice" rule (`system.line !== cause.code`), so a proposal is exactly a choice that needed a "khác hệ thống" note. A parcel the system left to the Chuyên quản (`system_line` null) always forms a proposal, which is the case that matters most. `PHAT_KHONG_CHI_TIET` (B1-R2 of F13-EVIDENCE-01) also forms one, accepted: the analyst states the Phát detail.
+- **Key.** `status|cause-or-reason|detail>chosen|phat`, `~` for empty, parsed back by a strict pattern (no `|` or `>` inside a part: all parts are codes). Express decodes `:key`, so the client must send `encodeURIComponent(key)`.
+- **Decisions (P3, P4).** Append-only table with UPDATE / DELETE triggers and a CHECK on the three values; latest row = current, `supersedes_id` set; note mandatory for APPROVE and REJECT (confirmed), APPLIED needs a ticket and a current APPROVE (409 otherwise, confirmed); snapshot of the counts at decision time; `ready_text` only while approved. Startup migration after the evidence one, idempotent.
+- **Access (P5).** `f13.rule.view` / `f13.rule.decide` on ADMIN only; router mounted under `f13v2Routes` (auth, module, scope); 403 for every other position in the tests.
+- Suites rerun one file at a time with `--experimental-sqlite`: `f13v2RuleProposal` 8/8, `migrate_f13_rule_proposal_01_schema` 2/2, `f13v2Evidence` 16/16, `resolveAccess` 10/10, `server.startupMigrations` 1/1.
+
+| ID | Level | Finding | Resolution |
+|---|---|---|---|
+| R-R1 | Low | A proposal also counts parcels whose verdict became Đạt or whose system conclusion changed after a rebuild; `still_system_conclusion` shows how many still match. | Accepted; U1 shows "còn giữ kết luận hệ thống x / n" beside the count so the PO decides on the current picture. |
+| R-R2 | Info | Keys hold `|` and `>`. | U1 always encodes the key in the URL. |
+| R-R3 | Info | A decision on a proposal with no current parcel returns 404 (`active: false` stays readable). | Accepted. |
+
+Live: the table and the endpoints appear at the next backend restart, done once with G0 and G2 after their reviews (plan F13-GOLIVE-PLAN-01). U1 can start now on the B1 contract.
