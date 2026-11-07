@@ -7,7 +7,7 @@
 - Programme: F1.3 cause rules. Predecessor `F13-WHY-DATA-02` (rules v5, CLOSED). Changes one input of the classifier for one BCVH; everything else of v5 stays.
 - Owner: `Claude Code`. Opus 5.5 reviewed before the change (this document). Sonnet 5.5 implements. Opus 5.5 reviews the result. Does not change the Current Ticket of `PROJECT_SNAPSHOT.md`.
 - Branch: `codex/da-impl-006`.
-- **Status: `READY FOR SONNET`** (2026-11-07, Opus pre-implementation review PASS, section 5). `PO UI Check Required = No` (rule change, figures checked on a copy; the PO may look at a Hương Trà parcel afterwards).
+- **Status: `ACCEPTED (Opus review, section 10) - live after the 2026 rebuild and the backend restart (PO go-ahead)`**. `PO UI Check Required = No` (rule change, figures checked on a copy).
 
 ## 2. PO decision (2026-11-07, in chat)
 
@@ -98,3 +98,16 @@ Never change the official F1.3 data, `agg_f13_day` or the analysis log. No build
 
 - 2026-11-07: created by Claude Code / Opus 5.5 after the PO decision; evidence read only on the live file.
 - 2026-11-07: implemented and checked on a copy by Claude Code / Sonnet 5.5 (section 8); waiting for the Opus review.
+
+## 10. Opus review (2026-11-07, Claude Code / Opus 5.5; commit `99c67b79`)
+
+**Verdict: ACCEPTED.** Section 4 implemented as written; official figures unchanged (SHA-256 of `fact_f13` and `agg_f13_day` identical on the copy, verify 0 differences).
+
+Checked independently:
+- `CauseClassifier.js`: `A_eff = T` only when `directHandover && A < T && T - A <= 24 h`; every later use reads `A_eff`, the raw A is never used after the destructuring; flag pushed with the other data flags. Other BCVH: `directHandover` false, path unchanged (copy: 0 changed rows outside 535470).
+- `JourneyService.js`: `directHandover` from the config list; raw A kept in the milestone; `tms_arrive` on `A_eff`, recomputed in the service so that passed parcels (not classified) get the same leg. The small duplication of the condition is accepted (one config, two readers).
+- Where the 1 042 parcels go, rechecked read only on the live file against the first handover G of F4.2: no G found 367 and G before T 130 (together about the 414 "Phát without detail" plus part of the 131 "TCT dài hơn mốc"), G on a later day than T 337 (= 316 Chậm giao bưu tá), G the same day after T 208 (about 164 Phát chậm sau khi giao). The split is what the v5 tree gives once A_eff = T: no error.
+- The 28 rows that only gain the flag (25 Không trọn lô, 3 no milestone) keep their cause because step 1 comes before A: correct; the flag stays as information.
+- Suites rerun one file at a time with `--experimental-sqlite`: `CauseClassifier` 36/36, `JourneyService` 28/28, `CauseAggBuilder` 21/21, `CauseAggQueryService` 22/22, `f13v2Evidence` 16/16.
+
+**Rollout (PO go-ahead needed):** no import or backfill running; `node scripts/f13_cause_tool.js build --from 2026-01-01 --to <latest day>` on the live file (about 8-10 minutes, the backend keeps serving), `verify`, then one backend restart through the supervisor (also brings F13-RULE-PROPOSAL-01 and the route label of 582fee3d live), then `scripts/realign-handling-entries.js` dry run, `/why` and Dữ liệu minh chứng freshness complete.
