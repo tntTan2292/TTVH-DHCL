@@ -6,7 +6,7 @@
 - Name: `F1.3 Phân tích nguyên nhân: one sentence per route (main cause with its share, the lot when Không trọn lô dominates, little time left at arrival, tồn / hoàn as hints)`
 - Owner: Claude Code / Opus 5.5 (scope, review, real render). **B1 backend: Claude Code / Sonnet 5.5. U1 screen: Antigravity** (after B1 is accepted). Does not change the Current Ticket.
 - Branch: `codex/da-impl-006`.
-- **Status: `B1 ACCEPTED (Opus review, section 7); U1 ready for Antigravity`**. `PO UI Check Required = Yes` (after U1).
+- **Status: `B1 + U1 DONE, real render passed (section 8) - READY FOR PO CHECK`** (backend live since the restart of 2026-11-07 09:47; the screen is served live by the dev server). `PO UI Check Required = Yes`.
 
 ## 2. The PO problem statement (2026-11-05) this answers
 
@@ -74,3 +74,9 @@ Decisions (Opus, technical):
 - **"Khá cao"** for the return and stock hints: `ratio >= 2` against the BCVH and `count >= 3` (October: 1 return route, 3 stock routes; nothing noisy). One constant in `STORY_CONFIG`, applied by U1 for the wording; the API keeps the numbers.
 - The stock hint counts parcels with no TCT result in the period. U1 words it "chưa có kết quả phát trong kỳ", never "tồn" as a verdict (PO 2026-11-04: tồn is never a cause).
 - `main` only among real causes ("Chờ Chuyên quản" and "chưa đủ căn cứ" stay in the mix): correct. The lot sentence will be rare (Không trọn lô main on 2 routes in October); Phát lines dominate, so U1 must word the Phát details well (Chậm giao bưu tá / Phát chậm sau khi giao).
+
+## 8. Real render of U1 (2026-11-07, Claude Code / Opus 5.5; commit `abc7563d` + one review fix)
+
+Isolated 5051/5199 with the real `f13v2Routes` (seed with postman routes, Phát tại quầy and Tuyến chưa xác định), no live login. The sentence shows in the "Nguyên nhân chính" cell of every route: "Chậm giao bưu tá chiếm 100,0% (2 BG)", "Khai thác chiếm 100,0% (2 BG)"; the two other groups too; no blame word; no failed call, no page error. `last_tms` comes from the backend as "yyyy-mm-dd HH:MM:SS" on the local clock, which `formatTmsBatchTime` reads without a time-zone shift (checked).
+
+Fixed in the review: a route whose failed parcels all wait for the Chuyên quản (`story.main` null) fell back to the old text and lost the little-time count and the hints; now the mix sentence leads and they follow ("Chờ Chuyên quản phân tích (2 BG: Thiếu mốc giao bưu tá); 2 BG đến BCVH còn ít giờ"). One test added; `f13Why*` 31/31, oxlint clean.

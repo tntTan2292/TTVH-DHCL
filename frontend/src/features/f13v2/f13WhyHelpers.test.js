@@ -584,3 +584,20 @@ test('F13-WHY-NARRATIVE-02: Never uses blame or fault wording (no "lỗi", "ph�
   assert.doesNotMatch(fullText, /phạt/i);
   assert.doesNotMatch(fullText, /tồn/i); // Never call them "tồn" as verdict: "chưa có kết quả phát trong kỳ"
 });
+
+test('F13-WHY-NARRATIVE-02 review: no main cause keeps the mix sentence and still adds little time and hints', () => {
+  const route = {
+    failed: 4,
+    cause_mix: { lines: [], phat: { count: 0 }, cho_chuyen_quan: { count: 4, by_reason: { THIEU_MOC_G: 4 } } },
+    story: {
+      main: null, second: null, lot: null,
+      little_time: { count: 2, share: 0.5 },
+      return_hint: { count: 0, parcels: 6, share: 0, bcvh_share: 0, ratio: null },
+      stock_hint: { count: 3, parcels: 6, share: 0.5, bcvh_share: 0.1, ratio: 5 },
+    },
+  };
+  const sentence = buildRouteStorySentence(route);
+  assert.match(sentence.mainText, /2 BG đến BCVH còn ít giờ/);
+  assert.ok(!sentence.mainText.startsWith(';'));
+  assert.equal(sentence.hintText, '3 BG chưa có kết quả phát trong kỳ');
+});

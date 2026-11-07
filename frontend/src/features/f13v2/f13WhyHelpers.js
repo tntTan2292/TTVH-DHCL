@@ -408,7 +408,7 @@ export function buildRouteStorySentence(route) {
   }
 
   const story = route.story;
-  if (!story || !story.main) {
+  if (!story) {
     const fallback = summarizeRouteLegacyCause(route);
     return {
       mainText: fallback,
@@ -420,12 +420,15 @@ export function buildRouteStorySentence(route) {
 
   const parts = [];
 
-  // 1. Main cause
+  // 1. Main cause. Review (Opus): when no real cause leads (every failed parcel waits for the Chuyên quản), the mix sentence takes
+  // its place and the little-time count and the hints below still follow.
   const main = story.main;
-  const mainLabel = formatStoryCauseLabel(main.code, main.label);
-  const mainShare = formatSharePercent(main.share);
+  const mainLabel = main ? formatStoryCauseLabel(main.code, main.label) : '';
+  const mainShare = main ? formatSharePercent(main.share) : '';
 
-  if (main.code === 'KHONG_TRON_LO' && Array.isArray(story.lot) && story.lot.length > 0) {
+  if (!main) {
+    parts.push(summarizeRouteLegacyCause(route));
+  } else if (main.code === 'KHONG_TRON_LO' && Array.isArray(story.lot) && story.lot.length > 0) {
     const lotsStr = story.lot.map(formatStoryLot).join('; ');
     parts.push(`${mainLabel} chiếm ${mainShare} (${lotsStr})`);
   } else if (main.count !== undefined && main.count !== null) {
