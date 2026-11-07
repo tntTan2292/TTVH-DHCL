@@ -6,7 +6,7 @@
 - Name: `F1.3 route capacity and daily load`
 - Owner: Claude Code / Opus 5.5 (scope, review, real render). **B1 backend: Claude Code / Sonnet 5.5. U1 screen: Antigravity** (after B1 is accepted). Does not change the Current Ticket.
 - Branch: `codex/da-impl-006`.
-- **Status: `READY FOR SONNET (B1)`**. `PO UI Check Required = Yes` (after U1).
+- **Status: `B1 DONE - WAITING FOR OPUS REVIEW` (2026-11-07, Sonnet 5.5)**. `PO UI Check Required = Yes` (after U1).
 
 ## 2. PO decisions (2026-11-07, in chat, plan approved)
 
@@ -37,3 +37,37 @@ A "Năng lực tuyến" page in the F1.3 menu (route list by BCVH with load band
 ## 5. Change log
 
 - 2026-11-07: created by Claude Code / Opus 5.5 after the PO approved the plan and decisions C1-C7.
+- 2026-11-07: B1 implemented by Claude Code / Sonnet 5.5, measured on a copy of the database; results in section 6. Stopped for the Opus review.
+
+## 6. B1 results (Sonnet 5.5, 2026-11-07)
+
+**Files** (new, nothing else touched): `backend/src/services/f13v2/RouteCapacity.js` (pure rules + `CAPACITY_CONFIG`), `RouteCapacityService.js`, `RouteCapacity.test.js` (12 tests), `backend/src/routes/f13v2CapacityRoutes.js` (the two handlers), `backend/src/routes/f13v2CapacityRoutes.test.js` (5 tests, real routers, scope, 401/400/403). Both suites pass with `--experimental-sqlite`, run one file at a time.
+
+**Choices to confirm in the review** (the manifest left them open):
+- P75 = linear interpolation between ranks (`(n-1)*0.75`), capacity is not rounded inside the rules, only in the response (1 decimal; load 3 decimals).
+- A good day = `passed*10 >= 9*volume` over all rows of the route-day (unrated rows count in volume, as in `metricsOf`). Exactly 100 % and exactly 60 % are BINH_THUONG.
+- Route key is `ma_bcvh + ma_tuyen`. NON_POSTMAN / OTHER appear in `/capacity/routes` as `@NON_POSTMAN` / `@OTHER` per BCVH with `state = KHONG_AP_DUNG`, volume, rate, no capacity, no load.
+- `state` per route: `CO_NANG_LUC`, `CHUA_DU_DU_LIEU` (capacity null at the last day of the period) or `KHONG_AP_DUNG`. A day without capacity inside a route that has it on other days has band `CHUA_DU_DU_LIEU`, counted in `days_no_data`.
+- `/capacity/route-days` needs `ma_tuyen` (a `@...` key is refused, 400). If a route code exists in several BCVH and no `bcvh` is given, a city-wide account gets 400 "name the unit" (the code `53...` is unique in practice but the guarantee is not in the data).
+- Postmen = `COUNT(DISTINCT ma_buu_ta_first)` of the route-day; per-postman volume = volume / postmen, null when no first handover exists; those days are left out of `postmen_avg` and `volume_per_postman_avg`.
+- Route names come from `fact_f13` (`MAX(ten_tuyen)` over the period); the cause table has no name column. Not cached (`cachedRead` not needed, see timing).
+
+**Measurement** on a copy of `database.sqlite` (`...scratchpad/dbcopy.sqlite`, 4.8 GB, f13_cause_parcel 997,168 rows 2026-01-01..2026-11-06). Live database not opened for writing, no build, no restart.
+- Time, `/capacity/routes?month=` for all BCVH, cold, one process: **2026-10: 1.35 s** (125 rows); 2026-09: 1.96 s. Target < 10 s met by a wide margin; no cache.
+- Share of routes with capacity at the last day of October: **48 of 114 POSTMAN routes = 42.1 %** (September 50 of 113 = 44.2 %). The others have fewer than 5 days at >= 90 % in the 56-day window, i.e. they show `CHUA_DU_DU_LIEU`. Of the 48: capacity < 5 parcels: 10; 5-20: 10; >= 20: 28.
+- Load distribution, October, route-days of routes with capacity: **over 35.9 % / normal 40.3 % / under 23.8 %** (515 / 579 / 341 days); another 1,528 route-days had no capacity. Mean load per route (load_avg): p10 0.67, p25 0.79, median 0.90, p75 1.13, p90 1.45, max 2.75. For the 27 routes with capacity >= 20 and >= 15 days: over 31.9 % / normal 44.1 % / under 24.0 %.
+
+**Reading for the Opus check**
+1. With capacity = P75 of good days, a quarter of the good days sit above capacity by construction, and an overloaded day usually fails the 90 %, so it never feeds capacity. About a third of days are therefore "quá tải". The numbers are consistent with the rule; whether "quá tải" reads sensibly for the Chuyên quản at that frequency is the review's call (C7: information, not a fault).
+2. Tiny routes give extreme loads: route 53722032 (Phú Lộc, Nam Đông_01), capacity 1, volume 3 = 300 %, 15 of 20 days "quá tải"; 10 routes have capacity < 5. **Decision needed**: leave as is, or add a floor (e.g. no band when capacity < 5, or a minimum volume). Not implemented, it would change C3.
+3. Routes with sporadic huge days (Ô tô routes, e.g. 533140149 Ô tô Nam giữa: 535 parcels on 19/10 = 357 %, 8-20 parcels on other days) give a wide spread; capacity there is a poor yardstick of one person's work, and load per postman is the better reading.
+
+**Five example routes, October 2026** (day: volume / capacity of that day = load, Q quá tải, B bình thường, C còn dư sức, `pN` = N postmen):
+- **Over**, 533140141 Phú Xuân_02 (Thuận Hóa), capacity at end 58, 31 days, load_avg 100.1 %, 15 Q / 15 B / 1 C, postmen_avg 1.55, 38.4 per postman, BCVH average per route 60.4, rate 80.9 %. Days: 01 57/47=121% Q, 02 61/47=130% Q, 03 39/52=75% B, 05 62/52=119% Q p2, 08 52/51=102% Q, 12 67/51=131% Q, 15 80/51=157% Q p3, 19 71/51=139% Q p3, 31 30/58=52% C.
+- **Normal**, 53314057 HCC Vỹ Dạ (Thuận Hóa), capacity 70.5, 31 days, load_avg 79.0 %, 6 Q / 19 B / 6 C, postmen_avg 1.84, 37.2 per postman, rate 91.8 %. Days: 01 92/72=127% Q p2, 03 56/76=74% B, 04 27/76=36% C, 07 68/75=91% B, 15 81/69=118% Q p2, 20 39/71=55% C p3, 24 21/63=34% C, 28 59/65=92% B, 31 37/71=53% C p2.
+- **Spare**, 533140149 Ô tô Nam giữa (Thuận Hóa), capacity 162, 29 days, load_avg 65.6 %, 5 Q / 5 B / 17 C, postmen_avg 2.21, 52.2 per postman, rate 62.2 %. Days: 01 179/177=101% Q p2, 04 320/168=191% Q p2, 06 27/168=16% C p3, 14 40/174=23% C, 17 and 18 no capacity (fewer than 5 good days), 19 535/150=357% Q p2, 23 14/168=8% C, 28 141/162=87% B p3.
+- **Many postmen**, 53547025 Phong Điền_01 (Hương Trà), capacity 64.5, 31 days, 3.16 postmen on average, 14.8 per postman (46.1 per day), load_avg 85.7 %, 11 Q / 13 B / 7 C, rate 80 %. Shows C4: a route of 3-4 postmen runs 40-78 a day, 10-20 each.
+- **Tiny route** (the problem of point 2), 53722032 Nam Đông_01 (Phú Lộc), capacity 1, volume 1-6 a day, 15 Q / 5 B / 0 C.
+
+**Not done / residual**: no screen (U1), no cache, no new table. Day-level pairing with F4.2 postmen ("counted from the first handover") uses `ma_buu_ta_first` of the cause table, not F4.2 directly. Backend suites of other tickets not re-run (no shared file touched).
+
