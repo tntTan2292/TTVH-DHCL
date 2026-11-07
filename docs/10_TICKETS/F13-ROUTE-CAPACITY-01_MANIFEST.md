@@ -91,3 +91,14 @@ A "Năng lực tuyến" page in the F1.3 menu (route list by BCVH with load band
 - Sonnet's open choices (linear P75 / P90, good day in integers, route = BCVH + code, postmen from the first handover) are accepted.
 
 **Recommendation: D3.** It changes PO decision C2 (and adds a small-route state), so the PO chooses. On the PO's choice Sonnet changes `isGoodDay`, `CAPACITY_PERCENTILE` and adds the floor in `CAPACITY_CONFIG` plus tests; then U1.
+
+## 8. PO decision on the review (2026-11-07, in chat) - TCT norm
+
+PO: capacity must follow the **TCT norm** (định mức):
+- **N1** Tuyến phát trung tâm tỉnh, thành phố: norm **80 BG / day**. Under the norm the route is fine, whatever its ups and downs.
+- **N2** Tuyến phát xã: norm **50 BG / day**, same reading.
+- **N3** Special difficult routes are **not judged on volume** (very small incoming volume): the Nam Đông area of BCVH Phú Lộc (Khe Tre, Nam Đông, Long Quảng) and BCVH A Lưới.
+
+Data check (read only, October 2026, `fact_f13.loai_tuyen_phat`): 30 routes "Tuyến phát trung tâm tỉnh, thành phố (02 lần/ngày)", 67 "Tuyến phát xã (01 lần/ ngày)", 6 "Tuyến phát xã (02 lần/ngày)"; also 8 "Tuyến phát trung tâm quận, huyện, thị xã (01 / 02 lần)", 2 "Tuyến phát xã trung tâm tỉnh, thành phố (02 lần/ngày)", 2 "Tuyến phát thời vụ", 1 "Tuyến phát Khu công nghiệp", 8 "Tuyến phát lưu tại bưu cục" (Phát tại quầy, out of scope), and "Khong Xac Dinh". N3 routes in the data: Phú Lộc `Khe Tre_02`, `Nam Đông_01`, `Nam Đông_02`, `Long Quảng_01`, `Long Quảng_02` (by name), and the 13 routes of BCVH A Lưới (535790). With N1 / N2, 7 of 48 town routes and 6 of 83 commune routes have an October daily average above the norm.
+
+Open for the PO before Sonnet changes B1: the norm of the other route types listed above, whether D3 (own history) is dropped or kept as a reference column, and whether a day with several postmen on one route compares the volume per postman with the norm.
