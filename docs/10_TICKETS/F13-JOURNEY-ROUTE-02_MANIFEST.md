@@ -7,7 +7,7 @@
 - Programme: F1.3 Chuyên đề. Predecessor `F13-V2-JOURNEY-01` (page `/f13/v2/hanh-trinh`, day only).
 - Owner: Claude Code / Opus 5.5 (scope, reviews, real render). **B1 backend: Claude Code / Sonnet 5.5. U1 screen: Antigravity.** Does not change the Current Ticket of `PROJECT_SNAPSHOT.md`.
 - Branch: `codex/da-impl-006`.
-- **Status: `B1 ACCEPTED (Opus review, section 8); B2 READY FOR SONNET (leg hours in the cause table)`**. `PO UI Check Required = Yes`.
+- **Status: `B2 NOT ACCEPTED YET - B3 READY FOR SONNET (milestone times in the table)`** (Opus review, section 10). `PO UI Check Required = Yes`.
 
 ## 2. The problem (PO, 2026-11-07)
 
@@ -113,3 +113,14 @@ Month: B1 was 15.3 s and 1 181 MB. Memory target met (< 300 MB). **Time is just 
 - `meta.cause_layer.volume_mismatch_routes = 0`, cause freshness complete.
 
 **Not done:** no live build, no restart (the live rebuild with `rebuild` is the rollout step for Opus). Frontend not touched (U1).
+
+## 10. Opus review of B2 (2026-11-07, Claude Code / Opus 5.5; commit `4d14bef7`)
+
+Good: six leg columns added in place by the startup migration; builder writes them; the classifier version files are untouched (`JourneyService.js`, repository, classifier, config, intervals: no diff since `99c67b79`), so no extra stale marking; month 3,2 s / 155 MB (from 15,3 s / 1,2 GB); one day equal to B1 in every route field; J-R2 and J-R3 done. Suites rerun: `JourneyPeriodService` 14/14, `CauseAggBuilder` 21/21, `migrate_f13_why_agg_01_schema` 3/3, `f13v2Routes.scope` 13/13.
+
+| ID | Level | Finding | Resolution |
+|---|---|---|---|
+| J-R4 | **Blocker (regression of a live, PO-used page)** | Parcel list items now carry `milestones` all null and `meta.coverage` is rebuilt from the legs. The live Hành trình page shows, for every parcel, the five milestone times (`F13V2JourneyParcelTable.jsx` line 81, `parcel.milestones[...]`) and the share of parcels having each milestone (`F13V2JourneyPage.jsx` lines 174-180). After the next restart both would go blank or change meaning. | **B3 (Sonnet, same session):** store the milestone times in `f13_cause_parcel` too (`ms_tms`, `ms_depart`, `ms_arrive`, `ms_gbt`, `ms_gbt_first`, `ms_ptc` as INTEGER ms on the local clock like the legs; `a_source` already stored), same additive migration and builder path; parcel items return them in the old string format (`formatTime`), `meta.coverage` counts real milestones again (October tms back to 113 235 or explain the difference). Prove on the copy: one day, the parcel list and coverage equal to the old `JourneyService.getParcels` / `getRoutes` (0 differences), then the month timing again. |
+| J-R5 | Low | Month 3,2 s against 3 s: 2,0 s is `CauseAggQueryService.routes()`, not this ticket. | Accepted (cached after the first call by `cachedRead`). |
+
+Rollout (after B3 is accepted): `f13_cause_tool.js rebuild --from 2026-01-01 --to <latest>` on the live file (rebuild, not build: the days are FRESH), verify, restart. Done with G7.
