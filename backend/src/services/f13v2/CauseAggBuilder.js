@@ -60,6 +60,12 @@ function listText(values) {
     return Array.isArray(values) && values.length ? values.join(',') : null;
 }
 
+/** A leg of a JourneyService parcel (hours) in whole ms; null when the leg is not computable. */
+function legMs(parcel, leg) {
+    const hours = parcel.legs ? parcel.legs[leg] : null;
+    return hours === null || hours === undefined ? null : Math.round(hours * 3600000);
+}
+
 /** Maps one JourneyService parcel to a table row (all stored fields; nothing recomputed). */
 function toRow(date, parcel, builtAt, classifierVersion) {
     const detail = parcel.cause_detail || {};
@@ -90,6 +96,13 @@ function toRow(date, parcel, builtAt, classifierVersion) {
         tct_ms: detail.tct_ms ?? null,
         l_ms: detail.l_ms ?? null,
         r_ms: detail.r_ms ?? null,
+        // F13-JOURNEY-ROUTE-02 B2: the legs JourneyService computed (hours, 2 decimals) kept in ms; nothing recomputed here
+        leg_tms_depart_ms: legMs(parcel, 'tms_depart'),
+        leg_depart_arrive_ms: legMs(parcel, 'depart_arrive'),
+        leg_tms_arrive_ms: legMs(parcel, 'tms_arrive'),
+        leg_arrive_gbt_ms: legMs(parcel, 'arrive_gbt'),
+        leg_gbt_ptc_ms: legMs(parcel, 'gbt_ptc'),
+        leg_tms_ptc_ms: legMs(parcel, 'tms_ptc'),
         built_at: builtAt,
         classifier_version: classifierVersion,
     };
@@ -99,6 +112,7 @@ const ROW_COLUMNS = [
     'ngay_do_kiem', 'ma_bg', 'ma_bcvh', 'ma_tuyen', 'route_scope', 'ma_buu_ta_first', 'ten_buu_ta_first', 'ma_buu_ta_shown', 'ten_buu_ta_shown',
     'danh_gia', 'cause_code', 'cause_status', 'cause_step', 'flags', 'hints', 'ma_lo', 'khong_tron_lo', 'limit_ms', 'tct_ms', 'l_ms', 'r_ms',
     'built_at', 'classifier_version', 'cause_detail', 'cause_reason', 'remaining_at_arrival_ms', 'a_source', 'basis',
+    'leg_tms_depart_ms', 'leg_depart_arrive_ms', 'leg_tms_arrive_ms', 'leg_arrive_gbt_ms', 'leg_gbt_ptc_ms', 'leg_tms_ptc_ms',
 ];
 
 /** Signature of one day over a db offering get(sql, params). A source table that does not exist counts as 0 rows (a partial test or fresh database). */

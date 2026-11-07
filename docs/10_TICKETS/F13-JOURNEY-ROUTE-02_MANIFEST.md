@@ -86,3 +86,30 @@ Required Reading: this manifest sections 3-5; `docs/05_DEVELOPMENT/Implementatio
 | J-R3 | Low | `khong_tron_lo` 2 329 here against 2 328 in the cause table (wider lot window over several days). | Disappears with B2 (read from the table). |
 
 Prompt B2 is given in chat to the session that did B1.
+
+## 9. B2 Technical Execution Report (Sonnet 5.5, 2026-11-07) - READY FOR OPUS REVIEW
+
+**J-R1 (legs in the table).** `migrate_f13_why_agg_01_schema.js`: six new INTEGER columns `leg_tms_depart_ms`, `leg_depart_arrive_ms`, `leg_tms_arrive_ms`, `leg_arrive_gbt_ms`, `leg_gbt_ptc_ms`, `leg_tms_ptc_ms` (in the CREATE TABLE and in `F13_WHY_AGG_01_ADDED_COLUMNS`, so an old table is extended in place at startup; the migration already runs at startup, `server.js`). `CauseAggBuilder.js` `toRow` writes them from `parcel.legs` of JourneyService (`Math.round(hours * 3 600 000)`: resolution 0.01 h = 36 s, null stays null) and `ROW_COLUMNS` has them. `JourneyService.js`, `CauseClassifier.js`, `f13CauseConfig.js`, `CauseAggQueryService.js` not edited. The classifier version did not change (builder and migration are not version files: classifier `97890e76b613` before and after), so the days built live stay FRESH; they simply have the legs NULL until rewritten.
+- `JourneyPeriodService.js` now takes `{ db, causeAgg }` (no repository): routes, medians, coverage, lots and parcel lists come from `f13_cause_parcel` (one streamed scan for the routes, SQL paging and ordering for the parcels, missing values last). The cause mix and the route names still come from `CauseAggQueryService.routes()` (same call as `/why`). Controller passes `sharedDb`.
+- **Rollout:** after deploy, the legs of the live days exist only after a rebuild of the range (`f13_cause_tool.js rebuild`, not `build`: the days are FRESH). Until then `meta.legs.days_without_legs` lists the days without legs (their rows still count in volume, rate, own_shortfall, cause) and the hours of those days are missing from the medians.
+- **J-R2:** `slowest_leg` only when the gap is > 0, else null. **J-R3:** `khong_tron_lo` and `meta.lots` read from the table (equal to it, 2 328 in October).
+- Parcel list items: the milestone times are not stored, so `milestones` is an object of nulls (`arrive_source` kept); `legs` in hours as before; added `ngay_do_kiem`, `route_scope`, cause fields as in the old item. `meta.coverage` is derived from the legs (a milestone counts when a leg that uses it is computable, `meta.coverage_basis = 'LEGS'`): tms 110 651 against 113 235 in October (parcels whose only TMS legs are out of order no longer count). U1 should not show milestone coverage from this.
+
+**Tests** (`node --experimental-sqlite --test`, one file each): `JourneyPeriodService.test.js` 14 / 0 (B1 set moved to the table, plus: positive-gap slowest leg, builder row keeps the six legs in ms and the service returns hours, days without legs listed, ordering by a leg with nulls last); `CauseAggBuilder.test.js` 21 (ROW_COLUMNS), `CauseRefresh` 19, `CauseAggQueryService` 22, `migrate_f13_why_agg_01_schema` 3 (old table extended in place), `server.startupMigrations` 1, `JourneyService` 28, `f13v2Routes.scope` 13 (its fixture now builds the anchor day into the cause table through the builder's `toRow`), `f13v2WhyRoutes.scope` 5, `f13v2Evidence` 16: all pass.
+
+**Measured on the copy** (2026 rebuilt with the new builder: 308 days, 0 failed, 630 s; whole city; in-process, no HTTP cache):
+
+| Period | Routes | Parcels | Cold | Second | RSS (process base 50 MB) |
+|---|---|---|---|---|---|
+| Day 15/10 | 106 | 4 992 | - | - | - |
+| Week W42 | 113 | 26 801 | 0.8 s | 0.7 s | 83-100 MB |
+| **Month 2026-10** | 125 | 113 235 | **3.2 s** | 2.9 s | **155 MB** |
+
+Month: B1 was 15.3 s and 1 181 MB. Memory target met (< 300 MB). **Time is just over the 3 s target (3.2 s cold, 2.9 s warm)**: 2.0 s of it is `CauseAggQueryService.routes()` (two `_groups` passes, names, meta), which this ticket may not edit; the scan of the table is 0.8 s and runs in parallel with it. `cachedRead` of `/journey/` caches the answer afterwards. Parcels of one route over the month: 3 929 rows in 74 ms; the whole city, first page, in 103 ms.
+
+**Compared with B1 (same copy):**
+- One day (15/10): 0 differences in any route field (volume, rate, own_shortfall, main_cause, cause_mix, postmen, names, the three leg sets, filter, order).
+- Month: 125 routes both sides, same order; volume, passed, failed, rate, own_shortfall, main_cause, cause_mix, postmen, names, filter identical. Differences: (a) `khong_tron_lo` 2 329 -> 2 328 (now equal to the cause table: J-R3); (b) leg medians of **only `tms_depart` and `depart_arrive`** differ in 27 / 17 / 17 of 125 routes (all / failed / passed), by 0.01-0.1 h (e.g. 1.86 -> 1.89): B1 read the F1.1 departures over one wide window, the table follows the per-day window of the builder, so B2 equals JourneyService day by day; no other leg differs. Week W42: 2 routes, same cause. (c) `slowest_leg` differs only where B1 returned a leg with gap <= 0 (J-R2: 0 of 125 in October, 1 of 113 in the week, 2 of 106 in the day). (d) `meta.coverage` as said above.
+- `meta.cause_layer.volume_mismatch_routes = 0`, cause freshness complete.
+
+**Not done:** no live build, no restart (the live rebuild with `rebuild` is the rollout step for Opus). Frontend not touched (U1).

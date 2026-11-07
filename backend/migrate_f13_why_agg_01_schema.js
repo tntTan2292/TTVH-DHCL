@@ -42,7 +42,13 @@ CREATE TABLE IF NOT EXISTS f13_cause_parcel (
     cause_reason TEXT,
     remaining_at_arrival_ms INTEGER,
     a_source TEXT,
-    basis TEXT
+    basis TEXT,
+    leg_tms_depart_ms INTEGER,
+    leg_depart_arrive_ms INTEGER,
+    leg_tms_arrive_ms INTEGER,
+    leg_arrive_gbt_ms INTEGER,
+    leg_gbt_ptc_ms INTEGER,
+    leg_tms_ptc_ms INTEGER
 );
 CREATE UNIQUE INDEX IF NOT EXISTS uq_f13_cause_parcel ON f13_cause_parcel(ngay_do_kiem, ma_bg);
 CREATE INDEX IF NOT EXISTS idx_f13_cause_parcel_bcvh ON f13_cause_parcel(ngay_do_kiem, ma_bcvh);
@@ -85,6 +91,14 @@ const F13_WHY_AGG_01_ADDED_COLUMNS = [
     ['remaining_at_arrival_ms', 'INTEGER'], // limit - net T->A, reference only
     ['a_source', 'TEXT'], // F41 | BF | NULL
     ['basis', 'TEXT'], // INTERVAL | MILESTONES
+    // F13-JOURNEY-ROUTE-02 B2: the six leg hours of the Hanh trinh page, in ms (JourneyService legs, 0.01 h = 36 s resolution; NULL when a milestone is missing or out of order).
+    // They reach a built day only when the builder rewrites it; an older day has them NULL until then.
+    ['leg_tms_depart_ms', 'INTEGER'],
+    ['leg_depart_arrive_ms', 'INTEGER'],
+    ['leg_tms_arrive_ms', 'INTEGER'],
+    ['leg_arrive_gbt_ms', 'INTEGER'],
+    ['leg_gbt_ptc_ms', 'INTEGER'],
+    ['leg_tms_ptc_ms', 'INTEGER'],
 ];
 
 // F13-WHY-AGG-01 P3: days that joined an active run (P1-R2).

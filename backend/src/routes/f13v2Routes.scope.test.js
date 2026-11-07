@@ -19,6 +19,10 @@ const authSessionStore = require('../services/auth/AuthSessionStore');
 const { resolveAccess } = require('../services/auth/access/resolveAccess');
 const { clearResponseCache } = require('../middleware/responseCache');
 const f13Routes = require('./f13Routes');
+const { F13_WHY_AGG_01_SCHEMA_SQL } = require('../../migrate_f13_why_agg_01_schema');
+const { JourneyService } = require('../services/f13v2/JourneyService');
+const f13JourneyRepo = require('../repositories/F13JourneyRepository');
+const { toRow, ROW_COLUMNS } = require('../services/f13v2/CauseAggBuilder');
 const f13v2Routes = require('./f13v2Routes');
 
 const OWN = '537015'; // BCVH Thuận An
@@ -61,6 +65,12 @@ test.before(async () => {
         [ANCHOR, `${ANCHOR} 10:00:00`, `${ANCHOR} 11:00:00`],
     );
     await run('COMMIT');
+    // F13-JOURNEY-ROUTE-02 B2: the journey endpoints read the derived cause table: build the anchor day the way the builder does (same rows, same legs)
+    await exec(F13_WHY_AGG_01_SCHEMA_SQL);
+    for (const item of await new JourneyService({ repository: f13JourneyRepo })._parcels(ANCHOR)) {
+        const row = toRow(ANCHOR, item, '2026-11-07T00:00:00.000Z', 'test');
+        await run(`INSERT INTO f13_cause_parcel (${ROW_COLUMNS.join(', ')}) VALUES (${ROW_COLUMNS.map(() => '?').join(', ')})`, ROW_COLUMNS.map((column) => row[column]));
+    }
 
     const app = express();
     app.use('/api/f13/v2', f13v2Routes);

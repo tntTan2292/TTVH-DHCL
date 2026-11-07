@@ -1,8 +1,8 @@
 'use strict';
 
-// F13-JOURNEY-ROUTE-02 B1: the journey over a period. Invoke with: node --experimental-sqlite --test JourneyPeriodService.test.js
-// The fixture is small enough to be added up by hand (see the comments); the cause layer is the REAL CauseAggQueryService over a temporary SQLite
-// file, filled from the journey items the same way the builder does, so "equal to /why" compares the two public paths.
+// F13-JOURNEY-ROUTE-02 B1 + B2: the journey over a period, read from the table f13_cause_parcel. Invoke with: node --experimental-sqlite --test JourneyPeriodService.test.js
+// The fixture is small enough to be added up by hand (see the comments); the table is filled from JourneyService items through the builder's toRow, and
+// the cause layer is the REAL CauseAggQueryService over the same temporary SQLite file, so "equal to /why" compares the two public paths.
 //   OWN 536250, route R1 53625001: D1 28/10: P1 Đạt (T 07:00 A 08:00 G 09:00 E 10:00), P2 Đạt (A 09:00 G 10:00 E 11:00), F1 Không đạt (A 14:00 G 15:00 E 16:00, limit 5 h)
 //                                  D2 29/10: F2 Không đạt (A 08:00 G 15:00 E 16:00)
 //     passed legs: tms_arrive median(1, 2) = 1.5, arrive_gbt 1, gbt_ptc 1;  failed: tms_arrive median(7, 1) = 4, arrive_gbt median(1, 7) = 4, gbt_ptc 1
@@ -20,7 +20,7 @@ const { F13_WHY_AGG_01_SCHEMA_SQL } = require('../../../migrate_f13_why_agg_01_s
 const { weekIdFromDate } = require('../bcvhWeeklyComparisonService');
 const { CauseAggQueryService } = require('./CauseAggQueryService');
 const { JourneyService } = require('./JourneyService');
-const { routeScopeOf } = require('./CauseAggBuilder');
+const { toRow, ROW_COLUMNS } = require('./CauseAggBuilder');
 const { JourneyPeriodService, resolveJourneyPeriod, mainCauseOf, slowestLegOf, MAX_DAYS } = require('./JourneyPeriodService');
 
 const OWN = '536250';
@@ -75,21 +75,19 @@ test.before(async () => {
     await exec(`${F13_WHY_AGG_01_SCHEMA_SQL}
         CREATE TABLE fact_f13 (id INTEGER PRIMARY KEY AUTOINCREMENT, ngay_do_kiem TEXT, ma_bg TEXT, ma_bcvh TEXT);
         CREATE TABLE agg_f13_day (ngay_do_kiem TEXT, ma_bcvh TEXT, ma_tuyen TEXT, ten_tuyen TEXT);`);
-    // the cause table, filled from the journey items the way the builder fills it (one implementation of the rules)
+    // the cause table, filled from the journey items through the builder's own row mapping (so the stored legs are the legs JourneyService computes)
     const inner = new JourneyService({ repository });
     for (const day of [D1, D2]) {
         for (const item of await inner._parcels(day, {})) {
-            await run(
-                `INSERT INTO f13_cause_parcel (ngay_do_kiem, ma_bg, ma_bcvh, ma_tuyen, route_scope, ma_buu_ta_first, ten_buu_ta_first, ma_buu_ta_shown, ten_buu_ta_shown,
-                    danh_gia, cause_code, cause_detail, cause_reason, cause_status, cause_step, flags, hints, ma_lo, khong_tron_lo, limit_ms, tct_ms, l_ms, r_ms, built_at, classifier_version)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, 0, NULL, NULL, NULL, NULL, '2026-11-05T00:00:00.000Z', 'v1')`,
-                [day, item.ma_bg, item.ma_bcvh, item.ma_tuyen, routeScopeOf(item.ma_tuyen), item.ma_buu_ta_first, item.ten_buu_ta_first, item.ma_buu_ta, item.ten_buu_ta,
-                    item.danh_gia, item.cause?.code ?? null, item.cause?.detail ?? null, item.cause_reason, item.cause_status, item.cause_step, item.flags.join(',') || null, item.hints.join(',') || null],
-            );
+            const row = toRow(day, item, '2026-11-05T00:00:00.000Z', 'v1');
+            await run(`INSERT INTO f13_cause_parcel (${ROW_COLUMNS.join(', ')}) VALUES (${ROW_COLUMNS.map(() => '?').join(', ')})`, ROW_COLUMNS.map((column) => row[column]));
         }
     }
+    // a day built before the leg columns existed: rows, no legs
+    await run(`INSERT INTO f13_cause_parcel (ngay_do_kiem, ma_bg, ma_bcvh, ma_tuyen, route_scope, danh_gia, cause_status, built_at, classifier_version)
+               VALUES ('2026-10-30', 'OLD1', '${OWN}', '${R1}', 'POSTMAN', 'Đạt', 'KHONG_PHAN_TICH', 'x', 'v1')`);
     causeAgg = new CauseAggQueryService({ db: database, classifierVersion: 'v1' });
-    service = new JourneyPeriodService({ repository, causeAgg });
+    service = new JourneyPeriodService({ db: database, causeAgg });
 });
 
 test.after(async () => {
@@ -114,7 +112,7 @@ test('period resolution: date keeps working, from+to / week / month like the oth
     assert.equal(MAX_DAYS, 93);
 });
 
-test('one day (date=) gives the same figures and medians as JourneyService for that day (the shared reads change nothing)', async () => {
+test('one day (date=) gives the same figures and medians as JourneyService for that day (the stored legs are the legs JourneyService computes)', async () => {
     const old = await new JourneyService({ repository }).getRoutes(D1, {});
     const neu = await service.getRoutes({ date: D1 }, {});
     assert.deepEqual(neu.meta.coverage, old.meta.coverage);
@@ -184,7 +182,7 @@ test('main cause: read from the cause mix like the Phân tích nguyên nhân scr
     assert.equal(mainCauseOf(mix([['KHAI_THAC', 0]], { cho_chuyen_quan: { count: 2, share: 1, by_reason: { THIEU_MOC_G: 2 } } }), 2).code, 'CHO_CHUYEN_QUAN');
 });
 
-test('slowest_leg: the largest failed - passed gap among the three stages; null when no stage has both medians', () => {
+test('slowest_leg: the largest POSITIVE failed - passed gap among the three stages; null otherwise', () => {
     assert.equal(slowestLegOf({ tms_arrive: 5, arrive_gbt: 1, gbt_ptc: 2 }, { tms_arrive: 1, arrive_gbt: 1, gbt_ptc: 1 }), 'tms_arrive');
     assert.equal(slowestLegOf({ tms_arrive: null, arrive_gbt: 2, gbt_ptc: 9 }, { tms_arrive: 1, arrive_gbt: 1, gbt_ptc: null }), 'arrive_gbt');
     assert.equal(slowestLegOf({ tms_arrive: null, arrive_gbt: null, gbt_ptc: null }, { tms_arrive: 1, arrive_gbt: 1, gbt_ptc: 1 }), null);
@@ -227,11 +225,43 @@ test('parcels over a period: day on each parcel, route and route_scope filters, 
 });
 
 test('without a cause layer (or when it fails) the cause fields are empty and the hours still show', async () => {
-    const bare = await new JourneyPeriodService({ repository }).getRoutes({ from: D1, to: D2 }, CITY);
+    const bare = await new JourneyPeriodService({ db: database }).getRoutes({ from: D1, to: D2 }, CITY);
     const r1 = routeOf(bare, OWN, R1);
     assert.deepEqual([r1.main_cause, r1.cause_mix, bare.meta.cause_layer.available], [null, null, false]);
     assert.equal(r1.slowest_leg, 'arrive_gbt');
-    const broken = await new JourneyPeriodService({ repository, causeAgg: { routes: async () => { throw new Error('no table'); } } }).getRoutes({ date: D1 }, CITY);
+    const broken = await new JourneyPeriodService({ db: database, causeAgg: { routes: async () => { throw new Error('no table'); } } }).getRoutes({ date: D1 }, CITY);
     assert.equal(broken.meta.cause_layer.available, false);
     assert.equal(broken.routes.length > 0, true);
+});
+
+test('J-R2: only a positive gap names a leg', () => {
+    assert.equal(slowestLegOf({ tms_arrive: 1, arrive_gbt: 1, gbt_ptc: 1 }, { tms_arrive: 1, arrive_gbt: 2, gbt_ptc: 1 }), null);
+    assert.equal(slowestLegOf({ tms_arrive: 0.5, arrive_gbt: 1, gbt_ptc: 3 }, { tms_arrive: 1, arrive_gbt: 1.5, gbt_ptc: 2 }), 'gbt_ptc');
+});
+
+test('the builder row keeps the six legs of JourneyService in ms (null stays null) and the service gives them back as hours', async () => {
+    const [f1] = (await new JourneyService({ repository }).getParcels(D1, { route: R1, search: 'F1' })).parcels;
+    const row = toRow(D1, f1, 'x', 'v');
+    assert.deepEqual([row.leg_tms_arrive_ms, row.leg_arrive_gbt_ms, row.leg_gbt_ptc_ms, row.leg_tms_ptc_ms], [7 * 3600000, 3600000, 3600000, 9 * 3600000]);
+    assert.equal(row.leg_tms_depart_ms, null); // no F1.1 departure in the fixture
+    assert.equal(row.leg_depart_arrive_ms, null);
+    const own = await service.getParcels({ date: D1 }, { ...CITY, search: 'F1' });
+    assert.deepEqual(own.parcels[0].legs, f1.legs);
+});
+
+test('days built before the leg columns are listed (meta.legs.days_without_legs); their rows still count in the figures', async () => {
+    const data = await service.getRoutes({ from: D1, to: '2026-10-30' }, CITY);
+    assert.deepEqual(data.meta.legs, { source: 'TABLE', days_without_legs: ['2026-10-30'] });
+    assert.equal(routeOf(data, OWN, R1).volume, 5);
+    assert.equal((await service.getRoutes({ from: D1, to: D2 }, CITY)).meta.legs.days_without_legs.length, 0);
+});
+
+test('parcels: order by a leg puts parcels without it last in both directions; an unknown order field falls back to the total hours', async () => {
+    const desc = await service.getParcels({ from: D1, to: '2026-10-30' }, { ...CITY, route: R1, sort: 'arrive_gbt', order: 'desc' });
+    assert.equal(desc.parcels[0].ma_bg, 'F2'); // arrive_gbt 7 h
+    assert.equal(desc.parcels[desc.parcels.length - 1].ma_bg, 'OLD1');
+    const asc = await service.getParcels({ from: D1, to: '2026-10-30' }, { ...CITY, route: R1, sort: 'arrive_gbt', order: 'asc' });
+    assert.equal(asc.parcels[asc.parcels.length - 1].ma_bg, 'OLD1');
+    assert.equal(asc.parcels[0].legs.arrive_gbt, 1);
+    assert.equal((await service.getParcels({ from: D1, to: D2 }, { ...CITY, route: R1, sort: 'tms' })).meta.total, 4);
 });
