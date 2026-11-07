@@ -12,20 +12,35 @@ export async function resolvePeriod({ kind, value, latestDate }, apiBase = '/f13
   return response?.data?.data || null;
 }
 
-export async function fetchJourneyRoutes({ date, maBcvh }) {
-  const params = { date };
-  if (maBcvh && maBcvh !== 'all') params.ma_bcvh = maBcvh;
-  const response = await api.get('/f13/v2/journey/routes', { params });
+export async function fetchJourneyRoutes(params = {}, apiBase = '/f13') {
+  const query = {};
+  if (params.date) query.date = params.date;
+  if (params.from) query.from = params.from;
+  if (params.to) query.to = params.to;
+  if (params.week) query.week = params.week;
+  if (params.month) query.month = params.month;
+  const bcvh = params.maBcvh ?? params.ma_bcvh ?? params.bcvh;
+  if (bcvh && bcvh !== 'all') query.ma_bcvh = bcvh;
+  const response = await api.get(`${apiBase}/v2/journey/routes`, { params: query });
   return response?.data?.data || null;
 }
 
-export async function fetchJourneyParcels({ date, maBcvh, route, search, onlyKhongTronLo, sort, order, page }) {
-  const params = { date, sort, order, page };
-  if (maBcvh && maBcvh !== 'all') params.ma_bcvh = maBcvh;
-  if (route) params.route = route;
-  if (onlyKhongTronLo) params.khong_tron_lo = '1';
-  if (search) params.search = search;
-  const response = await api.get('/f13/v2/journey/parcels', { params });
+export async function fetchJourneyParcels(params = {}, apiBase = '/f13') {
+  const query = {};
+  if (params.date) query.date = params.date;
+  if (params.from) query.from = params.from;
+  if (params.to) query.to = params.to;
+  if (params.week) query.week = params.week;
+  if (params.month) query.month = params.month;
+  const bcvh = params.maBcvh ?? params.ma_bcvh ?? params.bcvh;
+  if (bcvh && bcvh !== 'all') query.ma_bcvh = bcvh;
+  if (params.route) query.route = params.route;
+  if (params.onlyKhongTronLo || params.khong_tron_lo === '1' || params.khong_tron_lo === true) query.khong_tron_lo = '1';
+  if (params.search) query.search = params.search;
+  if (params.sort) query.sort = params.sort;
+  if (params.order) query.order = params.order;
+  if (params.page) query.page = params.page;
+  const response = await api.get(`${apiBase}/v2/journey/parcels`, { params: query });
   return response?.data?.data || null;
 }
 

@@ -7,7 +7,7 @@
 - Programme: F1.3 Chuyên đề. Predecessor `F13-V2-JOURNEY-01` (page `/f13/v2/hanh-trinh`, day only).
 - Owner: Claude Code / Opus 5.5 (scope, reviews, real render). **B1 backend: Claude Code / Sonnet 5.5. U1 screen: Antigravity.** Does not change the Current Ticket of `PROJECT_SNAPSHOT.md`.
 - Branch: `codex/da-impl-006`.
-- **Status: `BACKEND ACCEPTED (B1-B3) - U1 READY FOR ANTIGRAVITY`** (Opus review, section 12). Backend live only with the G7 rollout. `PO UI Check Required = Yes`.
+- **Status: `U1 IMPLEMENTED - READY FOR OPUS REAL RENDER`** (Opus review B1-B3 accepted, section 12; U1 screen implemented, section 13). Backend live only with the G7 rollout. `PO UI Check Required = Yes`.
 
 ## 2. The problem (PO, 2026-11-07)
 
@@ -160,3 +160,22 @@ Parcels of one route over the month: 3 929 rows in 71 ms; whole city first page 
 **G7 rollout order (important).** The running backend is the old code: if it refreshes a day after the live rebuild, that day is rewritten without legs and milestones but keeps the same classifier version (FRESH), so nothing would rewrite it. Therefore: (1) restart first (the startup migration adds the columns, new builder live), (2) then `f13_cause_tool.js rebuild --from 2026-01-01 --to <latest>` on the live file, (3) verify; `meta.legs.days_without_legs` / `days_without_milestones` must be empty for the range. Between (1) and the end of (2) (~12 min) the Hành trình page shows blank hours for days not yet rebuilt.
 
 **U1 (Antigravity) API facts**, in addition to section 5: `/journey/routes` takes `from`/`to` | `week` | `month` | `date`; rows carry `ma_bcvh`, `ten_bcvh`, `route_scope`, `key`, `volume`, `passed`, `failed`, `rate`, `own_shortfall`, `main_cause`, `cause_mix`, `legs_failed`, `legs_passed`, `legs`, `slowest_leg` (null when no stage is slower for failed parcels), `postmen` (with `volume`), `filter` (to pass to `/journey/parcels`); `meta.coverage`, `meta.lots`, `meta.cause_layer`. Rows are already ordered BCVH, POSTMAN first, `own_shortfall` desc. Range over 93 days returns 400 `RANGE_TOO_LONG`.
+
+## 13. U1 Technical Execution Report (Antigravity, 2026-11-07) - READY FOR OPUS REAL RENDER
+
+**What was built.** Implemented J1-J6 across `F13V2JourneyPage.jsx`, `F13V2JourneyRouteTable.jsx`, `F13V2JourneyParcelTable.jsx`, `journeyHelpers.js`, and `api/f13v2Api.js`:
+- **J1 (Common period filter):** Day / Week / Month tab switcher (`from`/`to`, `week`, `month`, legacy `date` supported), scoped BCVH select, search box for parcel ID or lot code, "Chỉ bưu gửi không trọn lô" checkbox, selected route filter pill, and refresh button.
+- **J2 (Grouped by BCVH):** `groupJourneyRoutesByBcvh` preserves API order. Inside each BCVH group, postman routes are sorted by `own_shortfall` desc by default with SortableTh headers.
+- **J3 (Per route metrics & stage hours):** Volume, rate (90 % target, F1.3 blue theme), Không đạt count, and the 4 stages (`tms_arrive`, `arrive_gbt`, `gbt_ptc`, `tms_ptc`) showing `Không đạt` hours beside `Đạt` hours. The `slowest_leg` (largest positive gap between failed and passed parcels) is prominently marked with warning pill and tooltip. Main cause from `/why` displayed.
+- **J4 (Bottom route groups):** "Phát tại quầy (khách đến nhận)" (`NON_POSTMAN`) and "Tuyến chưa xác định" (`OTHER`) rendered as two separate groups at the bottom of each BCVH, not ranked with postmen.
+- **J5 (Title "Bưu tá" everywhere):** Column title strictly kept as "Bưu tá" on every table, including the non-postman and other groups, showing postmen with volume (`formatPostmenWithVolume`).
+- **J6 (Clicking a route opens parcels):** Clicking any route passes its `row.filter` to the parcel table query (`route` + `ma_bcvh`) and highlights the row.
+- **Camera & click-to-order:** `BlockCaptureButton` on both tables; `SortableTh` on all numeric, string, and stage leg columns.
+- **RANGE_TOO_LONG message:** When backend returns 400 `RANGE_TOO_LONG` (> 93 days), displays clear message: "Khoảng thời gian xem tối đa 93 ngày. Vui lòng chọn khoảng thời gian ngắn hơn."
+- **Testing & Quality:**
+  - `journeyHelpers.test.js` expanded: 9 / 9 tests PASS.
+  - All F1.3 v2 test suites: 84 / 84 tests PASS.
+  - `oxlint -D no-undef`: 0 errors.
+  - `npm run build`: successful in 2.44s.
+  - No backend files touched.
+
