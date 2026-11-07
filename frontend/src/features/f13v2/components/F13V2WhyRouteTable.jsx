@@ -441,14 +441,17 @@ function SingleBcvhRoutesBlock({
         </table>
       </div>
 
-      {/* Tuyến khác (NON_POSTMAN / OTHER) */}
-      {bcvhGroup.otherRoutes.length > 0 && (
-        <div className="mt-3.5 pt-3 border-t border-slate-200">
+      {/* Routes outside the postman ranking, two groups (PO 2026-11-07): NON_POSTMAN = Phát tại quầy, OTHER = no / unknown route code */}
+      {[
+        { key: 'NON_POSTMAN', title: 'Phát tại quầy (khách đến nhận)', list: bcvhGroup.otherRoutes.filter((r) => r.route_scope === 'NON_POSTMAN') },
+        { key: 'OTHER', title: 'Tuyến chưa xác định', list: bcvhGroup.otherRoutes.filter((r) => r.route_scope !== 'NON_POSTMAN') },
+      ].filter((group) => group.list.length > 0).map((group) => (
+        <div key={group.key} className="mt-3.5 pt-3 border-t border-slate-200">
           <div className="mb-1.5 flex items-center justify-between">
             <div className="flex items-center gap-1.5">
               <Layers className="h-3.5 w-3.5 text-slate-600" />
               <h4 className="text-[11px] font-bold text-slate-800 uppercase tracking-wide">
-                Tuyến khác (Không giao bưu tá / Tuyến ngoài danh mục)
+                {group.title}
               </h4>
             </div>
             <span className="text-[10px] text-slate-500 font-medium">
@@ -474,8 +477,9 @@ function SingleBcvhRoutesBlock({
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200/60">
-                {bcvhGroup.otherRoutes.map((r) => {
-                  const otherRouteName = r.ten_tuyen || r.route_scope;
+                {group.list.map((r) => {
+                  // The group title is the row name: the backend label of these aggregated rows changed with the PO wording (2026-11-07).
+                  const otherRouteName = group.title;
                   return (
                     <tr key={r.key} className="hover:bg-slate-100/50">
                       <td className="px-3 py-2 font-bold text-slate-800">
@@ -564,7 +568,7 @@ function SingleBcvhRoutesBlock({
             </table>
           </div>
         </div>
-      )}
+      ))}
     </div>
   );
 }

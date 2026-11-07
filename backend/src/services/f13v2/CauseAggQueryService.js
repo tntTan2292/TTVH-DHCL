@@ -567,7 +567,7 @@ class CauseAggQueryService {
                 ma_bcvh: String(bcvh),
                 route_scope: routeScope,
                 ma_tuyen: isRoute ? routeKey : null,
-                ten_tuyen: isRoute ? (names.get(`${bcvh}|${routeKey}`) ?? null) : (routeScope === 'NON_POSTMAN' ? 'Tuyến không giao bưu tá' : 'Tuyến khác / không xác định'),
+                ten_tuyen: isRoute ? (names.get(`${bcvh}|${routeKey}`) ?? null) : (routeScope === 'NON_POSTMAN' ? 'Phát tại quầy (khách đến nhận)' : 'Tuyến chưa xác định'),
                 ...this._finish(group),
                 filter: this._filterEcho(period, { ...scope, bcvhId: String(bcvh) }, { ...query, route: undefined, route_scope: undefined }, isRoute ? { route: routeKey } : { route_scope: routeScope }),
             };

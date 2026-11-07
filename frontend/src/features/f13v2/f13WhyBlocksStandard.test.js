@@ -36,8 +36,9 @@ test('F13-WHY-UI-01: F13V2WhyRouteTable complies with report block standard', ()
   assert.doesNotMatch(source, /#003E7E/i);
   assert.doesNotMatch(source, /purple|violet|fuchsia/i);
 
-  // PO Business Rule: "Tuyến khác" kept apart from postman routes
-  assert.match(source, /Tuyến khác/);
+  // PO Business Rule: routes outside the postman ranking kept apart, in two groups (PO 2026-11-07)
+  assert.match(source, /Phát tại quầy \(khách đến nhận\)/);
+  assert.match(source, /Tuyến chưa xác định/);
   assert.match(source, /separateRouteScopes/);
 });
 

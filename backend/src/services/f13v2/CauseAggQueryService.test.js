@@ -356,8 +356,8 @@ test('route names come from agg_f13_day when present; buckets get fixed names; p
     const byKey = Object.fromEntries(routes.rows.map((row) => [row.ma_tuyen || row.route_scope, row]));
     assert.equal(byKey['53314001'].ten_tuyen, 'Tuyến Một');
     assert.equal(byKey['53314002'].ten_tuyen, null);
-    assert.equal(byKey.NON_POSTMAN.ten_tuyen, 'Tuyến không giao bưu tá');
-    assert.equal(byKey.OTHER.ten_tuyen, 'Tuyến khác / không xác định');
+    assert.equal(byKey.NON_POSTMAN.ten_tuyen, 'Phát tại quầy (khách đến nhận)');
+    assert.equal(byKey.OTHER.ten_tuyen, 'Tuyến chưa xác định');
     const postmen = await service.postmen({ from: D1, to: D1, route: '53314001' }, ownScope(A));
     assert.deepEqual(postmen.rows.map((row) => row.ten_buu_ta).sort(), ['Tên P1', 'Tên P2']);
     assert.equal(postmen.parents[A].volume, 25); // the parent is the filtered group (the route), shares are inside it
