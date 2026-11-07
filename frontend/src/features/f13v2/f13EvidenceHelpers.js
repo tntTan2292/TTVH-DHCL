@@ -39,8 +39,8 @@ export function formatMilestoneTitle(milestoneKey) {
     tms: '1. Quét xuống TMS',
     depart: '2. Đóng đi khỏi sàn KTC1',
     arrive: '3. Đến BCVH phát',
-    handover_first: '4. Bàn giao bưu tá (đầu tiên)',
-    handover_shown: '4b. Bàn giao bưu tá (hiển thị)',
+    handover_first: '4. Giao bưu tá lần đầu',
+    handover_shown: '4b. Giao bưu tá lần phát thành công',
     ptc: '5. Phát thành công (PTC)',
   };
   return titles[milestoneKey] || milestoneKey;
