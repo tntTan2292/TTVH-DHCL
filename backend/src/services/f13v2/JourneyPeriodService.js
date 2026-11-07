@@ -9,7 +9,7 @@
 //     '@NON_POSTMAN' / '@OTHER');
 //   - own_shortfall is metricsOf of CauseAggQueryService from the same counters (9 N - 10 Đạt, never below 0);
 //   - the cause mix of a route is read through CauseAggQueryService.routes() with the same period and scope as /why, so the numbers match.
-// A day built before the leg columns existed has them NULL until the builder rewrites it: such days are listed in meta.legs.days_without_legs.
+// A day built before the leg / milestone columns existed has them NULL until the builder rewrites it: such days are listed in meta.legs.days_without_legs / days_without_milestones.
 
 const { isRealDate } = require('./periodResolve');
 const { CAUSES, PHAT_DETAILS } = require('./CauseClassifier');
@@ -25,13 +25,15 @@ const HOUR_MS = 3600000;
 const LEGS = ['tms_depart', 'depart_arrive', 'tms_arrive', 'arrive_gbt', 'gbt_ptc', 'tms_ptc'];
 const LEG_COLUMN = Object.fromEntries(LEGS.map((leg) => [leg, `leg_${leg}_ms`]));
 const LEG_COLUMNS = LEGS.map((leg) => LEG_COLUMN[leg]);
+const MILESTONE_COLUMNS = ['ms_tms', 'ms_depart', 'ms_arrive', 'ms_gbt', 'ms_gbt_first', 'ms_ptc'];
 const STAGE_LEGS = ['tms_arrive', 'arrive_gbt', 'gbt_ptc']; // the three stages the slowest leg is picked from
 const SCOPE_ORDER = { POSTMAN: 0, NON_POSTMAN: 1, OTHER: 2 };
 const NON_POSTMAN_LABEL = 'Phát tại quầy (khách đến nhận)';
 const OTHER_LABEL = 'Tuyến chưa xác định';
 const BCVH_NAMES = Object.fromEntries(CANONICAL_BCVH_UNITS.map((unit) => [unit.ma_bcvh, unit.ten_bcvh]));
-// parcel list: sort field -> column. The milestone sorts of the old page have no column (the milestones are not stored): they fall back to the default.
+// parcel list: sort field -> column (the milestone fields keep the names of the old page)
 const PARCEL_SORT_COLUMN = {
+    tms: 'ms_tms', depart: 'ms_depart', arrive: 'ms_arrive', gbt: 'ms_gbt', gbt_first: 'ms_gbt_first', ptc: 'ms_ptc',
     ngay_do_kiem: 'ngay_do_kiem', ma_bg: 'ma_bg', ma_lo: 'ma_lo', danh_gia: 'danh_gia', ma_tuyen: 'ma_tuyen', ten_tuyen: 'ma_tuyen', ten_bcvh: 'ma_bcvh',
     ten_buu_ta: 'ten_buu_ta_shown', ...LEG_COLUMN,
 };
@@ -106,6 +108,9 @@ function medianOf(values) {
     return Number(value.toFixed(2));
 }
 
+/** A milestone in ms back to the string JourneyService always returned ('YYYY-MM-DD HH:MM:SS', local clock). */
+const formatTime = (ms) => (ms === null || ms === undefined ? null : new Date(ms).toISOString().slice(0, 19).replace('T', ' '));
+
 const hoursOf = (ms) => (ms === null || ms === undefined ? null : Number((ms / HOUR_MS).toFixed(2)));
 
 /** The main cause of a route from its cause mix: the same reading as the Phân tích nguyên nhân screen (summarizeRouteMainCause). */
@@ -170,27 +175,16 @@ class JourneyPeriodService {
         const where = whereOf(period, scope);
         const causePromise = this._causeRows(period, scope); // started first: it overlaps with the scan below
         const groups = new Map();
-        const days = new Map(); // day -> parcels with at least one leg
         const coverage = { parcels: 0, tms: 0, depart: 0, arrive: 0, gbt: 0, ptc: 0 };
         const lots = { failed: 0, failed_in_lot: 0, khong_tron_lo: 0 };
         const lotCodes = new Set();
         const legCols = LEGS.map((leg) => LEG_COLUMN[leg]).join(', ');
         await this.db.each(
-            `SELECT ngay_do_kiem, ma_bcvh, route_scope, ma_tuyen, danh_gia, khong_tron_lo, ma_lo, ma_buu_ta_shown, ten_buu_ta_shown, ${legCols}
+            `SELECT ma_bcvh, route_scope, ma_tuyen, danh_gia, khong_tron_lo, ma_lo, ma_buu_ta_shown, ten_buu_ta_shown, ${legCols}
              FROM f13_cause_parcel WHERE ${where.sql}`,
             where.params,
             (row) => {
                 const legs = LEG_COLUMNS.map((column) => row[column]);
-                const [tmsDepart, departArrive, tmsArrive, arriveGbt, gbtPtc, tmsPtc] = legs;
-                const anyLeg = legs.some((value) => value !== null && value !== undefined);
-                days.set(row.ngay_do_kiem, (days.get(row.ngay_do_kiem) || 0) + (anyLeg ? 1 : 0));
-                coverage.parcels += 1;
-                // a milestone counts when a leg that uses it could be computed (the milestones themselves are not stored)
-                if (tmsDepart != null || tmsArrive != null || tmsPtc != null) coverage.tms += 1;
-                if (tmsDepart != null || departArrive != null) coverage.depart += 1;
-                if (departArrive != null || tmsArrive != null || arriveGbt != null) coverage.arrive += 1;
-                if (arriveGbt != null || gbtPtc != null) coverage.gbt += 1;
-                if (gbtPtc != null || tmsPtc != null) coverage.ptc += 1;
                 const failed = row.danh_gia === FAILED;
                 if (failed) {
                     lots.failed += 1;
@@ -230,6 +224,19 @@ class JourneyPeriodService {
             },
         );
 
+        // coverage of the real milestones and the days built without legs / milestones: one aggregate query, so the scan above stays light
+        const perDay = await this.db.all(
+            `SELECT ngay_do_kiem AS day, COUNT(*) AS n, SUM(ms_tms IS NOT NULL) AS tms, SUM(ms_depart IS NOT NULL) AS depart, SUM(ms_arrive IS NOT NULL) AS arrive,
+                    SUM(ms_gbt IS NOT NULL) AS gbt, SUM(ms_ptc IS NOT NULL) AS ptc,
+                    SUM(ms_tms IS NOT NULL OR ms_depart IS NOT NULL OR ms_arrive IS NOT NULL OR ms_gbt IS NOT NULL OR ms_ptc IS NOT NULL) AS with_milestones,
+                    SUM(${LEG_COLUMNS.map((column) => `${column} IS NOT NULL`).join(' OR ')}) AS with_legs
+             FROM f13_cause_parcel WHERE ${where.sql} GROUP BY ngay_do_kiem`,
+            where.params,
+        );
+        for (const row of perDay) {
+            coverage.parcels += Number(row.n);
+            for (const key of ['tms', 'depart', 'arrive', 'gbt', 'ptc']) coverage[key] += Number(row[key] || 0);
+        }
         const cause = await causePromise;
         const medians = (group, part) => Object.fromEntries(LEGS.map((leg) => [leg, medianOf(group.values[leg][part])]));
         let volumeMismatch = 0;
@@ -278,9 +285,12 @@ class JourneyPeriodService {
                 period,
                 has_data: coverage.parcels > 0,
                 coverage,
-                coverage_basis: 'LEGS', // from the stored legs: a milestone counts when a leg using it is computable
                 lots: { ...lots, khong_tron_lo_lots: lotCodes.size },
-                legs: { source: 'TABLE', days_without_legs: [...days].filter(([, withLegs]) => withLegs === 0).map(([day]) => day).sort() },
+                legs: {
+                    source: 'TABLE',
+                    days_without_legs: perDay.filter((row) => !Number(row.with_legs)).map((row) => row.day).sort(),
+                    days_without_milestones: perDay.filter((row) => !Number(row.with_milestones)).map((row) => row.day).sort(),
+                },
                 cause_layer: { ...cause.meta, volume_mismatch_routes: volumeMismatch },
             },
         };
@@ -334,7 +344,7 @@ class JourneyPeriodService {
         const rows = await this.db.all(
             `SELECT ngay_do_kiem, ma_bg, ma_bcvh, ma_tuyen, route_scope, ma_buu_ta_first, ten_buu_ta_first, ma_buu_ta_shown, ten_buu_ta_shown, danh_gia,
                     cause_code, cause_detail, cause_reason, cause_status, cause_step, flags, hints, ma_lo, khong_tron_lo, limit_ms, tct_ms, l_ms, r_ms,
-                    remaining_at_arrival_ms, a_source, basis, ${LEG_COLUMN.tms_depart}, ${LEG_COLUMN.depart_arrive}, ${LEG_COLUMN.tms_arrive},
+                    remaining_at_arrival_ms, a_source, basis, ${MILESTONE_COLUMNS.join(', ')}, ms_arrive_source, ${LEG_COLUMN.tms_depart}, ${LEG_COLUMN.depart_arrive}, ${LEG_COLUMN.tms_arrive},
                     ${LEG_COLUMN.arrive_gbt}, ${LEG_COLUMN.gbt_ptc}, ${LEG_COLUMN.tms_ptc}
              FROM f13_cause_parcel WHERE ${whereSql}
              ORDER BY ${column} IS NULL, ${column} ${direction}, ngay_do_kiem ASC, ma_bg ASC LIMIT ? OFFSET ?`,
@@ -375,8 +385,10 @@ class JourneyPeriodService {
                 l_ms: row.l_ms,
                 r_ms: row.r_ms,
                 legs,
-                // the times of the milestones are not stored in the table (see the parcel evidence for them)
-                milestones: { tms: null, depart: null, arrive: null, arrive_source: row.a_source ?? null, gbt: null, gbt_first: null, ptc: null },
+                milestones: {
+                    tms: formatTime(row.ms_tms), depart: formatTime(row.ms_depart), arrive: formatTime(row.ms_arrive), arrive_source: row.ms_arrive_source ?? null,
+                    gbt: formatTime(row.ms_gbt), gbt_first: formatTime(row.ms_gbt_first), ptc: formatTime(row.ms_ptc),
+                },
             };
         });
         return {

@@ -124,3 +124,31 @@ Good: six leg columns added in place by the startup migration; builder writes th
 | J-R5 | Low | Month 3,2 s against 3 s: 2,0 s is `CauseAggQueryService.routes()`, not this ticket. | Accepted (cached after the first call by `cachedRead`). |
 
 Rollout (after B3 is accepted): `f13_cause_tool.js rebuild --from 2026-01-01 --to <latest>` on the live file (rebuild, not build: the days are FRESH), verify, restart. Done with G7.
+
+## 11. B3 Technical Execution Report (Sonnet 5.5, 2026-11-07) - READY FOR OPUS REVIEW
+
+**J-R4 fixed.** `migrate_f13_why_agg_01_schema.js`: seven more columns (CREATE TABLE and `F13_WHY_AGG_01_ADDED_COLUMNS`, so an old table is extended in place at startup): `ms_tms`, `ms_depart`, `ms_arrive`, `ms_gbt`, `ms_gbt_first`, `ms_ptc` (INTEGER, local clock in ms like the legs) and **`ms_arrive_source` (TEXT), one column more than the manifest named**: `a_source` is filled only for the analysed Không đạt parcels, so a Đạt parcel would have lost `arrive_source` (the first proof run found exactly that); the existing `a_source` is untouched, so `/why` filters and counts do not move. `CauseAggBuilder.js` `toRow` takes the milestones from `parcel.milestones` (the strings JourneyService formats, back through `parseTime`: exact, whole seconds), `ROW_COLUMNS` has the seven. Not edited: `JourneyService.js`, `CauseClassifier.js`, `f13CauseConfig.js`, `tctIntervals.js`, `F13JourneyRepository.js` (version files unchanged: classifier `97890e76b613` before and after, the live days stay FRESH).
+- `JourneyPeriodService.js`: parcel items return `milestones` in the old string format (`YYYY-MM-DD HH:MM:SS`, plus `arrive_source`); the milestone sort fields (`tms`, `depart`, `arrive`, `gbt`, `gbt_first`, `ptc`) work again (nulls last); `meta.coverage` counts the real milestones again (`coverage_basis` removed). Coverage, `days_without_legs` and the new `days_without_milestones` come from one aggregate query per request, so the streamed scan stays as light as in B2.
+- Rollout is unchanged: a rebuild of the range (`rebuild`, the days are FRESH). A day built by B2 code has legs but no milestones until rewritten: it is listed in `meta.legs.days_without_milestones` (its parcels show blank milestones and are not counted in the coverage).
+
+**Tests** (`node --experimental-sqlite --test`, one file each): `JourneyPeriodService.test.js` 16 / 0 (two new: the parcel list equals `JourneyService.getParcels` per parcel on milestones including `arrive_source`, on legs, postman and status, and the coverage equals `getRoutes`; a day without milestones is listed and ordering by a milestone puts nulls last); `CauseAggBuilder` 21, `CauseRefresh` 19, `CauseAggQueryService` 22, `migrate_f13_why_agg_01_schema` 3, `server.startupMigrations` 1, `JourneyService` 28, `f13v2Routes.scope` 13, `f13v2WhyRoutes.scope` 5, `f13v2Evidence` 16: all pass.
+
+**Proof on the copy** (2026 rebuilt with the B3 builder: 308 days, 0 failed, 713 s). Old = `JourneyService._parcels` / `getRoutes`, new = `JourneyPeriodService` (all parcels, 200 per page), whole city:
+
+| Day | Parcels old / new | Differences in milestones / legs / postman / verdict / route / cause fields / lot | Coverage old = new |
+|---|---|---|---|
+| 15/10 | 4 992 / 4 992 | 0 / 0 / 0 / 0 / 0 / 0 / 0 | equal (tms 4 992, depart 3 357, arrive 4 664, gbt 4 988, ptc 4 801) |
+| 28/10 | 3 238 / 3 238 | 0 / 0 / 0 / 0 / 0 / 0 / 0 | equal (3 238, 2 397, 3 185, 3 230, 3 089) |
+
+`meta.lots` (failed, failed_in_lot, khong_tron_lo, lots) also equal on both days. Route rows against the old `getRoutes` (postman routes): volume, passed, rate, khong_tron_lo, `legs` (all parcels), postmen, names equal; the one difference is `failed`, and it is the definition, not the data: the old page computed `failed = parcels - Đạt` (unrated parcels counted as failed), the new rows count Không đạt like `/why` (since B1; 12 routes on 15/10).
+
+**Month, measured again** (2026-10, whole city, in-process, no HTTP cache):
+
+| Period | Cold | Second | RSS (base 50 MB) |
+|---|---|---|---|
+| Week W42 (26 801) | 0.8 s | 0.7 s | 83-100 MB |
+| **Month (113 235)** | **3.3 s** | 2.9 s | **151-178 MB** |
+
+Parcels of one route over the month: 3 929 rows in 71 ms; whole city first page 86 ms. A first B3 version that streamed the six milestone columns in the scan went to 233-528 MB; moving the coverage to an aggregate query brought it back (the J-R5 time is unchanged: 2.0 s of the 3.3 s is `CauseAggQueryService.routes()`). October coverage from the table: parcels 113 235, tms 113 235, depart 68 004, arrive 107 619, gbt 112 945, ptc 107 330 (B1 had depart 68 303: its wide F1.1 window, see section 9); `days_without_legs` and `days_without_milestones` empty.
+
+**Not done:** no live build, no restart; rollout (rebuild of the live range, verify, restart) is Opus's with G7. Frontend not touched.

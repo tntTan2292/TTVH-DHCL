@@ -251,7 +251,7 @@ test('the builder row keeps the six legs of JourneyService in ms (null stays nul
 
 test('days built before the leg columns are listed (meta.legs.days_without_legs); their rows still count in the figures', async () => {
     const data = await service.getRoutes({ from: D1, to: '2026-10-30' }, CITY);
-    assert.deepEqual(data.meta.legs, { source: 'TABLE', days_without_legs: ['2026-10-30'] });
+    assert.deepEqual(data.meta.legs, { source: 'TABLE', days_without_legs: ['2026-10-30'], days_without_milestones: ['2026-10-30'] });
     assert.equal(routeOf(data, OWN, R1).volume, 5);
     assert.equal((await service.getRoutes({ from: D1, to: D2 }, CITY)).meta.legs.days_without_legs.length, 0);
 });
@@ -264,4 +264,37 @@ test('parcels: order by a leg puts parcels without it last in both directions; a
     assert.equal(asc.parcels[asc.parcels.length - 1].ma_bg, 'OLD1');
     assert.equal(asc.parcels[0].legs.arrive_gbt, 1);
     assert.equal((await service.getParcels({ from: D1, to: D2 }, { ...CITY, route: R1, sort: 'tms' })).meta.total, 4);
+});
+
+test('B3: the parcel list gives back the milestones exactly as JourneyService.getParcels did (string format, source), and the coverage counts real milestones', async () => {
+    const inner = new JourneyService({ repository });
+    for (const day of [D1, D2]) {
+        const old = (await inner.getParcels(day, { pageSize: 200 })).parcels;
+        const neu = (await service.getParcels({ date: day }, { ...CITY, pageSize: 200 })).parcels;
+        assert.equal(neu.length, old.length);
+        const byBg = new Map(neu.map((p) => [p.ma_bg, p]));
+        for (const o of old) {
+            const n = byBg.get(o.ma_bg);
+            assert.deepEqual(n.milestones, o.milestones, o.ma_bg);
+            assert.deepEqual(n.legs, o.legs, o.ma_bg);
+            assert.deepEqual([n.ma_buu_ta, n.ten_buu_ta, n.danh_gia, n.cause_status], [o.ma_buu_ta, o.ten_buu_ta, o.danh_gia, o.cause_status], o.ma_bg);
+        }
+    }
+    const old = await inner.getRoutes(D1, {});
+    assert.deepEqual((await service.getRoutes({ date: D1 }, CITY)).meta.coverage, old.meta.coverage);
+    const f1 = (await service.getParcels({ date: D1 }, { ...CITY, search: 'F1' })).parcels[0];
+    assert.equal(f1.milestones.tms, '2026-10-28 07:00:00');
+    assert.equal(f1.milestones.arrive, '2026-10-28 14:00:00');
+    assert.equal(f1.milestones.gbt_first, '2026-10-28 15:00:00');
+    assert.equal(f1.milestones.depart, null);
+});
+
+test('B3: a milestone of an old built day is missing (null, counted nowhere) and the day is listed; order by a milestone works with nulls last', async () => {
+    const data = await service.getRoutes({ from: D1, to: '2026-10-30' }, CITY);
+    assert.deepEqual(data.meta.legs.days_without_milestones, ['2026-10-30']);
+    assert.equal(data.meta.coverage.parcels, 9);
+    assert.equal(data.meta.coverage.tms, 8);
+    const asc = await service.getParcels({ from: D1, to: '2026-10-30' }, { ...CITY, route: R1, sort: 'tms', order: 'asc' });
+    assert.equal(asc.parcels[asc.parcels.length - 1].ma_bg, 'OLD1');
+    assert.equal(asc.parcels[asc.parcels.length - 1].milestones.tms, null);
 });

@@ -8,7 +8,7 @@
 const crypto = require('node:crypto');
 const fs = require('node:fs');
 const path = require('node:path');
-const { DAYS_BEFORE, DAYS_AFTER, BF_EXTRA_DAYS, shiftIsoDate } = require('./JourneyService');
+const { DAYS_BEFORE, DAYS_AFTER, BF_EXTRA_DAYS, shiftIsoDate, parseTime } = require('./JourneyService');
 const { CONFIRMED_NON_POSTMAN_ROUTE_CODES, isConfirmedNonPostmanRoute } = require('../../config/f13RouteClassificationCatalog');
 
 const ROUTE_SCOPES = Object.freeze({ POSTMAN: 'POSTMAN', NON_POSTMAN: 'NON_POSTMAN', OTHER: 'OTHER' });
@@ -66,6 +66,12 @@ function legMs(parcel, leg) {
     return hours === null || hours === undefined ? null : Math.round(hours * 3600000);
 }
 
+/** A milestone of a JourneyService parcel ('YYYY-MM-DD HH:MM:SS' local clock) in ms; null when unknown. */
+function milestoneMs(parcel, key) {
+    const text = parcel.milestones ? parcel.milestones[key] : null;
+    return text ? parseTime(text) : null;
+}
+
 /** Maps one JourneyService parcel to a table row (all stored fields; nothing recomputed). */
 function toRow(date, parcel, builtAt, classifierVersion) {
     const detail = parcel.cause_detail || {};
@@ -103,6 +109,14 @@ function toRow(date, parcel, builtAt, classifierVersion) {
         leg_arrive_gbt_ms: legMs(parcel, 'arrive_gbt'),
         leg_gbt_ptc_ms: legMs(parcel, 'gbt_ptc'),
         leg_tms_ptc_ms: legMs(parcel, 'tms_ptc'),
+        // F13-JOURNEY-ROUTE-02 B3: the milestone times JourneyService shows, back to ms on the same local clock (exact: they are whole seconds)
+        ms_tms: milestoneMs(parcel, 'tms'),
+        ms_depart: milestoneMs(parcel, 'depart'),
+        ms_arrive: milestoneMs(parcel, 'arrive'),
+        ms_gbt: milestoneMs(parcel, 'gbt'),
+        ms_gbt_first: milestoneMs(parcel, 'gbt_first'),
+        ms_ptc: milestoneMs(parcel, 'ptc'),
+        ms_arrive_source: parcel.milestones ? (parcel.milestones.arrive_source ?? null) : null, // the source of the arrival for every parcel (a_source is for the analysed ones only)
         built_at: builtAt,
         classifier_version: classifierVersion,
     };
@@ -113,6 +127,7 @@ const ROW_COLUMNS = [
     'danh_gia', 'cause_code', 'cause_status', 'cause_step', 'flags', 'hints', 'ma_lo', 'khong_tron_lo', 'limit_ms', 'tct_ms', 'l_ms', 'r_ms',
     'built_at', 'classifier_version', 'cause_detail', 'cause_reason', 'remaining_at_arrival_ms', 'a_source', 'basis',
     'leg_tms_depart_ms', 'leg_depart_arrive_ms', 'leg_tms_arrive_ms', 'leg_arrive_gbt_ms', 'leg_gbt_ptc_ms', 'leg_tms_ptc_ms',
+    'ms_tms', 'ms_depart', 'ms_arrive', 'ms_gbt', 'ms_gbt_first', 'ms_ptc', 'ms_arrive_source',
 ];
 
 /** Signature of one day over a db offering get(sql, params). A source table that does not exist counts as 0 rows (a partial test or fresh database). */

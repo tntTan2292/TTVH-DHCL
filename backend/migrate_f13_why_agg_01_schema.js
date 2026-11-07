@@ -48,7 +48,14 @@ CREATE TABLE IF NOT EXISTS f13_cause_parcel (
     leg_tms_arrive_ms INTEGER,
     leg_arrive_gbt_ms INTEGER,
     leg_gbt_ptc_ms INTEGER,
-    leg_tms_ptc_ms INTEGER
+    leg_tms_ptc_ms INTEGER,
+    ms_tms INTEGER,
+    ms_depart INTEGER,
+    ms_arrive INTEGER,
+    ms_gbt INTEGER,
+    ms_gbt_first INTEGER,
+    ms_ptc INTEGER,
+    ms_arrive_source TEXT
 );
 CREATE UNIQUE INDEX IF NOT EXISTS uq_f13_cause_parcel ON f13_cause_parcel(ngay_do_kiem, ma_bg);
 CREATE INDEX IF NOT EXISTS idx_f13_cause_parcel_bcvh ON f13_cause_parcel(ngay_do_kiem, ma_bcvh);
@@ -99,6 +106,14 @@ const F13_WHY_AGG_01_ADDED_COLUMNS = [
     ['leg_arrive_gbt_ms', 'INTEGER'],
     ['leg_gbt_ptc_ms', 'INTEGER'],
     ['leg_tms_ptc_ms', 'INTEGER'],
+    // F13-JOURNEY-ROUTE-02 B3: the milestone times of the Hanh trinh page (local clock in ms, like the legs; NULL when the milestone is unknown)
+    ['ms_tms', 'INTEGER'],
+    ['ms_depart', 'INTEGER'],
+    ['ms_arrive', 'INTEGER'],
+    ['ms_gbt', 'INTEGER'],
+    ['ms_gbt_first', 'INTEGER'],
+    ['ms_ptc', 'INTEGER'],
+    ['ms_arrive_source', 'TEXT'], // F41 | BF | NULL for every parcel (a_source is filled for the analysed Khong dat parcels only)
 ];
 
 // F13-WHY-AGG-01 P3: days that joined an active run (P1-R2).

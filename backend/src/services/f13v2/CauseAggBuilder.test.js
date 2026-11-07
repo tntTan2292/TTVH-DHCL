@@ -558,5 +558,6 @@ test('the table has exactly the columns of the Design of Record section 5 (plus 
         'danh_gia', 'cause_code', 'cause_status', 'cause_step', 'flags', 'hints', 'ma_lo', 'khong_tron_lo', 'limit_ms', 'tct_ms', 'l_ms', 'r_ms',
         'built_at', 'classifier_version', 'cause_detail', 'cause_reason', 'remaining_at_arrival_ms', 'a_source', 'basis',
         'leg_tms_depart_ms', 'leg_depart_arrive_ms', 'leg_tms_arrive_ms', 'leg_arrive_gbt_ms', 'leg_gbt_ptc_ms', 'leg_tms_ptc_ms',
+        'ms_tms', 'ms_depart', 'ms_arrive', 'ms_gbt', 'ms_gbt_first', 'ms_ptc', 'ms_arrive_source',
     ]);
 });
