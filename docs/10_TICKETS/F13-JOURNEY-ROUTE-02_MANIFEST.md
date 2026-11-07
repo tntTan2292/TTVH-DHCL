@@ -7,7 +7,7 @@
 - Programme: F1.3 Chuyên đề. Predecessor `F13-V2-JOURNEY-01` (page `/f13/v2/hanh-trinh`, day only).
 - Owner: Claude Code / Opus 5.5 (scope, reviews, real render). **B1 backend: Claude Code / Sonnet 5.5. U1 screen: Antigravity.** Does not change the Current Ticket of `PROJECT_SNAPSHOT.md`.
 - Branch: `codex/da-impl-006`.
-- **Status: `B2 NOT ACCEPTED YET - B3 READY FOR SONNET (milestone times in the table)`** (Opus review, section 10). `PO UI Check Required = Yes`.
+- **Status: `BACKEND ACCEPTED (B1-B3) - U1 READY FOR ANTIGRAVITY`** (Opus review, section 12). Backend live only with the G7 rollout. `PO UI Check Required = Yes`.
 
 ## 2. The problem (PO, 2026-11-07)
 
@@ -152,3 +152,11 @@ Rollout (after B3 is accepted): `f13_cause_tool.js rebuild --from 2026-01-01 --t
 Parcels of one route over the month: 3 929 rows in 71 ms; whole city first page 86 ms. A first B3 version that streamed the six milestone columns in the scan went to 233-528 MB; moving the coverage to an aggregate query brought it back (the J-R5 time is unchanged: 2.0 s of the 3.3 s is `CauseAggQueryService.routes()`). October coverage from the table: parcels 113 235, tms 113 235, depart 68 004, arrive 107 619, gbt 112 945, ptc 107 330 (B1 had depart 68 303: its wide F1.1 window, see section 9); `days_without_legs` and `days_without_milestones` empty.
 
 **Not done:** no live build, no restart; rollout (rebuild of the live range, verify, restart) is Opus's with G7. Frontend not touched.
+
+## 12. Opus review of B3 (2026-11-07, Claude Code / Opus 5.5; commit `9c100aeb`) - B2 + B3 ACCEPTED
+
+**J-R4 closed.** Seven additive columns (`ms_tms` ... `ms_ptc` + `ms_arrive_source`; the extra source column is right: `a_source` is filled for analysed Không đạt parcels only). Builder fills them from `parcel.milestones` through `parseTime`; the parcel list returns the old string format; milestone sorts work again (nulls last); `meta.coverage` counts real milestones from one aggregate query, so the month stays 3.3 s / 151-178 MB. Classifier version files untouched (`97890e76b613`). Copy proof: 15/10 and 28/10, 4 992 and 3 238 parcels, 0 differences in milestones, legs, postman, verdict, route, cause fields, lot; coverage equal. Suites rerun by Opus: `JourneyPeriodService` 16/16, `CauseAggBuilder` 21/21, `JourneyService` 28/28. The route `failed` difference against the old page (old = parcels - Đạt) is the `/why` definition since B1: accepted.
+
+**G7 rollout order (important).** The running backend is the old code: if it refreshes a day after the live rebuild, that day is rewritten without legs and milestones but keeps the same classifier version (FRESH), so nothing would rewrite it. Therefore: (1) restart first (the startup migration adds the columns, new builder live), (2) then `f13_cause_tool.js rebuild --from 2026-01-01 --to <latest>` on the live file, (3) verify; `meta.legs.days_without_legs` / `days_without_milestones` must be empty for the range. Between (1) and the end of (2) (~12 min) the Hành trình page shows blank hours for days not yet rebuilt.
+
+**U1 (Antigravity) API facts**, in addition to section 5: `/journey/routes` takes `from`/`to` | `week` | `month` | `date`; rows carry `ma_bcvh`, `ten_bcvh`, `route_scope`, `key`, `volume`, `passed`, `failed`, `rate`, `own_shortfall`, `main_cause`, `cause_mix`, `legs_failed`, `legs_passed`, `legs`, `slowest_leg` (null when no stage is slower for failed parcels), `postmen` (with `volume`), `filter` (to pass to `/journey/parcels`); `meta.coverage`, `meta.lots`, `meta.cause_layer`. Rows are already ordered BCVH, POSTMAN first, `own_shortfall` desc. Range over 93 days returns 400 `RANGE_TOO_LONG`.
