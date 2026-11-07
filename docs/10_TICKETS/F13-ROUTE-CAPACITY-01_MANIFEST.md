@@ -6,7 +6,7 @@
 - Name: `F1.3 route capacity and daily load`
 - Owner: Claude Code / Opus 5.5 (scope, review, real render). **B1 backend: Claude Code / Sonnet 5.5. U1 screen: Antigravity** (after B1 is accepted). Does not change the Current Ticket.
 - Branch: `codex/da-impl-006`.
-- **Status: `B2 READY FOR SONNET` (rules of section 9 replace C2-C3; B1 code accepted)**. `PO UI Check Required = Yes` (after U1).
+- **Status: `CLOSED - MOVED TO F42-POSTMAN-NORM-01` (PO 2026-11-07)**: the TCT norm is set on all the parcels a postman delivers, so it belongs to F4.2; F1.3 judges routes by their rate. B1 code (commit `6e13ed57`) stays in the repository, reached only through `/api/f13/v2/capacity` (read only, scoped, no screen calls it) and is reused by the F4.2 ticket; B2 (section 9) is not built. No PO UI check.
 
 ## 2. PO decisions (2026-11-07, in chat, plan approved)
 
@@ -116,3 +116,7 @@ They replace C2-C3; C4-C7 stay.
 | N5 | The own-history capacity (D3: days at or above min(90 %, own median rate), P90, at least 5 days, routes under 5 BG a day median -> null) is kept as a **reference column only**, never a state. |
 
 B2 changes: `RouteCapacity.js` (norm table, special routes, postman-day state, D3 as reference), `RouteCapacityService.js` (route type, per-postman volume with the BatchFile fallback, names from `dm_buu_ta`), the two handlers' output, tests for N1-N5 (prefix matching of every type seen in the data, special routes by BCVH and by name, the 150 = 50 / 60 / 40 example, BatchFile fallback, unknown postman, D3 reference). Measure again on a copy: postman-days over the norm by BCVH and route type for October, and the parcels with no postman found. Same restrictions as section 3.
+
+## 10. Closure (2026-11-07, PO in chat)
+
+PO: the norm of a postman counts all his deliveries, while F1.3 only counts inter-provincial parcels, so volume in F1.3 cannot judge a postman; F1.3 routes are judged by rate. The norm moves to F4.2 and must always be read with the postman's F4.2 delivery rate: `docs/10_TICKETS/F42-POSTMAN-NORM-01_MANIFEST.md` (planned after F1.3 is complete). Sections 8-9 are its starting rules. This ticket is closed without a screen.
