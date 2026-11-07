@@ -167,7 +167,7 @@ test('F1.3 navigation shows the time axis and the Chuyên đề pages (old Bản
   assert.match(f13SubItemsText, /qualityResultItem\('f13'\)/);
   assert.match(f13SubItemsText, /name: 'Hành trình bưu gửi',\s*path: '\/f13\/v2\/hanh-trinh'/);
   assert.equal(f13SubItemsText.includes("'/f13/dashboard'"), false, 'the old Bảng điều hành is retired');
-  assert.match(f13SubItemsText, /name: 'So sánh BCVH',\s*path: '\/f13\/ranking\/bcvh'/);
+  assert.equal(f13SubItemsText.includes("'/f13/ranking/bcvh'"), false, 'So sánh BCVH is hidden from the menu (PO 2026-11-07: its comparisons live in Kết quả chất lượng Ngày / Tuần / Tháng); the URL still opens');
   assert.equal(f13SubItemsText.includes("'/f13/ranking/route'"), false, 'Phân tích tuyến phát is hidden from the menu (PO 2026-11-07); the URL still opens');
   assert.match(f13SubItemsText, /name: 'Dữ liệu minh chứng',\s*path: '\/f13\/v2\/evidence'/);
 

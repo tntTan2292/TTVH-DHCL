@@ -38,7 +38,6 @@ const F13_GROUP = {
     { name: 'Phân tích nguyên nhân', path: '/f13/v2/why', icon: <HelpCircle size={18} /> },
     { name: 'Dữ liệu minh chứng', path: '/f13/v2/evidence', subtitle: 'Chuyên đề', icon: <Database size={18} /> },
     { name: 'Hành trình bưu gửi', path: '/f13/v2/hanh-trinh', subtitle: 'Chuyên đề', icon: <BookOpen size={18} /> },
-    { name: 'So sánh BCVH', path: '/f13/ranking/bcvh', subtitle: 'Chuyên đề', icon: <BarChart2 size={18} /> },
   ],
 };
 
