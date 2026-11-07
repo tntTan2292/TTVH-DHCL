@@ -6,7 +6,7 @@
 - Name: `F1.3 "Đề xuất quy tắc": Chuyên quản corrections grouped as proposals, approved or rejected by the PO`
 - Owner: Claude Code / Opus 5.5 (scope, review, real render). **B1 backend: Claude Code / Sonnet 5.5. U1 screen: Antigravity** (after B1 is accepted). Does not change the Current Ticket.
 - Branch: `codex/da-impl-006`.
-- **Status: `B1 + U1 DONE, real render passed (section 8) - READY FOR PO CHECK after the next backend restart`** (the table and endpoints exist only after the restart). `PO UI Check Required = Yes`.
+- **Status: `READY FOR PO CHECK - live since the restart of 2026-11-07 09:47`** (table and endpoints present). `PO UI Check Required = Yes`.
 
 ## 2. PO decisions
 

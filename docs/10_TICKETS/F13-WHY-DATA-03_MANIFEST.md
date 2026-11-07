@@ -7,7 +7,7 @@
 - Programme: F1.3 cause rules. Predecessor `F13-WHY-DATA-02` (rules v5, CLOSED). Changes one input of the classifier for one BCVH; everything else of v5 stays.
 - Owner: `Claude Code`. Opus 5.5 reviewed before the change (this document). Sonnet 5.5 implements. Opus 5.5 reviews the result. Does not change the Current Ticket of `PROJECT_SNAPSHOT.md`.
 - Branch: `codex/da-impl-006`.
-- **Status: `ACCEPTED (Opus review, section 10) - live after the 2026 rebuild and the backend restart (PO go-ahead)`**. `PO UI Check Required = No` (rule change, figures checked on a copy).
+- **Status: `CLOSED - LIVE (2026-11-07 09:47)`**: 2026 rebuilt on the live file, verify OK, backend restarted (section 11). `PO UI Check Required = No`.
 
 ## 2. PO decision (2026-11-07, in chat)
 
@@ -111,3 +111,13 @@ Checked independently:
 - Suites rerun one file at a time with `--experimental-sqlite`: `CauseClassifier` 36/36, `JourneyService` 28/28, `CauseAggBuilder` 21/21, `CauseAggQueryService` 22/22, `f13v2Evidence` 16/16.
 
 **Rollout (PO go-ahead needed):** no import or backfill running; `node scripts/f13_cause_tool.js build --from 2026-01-01 --to <latest day>` on the live file (about 8-10 minutes, the backend keeps serving), `verify`, then one backend restart through the supervisor (also brings F13-RULE-PROPOSAL-01 and the route label of 582fee3d live), then `scripts/realign-handling-entries.js` dry run, `/why` and Dữ liệu minh chứng freshness complete.
+
+## 11. Rollout (2026-11-07, Claude Code / Opus 5.5, PO go-ahead in chat)
+
+- Before: no queued or running backfill job, no open run, no lease, no `supervisor.pause`, last import 01:30 UTC (over an hour before); worktree clean.
+- `node scripts/f13_cause_tool.js build --from 2026-01-01 --to 2026-11-06` on the live file: run 64 DONE, **308 days, 0 failed, 625,8 s**, classifier `97890e76b613`; the backend kept serving.
+- `verify` 2026-01-01..2026-11-06: **OK**, 308 days, 1 826 day x BCVH keys; table = `fact_f13` = `agg_f13_day`: 997 168 rows, Đạt 562 942, Không đạt 391 353, blank 42 873.
+- Live: Hương Trà `MOC_A_KHONG_HOP_LE` **17** (was 1 042), flag `A_TRUOC_TMS_GIAO_TRUC_TIEP` on **1 053** parcels: the figures of the copy.
+- Restart through the supervisor at 09:47 (5050 PID 25036, 5178 PID 39312 stopped; both back in 18 s), log `logs/backend-20261107-094736.out.log`: `[auth] restored 4 session(s)`, `TTVH Backend running on port 5050`, `[f13-cause] run 65 DONE: 0 day(s) built` (startup resume, table complete), **HUE and TCT DKCL sessions re-attached and valid** (no PO login needed this time); the err log holds only the usual experimental warnings.
+- The same restart brought live: F13-RULE-PROPOSAL-01 (table `f13_rule_proposal_decision` with its two triggers), the route-group labels of 582fee3d, F13-JOURNEY-ROUTE-02 B1 and F13-WHY-NARRATIVE-02 B1 (both accepted). New routes answer 401 without a login (`rule-proposals`, `journey/routes`, `why/routes`); no login tried on the live backend.
+- `scripts/realign-handling-entries.js` dry run: 0 to change, 0 conflicts: `--apply` not needed.
