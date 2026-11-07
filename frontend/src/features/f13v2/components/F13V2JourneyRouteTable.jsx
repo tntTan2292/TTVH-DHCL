@@ -11,6 +11,7 @@ import { classifyRateTone } from '../f13v2Helpers.js';
 import {
   JOURNEY_ROUTE_STAGES,
   formatLegHours,
+  formatJourneyMainCause,
   formatPostmenWithVolume,
   groupJourneyRoutesByBcvh,
   journeyRouteValue,
@@ -184,30 +185,28 @@ export default function F13V2JourneyRouteTable({ routes = [], periodLabel = '', 
 
                   {/* Sub-header row for stages: K.đạt | Đạt */}
                   <tr className="border-b-2 border-slate-300 bg-slate-50/90 text-slate-700 text-[11px] font-bold">
-                    {JOURNEY_ROUTE_STAGES.map((stage) => (
-                      <th key={`${stage.key}_sub`} colSpan={2} className="p-0 border-r border-slate-200">
-                        <div className="grid grid-cols-2 text-center divide-x divide-slate-200">
-                          <SortableTh
-                            field={`legs_failed.${stage.key}`}
-                            sort={headerSort}
-                            onSort={handleSort}
-                            activeClassName={theme.sortActive}
-                            className="px-1 py-1 text-center font-bold text-rose-700 bg-rose-50/30"
-                          >
-                            K.đạt
-                          </SortableTh>
-                          <SortableTh
-                            field={`legs_passed.${stage.key}`}
-                            sort={headerSort}
-                            onSort={handleSort}
-                            activeClassName={theme.sortActive}
-                            className="px-1 py-1 text-center font-bold text-emerald-700 bg-emerald-50/30"
-                          >
-                            Đạt
-                          </SortableTh>
-                        </div>
-                      </th>
-                    ))}
+                    {JOURNEY_ROUTE_STAGES.flatMap((stage) => [
+                      <SortableTh
+                        key={`${stage.key}_failed`}
+                        field={`legs_failed.${stage.key}`}
+                        sort={headerSort}
+                        onSort={handleSort}
+                        activeClassName={theme.sortActive}
+                        className="px-1 py-1 text-center font-bold text-rose-700 bg-rose-50/30 border-r border-slate-100"
+                      >
+                        K.đạt
+                      </SortableTh>,
+                      <SortableTh
+                        key={`${stage.key}_passed`}
+                        field={`legs_passed.${stage.key}`}
+                        sort={headerSort}
+                        onSort={handleSort}
+                        activeClassName={theme.sortActive}
+                        className="px-1 py-1 text-center font-bold text-emerald-700 bg-emerald-50/30 border-r border-slate-200"
+                      >
+                        Đạt
+                      </SortableTh>,
+                    ])}
                   </tr>
                 </thead>
 
@@ -260,7 +259,7 @@ export default function F13V2JourneyRouteTable({ routes = [], periodLabel = '', 
                           ))}
 
                           <td className="px-2.5 py-2 text-slate-800 font-medium whitespace-normal break-words leading-relaxed">
-                            {row.main_cause || '—'}
+                            {formatJourneyMainCause(row)}
                           </td>
                         </tr>
                       );
@@ -292,7 +291,7 @@ export default function F13V2JourneyRouteTable({ routes = [], periodLabel = '', 
                     </h4>
                   </div>
                   <span className="text-[10px] text-slate-500 font-medium">
-                    * Tách riêng theo quy định PO, không xếp hạng chung với tuyến phát bưu tá
+                    Không xếp hạng chung với tuyến bưu tá
                   </span>
                 </div>
 
@@ -314,14 +313,10 @@ export default function F13V2JourneyRouteTable({ routes = [], periodLabel = '', 
                         <th rowSpan={2} className="px-2.5 py-1.5">Nguyên nhân chính</th>
                       </tr>
                       <tr className="border-b border-slate-200 bg-slate-100/90 text-[10px] text-slate-600 font-bold">
-                        {JOURNEY_ROUTE_STAGES.map((stage) => (
-                          <th key={`${stage.key}_sub_other`} colSpan={2} className="p-0 border-r border-slate-200">
-                            <div className="grid grid-cols-2 text-center divide-x divide-slate-200">
-                              <span className="px-1 py-0.5 text-rose-700">K.đạt</span>
-                              <span className="px-1 py-0.5 text-emerald-700">Đạt</span>
-                            </div>
-                          </th>
-                        ))}
+                        {JOURNEY_ROUTE_STAGES.flatMap((stage) => [
+                          <th key={`${stage.key}_sub_other_f`} className="px-1 py-0.5 text-center text-rose-700 border-r border-slate-100">K.đạt</th>,
+                          <th key={`${stage.key}_sub_other_p`} className="px-1 py-0.5 text-center text-emerald-700 border-r border-slate-200">Đạt</th>,
+                        ])}
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-200/60">
@@ -358,7 +353,7 @@ export default function F13V2JourneyRouteTable({ routes = [], periodLabel = '', 
                             ))}
 
                             <td className="px-2.5 py-2 text-slate-800 font-medium">
-                              {row.main_cause || '—'}
+                              {formatJourneyMainCause(row)}
                             </td>
                           </tr>
                         );

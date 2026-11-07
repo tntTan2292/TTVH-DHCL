@@ -96,7 +96,18 @@ export function journeyRouteValue(row, field) {
   if (field.startsWith('legs_passed.')) return row.legs_passed?.[field.slice(12)] ?? null;
   if (field.startsWith('legs.')) return row.legs?.[field.slice(5)] ?? null;
   if (field === 'postmen') return row.postmen?.[0]?.ten_buu_ta ?? null;
+  if (field === 'main_cause') return row.main_cause?.label ?? null;
   return row[field] ?? null;
+}
+
+/** Main cause of a route (object from the /why layer) as text: label and its share of the failed parcels. */
+export function formatJourneyMainCause(row) {
+  if (!row) return '—';
+  if (row.failed === 0) return '100% đạt';
+  const cause = row.main_cause;
+  if (!cause || !cause.label) return '—';
+  const share = Number.isFinite(cause.share) ? ` (${Math.round(cause.share * 100)}%)` : '';
+  return `${cause.label}${share}`;
 }
 
 /** Formats user-facing label for the active period. */

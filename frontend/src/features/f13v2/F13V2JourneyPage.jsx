@@ -136,18 +136,18 @@ export default function F13V2JourneyPage() {
     setSelectedRouteObj(null);
   };
 
-  // Build active query period object
+  // Build active query period object. A string key keeps the object stable while meta loads (no refetch of the same period).
+  const periodKey = periodMode === 'week'
+    ? `week|${weekParam || availableWeeks[0]?.week_id || ''}`
+    : periodMode === 'month'
+      ? `month|${monthParam || availableMonths[0]?.month_id || ''}`
+      : `day|${fromParam || latestDate || ''}|${toParam || latestDate || ''}`;
   const queryPeriod = useMemo(() => {
-    if (periodMode === 'week') {
-      return { week: weekParam || availableWeeks[0]?.week_id };
-    }
-    if (periodMode === 'month') {
-      return { month: monthParam || availableMonths[0]?.month_id };
-    }
-    const from = fromParam || latestDate || '';
-    const to = toParam || latestDate || '';
-    return { from, to };
-  }, [periodMode, weekParam, monthParam, fromParam, toParam, latestDate, availableWeeks, availableMonths]);
+    const [kind, a = '', b = ''] = periodKey.split('|');
+    if (kind === 'week') return { week: a || undefined };
+    if (kind === 'month') return { month: a || undefined };
+    return { from: a, to: b };
+  }, [periodKey]);
 
   // Fetch routes data whenever queryPeriod, BCVH, or refreshTick changes
   useEffect(() => {

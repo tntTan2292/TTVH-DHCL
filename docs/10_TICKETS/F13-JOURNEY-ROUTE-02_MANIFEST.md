@@ -7,7 +7,7 @@
 - Programme: F1.3 Chuyên đề. Predecessor `F13-V2-JOURNEY-01` (page `/f13/v2/hanh-trinh`, day only).
 - Owner: Claude Code / Opus 5.5 (scope, reviews, real render). **B1 backend: Claude Code / Sonnet 5.5. U1 screen: Antigravity.** Does not change the Current Ticket of `PROJECT_SNAPSHOT.md`.
 - Branch: `codex/da-impl-006`.
-- **Status: `U1 IMPLEMENTED - READY FOR OPUS REAL RENDER`** (Opus review B1-B3 accepted, section 12; U1 screen implemented, section 13). Backend live only with the G7 rollout. `PO UI Check Required = Yes`.
+- **Status: `U1 READY FOR PO CHECK`** (Opus real render, section 14). Backend B2/B3 live only with the G7 rollout; until then the live month view runs on B1 (about 15 s).
 
 ## 2. The problem (PO, 2026-11-07)
 
@@ -179,3 +179,16 @@ Parcels of one route over the month: 3 929 rows in 71 ms; whole city first page 
   - `npm run build`: successful in 2.44s.
   - No backend files touched.
 
+
+## 14. Opus real render of U1 (2026-11-07, Claude Code / Opus 5.5)
+
+Isolated backend on 5051 over the B3 database copy (milestones built), vite on 5199; live 5050/5178 untouched. Leader account: day 15/10 Thuận An, week W42 whole city, month 10 Thuận An, too-long range; BCVH account (Thuận An): month.
+
+**Defects found and fixed by Opus in this commit** (small, and the live page was already serving U1 through HMR):
+- **Blocker:** the page crashed (blank) on every period: `main_cause` is the `/why` object `{code, label, count, share}` and was rendered as a React child. New `formatJourneyMainCause` (label + share, `100% đạt` when no failed parcel); sorting by main cause reads its label. Test added (`journeyHelpers.test.js` 10/10).
+- Stage sub-header put `<th>` inside a `<div>` inside `<th>` (invalid table, hydration warning): now eight plain header cells, still click-to-order.
+- Routes and parcels were fetched three times per open (the period object changed when weeks/months/latest date arrived): period now keyed by a string; one fetch per change (two under StrictMode in dev).
+- Parcel rows over a period keyed by `ma_bg` only (the same parcel can appear on two days): key `ngay_do_kiem|ma_bg`; header cells from `title()` got a key.
+- Note under the two extra groups reworded to "Không xếp hạng chung với tuyến bưu tá".
+
+**Render after the fixes:** no page error, no React warning (only the harness 404s of `/ops-journal`, not stubbed). Each view about 2.6-2.9 s on the copy. Month Thuận An: 7 postman routes, then "Phát tại quầy (khách đến nhận)" and "Tuyến chưa xác định" as two separate blocks, both with the "Bưu tá" column; stage hours Không đạt beside Đạt, slowest stage marked; clicking Mỹ Thượng_01 lists its 1 571 parcels for October, equal to the route volume, with milestone times. BCVH account sees only Thuận An. Over 93 days shows the Vietnamese limit message. oxlint `-D no-undef` on the four files: 0 errors.

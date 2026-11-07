@@ -16,7 +16,7 @@ export default function F13V2JourneyParcelTable({ data, loading, error, date, pe
   const hasNgayDoKiem = parcels.some((p) => p.ngay_do_kiem);
 
   const title = (field, label, extraClass = '') => (
-    <SortableTh field={field} sort={sort} onSort={onSort} activeClassName={theme.sortActive} className={`px-2 py-2 text-center align-middle text-xs font-bold leading-snug ${extraClass}`}>
+    <SortableTh key={field} field={field} sort={sort} onSort={onSort} activeClassName={theme.sortActive} className={`px-2 py-2 text-center align-middle text-xs font-bold leading-snug ${extraClass}`}>
       {label}
     </SortableTh>
   );
@@ -64,7 +64,7 @@ export default function F13V2JourneyParcelTable({ data, loading, error, date, pe
             </thead>
             <tbody className="divide-y divide-slate-200">
               {parcels.map((parcel) => (
-                <tr key={parcel.ma_bg} className="hover:bg-slate-50">
+                <tr key={`${parcel.ngay_do_kiem || ""}|${parcel.ma_bg}`} className="hover:bg-slate-50">
                   <td className="whitespace-nowrap px-2 py-1.5 font-mono text-xs font-semibold text-slate-800">{parcel.ma_bg}</td>
                   {hasNgayDoKiem ? (
                     <td className="whitespace-nowrap px-2 py-1.5 text-xs text-slate-600 font-mono">

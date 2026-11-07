@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  formatJourneyMainCause,
   JOURNEY_MILESTONES,
   JOURNEY_ROUTE_STAGES,
   coveragePercent,
@@ -124,4 +125,10 @@ test('F13-JOURNEY-ROUTE-02: formatPeriodDisplay formats day, week, and month dis
     }),
     'Tháng 10/2026'
   );
+});
+
+test('formatJourneyMainCause: the /why main cause object becomes its label and share (never an object as a React child)', () => {
+  assert.equal(formatJourneyMainCause({ failed: 93, main_cause: { code: 'PHAT', label: 'Phát', count: 90, share: 0.9677 } }), 'Phát (97%)');
+  assert.equal(formatJourneyMainCause({ failed: 0, main_cause: null }), '100% đạt');
+  assert.equal(formatJourneyMainCause({ failed: 3, main_cause: null }), '—');
 });
