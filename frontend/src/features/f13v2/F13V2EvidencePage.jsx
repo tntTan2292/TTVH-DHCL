@@ -549,6 +549,12 @@ export default function F13V2EvidencePage() {
         onFilterAnalysed={(a) => updateParam('analysed', a)}
         onFilterAnalystCause={(ac) => updateParam('analyst_cause', ac)}
       />
+      {/* U1-R1 (PO 2026-11-07): the summary keeps the official figures of the period and unit; say so when a list-only filter is set. */}
+      {analysedParam || analystCauseParam || searchNeedle ? (
+        <p className="-mt-2 text-xs italic text-slate-500">
+          Tổng quan không áp dụng bộ lọc phân tích / tìm kiếm: số trên là số chính thức của kỳ và đơn vị; danh sách bên dưới đã lọc.
+        </p>
+      ) : null}
 
       {/* Tier 3: Evidence Table (50 rows/page, in-page sortable) */}
       <F13V2EvidenceTable
