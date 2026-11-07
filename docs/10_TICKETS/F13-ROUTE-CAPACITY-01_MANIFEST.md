@@ -6,7 +6,7 @@
 - Name: `F1.3 route capacity and daily load`
 - Owner: Claude Code / Opus 5.5 (scope, review, real render). **B1 backend: Claude Code / Sonnet 5.5. U1 screen: Antigravity** (after B1 is accepted). Does not change the Current Ticket.
 - Branch: `codex/da-impl-006`.
-- **Status: `B1 DONE - WAITING FOR OPUS REVIEW` (2026-11-07, Sonnet 5.5)**. `PO UI Check Required = Yes` (after U1).
+- **Status: `B1 CODE ACCEPTED (Opus review, section 7); rule C2 to be revised - PO choice open (section 7)`**. `PO UI Check Required = Yes` (after U1).
 
 ## 2. PO decisions (2026-11-07, in chat, plan approved)
 
@@ -71,3 +71,23 @@ A "Năng lực tuyến" page in the F1.3 menu (route list by BCVH with load band
 
 **Not done / residual**: no screen (U1), no cache, no new table. Day-level pairing with F4.2 postmen ("counted from the first handover") uses `ma_buu_ta_first` of the cause table, not F4.2 directly. Backend suites of other tickets not re-run (no shared file touched).
 
+
+## 7. Opus review of B1 (2026-11-07, Claude Code / Opus 5.5; commit `6e13ed57`)
+
+**Code: ACCEPTED** - C2-C6 implemented exactly as written, thresholds in one config, read only on `f13_cause_parcel`, scope narrows only, own router file, no shared file touched. `RouteCapacity` 12/12, `f13v2CapacityRoutes` 5/5 rerun.
+
+**Rule: the measurement shows that C2 as written (Opus proposal, PO approved) does not do its job.** Independent rerun, read only on the live file, October 2026, postman routes, rules compared on the same data:
+
+| Rule | Routes with a capacity | Days over / normal / under (share of all route-days) | On-time rate on those days | No capacity | Small routes |
+|---|---|---|---|---|---|
+| A: days >= 90 %, P75 (C2 now) | 57 / 112 | 17,9 / 19,6 / 12,0 % | 76,8 / 82,7 / 79,9 % | 50,6 % | - |
+| A2: days >= 90 %, P90 | 57 / 112 | 11,0 / 20,4 / 18,1 % | 74,8 / 83,5 / 77,5 % | 50,6 % | - |
+| D2: days >= min(90 %, own median rate), P90 | 106 / 112 | 15,8 / 43,6 / 39,6 % | 57,9 / 67,4 / 63,0 % | 0,9 % | - |
+| **D3: D2 + routes under 5 BG a day (median) left out** | **94 / 112** | **14,9 / 41,1 / 36,0 %** | **58,0 / 67,5 / 63,1 %** | 0,2 % | 7,8 % |
+
+- With "days >= 90 %" half of the routes never get a capacity, and they are the weak routes, the ones the GĐ most needs to see. P75 also makes about a third of the days with a capacity read "quá tải" by construction.
+- D3: a route's good days are the days at or above its own usual level (its median rate, capped at 90 %). For a route that usually reaches 90 % nothing changes; a weak route is compared with its own better days. P90 keeps "quá tải" for clearly higher days (about 15 %), and those days are about 9 points less on time than normal days: the load carries a real signal. Routes under 5 BG a day get the state `TUYEN_IT_HANG` (load not shown, Sonnet's point 1).
+- Ô tô routes (sporadic very large days): keep the volume per postman beside the load (point 3); no special rule.
+- Sonnet's open choices (linear P75 / P90, good day in integers, route = BCVH + code, postmen from the first handover) are accepted.
+
+**Recommendation: D3.** It changes PO decision C2 (and adds a small-route state), so the PO chooses. On the PO's choice Sonnet changes `isGoodDay`, `CAPACITY_PERCENTILE` and adds the floor in `CAPACITY_CONFIG` plus tests; then U1.
