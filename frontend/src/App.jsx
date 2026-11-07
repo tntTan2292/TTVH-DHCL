@@ -23,6 +23,7 @@ import F13V2MonthPage from './features/f13v2/F13V2MonthPage';
 import F13V2JourneyPage from './features/f13v2/F13V2JourneyPage';
 import F13V2WhyPage from './features/f13v2/F13V2WhyPage';
 import F13V2EvidencePage from './features/f13v2/F13V2EvidencePage';
+import F13V2RuleProposalPage from './features/f13v2/F13V2RuleProposalPage';
 import HangTonPage from './features/hangton/HangTonPage';
 import BcvhRankingPage from './features/ranking/BcvhRankingPage';
 import RoutePerformancePage from './features/route/RoutePerformancePage';
@@ -178,6 +179,7 @@ function App() {
               <Route path="hanh-trinh" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN, ROLE_VIEWER]}><F13V2JourneyPage /></ProtectedRoute>} />
               <Route path="why" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN, ROLE_VIEWER]}><F13V2WhyPage /></ProtectedRoute>} />
               <Route path="evidence" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN, ROLE_VIEWER]}><F13V2EvidencePage /></ProtectedRoute>} />
+              <Route path="de-xuat-quy-tac" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN]}><F13V2RuleProposalPage /></ProtectedRoute>} />
               <Route path="nguyen-nhan" element={<Navigate to="../why" replace />} />
             </Route>
 

@@ -38,6 +38,7 @@ const F13_GROUP = {
     { name: 'Phân tích nguyên nhân', path: '/f13/v2/why', icon: <HelpCircle size={18} /> },
     { name: 'Dữ liệu minh chứng', path: '/f13/v2/evidence', subtitle: 'Chuyên đề', icon: <Database size={18} /> },
     { name: 'Hành trình bưu gửi', path: '/f13/v2/hanh-trinh', subtitle: 'Chuyên đề', icon: <BookOpen size={18} /> },
+    { name: 'Đề xuất quy tắc', path: '/f13/v2/de-xuat-quy-tac', subtitle: 'Quản trị', icon: <ClipboardCheck size={18} />, roles: [ROLE_ADMIN] },
   ],
 };
 

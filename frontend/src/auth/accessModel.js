@@ -22,6 +22,8 @@ export const CAPABILITIES = Object.freeze({
   HANGTON_HANDLING_APPROVE: 'hangton.handling.approve',
   HANGTON_HANDLING_REASONS: 'hangton.handling.reasons',
   JOURNAL_MANAGE: 'journal.manage',
+  F13_RULE_VIEW: 'f13.rule.view',
+  F13_RULE_DECIDE: 'f13.rule.decide',
 });
 
 export const POSITION_LABELS = Object.freeze({
@@ -163,6 +165,11 @@ export function canAccessPath(access, pathname, legacyRole = null) {
 
   // F1.3 routes
   if (cleanPath === '/f13' || cleanPath.startsWith('/f13/')) {
+    // F13-RULE-PROPOSAL-01 (P5): Rule proposals visible only with f13.rule.view capability (admin)
+    if (cleanPath === '/f13/v2/de-xuat-quy-tac' || cleanPath.startsWith('/f13/v2/de-xuat-quy-tac/')) {
+      if (access) return hasCapability(access, 'f13.rule.view');
+      return String(legacyRole || '').trim().toLowerCase() === 'admin';
+    }
     // Incomplete placeholder pages stay admin only
     if (cleanPath === '/f13/pareto' || cleanPath === '/f13/message') {
       if (access && typeof access.admin === 'boolean') return access.admin;

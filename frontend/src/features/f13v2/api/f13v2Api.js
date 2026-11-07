@@ -126,3 +126,28 @@ export async function downloadEvidenceExport(params = {}, apiBase = '/f13') {
   return response;
 }
 
+// F13-RULE-PROPOSAL-01: Rule proposal list, detail, and PO decisions
+export async function fetchRuleProposals({ status } = {}, apiBase = '/f13') {
+  const params = {};
+  if (status && status !== 'all') params.status = status;
+  const response = await api.get(`${apiBase}/v2/rule-proposals`, { params });
+  return response?.data?.data || null;
+}
+
+export async function fetchRuleProposalDetail(key, apiBase = '/f13') {
+  const encodedKey = globalThis.encodeURIComponent(key);
+  const response = await api.get(`${apiBase}/v2/rule-proposals/${encodedKey}`);
+  return response?.data?.data || null;
+}
+
+export async function postRuleProposalDecision(key, { decision, note, ticket_id }, apiBase = '/f13') {
+  const encodedKey = globalThis.encodeURIComponent(key);
+  const response = await api.post(`${apiBase}/v2/rule-proposals/${encodedKey}/decisions`, {
+    decision,
+    note: note || '',
+    ticket_id: ticket_id || undefined,
+  });
+  return response?.data?.data || null;
+}
+
+
