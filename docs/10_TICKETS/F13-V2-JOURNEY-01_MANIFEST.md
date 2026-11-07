@@ -45,7 +45,7 @@ Hours are clock hours between milestones, so they can differ from TCT's figure (
 
 ## 5. Status
 
-`IMPLEMENTED / READY FOR PO UI CHECK`. PO UI Check Required: `Yes`. Not opened in a browser by the implementer.
+`SUPERSEDED by F13-JOURNEY-ROUTE-02 (2026-11-07)`. The page was never PO-checked as designed here: its data was corrected by F13-WHY-DATA-01 (arrival by the exact F4.1 key, first handover, Không trọn lô over the whole lot) and the route table is being rebuilt by F13-JOURNEY-ROUTE-02 (PO decisions J1-J6). The PO UI check happens there; nothing is pending on this ticket.
 
 PO check: open Hành trình bưu gửi on 28/10/2026, find EA464803978VN and compare its five milestones with the source; click a route to filter the parcels; check several postmen on one route; camera on both tables; click-to-order on both tables.
 
