@@ -18,6 +18,8 @@ const { monthBounds, isRealDate } = require('./periodResolve');
 const { CAUSES, PHAT_DETAILS } = require('./CauseClassifier');
 const { REMAINING_BUCKET_MS } = require('../../config/f13CauseConfig');
 const { computeSignaturesForDays, computeClassifierVersion } = require('./CauseAggBuilder');
+const { DAYS_BEFORE, DAYS_AFTER, BF_EXTRA_DAYS, shiftIsoDate } = require('./JourneyService');
+const { buildStory, lotEvidence, STORY_CONFIG } = require('./RouteStory');
 
 const SIGNATURE_TTL_MS = 60 * 1000;
 
@@ -559,6 +561,7 @@ class CauseAggQueryService {
         const period = resolvePeriod(query);
         const groups = await this._groups('routes', period, scope, query);
         const names = await this._routeNames(period, [...new Set([...groups.values()].map((group) => String(group.keys.ma_bcvh)))]);
+        const stories = await this._routeStories(period, scope, query, groups);
         const rows = [...groups.values()].map((group) => {
             const { ma_bcvh: bcvh, route_scope: routeScope, route_key: routeKey } = group.keys;
             const isRoute = routeScope === 'POSTMAN';
@@ -569,10 +572,140 @@ class CauseAggQueryService {
                 ma_tuyen: isRoute ? routeKey : null,
                 ten_tuyen: isRoute ? (names.get(`${bcvh}|${routeKey}`) ?? null) : (routeScope === 'NON_POSTMAN' ? 'Phát tại quầy (khách đến nhận)' : 'Tuyến chưa xác định'),
                 ...this._finish(group),
+                story: stories.get(`${bcvh}|${routeScope}|${routeKey}`),
                 filter: this._filterEcho(period, { ...scope, bcvhId: String(bcvh) }, { ...query, route: undefined, route_scope: undefined }, isRoute ? { route: routeKey } : { route_scope: routeScope }),
             };
         });
         return this._siblingResult(rows, period, scope, query);
+    }
+
+    /** A query that must not break the page when its source table is missing (older database): the answer is then empty. */
+    async _optionalAll(sql, params) {
+        try {
+            return await this.db.all(sql, params);
+        } catch (error) {
+            if (/no such table|no such column/i.test(String(error?.message))) return [];
+            throw error;
+        }
+    }
+
+    /** F13-WHY-NARRATIVE-02 B1: the story of every route row, from the same WHERE as the row (RouteStory.js assembles it). */
+    async _routeStories(period, scope, filter, groups) {
+        const spec = LEVELS.routes;
+        const where = this._where(period, scope, filter);
+        const failedSql = `danh_gia = '${FAILED}'`;
+        const f42Window = [shiftIsoDate(period.from, -DAYS_BEFORE), shiftIsoDate(period.to, DAYS_AFTER)];
+        const returnedSql = "ma_bg IN (SELECT ma_bg FROM fact_f42 WHERE ngay_do_kiem BETWEEN ? AND ? AND thoi_gian_chuyen_hoan IS NOT NULL AND TRIM(thoi_gian_chuyen_hoan) <> '')";
+        // One pass over the rows of the period gives, per route and parcel: was it rated, did F4.2 record a return. A parcel with no rated row
+        // in the period is stock (not delivered at the end of it). The inner query is run with and without the F4.2 join so a database without it still answers.
+        const parcelPass = (withReturn) => this._optionalAll(
+            `SELECT ma_bcvh, route_scope, route_key, COUNT(*) AS parcels, SUM(CASE WHEN rated = 0 THEN 1 ELSE 0 END) AS stock, SUM(returned) AS returned
+             FROM (SELECT ${spec.select}, ma_bg,
+                          SUM(CASE WHEN danh_gia IN ('${PASSED}', '${FAILED}') THEN 1 ELSE 0 END) AS rated,
+                          MAX(${withReturn ? `CASE WHEN ${returnedSql} THEN 1 ELSE 0 END` : '0'}) AS returned
+                   FROM f13_cause_parcel WHERE ${where.sql} GROUP BY ${spec.groupBy}, ma_bg)
+             GROUP BY ma_bcvh, route_scope, route_key`,
+            withReturn ? [...f42Window, ...where.params] : where.params,
+        );
+        const [lotRows, littleRows, passRows] = await Promise.all([
+            this.db.all(
+                `SELECT ${spec.select}, ma_lo, COUNT(*) AS c FROM f13_cause_parcel
+                 WHERE ${where.sql} AND ${failedSql} AND cause_code = 'KHONG_TRON_LO' AND ma_lo IS NOT NULL AND ma_lo <> ''
+                 GROUP BY ${spec.groupBy}, ma_lo`,
+                where.params,
+            ),
+            this.db.all(
+                `SELECT ${spec.select}, COUNT(*) AS c FROM f13_cause_parcel
+                 WHERE ${where.sql} AND ${failedSql} AND ',' || COALESCE(hints, '') || ',' LIKE '%,DEN_BCVH_CON_IT_GIO,%'
+                 GROUP BY ${spec.groupBy}`,
+                where.params,
+            ),
+            parcelPass(true).then((rows) => rows.length ? rows : parcelPass(false)),
+        ]);
+        const keyOf = (row) => `${row.ma_bcvh}|${row.route_scope}|${row.route_key}`;
+        const little = new Map(littleRows.map((row) => [keyOf(row), toNumber(row.c)]));
+        const returned = new Map(passRows.map((row) => [keyOf(row), toNumber(row.returned)]));
+        const stock = new Map(passRows.map((row) => [keyOf(row), toNumber(row.stock)]));
+        // BCVH totals are the sums of its routes (parcels of the routes), so the route shares and the BCVH share always agree
+        const bcvhParcels = new Map();
+        const bcvhReturned = new Map();
+        const bcvhStock = new Map();
+        for (const row of passRows) {
+            const bcvh = String(row.ma_bcvh);
+            bcvhParcels.set(bcvh, (bcvhParcels.get(bcvh) || 0) + toNumber(row.parcels));
+            bcvhReturned.set(bcvh, (bcvhReturned.get(bcvh) || 0) + toNumber(row.returned));
+            bcvhStock.set(bcvh, (bcvhStock.get(bcvh) || 0) + toNumber(row.stock));
+        }
+        const lotsOf = new Map();
+        for (const row of lotRows) {
+            const key = keyOf(row);
+            if (!lotsOf.has(key)) lotsOf.set(key, []);
+            lotsOf.get(key).push({ ma_lo: row.ma_lo, failed: toNumber(row.c) });
+        }
+        // the lots to evidence: the top lots of the routes whose main cause is the incomplete lot
+        const mixOf = new Map();
+        const lotCodes = new Set();
+        for (const group of groups.values()) {
+            const key = keyOf(group.keys);
+            const failed = toNumber(group.counts.failed);
+            const lines = causeMixOf(group.mix, failed).lines;
+            mixOf.set(key, { failed, lines });
+            const lead = [...lines].sort((a, b) => b.count - a.count)[0];
+            if (lead && lead.count > 0 && lead.code === 'KHONG_TRON_LO') {
+                for (const lot of (lotsOf.get(key) || []).sort((a, b) => b.failed - a.failed).slice(0, STORY_CONFIG.MAX_LOTS)) lotCodes.add(lot.ma_lo);
+            }
+        }
+        const evidence = await this._lotEvidence(period, [...lotCodes]);
+        const stories = new Map();
+        for (const group of groups.values()) {
+            const key = keyOf(group.keys);
+            const bcvh = String(group.keys.ma_bcvh);
+            stories.set(key, buildStory({
+                failed: mixOf.get(key).failed,
+                lines: mixOf.get(key).lines,
+                lots: lotsOf.get(key) || [],
+                lotEvidence: evidence,
+                littleTime: little.get(key) || 0,
+                parcels: toNumber(group.counts.distinct),
+                returned: returned.get(key) || 0,
+                stock: stock.get(key) || 0,
+                bcvhParcels: bcvhParcels.get(bcvh) || 0,
+                bcvhReturned: bcvhReturned.get(bcvh) || 0,
+                bcvhStock: bcvhStock.get(bcvh) || 0,
+            }));
+        }
+        return stories;
+    }
+
+    /** TMS batches of the given lots: BF Phát gives the parcels of a lot, F1.3 the scan of each (every parcel of the lot, any BCVH: a lot is one lot). */
+    async _lotEvidence(period, lotCodes) {
+        const result = new Map();
+        if (!lotCodes.length) return result;
+        const from = shiftIsoDate(period.from, -DAYS_BEFORE);
+        const to = shiftIsoDate(period.to, DAYS_AFTER);
+        const bfTo = shiftIsoDate(to, BF_EXTRA_DAYS);
+        const CHUNK = 400;
+        const lotOf = new Map(); // lading_code -> ma_lo
+        for (let i = 0; i < lotCodes.length; i += CHUNK) {
+            const part = lotCodes.slice(i, i + CHUNK);
+            const rows = await this._optionalAll(
+                `SELECT lading_code, ma_lo FROM fact_bf_phat WHERE ma_lo IN (${part.map(() => '?').join(', ')}) AND ngay_bf BETWEEN ? AND ?`,
+                [...part, from, bfTo],
+            );
+            for (const row of rows) if (!lotOf.has(row.lading_code)) lotOf.set(row.lading_code, row.ma_lo);
+        }
+        const codes = [...lotOf.keys()];
+        const scansByLot = new Map(lotCodes.map((code) => [code, []]));
+        for (let i = 0; i < codes.length; i += CHUNK) {
+            const part = codes.slice(i, i + CHUNK);
+            const rows = await this._optionalAll(
+                `SELECT ma_bg, thoi_gian_bd10_quet_tms FROM fact_f13 WHERE ngay_do_kiem BETWEEN ? AND ? AND ma_bg IN (${part.map(() => '?').join(', ')})`,
+                [from, to, ...part],
+            );
+            for (const row of rows) scansByLot.get(lotOf.get(row.ma_bg))?.push(row);
+        }
+        for (const [code, scans] of scansByLot) result.set(code, lotEvidence(scans));
+        return result;
     }
 
     async postmen(query, scope) {
