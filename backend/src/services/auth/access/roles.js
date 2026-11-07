@@ -26,11 +26,14 @@ const CAPABILITIES = Object.freeze({
     // F13-EVIDENCE-01 (PO V1): see the analyses of parcels (every position that reaches F1.3) / record one (Chuyên quản and Giám đốc BCVH of the unit; admin for support).
     F13_ANALYSIS_VIEW: 'f13.analysis.view',
     F13_ANALYSIS_WRITE: 'f13.analysis.write',
+    // F13-RULE-PROPOSAL-01 (P5): see / decide the rule proposals built from the Chuyên quản corrections. Admin tier (the PO's account) only.
+    F13_RULE_VIEW: 'f13.rule.view',
+    F13_RULE_DECIDE: 'f13.rule.decide',
 });
 const C = CAPABILITIES;
 
 const POSITIONS = Object.freeze({
-    ADMIN: { code: 'ADMIN', label: 'Quản trị hệ thống', tier: TIERS.ADMIN, group: GROUPS.SYSTEM, rank: 100, capabilities: [C.HANGTON_HANDLING_VIEW, C.HANGTON_HANDLING_WRITE, C.HANGTON_HANDLING_APPROVE, C.HANGTON_HANDLING_REASONS, C.JOURNAL_MANAGE, C.F13_ANALYSIS_VIEW, C.F13_ANALYSIS_WRITE] },
+    ADMIN: { code: 'ADMIN', label: 'Quản trị hệ thống', tier: TIERS.ADMIN, group: GROUPS.SYSTEM, rank: 100, capabilities: [C.HANGTON_HANDLING_VIEW, C.HANGTON_HANDLING_WRITE, C.HANGTON_HANDLING_APPROVE, C.HANGTON_HANDLING_REASONS, C.JOURNAL_MANAGE, C.F13_ANALYSIS_VIEW, C.F13_ANALYSIS_WRITE, C.F13_RULE_VIEW, C.F13_RULE_DECIDE] },
     LD_BDTP: { code: 'LD_BDTP', label: 'Lãnh đạo BĐTP', tier: TIERS.LEADER, group: GROUPS.LEADER_BDTP, rank: 90, capabilities: [C.HANGTON_HANDLING_VIEW, C.F13_ANALYSIS_VIEW] },
     GD_TTVH: { code: 'GD_TTVH', label: 'Giám đốc TTVH', tier: TIERS.LEADER, group: GROUPS.LEADER_TTVH_IT, rank: 85, capabilities: [C.HANGTON_HANDLING_VIEW, C.JOURNAL_MANAGE, C.F13_ANALYSIS_VIEW] },
     LD_TTVH: { code: 'LD_TTVH', label: 'Lãnh đạo TTVH', tier: TIERS.LEADER, group: GROUPS.LEADER_TTVH_IT, rank: 80, capabilities: [C.HANGTON_HANDLING_VIEW, C.F13_ANALYSIS_VIEW] },

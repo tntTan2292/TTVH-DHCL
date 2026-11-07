@@ -6,7 +6,7 @@
 - Name: `F1.3 "Đề xuất quy tắc": Chuyên quản corrections grouped as proposals, approved or rejected by the PO`
 - Owner: Claude Code / Opus 5.5 (scope, review, real render). **B1 backend: Claude Code / Sonnet 5.5. U1 screen: Antigravity** (after B1 is accepted). Does not change the Current Ticket.
 - Branch: `codex/da-impl-006`.
-- **Status: `READY FOR SONNET (B1)`**. `PO UI Check Required = Yes` (after U1).
+- **Status: `B1 DONE - READY FOR OPUS REVIEW`**. `PO UI Check Required = Yes` (after U1).
 
 ## 2. PO decisions
 
@@ -37,3 +37,13 @@ Page "Đề xuất quy tắc" in the F1.3 menu for the admin tier: list by statu
 ## 5. Change log
 
 - 2026-11-07: created by Claude Code / Opus 5.5 after the PO approved the plan.
+
+## 6. B1 results (Claude Code / Sonnet 5.5, 2026-11-07)
+
+- **Table**: `f13_rule_proposal_decision` + 2 triggers (UPDATE / DELETE refused) in `backend/migrate_f13_rule_proposal_01_schema.js`; applied at startup (2 lines added to `backend/server.js`, after `applyF13Evidence01Schema`). Not applied to the live database; the table appears at the next restart.
+- **Capabilities** `f13.rule.view`, `f13.rule.decide` in `roles.js`, ADMIN position only. No existing capability test needed changing (none pins the admin list).
+- **Service** `RuleProposalService.js`. `proposal_key` = `status|cause-or-reason|detail>chosen|phat` (`~` = empty; system side takes the cause code when status is CAUSE, else the reason). Grouping reads the latest `f13_analysis_log` row per parcel; "differs from system" = `cause_code <> system_line` recorded in that row. "Still has the system conclusion" compares the log snapshot with `f13_cause_parcel` now (`still_system_conclusion` count).
+- **Endpoints** (only `f13v2RuleProposalRoutes.js`): `GET /?status=`, `GET /:key` (samples <= 20, decision history, `ready_text` while APPROVED), `POST /:key/decisions`. Keys must be URL-encoded (`|` and `>`).
+- **Decision rules chosen by me, for review**: note mandatory for APPROVE / REJECT; APPLIED needs `ticket_id` and the current status APPROVED (409 `NOT_APPROVED` otherwise); a key with no current group is 404 for a new decision; a past decision on a key whose group vanished is still readable via `GET /:key` (`active: false`). Snapshot stores parcels, bcvh, analysts, first/last date, still_system_conclusion.
+- **Tests** (all run with `--experimental-sqlite`, one file at a time): `src/routes/f13v2RuleProposal.test.js` 8/8 (capability, empty log, 403 for CHUYEN_QUAN / GD_BCVH / LD_BDTP / GD_TTVH / STAFF, grouping with a twice-analysed parcel and an equal-to-system choice, decision rules, append-only chain and triggers, analysis log unchanged); `migrate_f13_rule_proposal_01_schema.test.js` 2/2. Neighbours unchanged: evidence migration 2/2, `server.startupMigrations` 1/1, `f13v2Evidence` 16/16, `adminUserRoutes` 3/3, `resolveAccess` 10/10, `handling` 21/21.
+- **Not done / for Opus**: no real-data run (the live table does not exist yet); no frontend (U1).
