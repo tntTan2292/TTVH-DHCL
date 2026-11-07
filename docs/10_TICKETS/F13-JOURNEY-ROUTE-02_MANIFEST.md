@@ -7,7 +7,7 @@
 - Programme: F1.3 Chuyên đề. Predecessor `F13-V2-JOURNEY-01` (page `/f13/v2/hanh-trinh`, day only).
 - Owner: Claude Code / Opus 5.5 (scope, reviews, real render). **B1 backend: Claude Code / Sonnet 5.5. U1 screen: Antigravity.** Does not change the Current Ticket of `PROJECT_SNAPSHOT.md`.
 - Branch: `codex/da-impl-006`.
-- **Status: `READY FOR SONNET (B1)`** (F13-WHY-DATA-03 committed and accepted, 2026-11-07). `PO UI Check Required = Yes`.
+- **Status: `B1 ACCEPTED (Opus review, section 8); B2 READY FOR SONNET (leg hours in the cause table)`**. `PO UI Check Required = Yes`.
 
 ## 2. The problem (PO, 2026-11-07)
 
@@ -74,3 +74,15 @@ Required Reading: this manifest sections 3-5; `docs/05_DEVELOPMENT/Implementatio
 
 **Not done:** no live build, no restart. Frontend not touched (U1). The page `F13V2Journey*` still calls with `date` and keeps working.
 
+
+## 8. Opus review of B1 (2026-11-07, Claude Code / Opus 5.5; commit `98f01510`)
+
+**B1 ACCEPTED** for day and week. New `JourneyPeriodService.js` behind the same routes; `JourneyService.js` left alone (a good choice: it is in the classifier version files); cause fields through `CauseAggQueryService.routes()`, so October matches `/why/routes` (125 rows, 0 differences); `RANGE_TOO_LONG` (93 days) returns 400. Suites rerun: `JourneyPeriodService` 10/10, `f13v2Routes.scope` 13/13, `f13v2WhyRoutes.scope` 5/5.
+
+| ID | Level | Finding | Resolution |
+|---|---|---|---|
+| J-R1 | **Medium (blocks the month view in production)** | A month for all BCVH takes 15,3 s and about 1,2 GB of memory per request (every day rebuilt through the journey join). Two users on two months would risk the backend's memory. | **B2 (Sonnet):** store the leg hours of each parcel (`tms_depart`, `depart_arrive`, `tms_arrive`, `arrive_gbt`, `gbt_ptc`, `tms_ptc`, in ms) in `f13_cause_parcel` when the builder writes a day (the values `JourneyService._parcels` already computes); additive migration; `JourneyPeriodService` reads routes, medians and parcel lists from the table like `/why`. Target: a month under 3 s, memory under 300 MB. Needs one more full 2026 rebuild (done with G7). |
+| J-R2 | Low | `slowest_leg` can name a leg where the failed parcels are faster than the passed ones (negative gap). | B2: `slowest_leg` only when the gap is > 0, else null. |
+| J-R3 | Low | `khong_tron_lo` 2 329 here against 2 328 in the cause table (wider lot window over several days). | Disappears with B2 (read from the table). |
+
+Prompt B2 is given in chat to the session that did B1.

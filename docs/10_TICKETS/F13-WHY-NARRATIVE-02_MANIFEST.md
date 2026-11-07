@@ -6,7 +6,7 @@
 - Name: `F1.3 Phân tích nguyên nhân: one sentence per route (main cause with its share, the lot when Không trọn lô dominates, little time left at arrival, tồn / hoàn as hints)`
 - Owner: Claude Code / Opus 5.5 (scope, review, real render). **B1 backend: Claude Code / Sonnet 5.5. U1 screen: Antigravity** (after B1 is accepted). Does not change the Current Ticket.
 - Branch: `codex/da-impl-006`.
-- **Status: `B1 DONE - WAITING FOR OPUS REVIEW` (2026-11-07, Sonnet 5.5)**. `PO UI Check Required = Yes` (after U1).
+- **Status: `B1 ACCEPTED (Opus review, section 7); U1 ready for Antigravity`**. `PO UI Check Required = Yes` (after U1).
 
 ## 2. The PO problem statement (2026-11-05) this answers
 
@@ -65,3 +65,12 @@ The sentence under each route of Phân tích nguyên nhân (and in the route sum
   The only return route flagged is Phú Lộc_02 (Phú Lộc): 221 of 311 parcels returned (71 %), BCVH share 8.2 %, ratio 8.7. **Proposal**: `ratio >= 2 and count >= 3` (selective: 1 return route, 3 stock routes in a month; nothing noisy). If the Chuyên quản wants more routes shown, `ratio >= 1.5` adds one, `count >= 3` alone would flag 32 / 47 routes, mostly small routes at the BCVH average, so a ratio is needed. Not implemented in code: B1 delivers numbers only, Opus decides.
 
 **Residual for the review**: Không trọn lô is the main cause of only 2 routes in October (it is 2,328 failed parcels city-wide against about 31,000 Phát), so the lot sentence will be rare; Phát lines dominate. The stock count uses "no rated row in the period", not an explicit delivery-at-period-end check against later months; a parcel rated after the period still counts as stock for that period. No screen (U1), no new table, no cache, nothing run on the live database, no build, no restart.
+
+## 7. Opus review of B1 (2026-11-07, Claude Code / Opus 5.5; commit `88237863`)
+
+**B1 ACCEPTED.** `story` added to every `/why/routes` row with the row's own WHERE; no existing line of `CauseAggQueryService.js` changed; forbidden files untouched. Suites rerun: `RouteStory` 8/8, `CauseAggQueryService.story` 7/7, `CauseAggQueryService` 22/22, `f13v2WhyRoutes.scope` 5/5. A month of `/why/routes` 2,2-2,5 s first call (was 0,95 s), under the 3 s limit.
+
+Decisions (Opus, technical):
+- **"Khá cao"** for the return and stock hints: `ratio >= 2` against the BCVH and `count >= 3` (October: 1 return route, 3 stock routes; nothing noisy). One constant in `STORY_CONFIG`, applied by U1 for the wording; the API keeps the numbers.
+- The stock hint counts parcels with no TCT result in the period. U1 words it "chưa có kết quả phát trong kỳ", never "tồn" as a verdict (PO 2026-11-04: tồn is never a cause).
+- `main` only among real causes ("Chờ Chuyên quản" and "chưa đủ căn cứ" stay in the mix): correct. The lot sentence will be rare (Không trọn lô main on 2 routes in October); Phát lines dominate, so U1 must word the Phát details well (Chậm giao bưu tá / Phát chậm sau khi giao).
