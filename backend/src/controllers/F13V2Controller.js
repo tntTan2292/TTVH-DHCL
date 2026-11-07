@@ -9,6 +9,7 @@ const { layoutFor } = require('../services/f13v2/blockRegistry');
 const { resolvePeriod } = require('../services/f13v2/periodResolve');
 const { DaySummaryService } = require('../services/f13v2/DaySummaryService');
 const { JourneyService } = require('../services/f13v2/JourneyService');
+const { JourneyPeriodService } = require('../services/f13v2/JourneyPeriodService');
 const f13JourneyRepo = require('../repositories/F13JourneyRepository');
 const { CauseAggQueryService } = require('../services/f13v2/CauseAggQueryService');
 const { EvidenceService } = require('../services/f13v2/EvidenceService');
@@ -18,18 +19,16 @@ const { resolveBcvh, scopedBcvhList, sendIfOutOfScope } = require('../middleware
 const daySummaryService = new DaySummaryService({ repository: factBuuGuiRepo, dashboardService: f13DashboardService });
 const journeyService = new JourneyService({ repository: f13JourneyRepo });
 const causeAggService = new CauseAggQueryService({ db: sharedDb });
+// F13-JOURNEY-ROUTE-02 B1: Hành trình over a period; the cause fields are read through the same query layer as /why.
+const journeyPeriodService = new JourneyPeriodService({ repository: f13JourneyRepo, causeAgg: causeAggService });
 // F13-EVIDENCE-01: evidence list / export / analyses. The append goes through the shared connection (one INSERT, atomic).
 const evidenceService = new EvidenceService({ db: sharedDb, causeAgg: causeAggService, journeyService });
 
 function journeyScope(req) {
-    const { date, ma_bcvh: maBcvh } = req.query;
-    if (!date) {
-        const error = new Error('Yêu cầu date');
-        error.code = 'MISSING_PARAM';
-        throw error;
-    }
+    const { ma_bcvh: maBcvh } = req.query;
     return {
-        date: String(date),
+        // the period: date (= from = to), from+to, week or month; JourneyPeriodService resolves and validates it
+        query: { date: req.query.date, from: req.query.from, to: req.query.to, week: req.query.week, month: req.query.month },
         scope: {
             bcvhId: resolveBcvh(req, maBcvh && maBcvh !== 'all' ? String(maBcvh) : null),
             allowedCodes: scopedBcvhList(req),
@@ -111,8 +110,8 @@ class F13V2Controller {
 
     async getJourneyRoutes(req, res) {
         try {
-            const { date, scope } = journeyScope(req);
-            res.status(200).json({ success: true, data: await journeyService.getRoutes(date, scope) });
+            const { query, scope } = journeyScope(req);
+            res.status(200).json({ success: true, data: await journeyPeriodService.getRoutes(query, scope) });
         } catch (error) {
             sendError(res, error);
         }
@@ -120,9 +119,9 @@ class F13V2Controller {
 
     async getJourneyParcels(req, res) {
         try {
-            const { date, scope } = journeyScope(req);
+            const { query, scope } = journeyScope(req);
             const { route, search, khong_tron_lo: khongTronLo, sort, order, page, page_size: pageSize } = req.query;
-            const result = await journeyService.getParcels(date, {
+            const result = await journeyPeriodService.getParcels(query, {
                 ...scope,
                 route: route ? String(route) : null,
                 search: search ? String(search) : null,
