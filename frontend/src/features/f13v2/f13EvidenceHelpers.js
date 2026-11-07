@@ -36,8 +36,8 @@ export function isNoteMandatory(causeCode, systemLine) {
 
 export function formatMilestoneTitle(milestoneKey) {
   const titles = {
-    tms: '1. Chấp nhận TMS',
-    depart: '2. Rời bưu cục đóng',
+    tms: '1. Quét xuống TMS',
+    depart: '2. Đóng đi khỏi sàn KTC1',
     arrive: '3. Đến BCVH phát',
     handover_first: '4. Bàn giao bưu tá (đầu tiên)',
     handover_shown: '4b. Bàn giao bưu tá (hiển thị)',

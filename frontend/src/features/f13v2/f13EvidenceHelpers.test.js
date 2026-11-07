@@ -45,7 +45,7 @@ test('f13EvidenceHelpers: isNoteMandatory adheres strictly to V3 and V4 rules', 
 });
 
 test('f13EvidenceHelpers: formatMilestoneTitle and formatMilestoneState format properly', () => {
-  assert.equal(formatMilestoneTitle('tms'), '1. Chấp nhận TMS');
+  assert.equal(formatMilestoneTitle('tms'), '1. Quét xuống TMS');
   assert.equal(formatMilestoneTitle('ptc'), '5. Phát thành công (PTC)');
   assert.equal(formatMilestoneState('OK'), 'Đầy đủ');
   assert.equal(formatMilestoneState('SKIPPED_TOO_MANY_DAYS'), 'Bỏ qua (quá số ngày cho phép trên trang)');
