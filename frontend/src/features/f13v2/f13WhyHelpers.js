@@ -23,6 +23,29 @@ export function formatChoChuyenQuanReason(code) {
   return CHO_CHUYEN_QUAN_REASONS[code] || String(code);
 }
 
+// F13-WHY-NARRATIVE-02 U1: Story sentence configuration and cause labels
+export const STORY_CONFIG = Object.freeze({
+  HINT_MIN_COUNT: 3,
+  HINT_MIN_RATIO: 2,
+});
+
+export const STORY_CAUSE_LABELS = Object.freeze({
+  GIAO_BUU_TA_QUA_GIO: 'Chậm giao bưu tá',
+  PHAT_MUON: 'Phát chậm sau khi giao',
+  PHAT_KHONG_CHI_TIET: 'Phát (chưa rõ chi tiết)',
+  KHONG_TRON_LO: 'Không trọn lô',
+  KHAI_THAC: 'Khai thác',
+  VAN_CHUYEN: 'Vận chuyển',
+  KHAI_THAC_VAN_CHUYEN_CHUA_PHAN_BIET: 'Khai thác - Vận chuyển (chưa phân biệt)',
+  PHAT: 'Khâu phát',
+  KHAC: 'Khác',
+});
+
+export function formatStoryCauseLabel(code, defaultLabel = '') {
+  if (!code) return defaultLabel || '—';
+  return STORY_CAUSE_LABELS[code] || defaultLabel || formatCauseLabel(code);
+}
+
 // F13-WHY-DATA-03: label of a data-quality flag (only the flags that need a sentence; others show their code).
 export const FLAG_LABELS = Object.freeze({
   A_TRUOC_TMS_GIAO_TRUC_TIEP: 'Giao nhận trực tiếp ĐTC1: đến BCVH trước giờ quét TMS, chặng TMS -> đến tính 0',
@@ -245,17 +268,74 @@ export function groupRoutesByBcvh(routes = [], bcvhRows = []) {
 }
 
 /**
- * Returns a 1-sentence plain-language summary of the leading cause of a route.
+ * Formats a TMS batch ISO timestamp or date text into "HH:mm ngày DD/MM".
  */
-export function summarizeRouteMainCause(route) {
-  if (!route) return '—';
-  if (route.failed === 0) return '100% đạt chỉ tiêu';
+export function formatTmsBatchTime(timeStr) {
+  if (!timeStr) return '';
+  const str = String(timeStr).trim();
+  const isoMatch = str.match(/^(\d{4})-(\d{1,2})-(\d{1,2})[T\s](\d{1,2}):(\d{1,2})/);
+  if (isoMatch) {
+    const [, , mm, dd, hh, min] = isoMatch;
+    return `${hh.padStart(2, '0')}:${min.padStart(2, '0')} ngày ${dd.padStart(2, '0')}/${mm.padStart(2, '0')}`;
+  }
+  const d = new Date(str);
+  if (!Number.isNaN(d.getTime())) {
+    const hh = String(d.getHours()).padStart(2, '0');
+    const min = String(d.getMinutes()).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    return `${hh}:${min} ngày ${dd}/${mm}`;
+  }
+  return str;
+}
 
-  const mix = route.cause_mix;
-  if (!mix) return `${route.failed} bưu gửi không đạt`;
+/**
+ * Formats one lot entry under Không trọn lô.
+ * e.g. "lô C340006410203: 162 BG, 2 đợt TMS, đợt cuối 08:09 ngày 09/10"
+ */
+export function formatStoryLot(lot) {
+  if (!lot) return '';
+  const parts = [];
+  if (lot.failed !== undefined && lot.failed !== null) {
+    parts.push(`${lot.failed} BG`);
+  }
+  if (lot.tms_batches) {
+    parts.push(`${lot.tms_batches} đợt TMS`);
+  }
+  if (lot.last_tms) {
+    const timeFormatted = formatTmsBatchTime(lot.last_tms);
+    if (timeFormatted) {
+      parts.push(`đợt cuối ${timeFormatted}`);
+    }
+  }
+  return `lô ${lot.ma_lo}: ${parts.join(', ')}`;
+}
+
+function formatHintPercent(val) {
+  if (val === null || val === undefined || Number.isNaN(Number(val))) return '0';
+  const percent = Number(val) * 100;
+  const rounded = Math.round(percent * 10) / 10;
+  return new Intl.NumberFormat('vi-VN', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 1,
+  }).format(rounded);
+}
+
+function formatHintRatio(val) {
+  if (val === null || val === undefined || Number.isNaN(Number(val))) return '0';
+  const num = Number(val);
+  const rounded = Math.round(num * 10) / 10;
+  return new Intl.NumberFormat('vi-VN', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 1,
+  }).format(rounded);
+}
+
+function summarizeRouteLegacyCause(route) {
+  const mix = route?.cause_mix;
+  if (!mix) return `${route?.failed || 0} bưu gửi không đạt`;
 
   const lines = mix.lines || [];
-  // Sort lines by count descending
   const sortedLines = [...lines].sort((a, b) => (b.count || 0) - (a.count || 0));
   const topLine = sortedLines[0];
 
@@ -294,6 +374,125 @@ export function summarizeRouteMainCause(route) {
   }
 
   return `${route.failed} bưu gửi chưa rõ chi tiết`;
+}
+
+/**
+ * F13-WHY-NARRATIVE-02 U1: Builds the narrative sentence of a route from row.story:
+ * - main cause with its share (Phát details worded "Chậm giao bưu tá" / "Phát chậm sau khi giao")
+ * - the lots when Không trọn lô is main ("lô C340006410203: 162 BG, 2 đợt TMS, đợt cuối 08:09 ngày 09/10")
+ * - the second cause when present
+ * - the parcels arriving with little time left
+ * - hints in a lighter style only when ratio >= 2 and count >= 3:
+ *   "Tỷ lệ hoàn x %, gấp y lần bưu cục", "x BG chưa có kết quả phát trong kỳ".
+ * Never call them a cause or a fault.
+ *
+ * Returns { mainText, hintText, fullText, toString() }
+ */
+export function buildRouteStorySentence(route) {
+  if (!route) {
+    return {
+      mainText: '—',
+      hintText: '',
+      fullText: '—',
+      toString() { return this.fullText; },
+    };
+  }
+
+  if (route.failed === 0) {
+    return {
+      mainText: '100% đạt chỉ tiêu',
+      hintText: '',
+      fullText: '100% đạt chỉ tiêu',
+      toString() { return this.fullText; },
+    };
+  }
+
+  const story = route.story;
+  if (!story || !story.main) {
+    const fallback = summarizeRouteLegacyCause(route);
+    return {
+      mainText: fallback,
+      hintText: '',
+      fullText: fallback,
+      toString() { return this.fullText; },
+    };
+  }
+
+  const parts = [];
+
+  // 1. Main cause
+  const main = story.main;
+  const mainLabel = formatStoryCauseLabel(main.code, main.label);
+  const mainShare = formatSharePercent(main.share);
+
+  if (main.code === 'KHONG_TRON_LO' && Array.isArray(story.lot) && story.lot.length > 0) {
+    const lotsStr = story.lot.map(formatStoryLot).join('; ');
+    parts.push(`${mainLabel} chiếm ${mainShare} (${lotsStr})`);
+  } else if (main.count !== undefined && main.count !== null) {
+    parts.push(`${mainLabel} chiếm ${mainShare} (${main.count} BG)`);
+  } else {
+    parts.push(`${mainLabel} chiếm ${mainShare}`);
+  }
+
+  // 2. Second cause when present
+  if (story.second && story.second.code) {
+    const secondLabel = formatStoryCauseLabel(story.second.code, story.second.label);
+    const secondShare = formatSharePercent(story.second.share);
+    parts.push(`${secondLabel}: ${secondShare}`);
+  }
+
+  // 3. Parcels arriving with little time left
+  if (story.little_time && story.little_time.count > 0) {
+    parts.push(`${story.little_time.count} BG đến BCVH còn ít giờ`);
+  }
+
+  const mainText = parts.join('; ');
+
+  // 4. Hints in lighter style only when ratio >= 2 and count >= 3
+  const hintItems = [];
+  const returnHint = story.return_hint;
+  if (
+    returnHint &&
+    returnHint.count >= STORY_CONFIG.HINT_MIN_COUNT &&
+    returnHint.ratio !== null &&
+    returnHint.ratio >= STORY_CONFIG.HINT_MIN_RATIO
+  ) {
+    const x = formatHintPercent(returnHint.share);
+    const y = formatHintRatio(returnHint.ratio);
+    hintItems.push(`Tỷ lệ hoàn ${x} %, gấp ${y} lần bưu cục`);
+  }
+
+  const stockHint = story.stock_hint;
+  if (
+    stockHint &&
+    stockHint.count >= STORY_CONFIG.HINT_MIN_COUNT &&
+    stockHint.ratio !== null &&
+    stockHint.ratio >= STORY_CONFIG.HINT_MIN_RATIO
+  ) {
+    hintItems.push(`${stockHint.count} BG chưa có kết quả phát trong kỳ`);
+  }
+
+  const hintText = hintItems.join('. ');
+  const fullText = hintText ? `${mainText}. ${hintText}` : mainText;
+
+  return {
+    mainText,
+    hintText,
+    fullText,
+    toString() { return this.fullText; },
+  };
+}
+
+/**
+ * Returns a 1-sentence plain-language summary of the leading cause of a route.
+ */
+export function summarizeRouteMainCause(route) {
+  if (!route) return '—';
+  if (route.failed === 0) return '100% đạt chỉ tiêu';
+  if (route.story?.main) {
+    return buildRouteStorySentence(route).fullText;
+  }
+  return summarizeRouteLegacyCause(route);
 }
 
 /**

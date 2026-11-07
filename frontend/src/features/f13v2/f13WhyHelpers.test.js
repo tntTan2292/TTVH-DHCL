@@ -17,6 +17,11 @@ import {
   formatRemainingAtArrival,
   formatPostmanName,
   sortWhyPostmen,
+  buildRouteStorySentence,
+  formatTmsBatchTime,
+  formatStoryLot,
+  STORY_CONFIG,
+  STORY_CAUSE_LABELS,
 } from './f13WhyHelpers.js';
 
 test('formatShortfall formats integer and decimal values with Vietnamese locale', () => {
@@ -413,4 +418,169 @@ test('Step 2: sortWhyPostmen sorts postmen rows by various criteria', () => {
 
   const byNameAsc = sortWhyPostmen(list, 'ten_buu_ta', 'asc');
   assert.equal(byNameAsc[0].ten_buu_ta, 'Chưa có bưu tá');
+});
+
+test('F13-WHY-NARRATIVE-02: STORY_CONFIG and STORY_CAUSE_LABELS adhere to PO/Opus specs', () => {
+  assert.equal(STORY_CONFIG.HINT_MIN_COUNT, 3);
+  assert.equal(STORY_CONFIG.HINT_MIN_RATIO, 2);
+  assert.equal(STORY_CAUSE_LABELS.GIAO_BUU_TA_QUA_GIO, 'Chậm giao bưu tá');
+  assert.equal(STORY_CAUSE_LABELS.PHAT_MUON, 'Phát chậm sau khi giao');
+  assert.equal(STORY_CAUSE_LABELS.KHONG_TRON_LO, 'Không trọn lô');
+});
+
+// F13-WHY-NARRATIVE-02 U1 Tests
+test('F13-WHY-NARRATIVE-02: formatTmsBatchTime converts timestamps to "HH:mm ngày DD/MM"', () => {
+  assert.equal(formatTmsBatchTime('2026-10-09 08:09:00'), '08:09 ngày 09/10');
+  assert.equal(formatTmsBatchTime('2026-11-05T15:40:00'), '15:40 ngày 05/11');
+  assert.equal(formatTmsBatchTime(null), '');
+  assert.equal(formatTmsBatchTime(''), '');
+});
+
+test('F13-WHY-NARRATIVE-02: formatStoryLot formats lot code, parcels, batches, and last TMS time', () => {
+  const lotWithAll = {
+    ma_lo: 'C340006410203',
+    failed: 162,
+    tms_batches: 2,
+    last_tms: '2026-10-09 08:09:00',
+  };
+  assert.equal(
+    formatStoryLot(lotWithAll),
+    'lô C340006410203: 162 BG, 2 đợt TMS, đợt cuối 08:09 ngày 09/10'
+  );
+
+  const lotWithoutTms = {
+    ma_lo: 'L99',
+    failed: 50,
+    tms_batches: 0,
+    last_tms: null,
+  };
+  assert.equal(formatStoryLot(lotWithoutTms), 'lô L99: 50 BG');
+});
+
+test('F13-WHY-NARRATIVE-02: PO example with dominant Không trọn lô, lot, second cause, little time, and hints', () => {
+  // Matches manifest section 6 PO example:
+  // Ô tô Nam giữa (Thuận Hóa), 1,175 failed:
+  // main: Không trọn lô 517 (44 %)
+  // second: Chậm giao bưu tá 304 (25.9 %)
+  // lots: C340006410203 (162 parcels, 2 batches, last 09/10 08:09)
+  // little time: 347 (29.5 %)
+  // return hint: ratio 3 >= 2 and count 4 >= 3 -> "Tỷ lệ hoàn 8 %, gấp 3 lần bưu cục"
+  const route = {
+    failed: 1175,
+    story: {
+      main: { code: 'KHONG_TRON_LO', label: 'Không trọn lô', count: 517, share: 0.44 },
+      second: { code: 'GIAO_BUU_TA_QUA_GIO', label: 'GIAO_BUU_TA_QUA_GIO', count: 304, share: 0.259 },
+      lot: [
+        { ma_lo: 'C340006410203', failed: 162, tms_batches: 2, last_tms: '2026-10-09 08:09:00' },
+      ],
+      little_time: { count: 347, share: 0.295 },
+      return_hint: { count: 4, parcels: 50, share: 0.08, bcvh_share: 0.0267, ratio: 3 },
+      stock_hint: { count: 0, parcels: 50, share: 0, bcvh_share: 0.05, ratio: 0 },
+    },
+  };
+
+  const sentence = buildRouteStorySentence(route);
+
+  // 1. Main cause and lot
+  assert.match(sentence.mainText, /Không trọn lô chiếm 44,0%/);
+  assert.match(sentence.mainText, /lô C340006410203: 162 BG, 2 đợt TMS, đợt cuối 08:09 ngày 09\/10/);
+
+  // 2. Second cause
+  assert.match(sentence.mainText, /Chậm giao bưu tá: 25,9%/);
+
+  // 3. Little time left
+  assert.match(sentence.mainText, /347 BG đến BCVH còn ít giờ/);
+
+  // 4. Return hint in hintText
+  assert.equal(sentence.hintText, 'Tỷ lệ hoàn 8 %, gấp 3 lần bưu cục');
+
+  // 5. fullText contains both
+  assert.equal(
+    sentence.fullText,
+    'Không trọn lô chiếm 44,0% (lô C340006410203: 162 BG, 2 đợt TMS, đợt cuối 08:09 ngày 09/10); Chậm giao bưu tá: 25,9%; 347 BG đến BCVH còn ít giờ. Tỷ lệ hoàn 8 %, gấp 3 lần bưu cục'
+  );
+
+  // 6. summarizeRouteMainCause delegates to fullText
+  assert.equal(summarizeRouteMainCause(route), sentence.fullText);
+});
+
+test('F13-WHY-NARRATIVE-02: Route without story falls back cleanly to legacy summarizeRouteMainCause', () => {
+  const legacyRoute = {
+    failed: 10,
+    cause_mix: {
+      lines: [
+        { code: 'KHAI_THAC', label: 'Khai thác (đến BCVH quá hạn)', count: 8, share: 0.8 },
+        { code: 'VAN_CHUYEN', label: 'Vận chuyển (đến BCVH quá hạn)', count: 2, share: 0.2 },
+      ],
+      phat: { count: 0, share: 0 },
+    },
+  };
+
+  const res = buildRouteStorySentence(legacyRoute);
+  assert.match(res.mainText, /Khai thác \(đến BCVH quá hạn\) chiếm 80,0% \(8 BG\)/);
+  assert.equal(res.hintText, '');
+  assert.equal(res.fullText, res.mainText);
+  assert.equal(summarizeRouteMainCause(legacyRoute), res.mainText);
+});
+
+test('F13-WHY-NARRATIVE-02: Hints below threshold (count < 3 or ratio < 2) are never shown', () => {
+  const route = {
+    failed: 20,
+    story: {
+      main: { code: 'PHAT_MUON', label: 'Phát muộn', count: 15, share: 0.75 },
+      second: null,
+      lot: null,
+      little_time: { count: 0, share: 0 },
+      // Sub-threshold 1: count >= 3 but ratio < 2
+      return_hint: { count: 10, parcels: 100, share: 0.1, bcvh_share: 0.08, ratio: 1.25 },
+      // Sub-threshold 2: ratio >= 2 but count < 3
+      stock_hint: { count: 2, parcels: 100, share: 0.02, bcvh_share: 0.005, ratio: 4 },
+    },
+  };
+
+  const res = buildRouteStorySentence(route);
+  assert.equal(res.hintText, '');
+  assert.equal(res.fullText, 'Phát chậm sau khi giao chiếm 75,0% (15 BG)');
+});
+
+test('F13-WHY-NARRATIVE-02: Hints above threshold (count >= 3 and ratio >= 2) for both return and stock', () => {
+  const route = {
+    failed: 30,
+    story: {
+      main: { code: 'GIAO_BUU_TA_QUA_GIO', label: 'Giao bưu tá quá giờ', count: 20, share: 0.667 },
+      second: null,
+      lot: null,
+      little_time: { count: 0, share: 0 },
+      return_hint: { count: 5, parcels: 50, share: 0.1, bcvh_share: 0.04, ratio: 2.5 },
+      stock_hint: { count: 4, parcels: 50, share: 0.08, bcvh_share: 0.02, ratio: 4 },
+    },
+  };
+
+  const res = buildRouteStorySentence(route);
+  assert.match(res.mainText, /Chậm giao bưu tá chiếm 66,7% \(20 BG\)/);
+  assert.match(res.hintText, /Tỷ lệ hoàn 10 %, gấp 2,5 lần bưu cục/);
+  assert.match(res.hintText, /4 BG chưa có kết quả phát trong kỳ/);
+  assert.equal(
+    res.fullText,
+    'Chậm giao bưu tá chiếm 66,7% (20 BG). Tỷ lệ hoàn 10 %, gấp 2,5 lần bưu cục. 4 BG chưa có kết quả phát trong kỳ'
+  );
+});
+
+test('F13-WHY-NARRATIVE-02: Never uses blame or fault wording (no "lỗi", "phạt", "tồn" as verdict)', () => {
+  const route = {
+    failed: 10,
+    story: {
+      main: { code: 'KHONG_TRON_LO', label: 'Không trọn lô', count: 8, share: 0.8 },
+      second: { code: 'PHAT_MUON', label: 'Phát chậm sau khi giao', count: 2, share: 0.2 },
+      lot: [{ ma_lo: 'L1', failed: 8, tms_batches: 1, last_tms: '2026-10-10 10:00:00' }],
+      little_time: { count: 2, share: 0.2 },
+      return_hint: { count: 5, parcels: 20, share: 0.25, bcvh_share: 0.05, ratio: 5 },
+      stock_hint: { count: 6, parcels: 20, share: 0.3, bcvh_share: 0.05, ratio: 6 },
+    },
+  };
+
+  const { fullText } = buildRouteStorySentence(route);
+  assert.doesNotMatch(fullText, /lỗi/i);
+  assert.doesNotMatch(fullText, /phạt/i);
+  assert.doesNotMatch(fullText, /tồn/i); // Never call them "tồn" as verdict: "chưa có kết quả phát trong kỳ"
 });
