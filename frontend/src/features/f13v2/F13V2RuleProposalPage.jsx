@@ -179,7 +179,7 @@ export default function F13V2RuleProposalPage() {
   return (
     <PageContainer
       title="Đề xuất quy tắc"
-      subtitle="Chuyên quản corrections grouped as proposals, approved or rejected by the PO"
+      subtitle="Các lần Chuyên quản sửa kết luận của hệ thống, gom thành đề xuất quy tắc chờ duyệt"
       accentClassName={theme.accentBar}
       badge="F1.3"
       action={
@@ -283,3 +283,4 @@ export default function F13V2RuleProposalPage() {
     </PageContainer>
   );
 }
+

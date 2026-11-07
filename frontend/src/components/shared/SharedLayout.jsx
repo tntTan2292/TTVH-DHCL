@@ -573,6 +573,7 @@ const BREADCRUMB_LABELS = {
   tuan: 'Theo tuần',
   thang: 'Theo tháng',
   'hanh-trinh': 'Hành trình bưu gửi',
+  'de-xuat-quy-tac': 'Đề xuất quy tắc',
 };
 
 export function Breadcrumb() {

@@ -198,9 +198,6 @@ export default function F13V2RuleProposalTable({
                             {chosenText}
                           </span>
                         </div>
-                        <span className="text-[11px] font-mono text-gray-400 truncate max-w-md" title={item.key}>
-                          {item.key}
-                        </span>
                       </div>
                     </td>
 
@@ -283,7 +280,7 @@ export default function F13V2RuleProposalTable({
       {/* Footer info bar */}
       <div className="px-5 py-2.5 bg-gray-50/70 border-t border-gray-100 flex items-center justify-between text-xs text-gray-500">
         <span>* Bấm vào tiêu đề cột để sắp xếp</span>
-        <span>Chỉ áp dụng quy tắc sau khi Product Owner phê duyệt</span>
+        <span>Chỉ áp dụng quy tắc sau khi được duyệt</span>
       </div>
     </div>
   );

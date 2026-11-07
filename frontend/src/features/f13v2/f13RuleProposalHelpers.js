@@ -2,6 +2,7 @@
  * F13-RULE-PROPOSAL-01: Helper functions, constants, formatting and validation
  * for the F1.3 "Đề xuất quy tắc" (Rule Proposals) screen.
  */
+import { BCVH_BY_CODE } from '../../auth/accessModel.js';
 
 export const STATUS_TABS = Object.freeze([
   { key: 'PENDING', label: 'Chờ duyệt' },
@@ -264,4 +265,20 @@ export function sortRuleProposals(items, field, direction = 'desc') {
         return 0;
     }
   });
+}
+
+/** A stored ISO time (UTC) shown on the Vietnam clock as dd/mm/yyyy HH:mm; empty when missing or unreadable. */
+export function formatDecisionTime(iso) {
+  if (!iso) return '';
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return '';
+  const local = new Date(date.getTime() + 7 * 3600000);
+  const two = (value) => String(value).padStart(2, '0');
+  return `${two(local.getUTCDate())}/${two(local.getUTCMonth() + 1)}/${local.getUTCFullYear()} ${two(local.getUTCHours())}:${two(local.getUTCMinutes())}`;
+}
+
+/** BCVH name from its code (canonical list), the code itself when unknown. */
+export function formatBcvhName(code) {
+  if (!code) return '—';
+  return BCVH_BY_CODE[String(code)] || String(code);
 }

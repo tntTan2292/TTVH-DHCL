@@ -22,6 +22,8 @@ import {
   formatStillRatio,
   formatDateSpan,
   validateDecisionInput,
+  formatDecisionTime,
+  formatBcvhName,
 } from '../f13RuleProposalHelpers.js';
 
 export default function F13V2RuleProposalDetailPanel({
@@ -42,6 +44,15 @@ export default function F13V2RuleProposalDetailPanel({
   const [note, setNote] = useState('');
   const [ticketId, setTicketId] = useState('');
   const [clientValidationError, setClientValidationError] = useState('');
+
+  // After a decision is recorded the detail comes back with a new current decision: clear the form and pick the next sensible action.
+  const currentDecisionId = detail?.decision?.id ?? null;
+  useEffect(() => {
+    setNote('');
+    setTicketId('');
+    setClientValidationError('');
+    setDecisionType(currentItem?.status === 'APPROVED' ? 'APPLIED' : 'APPROVE');
+  }, [currentDecisionId, currentItem?.status]);
 
   // Handle escape key
   useEffect(() => {
@@ -112,9 +123,6 @@ export default function F13V2RuleProposalDetailPanel({
                 )}`}
               >
                 {formatProposalStatus(currentItem.status)}
-              </span>
-              <span className="text-xs text-gray-500 font-mono truncate" title={currentItem.key}>
-                {currentItem.key}
               </span>
             </div>
             <h2 className="text-lg font-bold text-gray-900 truncate">Chi tiết đề xuất quy tắc</h2>
@@ -194,7 +202,7 @@ export default function F13V2RuleProposalDetailPanel({
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-1.5 text-xs font-bold text-blue-900 uppercase tracking-wider">
                   <FileCode className="w-4 h-4 text-blue-600" />
-                  <span>Nội dung chuyển thành quy tắc (ready text)</span>
+                  <span>Nội dung chuyển thành quy tắc</span>
                 </div>
                 <button
                   type="button"
@@ -216,7 +224,7 @@ export default function F13V2RuleProposalDetailPanel({
             <div className="bg-white rounded-xl p-4 border-2 border-gray-200 shadow-sm space-y-4">
               <div className="flex items-center gap-2 border-b border-gray-100 pb-2">
                 <Tag className="w-4 h-4 text-gray-700" />
-                <h3 className="font-bold text-gray-900 text-sm">Quyết định của Product Owner</h3>
+                <h3 className="font-bold text-gray-900 text-sm">Quyết định duyệt</h3>
               </div>
 
               {(clientValidationError || decisionError) && (
@@ -390,11 +398,11 @@ export default function F13V2RuleProposalDetailPanel({
                           </a>
                         </td>
                         <td className="py-2 px-2 text-center font-mono text-gray-600">
-                          {sample.ma_bcvh || '—'}
+                          {formatBcvhName(sample.ma_bcvh)}
                         </td>
                         <td className="py-2 px-3">
                           <div className="text-gray-800 font-medium">{sample.by || 'Chuyên quản'}</div>
-                          <div className="text-[10px] text-gray-400 font-mono">{sample.at || ''}</div>
+                          <div className="text-[10px] text-gray-400">{formatDecisionTime(sample.at)}</div>
                         </td>
                         <td className="py-2 px-2 text-center">
                           {sample.still_system_conclusion ? (
@@ -450,12 +458,12 @@ export default function F13V2RuleProposalDetailPanel({
                             : 'Đã áp dụng'}
                         </span>
                         {h.ticket_id && (
-                          <span className="px-1.5 py-0.5 rounded bg-purple-50 text-purple-700 border border-purple-200 font-mono text-[10px]">
+                          <span className="px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200 font-mono text-[10px]">
                             Phiếu: {h.ticket_id}
                           </span>
                         )}
                       </div>
-                      <span className="text-gray-400 text-[11px] font-mono">{h.at || ''}</span>
+                      <span className="text-gray-400 text-[11px]">{formatDecisionTime(h.at)}</span>
                     </div>
 
                     <div className="text-gray-800 font-medium">

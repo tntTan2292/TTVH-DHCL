@@ -6,7 +6,7 @@
 - Name: `F1.3 "Đề xuất quy tắc": Chuyên quản corrections grouped as proposals, approved or rejected by the PO`
 - Owner: Claude Code / Opus 5.5 (scope, review, real render). **B1 backend: Claude Code / Sonnet 5.5. U1 screen: Antigravity** (after B1 is accepted). Does not change the Current Ticket.
 - Branch: `codex/da-impl-006`.
-- **Status: `B1 ACCEPTED (Opus review, section 7) - live after the next backend restart; U1 ready for Antigravity`**. `PO UI Check Required = Yes` (after U1).
+- **Status: `B1 + U1 DONE, real render passed (section 8) - READY FOR PO CHECK after the next backend restart`** (the table and endpoints exist only after the restart). `PO UI Check Required = Yes`.
 
 ## 2. PO decisions
 
@@ -66,3 +66,12 @@ Checked independently:
 | R-R3 | Info | A decision on a proposal with no current parcel returns 404 (`active: false` stays readable). | Accepted. |
 
 Live: the table and the endpoints appear at the next backend restart, done once with G0 and G2 after their reviews (plan F13-GOLIVE-PLAN-01). U1 can start now on the B1 contract.
+
+## 8. Real render of U1 (2026-11-07, Claude Code / Opus 5.5; commit `3a7ee9f7` + review fixes)
+
+Isolated 5051/5199 with the real `f13v2Routes` (rule proposal migration applied, seeded log: 6 parcels "Chờ CQ - Thiếu mốc G" -> Khai thác on 2 BCVH, 1 parcel Khai thác -> Chậm giao bưu tá, 1 choice equal to the system); no live login.
+- Access: Chuyên quản and Lãnh đạo BĐTP do not see the menu item and are sent to `/unauthorized`; the admin sees it.
+- List: tabs Chờ duyệt 2 / Đã duyệt 0 / Không duyệt 0 / Đã áp dụng 0; rows 6 BG (2 BCVH, "còn giữ kết luận hệ thống 6 / 6") and 1 BG; the equal choice is not a proposal. Same as the seed.
+- Flow: Duyệt with a note -> tabs 1 / 1, ready text with Sao chép, history "Đã duyệt" with the snapshot; then "Đã áp dụng" with ticket F13-WHY-DATA-04 -> history shows both decisions. No failed call, no page error.
+
+Fixed in the review (Claude Code / Opus, small display points): raw proposal key removed from the table and the detail header; English subtitle and "Product Owner" / "(ready text)" wording replaced; times shown dd/mm/yyyy HH:mm on the Vietnam clock (`formatDecisionTime`); BCVH names instead of codes (`formatBcvhName`); breadcrumb "Đề xuất quy tắc" instead of the slug; purple ticket badge to blue (report standard); the decision form is cleared after a decision. Tests: `f13RuleProposal*` 15/15 (one new), navigation / auth 26/26, oxlint clean on the touched files.

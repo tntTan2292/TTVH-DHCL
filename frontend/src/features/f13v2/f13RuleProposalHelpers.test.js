@@ -174,3 +174,14 @@ test('f13RuleProposalHelpers: formatProposalStatus, proposalStatusBadgeClass, de
   assert.ok(decisionBadgeClass('REJECT').includes('red'));
   assert.ok(decisionBadgeClass('APPLIED').includes('emerald'));
 });
+
+test('F13-RULE-PROPOSAL-01 review: decision time on the Vietnam clock and BCVH names', async () => {
+  const { formatDecisionTime, formatBcvhName } = await import('./f13RuleProposalHelpers.js');
+  assert.equal(formatDecisionTime('2026-11-07T02:24:26.136Z'), '07/11/2026 09:24');
+  assert.equal(formatDecisionTime('2026-11-07T18:30:00.000Z'), '08/11/2026 01:30');
+  assert.equal(formatDecisionTime(''), '');
+  assert.equal(formatDecisionTime('not a date'), '');
+  assert.equal(formatBcvhName('537015'), 'BCVH Thuận An');
+  assert.equal(formatBcvhName('999999'), '999999');
+  assert.equal(formatBcvhName(null), '—');
+});
