@@ -7,7 +7,7 @@
 - Programme: F1.3 Chuyên đề. Predecessor `F13-V2-JOURNEY-01` (page `/f13/v2/hanh-trinh`, day only).
 - Owner: Claude Code / Opus 5.5 (scope, reviews, real render). **B1 backend: Claude Code / Sonnet 5.5. U1 screen: Antigravity.** Does not change the Current Ticket of `PROJECT_SNAPSHOT.md`.
 - Branch: `codex/da-impl-006`.
-- **Status: `READY - B1 waits for F13-WHY-DATA-03 to be committed`** (same file `JourneyService.js`; two writers must not touch it at the same time). `PO UI Check Required = Yes`.
+- **Status: `READY FOR SONNET (B1)`** (F13-WHY-DATA-03 committed and accepted, 2026-11-07). `PO UI Check Required = Yes`.
 
 ## 2. The problem (PO, 2026-11-07)
 
@@ -32,7 +32,8 @@ Already done the same day (Claude Code / Opus, commit of this manifest): the sam
 - Per route row, in addition to today's fields: `route_scope` (POSTMAN / NON_POSTMAN / OTHER, same rule as the cause table), `own_shortfall` (same definition as `/why`), `main_cause` and the cause mix of its failed parcels (read from the cause layer, same WHERE as `/why`, so the numbers match), `legs_failed` and `legs_passed` (medians, same legs as today), `slowest_leg` = the leg among `tms_arrive`, `arrive_gbt`, `gbt_ptc` with the largest `legs_failed - legs_passed` (null when not computable). Keep `legs` (all parcels) for compatibility.
 - Performance: measure a month for all BCVH on a copy. If the day-by-day build is too slow for a month (target: under 10 s cold, cached afterwards with the existing `cachedRead`), report the figures and propose storing the leg hours in the cause table; do not change the cause table in this phase without the Opus review.
 - Tests: period resolution, split medians on a seeded day, `route_scope` groups, `own_shortfall` and cause mix equal to `/why` for the same filter, scope (a BCVH account sees its own unit only).
-- Restrictions: official F1.3 data, cause rules and the cause table unchanged; no build on the live database; backend restart only by Opus after review.
+- Files: B1 owns `JourneyService.js`, the journey handlers of `F13V2Controller.js` and their lines in `f13v2Routes.js`. It reads the cause layer through the existing public methods of `CauseAggQueryService` and does **not** edit `CauseAggQueryService.js` (F13-WHY-NARRATIVE-02 changes it at the same time), nor `CauseClassifier.js` / `f13CauseConfig.js`.
+- Restrictions: official F1.3 data, cause rules and the cause table unchanged; no build on the live database; backend restart only by Opus after review. Commit by pathspec only (never `User QIS.xlsx`, `.claude/skills/`, `graphify-out/`, `.graphifyignore`). Backend suites with `--experimental-sqlite`, one file at a time.
 
 ## 5. U1 screen (Antigravity) - after B1 is accepted
 
