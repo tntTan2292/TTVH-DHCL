@@ -77,6 +77,24 @@ Never change the official F1.3 data, `agg_f13_day` or the analysis log. No build
 
 > F13-WHY-DATA-03, branch `codex/da-impl-006`. Read `CLAUDE.md`, then this manifest (sections 2-4 and 6). Implement section 4 Q2 exactly: config constants, `directHandover` input and A_eff in `CauseClassifier.js`, the caller in `JourneyService.js` (raw A shown, leg on A_eff, flag on the item), the flag label in `f13WhyHelpers.js`. Write the tests of Q4.1. Run Q4.2 on a copy of `backend/src/db/database.sqlite` (old vs new classifier over 2026, row by row) and report the table. No live build, no restart. Commit by pathspec, push, write your results in a new section 8 of this manifest, stop for the Opus review. Report: Technical Execution Report.
 
-## 8. Change log
+## 8. Technical Execution Report (Sonnet 5.5, 2026-11-07) - READY FOR OPUS REVIEW
+
+**Code (Q2, as written):** `f13CauseConfig.js` `DIRECT_HANDOVER_BCVH = ['535470']`, `DIRECT_HANDOVER_MAX_EARLY_MS = 24 h`. `CauseClassifier.js`: input `directHandover`; `A_eff = T` when `directHandover && A < T && T - A <= max` (flag `A_TRUOC_TMS_GIAO_TRUC_TIEP`); every later use reads A_eff (WRONG_ORDER, t_a stage, next-day test). `JourneyService.js`: passes `directHandover`; milestone stays raw A; leg `tms_arrive` uses T when the rule applies (computed in the service, so a passed parcel, which is not classified, gets the same leg). `f13WhyHelpers.js`: `FLAG_LABELS` + `formatFlagLabel` (no flag-label map existed; nothing else in the UI wired to it).
+
+**Tests (`node --experimental-sqlite --test`, one file at a time):** `CauseClassifier.test.js` 36 pass / 0 fail (+7); `JourneyService.test.js` 28 / 0 (+3); `CauseAggBuilder.test.js` 21 / 0. Cover: example parcel -> PHAT / CHAM_GIAO_BUU_TA + flag + t_a net 0; without `directHandover` stays MOC_A_KHONG_HOP_LE; 24 h exact accepted, 24 h + 1 s and 25 h not; A after T, A = T, A missing identical on/off; Khong tron lo first; A_eff in next-day test and G < A; MILESTONES basis; service: raw A shown, leg 0, flag, non-535470 unchanged.
+
+**Q4.2 (copy of database.sqlite in scratchpad; live file untouched):** table `f13_cause_parcel` of the copy was FRESH on all 308 days of 2026 under the HEAD classifier (old tool `build` at HEAD: 0 days built), so it is the "old" side (saved as `f13_cause_parcel_old`). New classifier `build` 2026-01-01..11-06: 308 days, 0 failed (classifier 97890e76b613). Row by row on (ngay_do_kiem, ma_bg), 18 columns null-safe:
+- rows old 997 168 = new 997 168; only-old 0; only-new 0.
+- changed rows **1 053, all ma_bcvh 535470; outside 535470: 0**. All 1 053 are Khong dat and carry the flag; the flag exists nowhere else (1 053 total, 0 outside).
+- old state of the changed rows: 1 025 CHO_CHUYEN_QUAN / MOC_A_KHONG_HOP_LE (T-A); 25 CAUSE KHONG_TRON_LO and 3 CHUA_DU_CAN_CU / KHONG_CO_MOC changed only by the new flag (cause unchanged). The manifest expected every changed row to have been MOC_A_KHONG_HOP_LE: 28 are flag-only changes, not cause moves.
+- Where the 1 025 go: PHAT 894 (no detail 414, CHAM_GIAO_BUU_TA 316, PHAT_CHAM_SAU_GIAO 164), CHO_CHUYEN_QUAN / TCT_DAI_HON_MOC 131. (Those of the 1 025: MOC_A at Huong Tra 1 042 -> 17.)
+- 24 h cap cases left: 17 Huong Tra parcels still MOC_A_KHONG_HOP_LE.
+- Huong Tra Khong dat: PHAT 51 760 -> 52 654, TCT_DAI_HON_MOC 7 926 -> 8 057, MOC_A 1 042 -> 17; other causes identical.
+- Official figures: SHA-256 over every row of `fact_f13` (997 936 rows) and `agg_f13_day` (31 764 rows) identical before and after (`SUMS_IDENTICAL`); Dat 562 942 / Khong dat 391 353 / blank 42 873 identical old vs new. `f13_cause_tool.js verify` 2026-01-01..11-06: OK, 308 days, 1 826 day x BCVH keys, 0 differences against fact_f13 and agg_f13_day.
+
+**Not done by design:** no live build, no restart, `QIS_F13_CAUSE_REFRESH` untouched. Classifier version changes, so every built day on the live file is stale until the rebuild the PO still has to approve. Frontend not run in a browser (label constant only; no consumer renders flags yet).
+
+## 9. Change log
 
 - 2026-11-07: created by Claude Code / Opus 5.5 after the PO decision; evidence read only on the live file.
+- 2026-11-07: implemented and checked on a copy by Claude Code / Sonnet 5.5 (section 8); waiting for the Opus review.

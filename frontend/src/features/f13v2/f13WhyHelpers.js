@@ -23,6 +23,16 @@ export function formatChoChuyenQuanReason(code) {
   return CHO_CHUYEN_QUAN_REASONS[code] || String(code);
 }
 
+// F13-WHY-DATA-03: label of a data-quality flag (only the flags that need a sentence; others show their code).
+export const FLAG_LABELS = Object.freeze({
+  A_TRUOC_TMS_GIAO_TRUC_TIEP: 'Giao nhận trực tiếp ĐTC1: đến BCVH trước giờ quét TMS, chặng TMS -> đến tính 0',
+});
+
+export function formatFlagLabel(code) {
+  if (!code) return '—';
+  return FLAG_LABELS[code] || String(code);
+}
+
 export const CAUSE_LABELS = Object.freeze({
   KHONG_TRON_LO: 'Không trọn lô',
   KHAI_THAC: 'Khai thác (đến BCVH quá hạn)',

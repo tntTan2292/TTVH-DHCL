@@ -24,7 +24,7 @@
 const {
     HOUR_MS, DAY_MS, TOLERANCE_MS, VERDICT, nightIntervals, stageNetMs, parseTctMs, journeyModel, stageOf, verdictOf,
 } = require('./tctIntervals');
-const { REMAINING_HINT_MS } = require('../../config/f13CauseConfig');
+const { REMAINING_HINT_MS, DIRECT_HANDOVER_MAX_EARLY_MS } = require('../../config/f13CauseConfig');
 
 const CAUSES = Object.freeze({
     KHONG_TRON_LO: { group: 'A', objective: true, label: 'Không trọn lô' },
@@ -71,6 +71,7 @@ const FLAGS = Object.freeze({
     BAD_R: 'R_KHONG_HOP_LE',
     UNLOCATED: 'UNLOCATED_TCT_EXCLUSION',
     NOT_OVER_LIMIT: 'KET_QUA_KHONG_KHOP_CHI_TIEU',
+    A_BEFORE_TMS_DIRECT: 'A_TRUOC_TMS_GIAO_TRUC_TIEP', // F13-WHY-DATA-03: direct handover, A read as T
 });
 const HINTS = Object.freeze({ BCVH_LATE_SIGN: 'DAU_HIEU_CHAM_TAI_BCVH', LITTLE_TIME_LEFT: 'DEN_BCVH_CON_IT_GIO' });
 
@@ -92,6 +93,7 @@ function limitMsOf(limit) {
  *   tms, depart, arrive, gbt, ptc   T, D, A, G, E in ms (null when unknown); A is F4.1 by the exact key, else the BatchFile (E2)
  *   aSource       'F41' | 'BF' | null: where A comes from
  *   khongTronLo   lot evidence from the caller (batches counted over every parcel of the lot)
+ *   directHandover  true when the BCVH receives directly from ĐTC1 (F13-WHY-DATA-03): A earlier than T by at most 24 h is read as A = T
  *   f41           'OK' | 'NONE' | 'NOT_UNIQUE' (how the F4.1 row was found by the caller)
  */
 function classify(input) {
@@ -116,7 +118,10 @@ function classify(input) {
 
     if (!input || !input.failed) return { status: STATUS.NOT_ANALYSED, cause: null, reason: null, step: null, basis: null, a_source: null, remaining_at_arrival_ms: null, flags: [], hints: [], detail };
 
-    const { tms: T = null, depart: D = null, arrive: A = null, gbt: G = null, ptc: E = null } = input;
+    const { tms: T = null, depart: D = null, arrive: rawA = null, gbt: G = null, ptc: E = null } = input;
+    // F13-WHY-DATA-03: direct handover from ĐTC1. A_eff = T when A is earlier than T by at most the guard; every later use reads A_eff.
+    const directEarly = Boolean(input.directHandover) && isTime(rawA) && isTime(T) && rawA < T && T - rawA <= DIRECT_HANDOVER_MAX_EARLY_MS;
+    const A = directEarly ? T : rawA;
     const limitMs = limitMsOf(input.limit);
     detail.limit_ms = limitMs;
     out.aSource = isTime(A) ? (input.aSource || 'F41') : null;
@@ -124,6 +129,7 @@ function classify(input) {
     if (input.f41 === 'NONE') flags.push(FLAGS.NO_F41);
     if (input.f41 === 'NOT_UNIQUE') flags.push(FLAGS.F41_NOT_UNIQUE);
     if (!isTime(A)) flags.push(FLAGS.NO_ARRIVAL);
+    if (directEarly) flags.push(FLAGS.A_BEFORE_TMS_DIRECT);
     if (isTime(G) && isTime(A) && G < A) flags.push(FLAGS.WRONG_ORDER);
     if (isTime(G) && isTime(T) && G < T) flags.push(FLAGS.G_BEFORE_T);
     if (!isTime(E)) flags.push(FLAGS.NO_E);

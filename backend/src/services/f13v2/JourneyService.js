@@ -25,6 +25,7 @@
 const { CANONICAL_BCVH_UNITS } = require('../../config/canonicalBcvhUnits');
 const { isRealDate } = require('./periodResolve');
 const { classify } = require('./CauseClassifier');
+const { DIRECT_HANDOVER_BCVH, DIRECT_HANDOVER_MAX_EARLY_MS } = require('../../config/f13CauseConfig');
 
 // A parcel's F4.1 / F4.2 row can carry an earlier or a later date than its F1.3 row.
 const DAYS_BEFORE = 10;
@@ -265,7 +266,12 @@ class JourneyService {
                 arrive,
                 gbt: gbtFirst,
                 ptc,
+                directHandover: DIRECT_HANDOVER_BCVH.includes(String(row.ma_bcvh)),
             });
+            // F13-WHY-DATA-03: the leg T -> A uses A_eff (= T) when the classifier applied the direct-handover rule; the milestone shown stays the raw A.
+            // (computed here too, not from the flags: a passed parcel is not classified but its leg must match)
+            const directEarly = DIRECT_HANDOVER_BCVH.includes(String(row.ma_bcvh)) && arrive !== null && tms !== null && arrive < tms && tms - arrive <= DIRECT_HANDOVER_MAX_EARLY_MS;
+            const arriveEff = directEarly ? tms : arrive;
             return {
                 cause: analysis.cause,
                 cause_status: analysis.status,
@@ -296,7 +302,7 @@ class JourneyService {
                 legs: {
                     tms_depart: legHours(tms, depart),
                     depart_arrive: legHours(depart, arrive),
-                    tms_arrive: legHours(tms, arrive),
+                    tms_arrive: legHours(tms, arriveEff),
                     arrive_gbt: legHours(arrive, gbt),
                     gbt_ptc: legHours(gbt, ptc),
                     tms_ptc: legHours(tms, ptc),

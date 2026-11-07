@@ -7,7 +7,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { classify, limitMsOf, CAUSES, PHAT_DETAILS, STATUS, BASIS, REASONS, FLAGS, HINTS } = require('./CauseClassifier');
-const { HOUR_MS } = require('./tctIntervals');
+const { HOUR_MS, VERDICT } = require('./tctIntervals');
 const { REMAINING_HINT_MS } = require('../../config/f13CauseConfig');
 
 const at = (text) => Date.parse(`${text.replace(' ', 'T')}:00Z`);
@@ -267,4 +267,75 @@ test('three layers: at most one cause, flags and hints are arrays apart, the inp
 
 test('a TCT time given in milliseconds or as "h:mm" is the same', () => {
     assert.deepEqual(run({ tct: 24 * HOUR_MS }).detail, run({ tct: '24:00' }).detail);
+});
+
+// ---- F13-WHY-DATA-03: direct handover ĐTC1 -> BCVH (A earlier than T read as A = T)
+// Real parcel CC557753117VN: T 05/11 12:19:11, A 05/11 12:11:52, G 06/11 08:28:12, E 06/11 13:47:18.
+const handoverParcel = (over = {}) => ({
+    failed: true, limit: 14, tct: '25:28', f41: 'OK', aSource: 'F41', khongTronLo: false, directHandover: true,
+    tms: Date.UTC(2026, 10, 5, 12, 19, 11), depart: null, arrive: Date.UTC(2026, 10, 5, 12, 11, 52),
+    gbt: Date.UTC(2026, 10, 6, 8, 28, 12), ptc: Date.UTC(2026, 10, 6, 13, 47, 18), ...over,
+});
+
+test('F13-WHY-DATA-03: the example parcel with directHandover -> Phát / Chậm giao bưu tá, flag set, t_a net 0', () => {
+    const r = classify(handoverParcel());
+    assert.deepEqual([r.status, code(r), sub(r)], [STATUS.CAUSE, 'PHAT', 'CHAM_GIAO_BUU_TA']);
+    assert.equal(r.flags.includes(FLAGS.A_BEFORE_TMS_DIRECT), true);
+    assert.equal(r.flags.includes(FLAGS.A_OUT_OF_ORDER), false);
+    assert.equal(r.detail.stages.t_a.net_ms, 0);
+    assert.equal(r.detail.stages.t_a.verdict, VERDICT.WITHIN);
+    assert.equal(r.remaining_at_arrival_ms, 14 * HOUR_MS);
+    assert.equal(r.flags.includes(FLAGS.WRONG_ORDER), false);
+});
+
+test('F13-WHY-DATA-03: the same parcel without directHandover stays MOC_A_KHONG_HOP_LE, no new flag', () => {
+    for (const over of [{ directHandover: false }, { directHandover: undefined }]) {
+        const r = classify(handoverParcel(over));
+        assert.deepEqual([r.status, r.reason, r.step], [STATUS.WAIT_ANALYST, REASONS.NO_ARRIVAL_ORDER, 'T-A']);
+        assert.equal(r.flags.includes(FLAGS.A_BEFORE_TMS_DIRECT), false);
+    }
+});
+
+test('F13-WHY-DATA-03: 24 h cap - exactly 24 h is accepted, 24 h + 1 s and 25 h stay MOC_A_KHONG_HOP_LE', () => {
+    const t = Date.UTC(2026, 10, 5, 12, 19, 11);
+    assert.equal(code(classify(handoverParcel({ arrive: t - 24 * HOUR_MS }))), 'PHAT');
+    for (const arrive of [t - 24 * HOUR_MS - 1000, t - 25 * HOUR_MS]) {
+        const r = classify(handoverParcel({ arrive }));
+        assert.deepEqual([r.status, r.reason], [STATUS.WAIT_ANALYST, REASONS.NO_ARRIVAL_ORDER]);
+        assert.equal(r.flags.includes(FLAGS.A_BEFORE_TMS_DIRECT), false);
+        assert.equal(r.flags.includes(FLAGS.A_OUT_OF_ORDER), true);
+    }
+});
+
+test('F13-WHY-DATA-03: A after T or equal to T, or A missing: identical with and without directHandover', () => {
+    const t = Date.UTC(2026, 10, 5, 12, 19, 11);
+    for (const over of [{ arrive: t + 40 * 60000 }, { arrive: t }, { arrive: t + 20 * HOUR_MS }, { arrive: null, aSource: null, f41: 'NONE' }]) {
+        const on = classify(handoverParcel(over));
+        const off = classify(handoverParcel({ ...over, directHandover: false }));
+        assert.deepEqual(on, off);
+        assert.equal(on.flags.includes(FLAGS.A_BEFORE_TMS_DIRECT), false);
+    }
+});
+
+test('F13-WHY-DATA-03: Không trọn lô comes first and keeps its cause; no late-sign hint (arrival counted in time)', () => {
+    const r = classify(handoverParcel({ khongTronLo: true }));
+    assert.equal(code(r), 'KHONG_TRON_LO');
+    assert.equal(r.hints.includes(HINTS.BCVH_LATE_SIGN), false);
+});
+
+test('F13-WHY-DATA-03: A_eff feeds the next-day test and the G < A flag (G before T = G before A_eff)', () => {
+    const sameDay = classify(handoverParcel({ gbt: Date.UTC(2026, 10, 5, 15, 0, 0) }));
+    assert.equal(sub(sameDay), 'PHAT_CHAM_SAU_GIAO');
+    const early = classify(handoverParcel({ gbt: Date.UTC(2026, 10, 5, 12, 15, 0) }));
+    assert.equal(early.flags.includes(FLAGS.G_BEFORE_T), true);
+    assert.equal(early.flags.includes(FLAGS.WRONG_ORDER), true);
+});
+
+test('F13-WHY-DATA-03: MILESTONES basis (R invalid) with A before T -> t_a net 0, not out of order', () => {
+    const r = classify(handoverParcel({ tct: 'xx' }));
+    assert.equal(r.basis, BASIS.MILESTONES);
+    assert.equal(r.detail.stages.t_a.net_ms, 0);
+    assert.equal(r.flags.includes(FLAGS.A_BEFORE_TMS_DIRECT), true);
+    assert.equal(r.flags.includes(FLAGS.A_OUT_OF_ORDER), false);
+    assert.equal(classify(handoverParcel({ tct: 'xx', directHandover: false })).reason, REASONS.NO_ARRIVAL_ORDER);
 });

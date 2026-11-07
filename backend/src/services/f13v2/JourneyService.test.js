@@ -427,3 +427,55 @@ test('the parcel carries the v5 fields: reason, basis, A source, remaining time;
     assert.ok(byId.FAILED2.remaining_at_arrival_ms < 0); // 5.69 h against a 5 h limit
     assert.deepEqual([byId.PASSED2.cause, byId.PASSED2.cause_reason, byId.PASSED2.cause_basis, byId.PASSED2.a_source, byId.PASSED2.remaining_at_arrival_ms], [null, null, null, null, null]);
 });
+
+// ---- F13-WHY-DATA-03: direct handover at Hương Trà (535470)
+const HT = '535470';
+const htParcel = (ma_bg, overrides = {}) => failedWith(ma_bg, {
+    ma_bcvh: HT, ten_bcvh: 'BCVH Hương Trà', thoi_gian_chi_tieu: '14', thoi_gian_thuc_hien_thuc_te_gio: '25:28',
+    thoi_gian_bd10_quet_tms: '28/10/2026 12:19:11', thoi_gian_ptc: '29/10/2026 13:47:18', ...overrides,
+});
+
+test('F13-WHY-DATA-03: Hương Trà, A 7 min before T -> raw A shown, leg tms_arrive 0, flag on the item, cause Phát / Chậm giao bưu tá', async () => {
+    const { service } = serviceWith({
+        parcels: [htParcel('HT1')],
+        f41: [arrivalRow('HT1', { ma_bc_phat: HT, thoi_gian_xnd_bd1: '28/10/2026 12:11:52' })],
+        f42: [handoverRow('HT1', '2026-10-29 08:28:12')],
+    });
+    const [p] = (await service.getParcels(DATE, {})).parcels;
+    assert.equal(p.milestones.arrive, '2026-10-28 12:11:52'); // raw A is the evidence
+    assert.equal(p.legs.tms_arrive, 0);
+    assert.equal(p.flags.includes('A_TRUOC_TMS_GIAO_TRUC_TIEP'), true);
+    assert.equal(p.flags.includes('MOC_A_KHONG_HOP_LE'), false);
+    assert.deepEqual([p.cause.code, p.cause.detail], ['PHAT', 'CHAM_GIAO_BUU_TA']);
+});
+
+test('F13-WHY-DATA-03: Hương Trà, A after T or 25 h before T, and a passed Hương Trà parcel', async () => {
+    const { service } = serviceWith({
+        parcels: [htParcel('HT_AFTER'), htParcel('HT_FAR'), htParcel('HT_PASS', { danh_gia_2026: 'Đạt' })],
+        f41: [
+            arrivalRow('HT_AFTER', { ma_bc_phat: HT, thoi_gian_xnd_bd1: '28/10/2026 13:00:00' }),
+            arrivalRow('HT_FAR', { ma_bc_phat: HT, thoi_gian_xnd_bd1: '27/10/2026 11:00:00' }),
+            arrivalRow('HT_PASS', { ma_bc_phat: HT, thoi_gian_xnd_bd1: '28/10/2026 12:10:00' }),
+        ],
+    });
+    const byId = Object.fromEntries((await service.getParcels(DATE, {})).parcels.map((p) => [p.ma_bg, p]));
+    assert.equal(byId.HT_AFTER.flags.includes('A_TRUOC_TMS_GIAO_TRUC_TIEP'), false);
+    assert.equal(byId.HT_AFTER.legs.tms_arrive, legHours(parseTime('28/10/2026 12:19:11'), parseTime('28/10/2026 13:00:00')));
+    assert.equal(byId.HT_FAR.flags.includes('A_TRUOC_TMS_GIAO_TRUC_TIEP'), false);
+    assert.equal(byId.HT_FAR.cause_reason, 'MOC_A_KHONG_HOP_LE');
+    assert.equal(byId.HT_FAR.legs.tms_arrive, null);
+    assert.equal(byId.HT_PASS.legs.tms_arrive, 0); // the leg follows the rule even for a parcel that is not classified
+    assert.equal(byId.HT_PASS.cause_status, 'KHONG_PHAN_TICH');
+});
+
+test('F13-WHY-DATA-03: another BCVH with A 7 min before T is unchanged (MOC_A_KHONG_HOP_LE, leg empty, no flag)', async () => {
+    const { service } = serviceWith({
+        parcels: [failedWith('OT1', { thoi_gian_chi_tieu: '14', thoi_gian_thuc_hien_thuc_te_gio: '25:28', thoi_gian_bd10_quet_tms: '28/10/2026 12:19:11', thoi_gian_ptc: '29/10/2026 13:47:18' })],
+        f41: [arrivalRow('OT1', { thoi_gian_xnd_bd1: '28/10/2026 12:11:52' })],
+        f42: [handoverRow('OT1', '2026-10-29 08:28:12')],
+    });
+    const [p] = (await service.getParcels(DATE, {})).parcels;
+    assert.equal(p.cause_reason, 'MOC_A_KHONG_HOP_LE');
+    assert.equal(p.legs.tms_arrive, null);
+    assert.equal(p.flags.includes('A_TRUOC_TMS_GIAO_TRUC_TIEP'), false);
+});
