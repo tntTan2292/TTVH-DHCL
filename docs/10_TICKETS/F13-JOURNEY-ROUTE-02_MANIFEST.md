@@ -7,7 +7,7 @@
 - Programme: F1.3 Chuyên đề. Predecessor `F13-V2-JOURNEY-01` (page `/f13/v2/hanh-trinh`, day only).
 - Owner: Claude Code / Opus 5.5 (scope, reviews, real render). **B1 backend: Claude Code / Sonnet 5.5. U1 screen: Antigravity.** Does not change the Current Ticket of `PROJECT_SNAPSHOT.md`.
 - Branch: `codex/da-impl-006`.
-- **Status: `U2 DONE - READY FOR OPUS REAL RENDER`** (section 18). Rollout with G7 after U2.
+- **Status: `U2 RENDER: 2 DEFECTS - U2-FIX READY FOR ANTIGRAVITY`** (Opus real render, section 19). Rollout with G7 after the fix.
 
 ## 2. The problem (PO, 2026-11-07)
 
@@ -274,3 +274,13 @@ One row per BCVH + route + postman; per route the postman rows add up to the `/w
   - No backend files touched.
   - No browser, no dev server, no login.
 
+
+## 19. Opus real render of U2 (2026-11-08, Claude Code / Opus 5.5; commit `deab3a32`)
+
+Isolated 5051/5199 over the B3 copy (B4 code), live untouched. **Passed:** month Thuận An one row per route + postman with the route rate beside it; click opens the popup "Hành trình bưu gửi: Mỹ Thượng_01, 1.570 bưu gửi, Bưu tá CHÂU THỊ CẨM HÀ (53A625)", equal to the row volume, request carries route + postman + ma_bcvh; page size 20 -> 50 gives 50 rows in the popup, in Dữ liệu minh chứng (URL keeps `page_size=50`) and in the Phân tích nguyên nhân parcel window; cameras: whole table, BCVH block, parcel table, popup all save a PNG (2-4.5 s for one BCVH); no page error, no React warning.
+
+| ID | Severity | Finding | Fix (Antigravity) |
+|---|---|---|---|
+| U2-R1 | **High (J9 not met)** | Whole-table camera, whole city, week W42: 15.5 s and a 2 365 x **16 384** px PNG, the browser canvas limit, so the picture is cut. Top N is applied to the postman rows only; the Phát tại quầy / Tuyến chưa xác định blocks of every BCVH are captured in full (dozens of rows each). | During the whole-table capture, include only the Top N postman rows overall and leave out the two bottom groups; on a BCVH-block capture, Top N applies to its postman rows and the two groups are shown only when "Tất cả" is chosen. Whole-city week picture must stay under 4 000 px high. |
+| U2-R2 | Medium (misleading text) | A row with no verdict at all (Phát tại quầy: rate 0,0 %, Không đạt 0) shows main cause "100% đạt". `formatJourneyMainCause` returns that whenever `failed === 0` (the Opus helper of section 14). | `100% đạt` only when `passed === volume`; when `failed === 0` and `passed < volume` show "Chưa có đánh giá"; add the case to `journeyHelpers.test.js`. |
+| U2-R3 | Low | Changing the page size sends the same parcel request twice (popup and bottom table). | One request per change (set page and size in one state update). |
