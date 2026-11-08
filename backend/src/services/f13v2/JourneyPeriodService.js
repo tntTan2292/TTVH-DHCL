@@ -14,7 +14,7 @@
 const { isRealDate } = require('./periodResolve');
 const { CAUSES, PHAT_DETAILS } = require('./CauseClassifier');
 const { CANONICAL_BCVH_UNITS } = require('../../config/canonicalBcvhUnits');
-const { resolvePeriod, metricsOf, labelOfLine, lineOf, ROUTE_SCOPES } = require('./CauseAggQueryService');
+const { resolvePeriod, metricsOf, labelOfLine, lineOf, causeMixOf, ROUTE_SCOPES } = require('./CauseAggQueryService');
 
 const MAX_DAYS = 93; // a technical guard for the Hành trình pages (a quarter); not a business rule
 const DEFAULT_PAGE_SIZE = 50;
@@ -148,6 +148,31 @@ function slowestLegOf(legsFailed, legsPassed) {
 
 const splitList = (text) => (text ? String(text).split(',').filter(Boolean) : []);
 const routeKeyOf = (scope, maTuyen) => (scope === 'POSTMAN' ? String(maTuyen ?? '') : `@${scope}`);
+const NO_POSTMAN = 'NONE'; // the postman filter value (and key part) of parcels without a postman
+const ROUTE_KEY_SQL = "CASE WHEN route_scope = 'POSTMAN' THEN ma_tuyen ELSE '@' || route_scope END";
+const POSTMAN_KEY_SQL = "COALESCE(NULLIF(ma_buu_ta_shown, ''), 'NONE')";
+
+function emptyMix() {
+    return { counts: {}, chua_du: { count: 0, by_step: {}, by_flag: {} }, cho: { count: 0, by_reason: {} }, unclassified: 0 };
+}
+
+/** Adds one group of failed parcels (stored cause columns) to a cause mix: the same reading as CauseAggQueryService (/why). */
+function addCauseRow(mix, row) {
+    const count = Number(row.c || 0);
+    if (row.cause_status === 'CAUSE' && row.cause_code) {
+        const line = lineOf(row.cause_code, row.cause_detail);
+        mix.counts[line] = (mix.counts[line] || 0) + count;
+    } else if (row.cause_status === 'CHO_CHUYEN_QUAN') {
+        mix.cho.count += count;
+        const reason = row.cause_reason || '-';
+        mix.cho.by_reason[reason] = (mix.cho.by_reason[reason] || 0) + count;
+    } else if (row.cause_status === 'CHUA_DU_CAN_CU') {
+        mix.chua_du.count += count;
+        const step = row.cause_step || '-';
+        mix.chua_du.by_step[step] = (mix.chua_du.by_step[step] || 0) + count;
+        for (const flag of splitList(row.flags)) mix.chua_du.by_flag[flag] = (mix.chua_du.by_flag[flag] || 0) + count;
+    } else mix.unclassified += count;
+}
 
 class JourneyPeriodService {
     /** @param {{db, causeAgg?: CauseAggQueryService}} options db: a sqlite3 Database (or {all}); causeAgg is optional: without it the cause fields stay null */
@@ -192,12 +217,14 @@ class JourneyPeriodService {
                     if (row.khong_tron_lo) { lots.khong_tron_lo += 1; lotCodes.add(row.ma_lo); }
                 }
                 const routeKey = routeKeyOf(row.route_scope, row.ma_tuyen);
-                const key = `${row.ma_bcvh}|${routeKey}`;
+                const postmanKey = row.ma_buu_ta_shown || NO_POSTMAN;
+                const key = `${row.ma_bcvh}|${routeKey}|${postmanKey}`;
                 let group = groups.get(key);
                 if (!group) {
                     group = {
-                        key, ma_bcvh: String(row.ma_bcvh), route_scope: row.route_scope, ma_tuyen: row.route_scope === 'POSTMAN' ? row.ma_tuyen : null,
-                        volume: 0, passed: 0, failed: 0, khong_tron_lo: 0, postmen: new Map(),
+                        key, route_key: `${row.ma_bcvh}|${routeKey}`, ma_buu_ta: row.ma_buu_ta_shown || null, ten_buu_ta: null,
+                        ma_bcvh: String(row.ma_bcvh), route_scope: row.route_scope, ma_tuyen: row.route_scope === 'POSTMAN' ? row.ma_tuyen : null,
+                        volume: 0, passed: 0, failed: 0, khong_tron_lo: 0, mix: emptyMix(),
                         values: Object.fromEntries(LEGS.map((leg) => [leg, { all: [], failed: [], passed: [] }])),
                     };
                     groups.set(key, group);
@@ -206,12 +233,7 @@ class JourneyPeriodService {
                 if (row.danh_gia === PASSED) group.passed += 1;
                 if (failed) group.failed += 1;
                 if (row.khong_tron_lo) group.khong_tron_lo += 1;
-                if (row.ma_buu_ta_shown || row.ten_buu_ta_shown) {
-                    const postmanKey = row.ma_buu_ta_shown || row.ten_buu_ta_shown;
-                    const entry = group.postmen.get(postmanKey) || { ma_buu_ta: row.ma_buu_ta_shown, ten_buu_ta: row.ten_buu_ta_shown, volume: 0 };
-                    entry.volume += 1;
-                    group.postmen.set(postmanKey, entry);
-                }
+                if (group.ten_buu_ta === null && row.ten_buu_ta_shown) group.ten_buu_ta = row.ten_buu_ta_shown;
                 const passedRow = row.danh_gia === PASSED;
                 for (let index = 0; index < LEGS.length; index += 1) {
                     const value = legs[index];
@@ -237,23 +259,52 @@ class JourneyPeriodService {
             coverage.parcels += Number(row.n);
             for (const key of ['tms', 'depart', 'arrive', 'gbt', 'ptc']) coverage[key] += Number(row[key] || 0);
         }
+        // the cause mix of each row from the row's own failed parcels: one grouped query over the stored cause columns (the grouping of /why, plus the postman)
+        const causeRows = await this.db.all(
+            `SELECT ma_bcvh, ${ROUTE_KEY_SQL} AS route_key, ${POSTMAN_KEY_SQL} AS postman_key, cause_status, cause_code, cause_detail, cause_reason, cause_step, flags, COUNT(*) AS c
+             FROM f13_cause_parcel WHERE ${where.sql} AND danh_gia = '${FAILED}'
+             GROUP BY ma_bcvh, route_key, postman_key, cause_status, cause_code, cause_detail, cause_reason, cause_step, flags`,
+            where.params,
+        );
+        for (const row of causeRows) {
+            const group = groups.get(`${row.ma_bcvh}|${row.route_key}|${row.postman_key}`);
+            if (group) addCauseRow(group.mix, row);
+        }
+        const routeTotals = new Map(); // `${bcvh}|${route}` -> { volume, passed }
+        for (const group of groups.values()) {
+            const total = routeTotals.get(group.route_key) || { volume: 0, passed: 0 };
+            total.volume += group.volume;
+            total.passed += group.passed;
+            routeTotals.set(group.route_key, total);
+        }
         const cause = await causePromise;
         const medians = (group, part) => Object.fromEntries(LEGS.map((leg) => [leg, medianOf(group.values[leg][part])]));
         let volumeMismatch = 0;
+        const checked = new Set();
         const routes = [...groups.values()].map((group) => {
             const metrics = metricsOf({ n: group.volume, passed: group.passed, failed: group.failed, unrated: group.volume - group.passed - group.failed, distinct: group.volume });
-            const causeRow = cause.rows.get(group.key) || null;
-            if (causeRow && causeRow.volume !== group.volume) volumeMismatch += 1;
+            const causeRow = cause.rows.get(group.route_key) || null; // the /why route row this postman row belongs to
+            const routeTotal = routeTotals.get(group.route_key);
+            if (causeRow && !checked.has(group.route_key)) {
+                checked.add(group.route_key);
+                if (causeRow.volume !== routeTotal.volume) volumeMismatch += 1;
+            }
+            const causeMix = causeMixOf(group.mix, group.failed);
             const legsFailed = medians(group, 'failed');
             const legsPassed = medians(group, 'passed');
             const isPostman = group.route_scope === 'POSTMAN';
             return {
                 key: group.key,
+                route_key: group.route_key,
                 ma_bcvh: group.ma_bcvh,
                 ten_bcvh: BCVH_NAMES[group.ma_bcvh] ?? null,
                 route_scope: group.route_scope,
                 ma_tuyen: group.ma_tuyen,
                 ten_tuyen: isPostman ? (causeRow?.ten_tuyen ?? null) : (group.route_scope === 'NON_POSTMAN' ? NON_POSTMAN_LABEL : OTHER_LABEL),
+                ma_buu_ta: group.ma_buu_ta,
+                ten_buu_ta: group.ma_buu_ta ? group.ten_buu_ta : null,
+                route_volume: routeTotal.volume,
+                route_rate: Number(((routeTotal.passed / routeTotal.volume) * 100).toFixed(1)),
                 volume: group.volume,
                 passed: group.passed,
                 failed: group.failed,
@@ -262,21 +313,22 @@ class JourneyPeriodService {
                 own_shortfall: metrics.own_shortfall,
                 own_shortfall_x10: metrics.own_shortfall_x10,
                 shortfall: metrics.shortfall,
-                main_cause: mainCauseOf(causeRow?.cause_mix ?? null, group.failed),
-                cause_mix: causeRow?.cause_mix ?? null,
-                postmen: [...group.postmen.values()].sort((a, b) => b.volume - a.volume),
+                main_cause: mainCauseOf(causeMix, group.failed),
+                cause_mix: causeMix,
+                postmen: group.ma_buu_ta || group.ten_buu_ta ? [{ ma_buu_ta: group.ma_buu_ta, ten_buu_ta: group.ten_buu_ta, volume: group.volume }] : [], // kept for the old page: the one postman of the row
                 legs: medians(group, 'all'),
                 legs_failed: legsFailed,
                 legs_passed: legsPassed,
                 slowest_leg: slowestLegOf(legsFailed, legsPassed),
                 // the parcel list of this row: pass these as the query of /journey/parcels (with the same period)
-                filter: { route: isPostman ? group.ma_tuyen : `@${group.route_scope}`, ma_bcvh: group.ma_bcvh },
+                filter: { route: isPostman ? group.ma_tuyen : `@${group.route_scope}`, postman: group.ma_buu_ta ?? `@${NO_POSTMAN}`, ma_bcvh: group.ma_bcvh },
             };
         }).sort((a, b) => a.ma_bcvh.localeCompare(b.ma_bcvh)
             || SCOPE_ORDER[a.route_scope] - SCOPE_ORDER[b.route_scope]
             || b.own_shortfall_x10 - a.own_shortfall_x10
             || b.volume - a.volume
-            || String(a.ma_tuyen).localeCompare(String(b.ma_tuyen)));
+            || String(a.ma_tuyen).localeCompare(String(b.ma_tuyen))
+            || String(a.ma_buu_ta).localeCompare(String(b.ma_buu_ta)));
 
         return {
             routes,
@@ -310,7 +362,7 @@ class JourneyPeriodService {
         }
     }
 
-    async getParcels(query, { route = null, search = null, onlyKhongTronLo = false, sort = 'tms_ptc', order = 'desc', page = 1, pageSize = DEFAULT_PAGE_SIZE, ...scope } = {}) {
+    async getParcels(query, { route = null, postman = null, search = null, onlyKhongTronLo = false, sort = 'tms_ptc', order = 'desc', page = 1, pageSize = DEFAULT_PAGE_SIZE, ...scope } = {}) {
         const period = resolveJourneyPeriod(query);
         const where = whereOf(period, scope);
         const clauses = [where.sql];
@@ -325,6 +377,11 @@ class JourneyPeriodService {
                 clauses.push('ma_tuyen = ?'); // plain code: the legacy match on the route code
                 params.push(text);
             }
+        }
+        if (postman) {
+            const code = String(postman);
+            if (code === `@${NO_POSTMAN}`) clauses.push("(ma_buu_ta_shown IS NULL OR ma_buu_ta_shown = '')");
+            else { clauses.push('ma_buu_ta_shown = ?'); params.push(code); }
         }
         if (onlyKhongTronLo) clauses.push('khong_tron_lo = 1');
         const needle = search ? String(search).trim().toUpperCase() : '';

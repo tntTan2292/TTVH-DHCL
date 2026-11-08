@@ -1,12 +1,14 @@
 'use strict';
 
-// F13-JOURNEY-ROUTE-02 B1 + B2: the journey over a period, read from the table f13_cause_parcel. Invoke with: node --experimental-sqlite --test JourneyPeriodService.test.js
+// F13-JOURNEY-ROUTE-02 B1 + B2 + B4 (one row per BCVH + route + postman): the journey over a period, read from the table f13_cause_parcel. Invoke with: node --experimental-sqlite --test JourneyPeriodService.test.js
 // The fixture is small enough to be added up by hand (see the comments); the table is filled from JourneyService items through the builder's toRow, and
 // the cause layer is the REAL CauseAggQueryService over the same temporary SQLite file, so "equal to /why" compares the two public paths.
-//   OWN 536250, route R1 53625001: D1 28/10: P1 Đạt (T 07:00 A 08:00 G 09:00 E 10:00), P2 Đạt (A 09:00 G 10:00 E 11:00), F1 Không đạt (A 14:00 G 15:00 E 16:00, limit 5 h)
-//                                  D2 29/10: F2 Không đạt (A 08:00 G 15:00 E 16:00)
-//     passed legs: tms_arrive median(1, 2) = 1.5, arrive_gbt 1, gbt_ptc 1;  failed: tms_arrive median(7, 1) = 4, arrive_gbt median(1, 7) = 4, gbt_ptc 1
-//     gaps: 2.5 / 3 / 0 -> slowest_leg arrive_gbt;  n = 4, Đạt = 2 -> shortfall_x10 = 9*4 - 10*2 = 16 -> own_shortfall 1.6
+//   OWN 536250, route R1 53625001: D1 28/10: P1 Đạt (T 07:00 A 08:00 G 09:00 E 10:00, BT1), P2 Đạt (A 09:00 G 10:00 E 11:00, BT1), F1 Không đạt (A 14:00 G 15:00 E 16:00, limit 5 h, BT2)
+//                                  D2 29/10: F2 Không đạt (A 08:00 G 15:00 E 16:00, BT1)
+//     BT1: 3 parcels, 2 Đạt, 1 KĐ; passed legs tms_arrive median(1, 2) = 1.5, arrive_gbt 1, gbt_ptc 1; failed (F2) tms_arrive 1, arrive_gbt 7, gbt_ptc 1
+//          gaps -0.5 / 6 / 0 -> slowest_leg arrive_gbt; shortfall_x10 = 9*3 - 10*2 = 7 -> own_shortfall 0.7
+//     BT2: 1 parcel, KĐ: 9*1 - 0 = 9 -> 0.9, no passed parcel -> no slowest leg;  route R1: 4 parcels, 2 Đạt -> route_rate 50
+//   OWN route R2 53625002: Z1 Đạt on D1 with no handover (no postman) -> a row with ma_buu_ta null
 //   OTHER 533140: R 53314001 (1 Đạt), 53314018 customer pickup (NON_POSTMAN, 1 Đạt + 1 Không đạt), 99999 (OTHER scope, 1 Đạt)
 
 const test = require('node:test');
@@ -18,7 +20,7 @@ const sqlite3 = require('sqlite3');
 
 const { F13_WHY_AGG_01_SCHEMA_SQL } = require('../../../migrate_f13_why_agg_01_schema');
 const { weekIdFromDate } = require('../bcvhWeeklyComparisonService');
-const { CauseAggQueryService } = require('./CauseAggQueryService');
+const { CauseAggQueryService, metricsOf } = require('./CauseAggQueryService');
 const { JourneyService } = require('./JourneyService');
 const { toRow, ROW_COLUMNS } = require('./CauseAggBuilder');
 const { JourneyPeriodService, resolveJourneyPeriod, mainCauseOf, slowestLegOf, MAX_DAYS } = require('./JourneyPeriodService');
@@ -47,7 +49,8 @@ function parcel(day, bg, { bcvh = OWN, route = R1, passed = true, t = '07:00', a
 parcel(D1, 'P1', { a: '08:00', g: '09:00', e: '10:00', tct: '3:00', postman: 'BT1' });
 parcel(D1, 'P2', { a: '09:00', g: '10:00', e: '11:00', tct: '4:00', postman: 'BT1' });
 parcel(D1, 'F1', { passed: false, a: '14:00', g: '15:00', e: '16:00', postman: 'BT2' });
-parcel(D2, 'F2', { passed: false, a: '08:00', g: '15:00', e: '16:00', postman: 'BT2' });
+parcel(D2, 'F2', { passed: false, a: '08:00', g: '15:00', e: '16:00', postman: 'BT1' });
+parcel(D1, 'Z1', { route: '53625002', a: '08:30', e: '10:30', tct: '4:00' }); // no handover: no postman
 parcel(D1, 'O1', { bcvh: OTHER, route: '53314001', a: '08:00', g: '09:00', e: '10:00', tct: '3:00', postman: 'BX' });
 parcel(D1, 'N1', { bcvh: OTHER, route: NP, a: '08:00', g: '09:00', e: '10:00', tct: '3:00', postman: 'BX' });
 parcel(D1, 'N2', { bcvh: OTHER, route: NP, passed: false, a: '14:00', g: '15:00', e: '16:00', postman: 'BX' });
@@ -95,7 +98,22 @@ test.after(async () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
 });
 
-const routeOf = (data, bcvh, key) => data.routes.find((r) => r.ma_bcvh === bcvh && (r.ma_tuyen === key || r.filter.route === key));
+const routeOf = (data, bcvh, key, postman) => data.routes.find((r) => r.ma_bcvh === bcvh && (r.ma_tuyen === key || r.filter.route === key) && (postman === undefined || r.filter.postman === postman));
+const sum = (list, field) => list.reduce((total, item) => total + item[field], 0);
+// the cause mixes of several rows added up line by line (the shape of causeMixOf)
+function addMixes(mixes) {
+    const lines = new Map();
+    const out = { failed: 0, cho: 0, chua: 0, unclassified: 0, phat: 0 };
+    for (const mix of mixes) {
+        out.failed += mix.failed;
+        out.cho += mix.cho_chuyen_quan.count;
+        out.chua += mix.chua_du_can_cu.count;
+        out.unclassified += mix.unclassified;
+        out.phat += mix.phat.count;
+        for (const line of mix.lines) lines.set(line.code, (lines.get(line.code) || 0) + line.count);
+    }
+    return { ...out, lines: Object.fromEntries([...lines].sort()) };
+}
 
 test('period resolution: date keeps working, from+to / week / month like the other endpoints, one selector only, guards', () => {
     assert.deepEqual(resolveJourneyPeriod({ date: D1 }), { kind: 'day', from: D1, to: D1, days: 1 });
@@ -112,35 +130,46 @@ test('period resolution: date keeps working, from+to / week / month like the oth
     assert.equal(MAX_DAYS, 93);
 });
 
-test('one day (date=) gives the same figures and medians as JourneyService for that day (the stored legs are the legs JourneyService computes)', async () => {
+test('one day (date=): the postman rows add up to the JourneyService route (volume, Đạt, Không đạt), each postman has the volume JourneyService gave, coverage and lots equal', async () => {
     const old = await new JourneyService({ repository }).getRoutes(D1, {});
     const neu = await service.getRoutes({ date: D1 }, {});
     assert.deepEqual(neu.meta.coverage, old.meta.coverage);
     assert.deepEqual(neu.meta.lots, { ...old.meta.lots, khong_tron_lo_lots: old.meta.lots.khong_tron_lo_lots });
     assert.equal(neu.meta.date, D1);
     for (const row of old.routes) {
-        const mine = neu.routes.find((r) => r.ma_bcvh === row.ma_bcvh && (r.ma_tuyen ?? `@${r.route_scope}`) === (row.ma_tuyen === NP ? `@NON_POSTMAN` : row.ma_tuyen === '99999' ? '@OTHER' : row.ma_tuyen));
-        assert.ok(mine, row.ma_tuyen);
-        assert.deepEqual([mine.volume, mine.passed, mine.failed, mine.rate], [row.volume, row.passed, row.failed, row.rate]);
-        assert.deepEqual(mine.legs, row.legs);
-        assert.deepEqual(mine.postmen, row.postmen);
+        const key = row.ma_tuyen === NP ? '@NON_POSTMAN' : row.ma_tuyen === '99999' ? '@OTHER' : row.ma_tuyen;
+        const mine = neu.routes.filter((r) => r.ma_bcvh === row.ma_bcvh && r.filter.route === key);
+        assert.ok(mine.length > 0, row.ma_tuyen);
+        assert.deepEqual([sum(mine, 'volume'), sum(mine, 'passed'), mine.every((r) => r.route_volume === row.volume)], [row.volume, row.passed, true]);
+        for (const postman of row.postmen) {
+            const mineRow = mine.find((r) => r.ma_buu_ta === postman.ma_buu_ta);
+            assert.equal(mineRow.volume, postman.volume, `${row.ma_tuyen} ${postman.ma_buu_ta}`);
+            assert.equal(mineRow.ten_buu_ta, postman.ten_buu_ta);
+        }
     }
 });
 
-test('a period: failed and passed medians side by side, slowest leg, own_shortfall (9 N - 10 Đạt), postmen with their volume', async () => {
+test('a period: one row per postman with its own figures, failed and passed medians side by side, slowest leg, own_shortfall, route totals', async () => {
     const data = await service.getRoutes({ from: D1, to: D2 }, CITY);
-    const r1 = routeOf(data, OWN, R1);
-    assert.deepEqual([r1.volume, r1.passed, r1.failed, r1.rate], [4, 2, 2, 50]);
-    assert.deepEqual([r1.legs_passed.tms_arrive, r1.legs_passed.arrive_gbt, r1.legs_passed.gbt_ptc], [1.5, 1, 1]);
-    assert.deepEqual([r1.legs_failed.tms_arrive, r1.legs_failed.arrive_gbt, r1.legs_failed.gbt_ptc], [4, 4, 1]);
-    assert.equal(r1.slowest_leg, 'arrive_gbt');
-    assert.equal(r1.own_shortfall, 1.6);
-    assert.equal(r1.own_shortfall_x10, 16);
-    assert.deepEqual(r1.postmen, [{ ma_buu_ta: 'BT1', ten_buu_ta: 'Tên BT1', volume: 2 }, { ma_buu_ta: 'BT2', ten_buu_ta: 'Tên BT2', volume: 2 }]);
-    assert.ok(r1.legs.tms_ptc !== undefined, '`legs` (all parcels) is kept for compatibility');
+    const bt1 = routeOf(data, OWN, R1, 'BT1');
+    const bt2 = routeOf(data, OWN, R1, 'BT2');
+    assert.deepEqual([bt1.ma_buu_ta, bt1.ten_buu_ta, bt1.volume, bt1.passed, bt1.failed, bt1.rate], ['BT1', 'Tên BT1', 3, 2, 1, 66.7]);
+    assert.deepEqual([bt1.route_volume, bt1.route_rate, bt2.route_volume, bt2.route_rate], [4, 50, 4, 50]);
+    assert.deepEqual([bt1.legs_passed.tms_arrive, bt1.legs_passed.arrive_gbt, bt1.legs_passed.gbt_ptc], [1.5, 1, 1]);
+    assert.deepEqual([bt1.legs_failed.tms_arrive, bt1.legs_failed.arrive_gbt, bt1.legs_failed.gbt_ptc], [1, 7, 1]);
+    assert.equal(bt1.slowest_leg, 'arrive_gbt');
+    assert.deepEqual([bt1.own_shortfall, bt1.own_shortfall_x10], [0.7, 7]);
+    assert.deepEqual([bt2.volume, bt2.passed, bt2.failed, bt2.rate, bt2.own_shortfall], [1, 0, 1, 0, 0.9]);
+    assert.equal(bt2.slowest_leg, null); // no passed parcel to compare with
+    assert.deepEqual(bt1.filter, { route: R1, postman: 'BT1', ma_bcvh: OWN });
+    assert.deepEqual(bt1.postmen, [{ ma_buu_ta: 'BT1', ten_buu_ta: 'Tên BT1', volume: 3 }]);
+    assert.ok(bt1.legs.tms_ptc !== undefined, '`legs` (all parcels of the row) is kept for compatibility');
+    // the parcels without a postman are a row of their own
+    const none = routeOf(data, OWN, '53625002', '@NONE');
+    assert.deepEqual([none.ma_buu_ta, none.ten_buu_ta, none.volume, none.route_volume, none.postmen], [null, null, 1, 1, []]);
     assert.equal(data.meta.period.kind, 'range');
     assert.equal(data.meta.date, null);
-    assert.equal(data.meta.coverage.parcels, 8);
+    assert.equal(data.meta.coverage.parcels, 9);
 });
 
 test('route_scope groups: customer pickup and unidentified routes are one group each per BCVH, with their labels, after the postman routes', async () => {
@@ -148,21 +177,28 @@ test('route_scope groups: customer pickup and unidentified routes are one group 
     const other = data.routes.filter((r) => r.ma_bcvh === OTHER);
     assert.deepEqual(other.map((r) => r.route_scope), ['POSTMAN', 'NON_POSTMAN', 'OTHER']);
     const np = other[1];
-    assert.deepEqual([np.key, np.ma_tuyen, np.ten_tuyen, np.filter.route, np.volume, np.failed], [`${OTHER}|@NON_POSTMAN`, null, 'Phát tại quầy (khách đến nhận)', '@NON_POSTMAN', 2, 1]);
-    assert.deepEqual([other[2].key, other[2].ten_tuyen], [`${OTHER}|@OTHER`, 'Tuyến chưa xác định']);
+    assert.deepEqual([np.key, np.route_key, np.ma_tuyen, np.ten_tuyen, np.filter.route, np.filter.postman, np.volume, np.failed], [`${OTHER}|@NON_POSTMAN|BX`, `${OTHER}|@NON_POSTMAN`, null, 'Phát tại quầy (khách đến nhận)', '@NON_POSTMAN', 'BX', 2, 1]);
+    assert.deepEqual([other[2].key, other[2].ten_tuyen], [`${OTHER}|@OTHER|BX`, 'Tuyến chưa xác định']);
     assert.equal(np.own_shortfall, 0.8); // 9*2 - 10*1 = 8 tenths
 });
 
-test('own_shortfall, volume and the cause mix equal /why/routes for the same period and scope', async () => {
+test('for every route the postman rows add up to the /why route row: volume, Đạt, Không đạt, cause mix; own shortfall from the summed counters', async () => {
     const data = await service.getRoutes({ from: D1, to: D2 }, CITY);
     const why = await causeAgg.routes({ from: D1, to: D2 }, CITY);
-    assert.equal(data.routes.length, why.rows.length);
-    for (const row of data.routes) {
-        const same = why.rows.find((r) => r.key === row.key);
-        assert.ok(same, row.key);
-        assert.deepEqual([row.volume, row.passed, row.failed, row.own_shortfall, row.own_shortfall_x10, row.shortfall], [same.volume, same.passed, same.failed, same.own_shortfall, same.own_shortfall_x10, same.shortfall], row.key);
-        assert.deepEqual(row.cause_mix, same.cause_mix, row.key);
+    const routeKeys = new Set(data.routes.map((r) => r.route_key));
+    assert.equal(routeKeys.size, why.rows.length);
+    for (const same of why.rows) {
+        const rows = data.routes.filter((r) => r.route_key === same.key);
+        assert.ok(rows.length > 0, same.key);
+        assert.deepEqual([sum(rows, 'volume'), sum(rows, 'passed'), sum(rows, 'failed')], [same.volume, same.passed, same.failed], same.key);
+        assert.deepEqual(addMixes(rows.map((r) => r.cause_mix)), addMixes([same.cause_mix]), same.key);
+        assert.ok(rows.every((r) => r.route_volume === same.volume), same.key);
+        // the route's own shortfall from the summed counters equals the /why one
+        const routeMetrics = metricsOf({ n: sum(rows, 'volume'), passed: sum(rows, 'passed'), failed: sum(rows, 'failed'), unrated: 0, distinct: 0 });
+        assert.equal(routeMetrics.own_shortfall_x10, same.own_shortfall_x10, same.key);
     }
+    // each row's mix covers its own failed parcels only
+    for (const row of data.routes) assert.equal(row.cause_mix.failed, row.failed, row.key);
     assert.equal(data.meta.cause_layer.available, true);
     assert.equal(data.meta.cause_layer.volume_mismatch_routes, 0);
     assert.ok(data.meta.cause_layer.freshness);
@@ -170,9 +206,9 @@ test('own_shortfall, volume and the cause mix equal /why/routes for the same per
 
 test('main cause: read from the cause mix like the Phân tích nguyên nhân screen; none when no failed parcel', async () => {
     const data = await service.getRoutes({ from: D1, to: D2 }, CITY);
-    const r1 = routeOf(data, OWN, R1);
-    // F1 Khai thác - Vận chuyển (chưa phân biệt), F2 Phát / Chậm giao bưu tá: Phát (1) is not below the top line (1)
-    assert.deepEqual([r1.main_cause.code, r1.main_cause.count], ['PHAT', 1]);
+    // BT1's only failed parcel is F2 (Phát / Chậm giao bưu tá); BT2's is F1 (Khai thác - Vận chuyển chưa phân biệt): each row reads its own parcels
+    assert.deepEqual([routeOf(data, OWN, R1, 'BT1').main_cause.code, routeOf(data, OWN, R1, 'BT1').main_cause.count], ['PHAT', 1]);
+    assert.deepEqual([routeOf(data, OWN, R1, 'BT2').main_cause.code, routeOf(data, OWN, R1, 'BT2').main_cause.count], ['KHAI_THAC_VAN_CHUYEN_CHUA_PHAN_BIET', 1]);
     assert.equal(routeOf(data, OTHER, '53314001').main_cause, null);
     const mix = (lines, extra = {}) => ({ lines: lines.map(([code, count]) => ({ code, label: code, count, share: count / 10 })), phat: { count: 0, share: 0, by_detail: {} }, cho_chuyen_quan: { count: 0 }, ...extra });
     assert.equal(mainCauseOf(null, 3), null);
@@ -194,10 +230,10 @@ test('scope: a BCVH account gets its own unit only, in the routes, the parcels a
     const routes = await service.getRoutes({ from: D1, to: D2 }, scope);
     assert.ok(routes.routes.length > 0);
     assert.ok(routes.routes.every((r) => r.ma_bcvh === OWN));
-    assert.equal(routes.meta.coverage.parcels, 4);
+    assert.equal(routes.meta.coverage.parcels, 5);
     assert.equal(JSON.stringify(routes).includes(OTHER), false);
     const parcels = await service.getParcels({ from: D1, to: D2 }, scope);
-    assert.equal(parcels.meta.total, 4);
+    assert.equal(parcels.meta.total, 5);
     assert.equal(JSON.stringify(parcels).includes(OTHER), false);
     const asked = await service.getRoutes({ from: D1, to: D2 }, { bcvhId: OTHER, allowedCodes: [OWN] }); // the controller refuses this earlier (403); the service itself leaks nothing
     assert.deepEqual(asked.routes, []);
@@ -205,7 +241,7 @@ test('scope: a BCVH account gets its own unit only, in the routes, the parcels a
 
 test('parcels over a period: day on each parcel, route and route_scope filters, order by day, pages', async () => {
     const all = await service.getParcels({ from: D1, to: D2 }, { ...CITY, sort: 'ngay_do_kiem', order: 'asc', pageSize: 3 });
-    assert.equal(all.meta.total, 8);
+    assert.equal(all.meta.total, 9);
     assert.equal(all.meta.total_pages, 3);
     assert.equal(all.parcels.length, 3);
     assert.ok(all.parcels.every((p) => p.ngay_do_kiem === D1));
@@ -219,6 +255,12 @@ test('parcels over a period: day on each parcel, route and route_scope filters, 
     const failedOnly = await service.getParcels({ month: '2026-10' }, { ...CITY, search: 'f' });
     assert.deepEqual(failedOnly.parcels.map((p) => p.ma_bg).sort(), ['F1', 'F2']);
     await assert.rejects(service.getParcels({ from: D1, to: D2 }, { ...CITY, route: '@NOPE' }), { code: 'INVALID_FILTER' });
+    // the postman filter: a code, or @NONE for the parcels without one; with a route it is that postman on that route
+    assert.deepEqual((await service.getParcels({ from: D1, to: D2 }, { ...CITY, route: R1, postman: 'BT2' })).parcels.map((p) => p.ma_bg), ['F1']);
+    assert.deepEqual((await service.getParcels({ from: D1, to: D2 }, { ...CITY, route: R1, postman: 'BT1' })).parcels.map((p) => p.ma_bg).sort(), ['F2', 'P1', 'P2']);
+    assert.deepEqual((await service.getParcels({ from: D1, to: D2 }, { ...CITY, route: '53625002', postman: '@NONE' })).parcels.map((p) => p.ma_bg), ['Z1']);
+    assert.equal((await service.getParcels({ from: D1, to: D2 }, { ...CITY, route: R1, postman: '@NONE' })).meta.total, 0);
+    assert.equal((await service.getParcels({ from: D1, to: D2 }, { ...CITY, postman: 'BT1' })).meta.total, 3);
     const day = await service.getParcels({ date: D1 }, { ...CITY, route: R1 });
     assert.equal(day.meta.date, D1);
     assert.equal(day.meta.total, 3);
@@ -226,8 +268,9 @@ test('parcels over a period: day on each parcel, route and route_scope filters, 
 
 test('without a cause layer (or when it fails) the cause fields are empty and the hours still show', async () => {
     const bare = await new JourneyPeriodService({ db: database }).getRoutes({ from: D1, to: D2 }, CITY);
-    const r1 = routeOf(bare, OWN, R1);
-    assert.deepEqual([r1.main_cause, r1.cause_mix, bare.meta.cause_layer.available], [null, null, false]);
+    const r1 = routeOf(bare, OWN, R1, 'BT1');
+    // the row's own mix comes from the stored cause columns, so it exists even without the /why layer; only the route name and freshness need it
+    assert.deepEqual([r1.main_cause.code, r1.ten_tuyen, bare.meta.cause_layer.available], ['PHAT', null, false]);
     assert.equal(r1.slowest_leg, 'arrive_gbt');
     const broken = await new JourneyPeriodService({ db: database, causeAgg: { routes: async () => { throw new Error('no table'); } } }).getRoutes({ date: D1 }, CITY);
     assert.equal(broken.meta.cause_layer.available, false);
@@ -252,7 +295,8 @@ test('the builder row keeps the six legs of JourneyService in ms (null stays nul
 test('days built before the leg columns are listed (meta.legs.days_without_legs); their rows still count in the figures', async () => {
     const data = await service.getRoutes({ from: D1, to: '2026-10-30' }, CITY);
     assert.deepEqual(data.meta.legs, { source: 'TABLE', days_without_legs: ['2026-10-30'], days_without_milestones: ['2026-10-30'] });
-    assert.equal(routeOf(data, OWN, R1).volume, 5);
+    assert.equal(routeOf(data, OWN, R1, '@NONE').volume, 1); // OLD1: a row without a postman, still counted
+    assert.equal(routeOf(data, OWN, R1).route_volume, 5);
     assert.equal((await service.getRoutes({ from: D1, to: D2 }, CITY)).meta.legs.days_without_legs.length, 0);
 });
 
@@ -292,8 +336,8 @@ test('B3: the parcel list gives back the milestones exactly as JourneyService.ge
 test('B3: a milestone of an old built day is missing (null, counted nowhere) and the day is listed; order by a milestone works with nulls last', async () => {
     const data = await service.getRoutes({ from: D1, to: '2026-10-30' }, CITY);
     assert.deepEqual(data.meta.legs.days_without_milestones, ['2026-10-30']);
-    assert.equal(data.meta.coverage.parcels, 9);
-    assert.equal(data.meta.coverage.tms, 8);
+    assert.equal(data.meta.coverage.parcels, 10);
+    assert.equal(data.meta.coverage.tms, 9);
     const asc = await service.getParcels({ from: D1, to: '2026-10-30' }, { ...CITY, route: R1, sort: 'tms', order: 'asc' });
     assert.equal(asc.parcels[asc.parcels.length - 1].ma_bg, 'OLD1');
     assert.equal(asc.parcels[asc.parcels.length - 1].milestones.tms, null);
