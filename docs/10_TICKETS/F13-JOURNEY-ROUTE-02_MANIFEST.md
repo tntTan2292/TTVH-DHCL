@@ -7,7 +7,7 @@
 - Programme: F1.3 Chuyên đề. Predecessor `F13-V2-JOURNEY-01` (page `/f13/v2/hanh-trinh`, day only).
 - Owner: Claude Code / Opus 5.5 (scope, reviews, real render). **B1 backend: Claude Code / Sonnet 5.5. U1 screen: Antigravity.** Does not change the Current Ticket of `PROJECT_SNAPSHOT.md`.
 - Branch: `codex/da-impl-006`.
-- **Status: `U2-FIX DONE - READY FOR OPUS REAL RENDER`** (section 20). Rollout with G7 after U2-FIX.
+- **Status: `U2-FIX RENDER PASSED - WAITING FOR THE ROLLOUT, THEN PO CHECK`** (section 21). The PO can only see J7 after the backend restart (live runs B1).
 
 ## 2. The problem (PO, 2026-11-07)
 
@@ -309,3 +309,11 @@ Isolated 5051/5199 over the B3 copy (B4 code), live untouched. **Passed:** month
   - No backend files touched.
   - No browser, no dev server, no login.
 
+
+## 21. Opus real render of U2-FIX (2026-11-08, Claude Code / Opus 5.5; commit `546b9297`) - PASSED
+
+Same isolated set-up. U2-R1: whole-city week, whole-table camera Top 25 = 25 postman rows overall (Thuận Hóa 14, Hương Trà 1, Hương Thủy 5, Thuận An 1, Phú Lộc 4), no bottom groups, 4.2 s, 2 544 x 4 676 px at 2x (about 2 340 px on screen, not cut); BCVH block 1.7 s. U2-R2: week whole city shows "Chưa có đánh giá" on unrated rows, "100% đạt" only on fully passed rows. U2-R3: page size change sends one request. No page error, no React warning. Pre-restart check (read-only): no backfill job queued or running, no worker lease.
+
+Residuals (Low, polish later, not blocking): the last column "Nguyên nhân chính" is cut at the right edge of the whole-table picture; the picture footer shows the title with underscores ("Hanh_trinh_theo_tuyen_phat").
+
+**Next:** G7 rollout of B2-B4 (order of section 12: restart, then `f13_cause_tool.js rebuild --from 2026-01-01 --to <latest>`, verify `days_without_legs` / `days_without_milestones` empty), then PO check of the live page.
