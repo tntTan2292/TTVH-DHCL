@@ -7,7 +7,7 @@
 - Programme: F1.3 Chuyên đề. Predecessor `F13-V2-JOURNEY-01` (page `/f13/v2/hanh-trinh`, day only).
 - Owner: Claude Code / Opus 5.5 (scope, reviews, real render). **B1 backend: Claude Code / Sonnet 5.5. U1 screen: Antigravity.** Does not change the Current Ticket of `PROJECT_SNAPSHOT.md`.
 - Branch: `codex/da-impl-006`.
-- **Status: `U2-FIX RENDER PASSED - WAITING FOR THE ROLLOUT, THEN PO CHECK`** (section 21). The PO can only see J7 after the backend restart (live runs B1).
+- **Status: `LIVE - READY FOR PO CHECK`** (rollout, section 22). `PO UI Check Required = Yes`.
 
 ## 2. The problem (PO, 2026-11-07)
 
@@ -317,3 +317,7 @@ Same isolated set-up. U2-R1: whole-city week, whole-table camera Top 25 = 25 pos
 Residuals (Low, polish later, not blocking): the last column "Nguyên nhân chính" is cut at the right edge of the whole-table picture; the picture footer shows the title with underscores ("Hanh_trinh_theo_tuyen_phat").
 
 **Next:** G7 rollout of B2-B4 (order of section 12: restart, then `f13_cause_tool.js rebuild --from 2026-01-01 --to <latest>`, verify `days_without_legs` / `days_without_milestones` empty), then PO check of the live page.
+
+## 22. Rollout (2026-11-08 22:59, Claude Code / Opus 5.5, PO go-ahead in chat)
+
+Pre-check: no backfill job queued or running, no lease. Order of section 12: (1) listeners 5050/5178 stopped, supervisor restarted them (`logs/backend-20261108-225900.out.log`: startup cause refresh run 78, 0 days to build; DKCL HUE reattached, SESSION_VALID; `realign-handling-entries.js` dry run: 0 to change). (2) `f13_cause_tool.js rebuild --from 2026-01-01 --to 2026-11-08` on the live file: **309 days, 0 failed, 575.8 s** (run 79, classifier `97890e76b613`). (3) Check: 1 000 372 rows, milestone `ms_tms` on all, a leg on 952 314; days without milestones 0, days without legs 0; `verify 2026-10-01..2026-11-08` OK (138 424 rows, Đạt 85 750, Không đạt 45 505, blank 7 169 equal to `fact_f13` and `agg_f13_day`). B2-B4 and U2 are live.
