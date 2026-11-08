@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useCallback } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { X, ExternalLink, Package, AlertCircle } from 'lucide-react';
 import BlockCaptureButton from '../../../components/common/BlockCaptureButton.jsx';
 import SortableTh from '../../../components/common/SortableTh.jsx';
@@ -30,63 +30,73 @@ export default function F13V2WhyParcelModal({
   const [meta, setMeta] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(20);
+  const [{ page, pageSize }, setPagination] = useState({ page: 1, pageSize: 20 });
   const [sort, setSort] = useState({ field: 'ngay_do_kiem', direction: 'desc' });
-  const sortRef = useRef(sort);
-  useEffect(() => {
-    sortRef.current = sort;
-  }, [sort]);
 
-  const loadParcels = useCallback(async (targetPage, currentSort, currentSize) => {
-    if (!filter) return;
+  // Reset page to 1 whenever a new filter opens
+  const filterKey = filter ? JSON.stringify(filter) : null;
+  const lastFilterRef = useRef(null);
+  useEffect(() => {
+    if (isOpen && filterKey && lastFilterRef.current !== filterKey) {
+      lastFilterRef.current = filterKey;
+      setPagination((prev) => (prev.page === 1 ? prev : { ...prev, page: 1 }));
+    }
+  }, [isOpen, filterKey]);
+
+  // Main fetch effect (U2-R3: exactly one request per change)
+  useEffect(() => {
+    if (!isOpen || !filter) {
+      setParcels([]);
+      setMeta(null);
+      setError(null);
+      return undefined;
+    }
+    let active = true;
     setLoading(true);
     setError(null);
 
     const query = {
       ...filter,
-      page: targetPage,
-      page_size: currentSize || pageSize,
-      sort: currentSort.field,
-      order: currentSort.direction,
+      page,
+      page_size: pageSize,
+      sort: sort.field,
+      order: sort.direction,
     };
 
-    try {
-      const res = await fetchWhyParcels(query, indicator.apiBase);
-      setParcels(res?.parcels || []);
-      setMeta(res?.meta || null);
-    } catch (err) {
-      setError(err?.response?.data?.error?.message || err?.message || 'Không thể tải danh sách bưu gửi.');
-    } finally {
-      setLoading(false);
-    }
-  }, [filter, pageSize, indicator.apiBase]);
+    fetchWhyParcels(query, indicator.apiBase)
+      .then((res) => {
+        if (active) {
+          setParcels(res?.parcels || []);
+          setMeta(res?.meta || null);
+        }
+      })
+      .catch((err) => {
+        if (active) {
+          setError(err?.response?.data?.error?.message || err?.message || 'Không thể tải danh sách bưu gửi.');
+        }
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
 
-  // Reset page when filter changes or modal opens
-  useEffect(() => {
-    if (isOpen && filter) {
-      setPage(1);
-      loadParcels(1, sortRef.current, pageSize);
-    } else {
-      setParcels([]);
-      setMeta(null);
-      setError(null);
-    }
-  }, [isOpen, filter, loadParcels, pageSize]);
+    return () => { active = false; };
+  }, [isOpen, filter, page, pageSize, sort, indicator.apiBase]);
 
   // Handle page change
   const handlePageChange = (newPage) => {
     if (newPage < 1 || (meta?.total_pages && newPage > meta.total_pages)) return;
-    setPage(newPage);
-    loadParcels(newPage, sort, pageSize);
+    setPagination((prev) => ({ ...prev, page: newPage }));
   };
 
   // Handle column sort
   const handleSort = (field) => {
     const nextDirection = sort.field === field && sort.direction === 'desc' ? 'asc' : 'desc';
-    const nextSort = { field, direction: nextDirection };
-    setSort(nextSort);
-    loadParcels(page, nextSort, pageSize);
+    setSort({ field, direction: nextDirection });
+    setPagination((prev) => ({ ...prev, page: 1 }));
+  };
+
+  const handlePageSizeChange = (newSize) => {
+    setPagination({ page: 1, pageSize: newSize });
   };
 
   // Close on Escape key
@@ -372,12 +382,7 @@ export default function F13V2WhyParcelModal({
               <span className="text-slate-500">Hiển thị:</span>
               <select
                 value={pageSize}
-                onChange={(e) => {
-                  const newSize = Number(e.target.value);
-                  setPageSize(newSize);
-                  setPage(1);
-                  loadParcels(1, sortRef.current, newSize);
-                }}
+                onChange={(e) => handlePageSizeChange(Number(e.target.value))}
                 className="cursor-pointer rounded-lg border border-slate-300 bg-white px-2 py-1 text-xs font-semibold text-slate-700"
               >
                 <option value={20}>20 dòng/trang</option>

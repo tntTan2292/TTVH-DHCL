@@ -93,7 +93,8 @@ function F13V2JourneyBcvhBlock({
 
   // Visible postman rows determination
   const visiblePostmanRows = useMemo(() => {
-    if (capturingAll && topOverallSet) {
+    if (capturingAll) {
+      if (!topOverallSet) return sortedPostman;
       return sortedPostman.filter((r) => topOverallSet.has(r.key || `${r.ma_tuyen}_${r.ma_buu_ta}`));
     }
     if (capturingBcvh && bcvhCaptureTop !== 'all') {
@@ -102,10 +103,13 @@ function F13V2JourneyBcvhBlock({
     return sortedPostman;
   }, [capturingAll, topOverallSet, capturingBcvh, bcvhCaptureTop, sortedPostman]);
 
-  // When capturing the whole table Top N overall, omit BCVHs with 0 matching rows
-  if (capturingAll && topOverallSet && visiblePostmanRows.length === 0) {
+  // When capturing the whole table, omit BCVHs with 0 matching rows
+  if (capturingAll && visiblePostmanRows.length === 0) {
     return null;
   }
+
+  // U2-R1: Whole-table camera leaves out bottom groups; BCVH camera shows them only with "Tất cả"
+  const shouldRenderBottomGroups = !capturingAll && (!capturingBcvh || bcvhCaptureTop === 'all');
 
   const isCapturing = capturingAll || capturingBcvh;
 
@@ -291,8 +295,8 @@ function F13V2JourneyBcvhBlock({
         </table>
       </div>
 
-      {/* Bottom Groups for this BCVH: NON_POSTMAN and OTHER (J4 & J7: split by postman) */}
-      {[
+      {/* Bottom Groups for this BCVH: NON_POSTMAN and OTHER (U2-R1: omitted in whole-table camera; in BCVH camera shown only with "Tất cả") */}
+      {shouldRenderBottomGroups && [
         {
           key: 'NON_POSTMAN',
           title: 'Phát tại quầy (khách đến nhận)',
@@ -428,7 +432,10 @@ export default function F13V2JourneyRouteTable({ routes = [], periodLabel = '', 
     [allPostmanRows, headerSort]
   );
   const topOverallSet = useMemo(() => {
-    if (!capturingAll || captureTop === 'all') return null;
+    if (!capturingAll) return null;
+    if (captureTop === 'all') {
+      return new Set(sortedAllPostman.map((r) => r.key || `${r.ma_tuyen}_${r.ma_buu_ta}`));
+    }
     return new Set(sortedAllPostman.slice(0, captureTop).map((r) => r.key || `${r.ma_tuyen}_${r.ma_buu_ta}`));
   }, [capturingAll, captureTop, sortedAllPostman]);
 

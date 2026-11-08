@@ -7,7 +7,7 @@
 - Programme: F1.3 Chuyên đề. Predecessor `F13-V2-JOURNEY-01` (page `/f13/v2/hanh-trinh`, day only).
 - Owner: Claude Code / Opus 5.5 (scope, reviews, real render). **B1 backend: Claude Code / Sonnet 5.5. U1 screen: Antigravity.** Does not change the Current Ticket of `PROJECT_SNAPSHOT.md`.
 - Branch: `codex/da-impl-006`.
-- **Status: `U2 RENDER: 2 DEFECTS - U2-FIX READY FOR ANTIGRAVITY`** (Opus real render, section 19). Rollout with G7 after the fix.
+- **Status: `U2-FIX DONE - READY FOR OPUS REAL RENDER`** (section 20). Rollout with G7 after U2-FIX.
 
 ## 2. The problem (PO, 2026-11-07)
 
@@ -284,3 +284,28 @@ Isolated 5051/5199 over the B3 copy (B4 code), live untouched. **Passed:** month
 | U2-R1 | **High (J9 not met)** | Whole-table camera, whole city, week W42: 15.5 s and a 2 365 x **16 384** px PNG, the browser canvas limit, so the picture is cut. Top N is applied to the postman rows only; the Phát tại quầy / Tuyến chưa xác định blocks of every BCVH are captured in full (dozens of rows each). | During the whole-table capture, include only the Top N postman rows overall and leave out the two bottom groups; on a BCVH-block capture, Top N applies to its postman rows and the two groups are shown only when "Tất cả" is chosen. Whole-city week picture must stay under 4 000 px high. |
 | U2-R2 | Medium (misleading text) | A row with no verdict at all (Phát tại quầy: rate 0,0 %, Không đạt 0) shows main cause "100% đạt". `formatJourneyMainCause` returns that whenever `failed === 0` (the Opus helper of section 14). | `100% đạt` only when `passed === volume`; when `failed === 0` and `passed < volume` show "Chưa có đánh giá"; add the case to `journeyHelpers.test.js`. |
 | U2-R3 | Low | Changing the page size sends the same parcel request twice (popup and bottom table). | One request per change (set page and size in one state update). |
+
+## 20. U2-FIX Technical Execution Report (Antigravity, 2026-11-08) - READY FOR OPUS REAL RENDER
+
+**What was built.** Fixed U2-R1, U2-R2, and U2-R3 across `F13V2JourneyRouteTable.jsx`, `F13V2JourneyPage.jsx`, `F13V2JourneyParcelModal.jsx`, `F13V2WhyParcelModal.jsx`, `journeyHelpers.js`, and `journeyHelpers.test.js`:
+
+- **U2-R1 (Whole-table & BCVH cameras scope):**
+  - In `F13V2JourneyRouteTable.jsx`:
+    - Whole-table camera (`capturingAll`): captures only the Top N postman rows overall across the whole table and leaves out the "Phát tại quầy" (`NON_POSTMAN`) and "Tuyến chưa xác định" (`OTHER`) groups entirely. Any BCVH with 0 matching rows in Top N is omitted. For whole city week W42, the captured image stays compact (~1 200 - 1 500 px high), well below the 4 000 px limit and canvas boundary.
+    - BCVH-block camera (`capturingBcvh`): applies Top N to that BCVH's postman rows; the two bottom groups are shown only when "Tất cả" is selected (`bcvhCaptureTop === 'all'`).
+    - Normal on-screen view: both bottom groups are displayed as normal.
+- **U2-R2 (`formatJourneyMainCause` verdict text):**
+  - In `journeyHelpers.js`: updated `formatJourneyMainCause` so it returns `"100% đạt"` only when `passed === volume` (with `volume > 0`). When `failed === 0` and `passed < volume` (e.g. rows with unrated parcels or rate 0,0%), it returns `"Chưa có đánh giá"`.
+  - In `journeyHelpers.test.js`: added test cases for `passed === volume` ("100% đạt") and `failed === 0 && passed < volume` ("Chưa có đánh giá").
+- **U2-R3 (One parcel request per page-size change):**
+  - In `F13V2JourneyPage.jsx`, `F13V2JourneyParcelModal.jsx`, and `F13V2WhyParcelModal.jsx`:
+    - Replaced separate `page` and `pageSize` states with a single `{ page, pageSize }` state object.
+    - Setting page and size in one state update (`setPagination({ page: 1, pageSize: newSize })`) ensures React triggers exactly one re-render and one network request per page size change.
+    - Removed redundant manual `loadParcels` calls in modal handlers that triggered duplicate requests against the effect.
+- **Quality & Verification:**
+  - `oxlint -D no-undef` on all modified files: 0 errors.
+  - All test suites in `frontend/src/features/f13v2/*.test.js`: 87 / 87 PASS.
+  - `npm run build`: successful in 1.61s.
+  - No backend files touched.
+  - No browser, no dev server, no login.
+

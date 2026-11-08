@@ -130,7 +130,9 @@ test('F13-JOURNEY-ROUTE-02: formatPeriodDisplay formats day, week, and month dis
 
 test('formatJourneyMainCause: the /why main cause object becomes its label and share (never an object as a React child)', () => {
   assert.equal(formatJourneyMainCause({ failed: 93, main_cause: { code: 'PHAT', label: 'Phát', count: 90, share: 0.9677 } }), 'Phát (97%)');
-  assert.equal(formatJourneyMainCause({ failed: 0, main_cause: null }), '100% đạt');
+  assert.equal(formatJourneyMainCause({ failed: 0, passed: 10, volume: 10, main_cause: null }), '100% đạt');
+  assert.equal(formatJourneyMainCause({ failed: 0, passed: 0, volume: 10, main_cause: null }), 'Chưa có đánh giá');
+  assert.equal(formatJourneyMainCause({ failed: 0, passed: 3, volume: 10, main_cause: null }), 'Chưa có đánh giá');
   assert.equal(formatJourneyMainCause({ failed: 3, main_cause: null }), '—');
 });
 

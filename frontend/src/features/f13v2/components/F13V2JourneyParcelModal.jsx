@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useCallback } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { X, Truck } from 'lucide-react';
 import BlockCaptureButton from '../../../components/common/BlockCaptureButton.jsx';
 import { nextSortState } from '../../../components/common/tableSort.js';
@@ -20,16 +20,27 @@ export default function F13V2JourneyParcelModal({
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(20);
+  const [{ page, pageSize }, setPagination] = useState({ page: 1, pageSize: 20 });
   const [sort, setSort] = useState({ field: 'tms_ptc', direction: 'desc' });
-  const sortRef = useRef(sort);
-  useEffect(() => {
-    sortRef.current = sort;
-  }, [sort]);
 
-  const loadParcels = useCallback(async (targetPage, currentSort, currentSize) => {
-    if (!row) return;
+  // Reset page to 1 whenever a new row opens
+  const rowKey = row ? (row.key || `${row.ma_tuyen}_${row.ma_buu_ta || 'none'}`) : null;
+  const lastRowKeyRef = useRef(null);
+  useEffect(() => {
+    if (isOpen && rowKey && lastRowKeyRef.current !== rowKey) {
+      lastRowKeyRef.current = rowKey;
+      setPagination((prev) => (prev.page === 1 ? prev : { ...prev, page: 1 }));
+    }
+  }, [isOpen, rowKey]);
+
+  // Main fetch effect (U2-R3: exactly one parcel request per page, pageSize, sort, or row change)
+  useEffect(() => {
+    if (!isOpen || !row) {
+      setData(null);
+      setError(null);
+      return undefined;
+    }
+    let active = true;
     setLoading(true);
     setError(null);
 
@@ -38,35 +49,30 @@ export default function F13V2JourneyParcelModal({
     const postman = filter.postman ?? (row.ma_buu_ta || (row.ma_buu_ta === null ? '@NONE' : undefined));
     const maBcvh = filter.ma_bcvh || row.ma_bcvh;
 
-    try {
-      const res = await fetchJourneyParcels({
-        ...periodQuery,
-        route,
-        postman,
-        maBcvh,
-        page: targetPage,
-        pageSize: currentSize,
-        sort: currentSort.field,
-        order: currentSort.direction,
+    fetchJourneyParcels({
+      ...periodQuery,
+      route,
+      postman,
+      maBcvh,
+      page,
+      pageSize,
+      sort: sort.field,
+      order: sort.direction,
+    })
+      .then((res) => {
+        if (active) setData(res);
+      })
+      .catch((err) => {
+        if (active) {
+          setError(err?.response?.data?.error?.message || err?.message || 'Không thể tải danh sách bưu gửi của tuyến.');
+        }
+      })
+      .finally(() => {
+        if (active) setLoading(false);
       });
-      setData(res);
-    } catch (err) {
-      setError(err?.response?.data?.error?.message || err?.message || 'Không thể tải danh sách bưu gửi của tuyến.');
-    } finally {
-      setLoading(false);
-    }
-  }, [row, periodQuery]);
 
-  // Reset page and reload whenever modal opens or row changes
-  useEffect(() => {
-    if (isOpen && row) {
-      setPage(1);
-      loadParcels(1, sortRef.current, pageSize);
-    } else {
-      setData(null);
-      setError(null);
-    }
-  }, [isOpen, row, loadParcels, pageSize]);
+    return () => { active = false; };
+  }, [isOpen, row, periodQuery, page, pageSize, sort]);
 
   // Close on Escape key
   useEffect(() => {
@@ -88,20 +94,17 @@ export default function F13V2JourneyParcelModal({
   const totalCount = data?.meta?.total ?? row.volume ?? 0;
 
   const handleSort = (field) => {
-    const nextSort = nextSortState(sort, field, { textFields: TEXT_SORT_FIELDS });
-    setSort(nextSort);
-    loadParcels(page, nextSort, pageSize);
+    setSort((current) => nextSortState(current, field, { textFields: TEXT_SORT_FIELDS }));
+    setPagination((prev) => ({ ...prev, page: 1 }));
   };
 
   const handlePageChange = (newPage) => {
-    setPage(newPage);
-    loadParcels(newPage, sort, pageSize);
+    setPagination((prev) => ({ ...prev, page: newPage }));
   };
 
   const handlePageSizeChange = (newSize) => {
-    setPageSize(newSize);
-    setPage(1);
-    loadParcels(1, sort, newSize);
+    // U2-R3: set page and size in one state update, triggering exactly one request
+    setPagination({ page: 1, pageSize: newSize });
   };
 
   return (

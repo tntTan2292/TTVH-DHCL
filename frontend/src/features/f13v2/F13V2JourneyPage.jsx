@@ -60,8 +60,7 @@ export default function F13V2JourneyPage() {
   const [routeState, setRouteState] = useState({ loading: true, data: null, error: null, isRangeTooLong: false });
   const [parcelState, setParcelState] = useState({ loading: true, data: null, error: null });
   const [parcelSort, setParcelSort] = useState({ field: 'tms_ptc', direction: 'desc' });
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(20);
+  const [{ page, pageSize }, setPagination] = useState({ page: 1, pageSize: 20 });
   const [searchText, setSearchText] = useState(searchParam);
   const [selectedRouteObj, setSelectedRouteObj] = useState(null);
   const [popupRow, setPopupRow] = useState(null);
@@ -78,7 +77,7 @@ export default function F13V2JourneyPage() {
       });
       return next;
     }, { replace: true });
-    setPage(1);
+    setPagination((prev) => ({ ...prev, page: 1 }));
   }, [setSearchParams]);
 
   // Initial load: Layout, Meta, Weeks, Months
@@ -506,13 +505,12 @@ export default function F13V2JourneyPage() {
           sort={parcelSort}
           onSort={(field) => {
             setParcelSort((current) => nextSortState(current, field, { textFields: TEXT_SORT_FIELDS }));
-            setPage(1);
+            setPagination((prev) => ({ ...prev, page: 1 }));
           }}
-          onPage={setPage}
+          onPage={(newPage) => setPagination((prev) => ({ ...prev, page: newPage }))}
           pageSize={pageSize}
           onPageSizeChange={(newSize) => {
-            setPageSize(newSize);
-            setPage(1);
+            setPagination({ page: 1, pageSize: newSize });
           }}
         />
 

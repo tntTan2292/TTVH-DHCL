@@ -122,7 +122,12 @@ export function formatJourneyPostman(row) {
 /** Main cause of a route (object from the /why layer) as text: label and its share of the failed parcels. */
 export function formatJourneyMainCause(row) {
   if (!row) return '—';
-  if (row.failed === 0) return '100% đạt';
+  if (row.failed === 0) {
+    if (row.volume > 0 && row.passed === row.volume) {
+      return '100% đạt';
+    }
+    return 'Chưa có đánh giá';
+  }
   const cause = row.main_cause;
   if (!cause || !cause.label) return '—';
   const share = Number.isFinite(cause.share) ? ` (${Math.round(cause.share * 100)}%)` : '';
