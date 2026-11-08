@@ -7,7 +7,7 @@
 - Programme: F1.3 Chuyên đề. Predecessor `F13-V2-JOURNEY-01` (page `/f13/v2/hanh-trinh`, day only).
 - Owner: Claude Code / Opus 5.5 (scope, reviews, real render). **B1 backend: Claude Code / Sonnet 5.5. U1 screen: Antigravity.** Does not change the Current Ticket of `PROJECT_SNAPSHOT.md`.
 - Branch: `codex/da-impl-006`.
-- **Status: `U1 READY FOR PO CHECK`** (Opus real render, section 14). Backend B2/B3 live only with the G7 rollout; until then the live month view runs on B1 (about 15 s).
+- **Status: `PO CHECK NOT PASSED - B4 (Sonnet) and U2 (Antigravity) READY`** (PO feedback, section 15). Rollout with G7 after U2.
 
 ## 2. The problem (PO, 2026-11-07)
 
@@ -192,3 +192,28 @@ Isolated backend on 5051 over the B3 database copy (milestones built), vite on 5
 - Note under the two extra groups reworded to "Không xếp hạng chung với tuyến bưu tá".
 
 **Render after the fixes:** no page error, no React warning (only the harness 404s of `/ops-journal`, not stubbed). Each view about 2.6-2.9 s on the copy. Month Thuận An: 7 postman routes, then "Phát tại quầy (khách đến nhận)" and "Tuyến chưa xác định" as two separate blocks, both with the "Bưu tá" column; stage hours Không đạt beside Đạt, slowest stage marked; clicking Mỹ Thượng_01 lists its 1 571 parcels for October, equal to the route volume, with milestone times. BCVH account sees only Thuận An. Over 93 days shows the Vietnamese limit message. oxlint `-D no-undef` on the four files: 0 errors.
+
+## 15. PO check of U1 (2026-11-08): not passed - decisions J7-J10, B4 and U2
+
+PO findings on the live page (the live backend still runs B1; B2/B3 go live with G7):
+1. The parcel list ("Hành trình từng bưu gửi") is not seen after clicking a route. Cause: it sits under the whole route table (city day = about 7 000 px of rows), far below the click.
+2. Week and month show no postman. Live is B1 (postmen through the per-day range repository); on the B3 copy the postmen are present for day, week and month. Goes away with the rollout; B4 replaces the column anyway.
+3. One row per route mixes every postman: the parcels of one postman cannot be opened and the route verdict is not the verdict of each postman.
+4. Camera "not usable". On the copy the PNG save works on both blocks, but the whole-city route block takes 12-14 s and gives a 2 544 x 16 030 picture (Top N is per BCVH, not overall), too large to paste.
+5. (all F1.3 data tables) a page size choice 20 / 50 / 100 is needed; Dữ liệu minh chứng is fixed at 50.
+
+| ID | Decision (PO 2026-11-08) |
+|---|---|
+| J7 | **One row = BCVH + route + postman** (PO chose "Mỗi tuyến 1 dòng"): a postman on two routes has two rows. Each row has its own volume, rate, Không đạt, own shortfall, stage hours Không đạt / Đạt, slowest stage and main cause from its own parcels. Phát tại quầy and Tuyến chưa xác định stay two separate groups at the bottom of each BCVH, split by postman the same way. The column title stays "Bưu tá". |
+| J8 | Clicking a row opens the parcels of **that postman on that route for the period** in a popup window (same pattern as the Phân tích nguyên nhân parcel window), with camera and paging; the parcel table at the bottom stays for search by parcel or lot code. |
+| J9 | Camera on each BCVH block (Top N rows of that BCVH); the whole-table camera keeps Top N overall, not per BCVH. |
+| J10 | Page size 20 / 50 / 100 (default 20) on every paged F1.3 v2 table: Dữ liệu minh chứng, Hành trình parcels (table and popup), Phân tích nguyên nhân parcel window, Đề xuất quy tắc if paged. Backends already accept `page_size` (max 100 / 200). |
+
+### B4 backend (Sonnet, session G0) - technical scope
+- `JourneyPeriodService.getRoutes`: group key `ma_bcvh | route key | postman` with postman = `ma_buu_ta_shown` (`ten_buu_ta_shown`); a parcel without postman goes to a row with `ma_buu_ta: null` (label on screen "Chưa có bưu tá"). Row fields as today plus `ma_buu_ta`, `ten_buu_ta`, `route_volume`, `route_rate`; `postmen` removed or kept as the one postman. Row order: BCVH, scope (POSTMAN first), `own_shortfall` desc.
+- Cause per row from the row's own failed parcels (stored cause columns), same codes, labels and main-cause reading as `/why`. Test: for every route, the sum of its postman rows equals the `/why` route row (volume, Đạt, Không đạt, cause mix; own shortfall from the summed counters).
+- `getParcels`: new filter `postman` (code, or `@NONE` for none) with `route`; `row.filter` carries both.
+- Files: `JourneyPeriodService.js`, its test, the journey handlers of `F13V2Controller.js`. Not the classifier version files, not `CauseAggQueryService.js` (read its exported helpers only). No rebuild needed (columns exist). Measure month whole city on the copy again.
+
+### U2 screen (Antigravity) - after B4 is accepted
+J7-J10 in `F13V2JourneyRouteTable.jsx`, `F13V2JourneyPage.jsx`, `F13V2JourneyParcelTable.jsx`, a popup for J8 (reuse the table), page size control for J10 in `F13V2EvidencePage.jsx` / `F13V2EvidenceTable.jsx`, `F13V2WhyParcelModal.jsx`, the Hành trình parcel table; report block standard; oxlint `-D no-undef`; no browser, no dev server, no login.
