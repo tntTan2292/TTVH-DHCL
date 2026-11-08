@@ -15,6 +15,7 @@ import {
 } from './journeyHelpers.js';
 import F13V2JourneyRouteTable from './components/F13V2JourneyRouteTable.jsx';
 import F13V2JourneyParcelTable from './components/F13V2JourneyParcelTable.jsx';
+import F13V2JourneyParcelModal from './components/F13V2JourneyParcelModal.jsx';
 
 const TEXT_SORT_FIELDS = ['ma_bg', 'ten_buu_ta', 'danh_gia', 'ma_lo'];
 
@@ -60,8 +61,10 @@ export default function F13V2JourneyPage() {
   const [parcelState, setParcelState] = useState({ loading: true, data: null, error: null });
   const [parcelSort, setParcelSort] = useState({ field: 'tms_ptc', direction: 'desc' });
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
   const [searchText, setSearchText] = useState(searchParam);
   const [selectedRouteObj, setSelectedRouteObj] = useState(null);
+  const [popupRow, setPopupRow] = useState(null);
   const [refreshTick, setRefreshTick] = useState(0);
 
   const updateParams = useCallback((patch) => {
@@ -194,6 +197,7 @@ export default function F13V2JourneyPage() {
       sort: parcelSort.field,
       order: parcelSort.direction,
       page,
+      pageSize,
     })
       .then((data) => {
         if (active) setParcelState({ loading: false, data, error: null });
@@ -212,7 +216,7 @@ export default function F13V2JourneyPage() {
       });
 
     return () => { active = false; };
-  }, [queryPeriod, bcvhParam, routeParam, searchParam, onlyKhongTronLo, parcelSort, page, refreshTick]);
+  }, [queryPeriod, bcvhParam, routeParam, searchParam, onlyKhongTronLo, parcelSort, page, pageSize, refreshTick]);
 
   // Scoped unit options
   const unitOptions = useMemo(() => buildScopedUnitOptions({ layout, metaUnits }), [layout, metaUnits]);
@@ -244,21 +248,13 @@ export default function F13V2JourneyPage() {
     return found?.ten_tuyen || found?.ma_tuyen || routeParam;
   }, [routeParam, selectedRouteObj, routes]);
 
-  // Clicking a route toggles its parcels (J6)
+  // Clicking a route row opens the popup with parcels of that postman + route (J8)
   const handleSelectRoute = (row) => {
     if (!row) {
-      updateParams({ route: '' });
-      setSelectedRouteObj(null);
+      setPopupRow(null);
       return;
     }
-    const routeKey = row.filter?.route || row.ma_tuyen;
-    if (routeParam === routeKey) {
-      updateParams({ route: '' });
-      setSelectedRouteObj(null);
-    } else {
-      updateParams({ route: routeKey });
-      setSelectedRouteObj(row);
-    }
+    setPopupRow(row);
   };
 
   return (
@@ -513,6 +509,20 @@ export default function F13V2JourneyPage() {
             setPage(1);
           }}
           onPage={setPage}
+          pageSize={pageSize}
+          onPageSizeChange={(newSize) => {
+            setPageSize(newSize);
+            setPage(1);
+          }}
+        />
+
+        {/* J8: Popup window displaying parcels of the clicked route + postman row */}
+        <F13V2JourneyParcelModal
+          isOpen={Boolean(popupRow)}
+          onClose={() => setPopupRow(null)}
+          row={popupRow}
+          periodQuery={queryPeriod}
+          periodLabel={periodLabel}
         />
       </div>
     </PageContainer>

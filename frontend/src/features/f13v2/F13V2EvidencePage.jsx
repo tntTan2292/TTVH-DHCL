@@ -69,6 +69,7 @@ export default function F13V2EvidencePage() {
   const searchNeedle = searchParams.get('search') || '';
   const sortParam = searchParams.get('sort') || 'priority';
   const pageParam = Math.max(1, Number(searchParams.get('page') || '1') || 1);
+  const pageSizeParam = Number(searchParams.get('page_size') || '20') || 20;
 
   // Determine active period mode
   const periodMode = useMemo(() => {
@@ -233,7 +234,7 @@ export default function F13V2EvidencePage() {
       });
   }, [layout, activeFilters, fromParam, toParam, weekParam, monthParam]);
 
-  // Fetch Evidence List (Requirement 2: 50 items/page)
+  // Fetch Evidence List (J10: 20 / 50 / 100 items/page, default 20)
   const loadListData = useCallback(() => {
     if (!layout || (!fromParam && !toParam && !weekParam && !monthParam)) return;
     setListLoading(true);
@@ -242,7 +243,7 @@ export default function F13V2EvidencePage() {
     fetchEvidenceList({
       ...activeFilters,
       page: pageParam,
-      page_size: 50,
+      page_size: pageSizeParam,
     })
       .then((res) => {
         setEvidenceData({
@@ -256,7 +257,7 @@ export default function F13V2EvidencePage() {
       .finally(() => {
         setListLoading(false);
       });
-  }, [layout, activeFilters, pageParam, fromParam, toParam, weekParam, monthParam]);
+  }, [layout, activeFilters, pageParam, pageSizeParam, fromParam, toParam, weekParam, monthParam]);
 
   // Trigger loads when filters or page change
   useEffect(() => {
@@ -556,14 +557,23 @@ export default function F13V2EvidencePage() {
         </p>
       ) : null}
 
-      {/* Tier 3: Evidence Table (50 rows/page, in-page sortable) */}
+      {/* Tier 3: Evidence Table (J10: 20 / 50 / 100 rows/page, default 20) */}
       <F13V2EvidenceTable
         items={evidenceData.items}
         meta={evidenceData.meta}
         catalog={catalog}
         loading={listLoading}
         page={pageParam}
+        pageSize={pageSizeParam}
         onPageChange={handlePageChange}
+        onPageSizeChange={(newSize) => {
+          setSearchParams((prev) => {
+            const next = new globalThis.URLSearchParams(prev);
+            next.set('page_size', String(newSize));
+            next.set('page', '1');
+            return next;
+          }, { replace: true });
+        }}
         onOpenDetail={(item) => setSelectedDetailItem(item)}
         onOpenAnalysis={(item) => setSelectedAnalysisItem(item)}
       />

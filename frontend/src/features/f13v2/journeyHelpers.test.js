@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   formatJourneyMainCause,
+  formatJourneyPostman,
   JOURNEY_MILESTONES,
   JOURNEY_ROUTE_STAGES,
   coveragePercent,
@@ -131,4 +132,27 @@ test('formatJourneyMainCause: the /why main cause object becomes its label and s
   assert.equal(formatJourneyMainCause({ failed: 93, main_cause: { code: 'PHAT', label: 'Phát', count: 90, share: 0.9677 } }), 'Phát (97%)');
   assert.equal(formatJourneyMainCause({ failed: 0, main_cause: null }), '100% đạt');
   assert.equal(formatJourneyMainCause({ failed: 3, main_cause: null }), '—');
+});
+
+test('F13-JOURNEY-ROUTE-02 J7: formatJourneyPostman formats postman with code, name, or "Chưa có bưu tá"', () => {
+  assert.equal(formatJourneyPostman({ ten_buu_ta: 'Nguyễn Văn Quý', ma_buu_ta: 'BT01' }), 'Nguyễn Văn Quý (BT01)');
+  assert.equal(formatJourneyPostman({ ten_buu_ta: 'Nguyễn Văn Quý', ma_buu_ta: null }), 'Nguyễn Văn Quý');
+  assert.equal(formatJourneyPostman({ ten_buu_ta: null, ma_buu_ta: 'BT01' }), 'BT01');
+  assert.equal(formatJourneyPostman({ ten_buu_ta: null, ma_buu_ta: null }), 'Chưa có bưu tá');
+  assert.equal(formatJourneyPostman(null), 'Chưa có bưu tá');
+});
+
+test('F13-JOURNEY-ROUTE-02 J7: journeyRouteValue resolves postman name, route_rate, and route_volume', () => {
+  const row = {
+    ma_tuyen: '53547026',
+    ten_buu_ta: 'Nguyễn Văn Quý',
+    ma_buu_ta: 'BT01',
+    rate: 27.9,
+    route_rate: 44.3,
+    route_volume: 1466,
+  };
+  assert.equal(journeyRouteValue(row, 'postman'), 'Nguyễn Văn Quý');
+  assert.equal(journeyRouteValue(row, 'route_rate'), 44.3);
+  assert.equal(journeyRouteValue(row, 'route_volume'), 1466);
+  assert.equal(journeyRouteValue({ ten_buu_ta: null, ma_buu_ta: null }, 'postman'), 'Chưa có bưu tá');
 });

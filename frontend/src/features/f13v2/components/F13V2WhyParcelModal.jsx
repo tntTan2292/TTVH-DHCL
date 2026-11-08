@@ -31,12 +31,14 @@ export default function F13V2WhyParcelModal({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
   const [sort, setSort] = useState({ field: 'ngay_do_kiem', direction: 'desc' });
-  // The sort in force when the list (re)opens: read through a ref so the open/filter effect depends only on what opens it.
   const sortRef = useRef(sort);
-  sortRef.current = sort;
+  useEffect(() => {
+    sortRef.current = sort;
+  }, [sort]);
 
-  const loadParcels = useCallback(async (targetPage, currentSort) => {
+  const loadParcels = useCallback(async (targetPage, currentSort, currentSize) => {
     if (!filter) return;
     setLoading(true);
     setError(null);
@@ -44,7 +46,7 @@ export default function F13V2WhyParcelModal({
     const query = {
       ...filter,
       page: targetPage,
-      page_size: 50,
+      page_size: currentSize || pageSize,
       sort: currentSort.field,
       order: currentSort.direction,
     };
@@ -58,25 +60,25 @@ export default function F13V2WhyParcelModal({
     } finally {
       setLoading(false);
     }
-  }, [filter, indicator.apiBase]);
+  }, [filter, pageSize, indicator.apiBase]);
 
   // Reset page when filter changes or modal opens
   useEffect(() => {
     if (isOpen && filter) {
       setPage(1);
-      loadParcels(1, sortRef.current);
+      loadParcels(1, sortRef.current, pageSize);
     } else {
       setParcels([]);
       setMeta(null);
       setError(null);
     }
-  }, [isOpen, filter, loadParcels]);
+  }, [isOpen, filter, loadParcels, pageSize]);
 
   // Handle page change
   const handlePageChange = (newPage) => {
     if (newPage < 1 || (meta?.total_pages && newPage > meta.total_pages)) return;
     setPage(newPage);
-    loadParcels(newPage, sort);
+    loadParcels(newPage, sort, pageSize);
   };
 
   // Handle column sort
@@ -84,7 +86,7 @@ export default function F13V2WhyParcelModal({
     const nextDirection = sort.field === field && sort.direction === 'desc' ? 'asc' : 'desc';
     const nextSort = { field, direction: nextDirection };
     setSort(nextSort);
-    loadParcels(page, nextSort);
+    loadParcels(page, nextSort, pageSize);
   };
 
   // Close on Escape key
@@ -354,18 +356,35 @@ export default function F13V2WhyParcelModal({
           )}
         </div>
 
-        {/* Footer / Pagination */}
+        {/* Footer / Pagination (J10: 20 / 50 / 100 items/page, default 20) */}
         <div
           data-no-capture="true"
           className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 bg-slate-50/80 px-4 py-2.5 sm:px-5 text-xs text-slate-600"
         >
-          <div>
+          <div className="flex flex-wrap items-center gap-3">
             {totalCount > 0 && (
               <span>
                 Hiển thị <strong>{startIdx}</strong> - <strong>{endIdx}</strong> trên tổng số{' '}
                 <strong>{formatVolume(totalCount)}</strong> bưu gửi
               </span>
             )}
+            <div className="flex items-center gap-1.5">
+              <span className="text-slate-500">Hiển thị:</span>
+              <select
+                value={pageSize}
+                onChange={(e) => {
+                  const newSize = Number(e.target.value);
+                  setPageSize(newSize);
+                  setPage(1);
+                  loadParcels(1, sortRef.current, newSize);
+                }}
+                className="cursor-pointer rounded-lg border border-slate-300 bg-white px-2 py-1 text-xs font-semibold text-slate-700"
+              >
+                <option value={20}>20 dòng/trang</option>
+                <option value={50}>50 dòng/trang</option>
+                <option value={100}>100 dòng/trang</option>
+              </select>
+            </div>
           </div>
 
           <div className="flex items-center gap-2">

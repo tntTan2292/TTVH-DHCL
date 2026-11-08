@@ -35,11 +35,14 @@ export async function fetchJourneyParcels(params = {}, apiBase = '/f13') {
   const bcvh = params.maBcvh ?? params.ma_bcvh ?? params.bcvh;
   if (bcvh && bcvh !== 'all') query.ma_bcvh = bcvh;
   if (params.route) query.route = params.route;
+  if (params.postman) query.postman = params.postman;
   if (params.onlyKhongTronLo || params.khong_tron_lo === '1' || params.khong_tron_lo === true) query.khong_tron_lo = '1';
   if (params.search) query.search = params.search;
   if (params.sort) query.sort = params.sort;
   if (params.order) query.order = params.order;
   if (params.page) query.page = params.page;
+  const pageSize = params.pageSize ?? params.page_size;
+  if (pageSize) query.page_size = pageSize;
   const response = await api.get(`${apiBase}/v2/journey/parcels`, { params: query });
   return response?.data?.data || null;
 }

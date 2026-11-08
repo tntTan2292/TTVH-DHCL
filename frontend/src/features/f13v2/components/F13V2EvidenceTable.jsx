@@ -13,7 +13,9 @@ export default function F13V2EvidenceTable({
   catalog = null,
   loading = false,
   page = 1,
+  pageSize = 20,
   onPageChange,
+  onPageSizeChange,
   onOpenDetail,
   onOpenAnalysis,
 }) {
@@ -21,7 +23,7 @@ export default function F13V2EvidenceTable({
   const indicator = useIndicator();
   indicatorTheme(indicator);
 
-  // Client-side in-page sort state (explicitly scoped to the current 50 rows)
+  // Client-side in-page sort state (explicitly scoped to the current page rows)
   const [inPageSortField, setInPageSortField] = useState(null);
   const [inPageSortDir, setInPageSortDir] = useState('asc');
 
@@ -41,7 +43,7 @@ export default function F13V2EvidenceTable({
 
   const total = meta?.total || 0;
   const totalPages = meta?.total_pages || 1;
-  const pageSize = meta?.page_size || 50;
+  const activePageSize = meta?.page_size || pageSize || 20;
 
   return (
     <div
@@ -60,7 +62,7 @@ export default function F13V2EvidenceTable({
             </span>
           </div>
           <p className="text-xs text-slate-500 mt-0.5">
-            Minh chứng nguồn gốc 5 mốc hành trình và kết luận phân tích (phân trang 50 dòng/trang)
+            Minh chứng nguồn gốc 5 mốc hành trình và kết luận phân tích (phân trang {activePageSize} dòng/trang)
           </p>
         </div>
 
@@ -75,7 +77,7 @@ export default function F13V2EvidenceTable({
       {/* In-page sort indicator notice */}
       <div className="flex items-center justify-between text-[11px] text-slate-500 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-100">
         <span>
-          * <strong className="text-slate-700">Sắp xếp trong trang:</strong> Bấm tiêu đề cột để sắp xếp 50 dòng đang xem. Thứ tự toàn bộ dữ liệu do máy chủ quản lý ({meta?.order === 'DATE' ? 'Theo ngày đo mới nhất' : 'Ưu tiên Chờ CQ & Chưa phân tích trước'}).
+          * <strong className="text-slate-700">Sắp xếp trong trang:</strong> Bấm tiêu đề cột để sắp xếp {activePageSize} dòng đang xem. Thứ tự toàn bộ dữ liệu do máy chủ quản lý ({meta?.order === 'DATE' ? 'Theo ngày đo mới nhất' : 'Ưu tiên Chờ CQ & Chưa phân tích trước'}).
         </span>
         {inPageSortField && (
           <button
@@ -373,10 +375,24 @@ export default function F13V2EvidenceTable({
         </table>
       </div>
 
-      {/* Pagination Controls */}
+      {/* Pagination Controls (J10: 20 / 50 / 100 items/page) */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-3 border-t border-slate-100 text-xs">
-        <div className="text-slate-500">
-          Hiển thị trang <strong className="text-slate-800">{page}</strong> / <strong className="text-slate-800">{totalPages}</strong> (Tổng cộng <strong className="text-slate-800">{total.toLocaleString('vi-VN')}</strong> bưu gửi theo bộ lọc)
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="text-slate-500">
+            Hiển thị trang <strong className="text-slate-800">{page}</strong> / <strong className="text-slate-800">{totalPages}</strong> (Tổng cộng <strong className="text-slate-800">{total.toLocaleString('vi-VN')}</strong> bưu gửi theo bộ lọc)
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="text-slate-500">Hiển thị:</span>
+            <select
+              value={activePageSize}
+              onChange={(e) => onPageSizeChange?.(Number(e.target.value))}
+              className="cursor-pointer rounded-lg border border-slate-300 bg-white px-2 py-1 text-xs font-semibold text-slate-700"
+            >
+              <option value={20}>20 dòng/trang</option>
+              <option value={50}>50 dòng/trang</option>
+              <option value={100}>100 dòng/trang</option>
+            </select>
+          </div>
         </div>
 
         <div className="flex items-center gap-2">

@@ -7,7 +7,7 @@
 - Programme: F1.3 Chuyên đề. Predecessor `F13-V2-JOURNEY-01` (page `/f13/v2/hanh-trinh`, day only).
 - Owner: Claude Code / Opus 5.5 (scope, reviews, real render). **B1 backend: Claude Code / Sonnet 5.5. U1 screen: Antigravity.** Does not change the Current Ticket of `PROJECT_SNAPSHOT.md`.
 - Branch: `codex/da-impl-006`.
-- **Status: `B4 ACCEPTED - U2 READY FOR ANTIGRAVITY`** (Opus review, section 17). Rollout with G7 after U2.
+- **Status: `U2 DONE - READY FOR OPUS REAL RENDER`** (section 18). Rollout with G7 after U2.
 
 ## 2. The problem (PO, 2026-11-07)
 
@@ -244,3 +244,33 @@ Month: the 538 rows keep the volume of the month (113 235); the time and memory 
 One row per BCVH + route + postman; per route the postman rows add up to the `/why` route row (month: 125 of 125 routes, 0 differences); month 3.3-3.5 s, 154 MB; postman filter (`code` / `@NONE`) on parcels, a postman row opens exactly its `volume`. Suites rerun by Opus: `JourneyPeriodService` 16/16, `f13v2Routes.scope` 13/13. Residual accepted: `addCauseRow` is a local copy of the `/why` one (not exported); the sum test guards drift.
 
 **U2 API facts:** row fields `ma_buu_ta`, `ten_buu_ta` (null = "Chưa có bưu tá"), `route_volume`, `route_rate`, `route_key`, `filter = { route, postman, ma_bcvh }` (pass all three to `/journey/parcels`, plus `page_size`), `main_cause` is an object (render with `formatJourneyMainCause`). Rows already ordered BCVH, POSTMAN first, own shortfall desc.
+
+## 18. U2 Technical Execution Report (Antigravity, 2026-11-08) - READY FOR OPUS REAL RENDER
+
+**What was built.** Implemented J7-J10 across `F13V2JourneyRouteTable.jsx`, `F13V2JourneyPage.jsx`, `F13V2JourneyParcelTable.jsx`, `F13V2JourneyParcelModal.jsx`, `F13V2EvidencePage.jsx`, `F13V2EvidenceTable.jsx`, `F13V2WhyParcelModal.jsx`, `journeyHelpers.js`, `journeyHelpers.test.js`, and `api/f13v2Api.js`:
+
+- **J7 (One row per BCVH + route + postman):**
+  - Route table renders one row per route + postman from the B4 payload (`ma_buu_ta`, `ten_buu_ta`, `route_volume`, `route_rate`, `filter`).
+  - Column title strictly kept as "Bưu tá" everywhere. Displays postman name and code via `formatJourneyPostman`; null postman displays "Chưa có bưu tá" in italic slate.
+  - Rate column shows the postman rate badge and `(Tuyến: x %)` (`route_rate`) beside/below it.
+  - "Phát tại quầy (khách đến nhận)" and "Tuyến chưa xác định" stay at the bottom of each BCVH, split by postman the same way.
+  - Kept `formatJourneyMainCause` for rendering main cause.
+- **J8 (Popup modal for route row parcels):**
+  - Created `F13V2JourneyParcelModal.jsx`: clicking any row in the route table opens a popup modal with parcels for that specific row's `{ route, postman, ma_bcvh }` and current period.
+  - Reuses `F13V2JourneyParcelTable.jsx` (with `inModal={true}`), including its full milestone and leg columns, click-to-order headers, and internal camera.
+  - The bottom parcel table on `F13V2JourneyPage.jsx` stays intact for parcel / lot code searches.
+- **J9 (Camera on each BCVH block & whole-table Top N overall):**
+  - Sub-block `F13V2JourneyBcvhBlock`: each BCVH block has its own camera button and Top selector in its sub-header, capturing Top N rows of that specific BCVH.
+  - Whole-table camera in the card header captures Top N overall across the province (sorted by `own_shortfall` desc), omitting BCVHs with 0 matching rows during capture. Eliminates oversized capture images.
+- **J10 (Page size choice 20 / 50 / 100, default 20):**
+  - Implemented on `F13V2JourneyParcelTable.jsx` (bottom table and J8 popup).
+  - Implemented on `F13V2EvidencePage.jsx` and `F13V2EvidenceTable.jsx` (default changed from fixed 50 to 20, with 20/50/100 selector and URL sync).
+  - Implemented on `F13V2WhyParcelModal.jsx` (default changed from fixed 50 to 20, with 20/50/100 selector).
+  - Updated `fetchJourneyParcels` in `api/f13v2Api.js` to send `postman` and `page_size`.
+- **Quality & Verification:**
+  - `oxlint -D no-undef` on all modified files: 0 errors.
+  - All test suites in `frontend/src/features/f13v2/*.test.js`: 87 / 87 PASS.
+  - `npm run build`: successful in 2.45s.
+  - No backend files touched.
+  - No browser, no dev server, no login.
+

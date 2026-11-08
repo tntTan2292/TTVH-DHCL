@@ -6,7 +6,20 @@ import { indicatorTheme } from '../../indicator/indicatorConfig.js';
 import { JOURNEY_LEGS, JOURNEY_MILESTONES, formatJourneyDate, formatLegHours, formatMilestone } from '../journeyHelpers.js';
 
 // One row per parcel: the five milestones and the hours between them. The server orders and pages the rows.
-export default function F13V2JourneyParcelTable({ data, loading, error, date, periodLabel = '', routeName, sort, onSort, onPage }) {
+export default function F13V2JourneyParcelTable({
+  data,
+  loading,
+  error,
+  date,
+  periodLabel = '',
+  routeName,
+  sort,
+  onSort,
+  onPage,
+  pageSize = 20,
+  onPageSizeChange,
+  inModal = false,
+}) {
   const cardRef = useRef(null);
   const indicator = useIndicator();
   const theme = indicatorTheme(indicator);
@@ -21,17 +34,25 @@ export default function F13V2JourneyParcelTable({ data, loading, error, date, pe
     </SortableTh>
   );
 
-  return (
-    <section ref={cardRef} className="w-full rounded-2xl border border-slate-300 bg-white p-3 shadow-sm sm:p-4">
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 pb-2">
-        <div>
-          <h2 className="text-base font-black uppercase tracking-tight text-slate-900">Hành trình từng bưu gửi</h2>
-          <p className={`text-xs font-bold ${theme.text}`}>
-            {period}{routeName ? ` · ${routeName}` : ''} · {(meta.total ?? 0).toLocaleString('vi-VN')} bưu gửi
-          </p>
+  const total = meta.total ?? parcels.length;
+  const currentPage = meta.page || 1;
+  const totalPages = meta.total_pages || 1;
+  const startIdx = (currentPage - 1) * pageSize + 1;
+  const endIdx = Math.min(currentPage * pageSize, total);
+
+  const tableContent = (
+    <>
+      {!inModal && (
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 pb-2">
+          <div>
+            <h2 className="text-base font-black uppercase tracking-tight text-slate-900">Hành trình từng bưu gửi</h2>
+            <p className={`text-xs font-bold ${theme.text}`}>
+              {period}{routeName ? ` · ${routeName}` : ''} · {(meta.total ?? 0).toLocaleString('vi-VN')} bưu gửi
+            </p>
+          </div>
+          <BlockCaptureButton targetRef={cardRef} blockTitle="Hành trình từng bưu gửi" dateOrPeriod={period} />
         </div>
-        <BlockCaptureButton targetRef={cardRef} blockTitle="Hành trình từng bưu gửi" dateOrPeriod={period} />
-      </div>
+      )}
 
       {loading ? (
         <div className="flex h-32 items-center justify-center text-sm font-bold text-slate-500">Đang tải bưu gửi...</div>
@@ -101,13 +122,62 @@ export default function F13V2JourneyParcelTable({ data, loading, error, date, pe
         </div>
       )}
 
-      {meta.total_pages > 1 ? (
-        <div data-no-capture="true" className="mt-3 flex items-center justify-end gap-2 text-sm">
-          <button type="button" disabled={meta.page <= 1} onClick={() => onPage(meta.page - 1)} className="rounded-lg border border-slate-300 px-3 py-1 font-semibold text-slate-700 disabled:opacity-40">Trước</button>
-          <span className="font-semibold text-slate-600">Trang {meta.page} / {meta.total_pages}</span>
-          <button type="button" disabled={meta.page >= meta.total_pages} onClick={() => onPage(meta.page + 1)} className="rounded-lg border border-slate-300 px-3 py-1 font-semibold text-slate-700 disabled:opacity-40">Sau</button>
+      {/* J10: Page size 20 / 50 / 100 and pagination */}
+      {total > 0 && (
+        <div data-no-capture="true" className="mt-3 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-2 text-xs">
+          <div className="flex flex-wrap items-center gap-3">
+            <span className="text-slate-600">
+              Hiển thị <strong>{startIdx}</strong> - <strong>{endIdx}</strong> trên tổng số <strong>{total.toLocaleString('vi-VN')}</strong> bưu gửi
+            </span>
+            <div className="flex items-center gap-1.5">
+              <span className="text-slate-500">Hiển thị:</span>
+              <select
+                value={pageSize}
+                onChange={(event) => onPageSizeChange?.(Number(event.target.value))}
+                className="cursor-pointer rounded-lg border border-slate-300 bg-white px-2 py-1 text-xs font-semibold text-slate-700"
+              >
+                <option value={20}>20 dòng/trang</option>
+                <option value={50}>50 dòng/trang</option>
+                <option value={100}>100 dòng/trang</option>
+              </select>
+            </div>
+          </div>
+
+          {totalPages > 1 && (
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                disabled={currentPage <= 1 || loading}
+                onClick={() => onPage?.(currentPage - 1)}
+                className="rounded-lg border border-slate-300 bg-white px-3 py-1 font-semibold text-slate-700 disabled:opacity-40 cursor-pointer"
+              >
+                Trước
+              </button>
+              <span className="font-semibold text-slate-600">
+                Trang {currentPage} / {totalPages}
+              </span>
+              <button
+                type="button"
+                disabled={currentPage >= totalPages || loading}
+                onClick={() => onPage?.(currentPage + 1)}
+                className="rounded-lg border border-slate-300 bg-white px-3 py-1 font-semibold text-slate-700 disabled:opacity-40 cursor-pointer"
+              >
+                Sau
+              </button>
+            </div>
+          )}
         </div>
-      ) : null}
+      )}
+    </>
+  );
+
+  if (inModal) {
+    return <div className="w-full">{tableContent}</div>;
+  }
+
+  return (
+    <section ref={cardRef} className="w-full rounded-2xl border border-slate-300 bg-white p-3 shadow-sm sm:p-4">
+      {tableContent}
     </section>
   );
 }

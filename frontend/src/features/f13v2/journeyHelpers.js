@@ -90,14 +90,33 @@ export function groupJourneyRoutesByBcvh(routes = []) {
   return Array.from(map.values());
 }
 
-/** Sort key of a route row: a leg column reads its median, the postman column its first name. */
+/** Sort key of a route row: a leg column reads its median, the postman column its name. */
 export function journeyRouteValue(row, field) {
   if (field.startsWith('legs_failed.')) return row.legs_failed?.[field.slice(12)] ?? null;
   if (field.startsWith('legs_passed.')) return row.legs_passed?.[field.slice(12)] ?? null;
   if (field.startsWith('legs.')) return row.legs?.[field.slice(5)] ?? null;
-  if (field === 'postmen') return row.postmen?.[0]?.ten_buu_ta ?? null;
+  if (field === 'postmen' || field === 'ten_buu_ta' || field === 'postman' || field === 'ma_buu_ta') {
+    return row.ten_buu_ta || row.ma_buu_ta || (row.postmen?.[0]?.ten_buu_ta) || 'Chưa có bưu tá';
+  }
+  if (field === 'route_rate') return row.route_rate ?? null;
+  if (field === 'route_volume') return row.route_volume ?? null;
   if (field === 'main_cause') return row.main_cause?.label ?? null;
   return row[field] ?? null;
+}
+
+/** Formats postman display label for a journey route row (J7: null postman displays "Chưa có bưu tá"). */
+export function formatJourneyPostman(row) {
+  if (!row) return 'Chưa có bưu tá';
+  if (row.ten_buu_ta) {
+    return row.ma_buu_ta ? `${row.ten_buu_ta} (${row.ma_buu_ta})` : row.ten_buu_ta;
+  }
+  if (row.ma_buu_ta) {
+    return row.ma_buu_ta;
+  }
+  if (row.postmen && row.postmen.length > 0) {
+    return formatPostmenWithVolume(row.postmen);
+  }
+  return 'Chưa có bưu tá';
 }
 
 /** Main cause of a route (object from the /why layer) as text: label and its share of the failed parcels. */
