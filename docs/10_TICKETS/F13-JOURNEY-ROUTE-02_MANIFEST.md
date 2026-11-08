@@ -7,7 +7,7 @@
 - Programme: F1.3 Chuyên đề. Predecessor `F13-V2-JOURNEY-01` (page `/f13/v2/hanh-trinh`, day only).
 - Owner: Claude Code / Opus 5.5 (scope, reviews, real render). **B1 backend: Claude Code / Sonnet 5.5. U1 screen: Antigravity.** Does not change the Current Ticket of `PROJECT_SNAPSHOT.md`.
 - Branch: `codex/da-impl-006`.
-- **Status: `PO CHECK NOT PASSED - B4 (Sonnet) and U2 (Antigravity) READY`** (PO feedback, section 15). Rollout with G7 after U2.
+- **Status: `B4 ACCEPTED - U2 READY FOR ANTIGRAVITY`** (Opus review, section 17). Rollout with G7 after U2.
 
 ## 2. The problem (PO, 2026-11-07)
 
@@ -238,3 +238,9 @@ J7-J10 in `F13V2JourneyRouteTable.jsx`, `F13V2JourneyPage.jsx`, `F13V2JourneyPar
 Month: the 538 rows keep the volume of the month (113 235); the time and memory of B3 are unchanged (J-R5: 2.0 s of the 3.3 s is `CauseAggQueryService.routes()`). One postman row opened as a parcel list: 3 107 rows in 114 ms (equal to its `volume`); the no-postman row `533140|53314043|NONE`: 14 rows (equal). Example, Hương Trà, October, first rows by own shortfall: route 53547026 / NGUYỄN VĂN QUÝ: 666 parcels of a route of 1 466, rate 27.9 % (route 44.3 %), own shortfall 413.4, slowest leg `arrive_gbt`, main cause Phát.
 
 **Not done:** no live build, no restart. Frontend not touched (U2).
+
+## 17. Opus review of B4 (2026-11-08, Claude Code / Opus 5.5; commit `e333c6e7`) - ACCEPTED
+
+One row per BCVH + route + postman; per route the postman rows add up to the `/why` route row (month: 125 of 125 routes, 0 differences); month 3.3-3.5 s, 154 MB; postman filter (`code` / `@NONE`) on parcels, a postman row opens exactly its `volume`. Suites rerun by Opus: `JourneyPeriodService` 16/16, `f13v2Routes.scope` 13/13. Residual accepted: `addCauseRow` is a local copy of the `/why` one (not exported); the sum test guards drift.
+
+**U2 API facts:** row fields `ma_buu_ta`, `ten_buu_ta` (null = "Chưa có bưu tá"), `route_volume`, `route_rate`, `route_key`, `filter = { route, postman, ma_bcvh }` (pass all three to `/journey/parcels`, plus `page_size`), `main_cause` is an object (render with `formatJourneyMainCause`). Rows already ordered BCVH, POSTMAN first, own shortfall desc.
