@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import authClient from '../api/authClient';
 import { SESSION_KEY } from '../api/httpClient';
+import { clearEvidenceAccessCache } from '../features/f13v2/f13EvidenceHelpers.js';
 
 const AuthContext = createContext(null);
 
@@ -12,8 +13,9 @@ export function AuthProvider({ children }) {
 
     useEffect(() => {
         const restore = async () => {
-            const sessionId = localStorage.getItem(SESSION_KEY);
+            const sessionId = globalThis.localStorage?.getItem(SESSION_KEY);
             if (!sessionId) {
+                clearEvidenceAccessCache();
                 setLoading(false);
                 return;
             }
@@ -23,7 +25,8 @@ export function AuthProvider({ children }) {
                 const restoredUser = response?.data?.user || null;
                 setUser(restoredUser ? { ...restoredUser, role: normalizeRole(restoredUser.role) } : null);
             } catch {
-                localStorage.removeItem(SESSION_KEY);
+                clearEvidenceAccessCache();
+                globalThis.localStorage?.removeItem(SESSION_KEY);
                 setUser(null);
             } finally {
                 setLoading(false);
@@ -34,6 +37,7 @@ export function AuthProvider({ children }) {
     }, []);
 
     const login = async (username, password) => {
+        clearEvidenceAccessCache();
         const response = await authClient.login(username, password);
         const authenticatedUser = response?.data?.user || null;
         setUser(authenticatedUser ? { ...authenticatedUser, role: normalizeRole(authenticatedUser.role) } : null);
@@ -48,6 +52,7 @@ export function AuthProvider({ children }) {
     };
 
     const logout = async () => {
+        clearEvidenceAccessCache();
         try {
             await authClient.logout();
         } finally {

@@ -360,3 +360,31 @@ Done, no rebuild, no new column, no change to a figure, median, cause rule or ex
 - Realign dry run: 0 to change. No rebuild needed (read-time fields only).
 - Not verified by Opus: the DKCL re-attach, because this start method logs to its own console window and not to `logs/`; and the live screens, because Opus does not log in to the live backend.
 - Next: U2 (§18), then the real render, then the PO check of the card and the shared list.
+
+## 22. U2 screen result (Antigravity, 2026-11-09) - U2 completed
+
+All 5 requirements of U2 (§18) implemented cleanly across frontend without backend modification:
+1. **Early handover display in list and parcel card**:
+   - `formatEarlyHandoverText`: returns `"Giao trước khi đến · sớm X phút"` (under 60 min) or `"Giao trước khi đến · sớm H giờ M phút"` (60 min or more, e.g. `"sớm 1 giờ"` or `"sớm 1 giờ 15 phút"`). Returns null when `gbt_before_arrive_ms <= 0` or null.
+   - In `F13V2EvidenceTable` (Hành trình view): cell Đến–Giao renders this text in `text-rose-600 font-bold text-[11px]` with tooltip `"Không tính vào thời gian chặng Đến–Giao"`.
+   - In `F13V2ParcelCard`: leg grid for `arrive_gbt` renders this warning in light red (`bg-rose-50/70 border-rose-200 text-rose-700`) with the same tooltip.
+2. **Hành trình route table badges & tooltips**:
+   - In `F13V2JourneyRouteTable`: `StageHoursCell` renders light red badge `${formatVolume(row.gbt_before_arrive)} giao trước khi đến` next to the Đến BCVH → Giao bưu tá stage of each row when `gbt_before_arrive > 0`.
+   - In `F13V2JourneyBcvhBlock`: the same light red badge is displayed in each BCVH header from `meta.bcvh[]` (`bcvhEarlyCount > 0`).
+   - Tooltip everywhere: `"Không tính vào thời gian chặng Đến–Giao (${formatVolume(n)} bưu gửi)"`.
+   - Follows light red tones from `report_block_ui_standard.md` (no dark or purple).
+3. **List sorting by `gbt_before_arrive`**:
+   - Added support in `sortEvidenceInPage` for `gbt_before_arrive` (sorted descending/ascending by `item.journey.gbt_before_arrive_ms`).
+   - Wired sortable header on Đến–Giao column in `F13V2EvidenceTable`.
+4. **Số giờ TCT format**:
+   - Unified formatting with `formatTctHours(input)`, strictly outputting Vietnamese decimal comma format with 'h' (e.g. `"341,3h"`), identical to the parcel card. Never `"4:28"` or `"19.15h"`.
+5. **U1F2-R1 AuthContext cache clearing**:
+   - `clearEvidenceAccessCache()` imported and invoked in `login`, `logout`, and session restoration failures in `AuthContext.jsx`. Prevents a second user on the same tab from inheriting prior access rights.
+   - Maintained regex compatibility for `AuthContext.test.js` (`finally { setUser(null); }`).
+
+**Verification**:
+- Unit tests: Added tests in `f13EvidenceHelpers.test.js` and `f13EvidenceBlocksStandard.test.js` covering early handover text under 60m, 60m or more, null/zero, TCT hour format (never 4:28 or 19.15h), cache clearing, route table badges, and AuthContext integration.
+- `node --test frontend/src/features/f13v2/*.test.js`: 103/103 tests pass.
+- `node --test frontend/src/auth/AuthContext.test.js`: 1/1 test passes.
+- `npx.cmd oxlint -D no-undef` on all modified files: 0 errors.
+- `npm.cmd --prefix frontend run build`: Vite build passes cleanly.

@@ -44,23 +44,35 @@ function StageHoursCell({ row, stageKey }) {
   const diffHours = (failedHours !== null && failedHours !== undefined && passedHours !== null && passedHours !== undefined)
     ? (failedHours - passedHours).toFixed(1)
     : null;
+  const hasEarlyHandover = stageKey === 'arrive_gbt' && Number(row.gbt_before_arrive || 0) > 0;
+  const earlyCount = Number(row.gbt_before_arrive || 0);
 
   return (
     <>
       <td className={`px-2 py-1.5 text-center tabular-nums text-xs border-r border-slate-100 ${isSlowest ? 'bg-rose-50/70' : ''}`}>
-        {isSlowest && failedHours !== null && failedHours !== undefined ? (
-          <span
-            className="inline-flex items-center gap-0.5 rounded bg-rose-100 px-1.5 py-0.5 font-black text-rose-800 border border-rose-300"
-            title={`Chặng trễ nhất của bưu gửi không đạt: chậm hơn bưu gửi đạt ${diffHours}h`}
-          >
-            <span>{formatLegHours(failedHours)}</span>
-            <span className="text-[10px] text-rose-600">⚠</span>
-          </span>
-        ) : (
-          <span className="text-rose-700 font-semibold">
-            {formatLegHours(failedHours)}
-          </span>
-        )}
+        <div className="flex flex-col items-center justify-center gap-0.5">
+          {isSlowest && failedHours !== null && failedHours !== undefined ? (
+            <span
+              className="inline-flex items-center gap-0.5 rounded bg-rose-100 px-1.5 py-0.5 font-black text-rose-800 border border-rose-300"
+              title={`Chặng trễ nhất của bưu gửi không đạt: chậm hơn bưu gửi đạt ${diffHours}h`}
+            >
+              <span>{formatLegHours(failedHours)}</span>
+              <span className="text-[10px] text-rose-600">⚠</span>
+            </span>
+          ) : (
+            <span className="text-rose-700 font-semibold">
+              {formatLegHours(failedHours)}
+            </span>
+          )}
+          {hasEarlyHandover && (
+            <span
+              className="inline-flex items-center rounded bg-rose-50 px-1.5 py-0.5 text-[10px] font-bold text-rose-700 border border-rose-200 whitespace-nowrap"
+              title={`Không tính vào thời gian chặng Đến–Giao (${formatVolume(earlyCount)} bưu gửi)`}
+            >
+              {formatVolume(earlyCount)} giao trước khi đến
+            </span>
+          )}
+        </div>
       </td>
       <td className="px-2 py-1.5 text-center tabular-nums text-xs text-emerald-700 font-medium border-r border-slate-200">
         {formatLegHours(passedHours)}
@@ -72,6 +84,7 @@ function StageHoursCell({ row, stageKey }) {
 // Sub-block representing one BCVH unit (J9: camera on each BCVH block)
 function F13V2JourneyBcvhBlock({
   bcvhGroup,
+  meta,
   headerSort,
   handleSort,
   theme,
@@ -85,6 +98,11 @@ function F13V2JourneyBcvhBlock({
   const bcvhRef = useRef(null);
   const [bcvhCaptureTop, setBcvhCaptureTop] = useState(20);
   const [capturingBcvh, setCapturingBcvh] = useState(false);
+
+  const metaUnit = (meta?.bcvh || []).find((u) => u.ma_bcvh === bcvhGroup.ma_bcvh);
+  const bcvhEarlyCount = metaUnit?.gbt_before_arrive !== undefined && metaUnit?.gbt_before_arrive !== null
+    ? Number(metaUnit.gbt_before_arrive)
+    : bcvhGroup.postmanRoutes.reduce((sum, r) => sum + Number(r.gbt_before_arrive || 0), 0);
 
   const sortedPostman = useMemo(
     () => sortRowsBy(bcvhGroup.postmanRoutes, headerSort.field, headerSort.direction, journeyRouteValue),
@@ -139,6 +157,14 @@ function F13V2JourneyBcvhBlock({
           <span className="text-xs text-slate-500 font-medium">
             • {bcvhGroup.postmanRoutes.length} dòng tuyến bưu tá
           </span>
+          {bcvhEarlyCount > 0 && (
+            <span
+              className="inline-flex items-center rounded bg-rose-50 px-1.5 py-0.5 text-xs font-bold text-rose-700 border border-rose-200 whitespace-nowrap"
+              title={`Không tính vào thời gian chặng Đến–Giao (${formatVolume(bcvhEarlyCount)} bưu gửi)`}
+            >
+              {formatVolume(bcvhEarlyCount)} giao trước khi đến
+            </span>
+          )}
         </div>
 
         {/* BCVH block camera control (J9) */}
@@ -433,7 +459,7 @@ function F13V2JourneyBcvhBlock({
 // J7: One row = BCVH + route + postman, route_rate beside postman rate, null postman displays "Chưa có bưu tá".
 // J8: Clicking a row opens popup with that row's parcels.
 // J9: Camera on each BCVH block (Top N of that BCVH), whole-table camera keeps Top N overall.
-export default function F13V2JourneyRouteTable({ routes = [], periodLabel = '', selectedRoute, onSelectRoute }) {
+export default function F13V2JourneyRouteTable({ routes = [], meta, periodLabel = '', selectedRoute, onSelectRoute }) {
   const cardRef = useRef(null);
   const indicator = useIndicator();
   const theme = indicatorTheme(indicator);
@@ -502,6 +528,7 @@ export default function F13V2JourneyRouteTable({ routes = [], periodLabel = '', 
         <F13V2JourneyBcvhBlock
           key={bcvhGroup.ma_bcvh}
           bcvhGroup={bcvhGroup}
+          meta={meta}
           headerSort={headerSort}
           handleSort={handleSort}
           theme={theme}

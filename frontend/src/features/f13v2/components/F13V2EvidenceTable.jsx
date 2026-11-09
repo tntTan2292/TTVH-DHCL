@@ -5,7 +5,14 @@ import SortableTh from '../../../components/common/SortableTh.jsx';
 import { useIndicator } from '../../indicator/IndicatorContext.js';
 import { indicatorTheme } from '../../indicator/indicatorConfig.js';
 import { formatCauseLabel, formatPhatDetail, formatChoChuyenQuanReason, formatPostmanName } from '../f13WhyHelpers.js';
-import { formatAnalystCause, sortEvidenceInPage, formatJourneyLegHours, getMilestoneAt } from '../f13EvidenceHelpers.js';
+import {
+  formatAnalystCause,
+  sortEvidenceInPage,
+  formatJourneyLegHours,
+  getMilestoneAt,
+  formatEarlyHandoverText,
+  formatTctHours,
+} from '../f13EvidenceHelpers.js';
 
 export default function F13V2EvidenceTable({
   items = [],
@@ -493,8 +500,25 @@ export default function F13V2EvidenceTable({
                       <td className="px-2 py-2 text-center border-r border-slate-100 tabular-nums">
                         {formatJourneyLegHours(legsObj.tms_arrive ?? item.leg_tms_arrive_hours)}
                       </td>
-                      <td className="px-2 py-2 text-center border-r border-slate-100 tabular-nums">
-                        {formatJourneyLegHours(legsObj.arrive_gbt ?? item.leg_arrive_gbt_hours)}
+                      <td className="px-2 py-2 text-center border-r border-slate-100 whitespace-nowrap">
+                        {(() => {
+                          const earlyMs = journeyObj.gbt_before_arrive_ms ?? item.gbt_before_arrive_ms;
+                          if (earlyMs !== null && earlyMs !== undefined && Number(earlyMs) > 0) {
+                            return (
+                              <span
+                                className="text-rose-600 font-bold text-[11px] cursor-help"
+                                title="Không tính vào thời gian chặng Đến–Giao"
+                              >
+                                {formatEarlyHandoverText(earlyMs)}
+                              </span>
+                            );
+                          }
+                          return (
+                            <span className="tabular-nums">
+                              {formatJourneyLegHours(legsObj.arrive_gbt ?? item.leg_arrive_gbt_hours)}
+                            </span>
+                          );
+                        })()}
                       </td>
                       <td className="px-2 py-2 text-center border-r border-slate-100 tabular-nums">
                         {formatJourneyLegHours(legsObj.gbt_ptc ?? item.leg_gbt_ptc_hours)}
@@ -504,13 +528,7 @@ export default function F13V2EvidenceTable({
                       </td>
                       {/* Số giờ TCT */}
                       <td className="px-2 py-2 text-center border-r border-slate-100 font-bold text-slate-900 tabular-nums whitespace-nowrap">
-                        {journeyObj.tct_ms !== null && journeyObj.tct_ms !== undefined
-                          ? `${(journeyObj.tct_ms / 3600000).toFixed(1).replace('.', ',')}h`
-                          : item.tct?.hours !== null && item.tct?.hours !== undefined
-                          ? `${item.tct.hours}h`
-                          : item.tct?.tct_hours !== null && item.tct?.tct_hours !== undefined
-                          ? `${item.tct.tct_hours}h`
-                          : item.tct?.hours_text || '—'}
+                        {formatTctHours(journeyObj.tct_ms !== null && journeyObj.tct_ms !== undefined ? { tct_ms: journeyObj.tct_ms } : item)}
                       </td>
                       {/* Thao tác */}
                       <td className="px-2 py-2 text-center whitespace-nowrap" data-no-capture="true">

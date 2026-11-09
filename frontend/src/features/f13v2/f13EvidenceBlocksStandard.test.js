@@ -312,6 +312,57 @@ test('F13-PARCEL-CARD-01 U1-FIX2: all 4 callers wire F13V2ParcelCard with onAnal
   }
 });
 
+test('F13-PARCEL-CARD-01 U2: Journey route table, parcel card, evidence table, and AuthContext comply with U2 requirements', () => {
+  const routeTableSrc = readSrc('./components/F13V2JourneyRouteTable.jsx');
+  const parcelCardSrc = readSrc('./components/F13V2ParcelCard.jsx');
+  const evidenceTableSrc = readSrc('./components/F13V2EvidenceTable.jsx');
+  const authContextSrc = fs.readFileSync(path.resolve(__dirname, '../../auth/AuthContext.jsx'), 'utf8');
+
+  // Requirement 1 & 2: route table early handover badge & tooltip
+  assert.ok(
+    routeTableSrc.includes('giao trước khi đến'),
+    'Route table must include badge for giao trước khi đến'
+  );
+  assert.ok(
+    routeTableSrc.includes('Không tính vào thời gian chặng Đến–Giao'),
+    'Route table must include exact tooltip text'
+  );
+  assert.ok(
+    routeTableSrc.includes('bcvhEarlyCount > 0'),
+    'Route table must render early handover badge in BCVH header'
+  );
+
+  // Requirement 1: parcel card early handover display
+  assert.ok(
+    parcelCardSrc.includes('formatEarlyHandoverText'),
+    'Parcel card must use formatEarlyHandoverText helper'
+  );
+  assert.ok(
+    parcelCardSrc.includes('Không tính vào thời gian chặng Đến–Giao'),
+    'Parcel card must show tooltip on early handover leg'
+  );
+
+  // Requirement 1 & 4: evidence table early handover display and TCT format
+  assert.ok(
+    evidenceTableSrc.includes('formatEarlyHandoverText'),
+    'Evidence table must use formatEarlyHandoverText helper'
+  );
+  assert.ok(
+    evidenceTableSrc.includes('formatTctHours'),
+    'Evidence table must use formatTctHours helper'
+  );
+
+  // Requirement 5: AuthContext cache clearing
+  assert.ok(
+    authContextSrc.includes('clearEvidenceAccessCache'),
+    'AuthContext must import clearEvidenceAccessCache'
+  );
+  assert.ok(
+    authContextSrc.includes('const login = async') && authContextSrc.includes('clearEvidenceAccessCache()'),
+    'AuthContext must clear cache on login and logout'
+  );
+});
+
 
 
 

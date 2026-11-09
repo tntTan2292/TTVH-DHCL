@@ -11,6 +11,8 @@ import {
   extractEvidenceSummary,
   canWriteParcelAnalysis,
   formatJourneyLegHours,
+  formatEarlyHandoverText,
+  formatTctHours,
   EVIDENCE_JOURNEY_LEGS,
   EVIDENCE_VIEW_CAUSE,
   EVIDENCE_VIEW_JOURNEY,
@@ -379,6 +381,86 @@ test('F13-PARCEL-CARD-01 U1-FIX2: the write form permission resolves across all 
   }
 
   clearEvidenceAccessCache();
+});
+
+test('F13-PARCEL-CARD-01 U2: formatEarlyHandoverText formats early handover duration correctly', () => {
+  // Under 60 minutes
+  assert.equal(formatEarlyHandoverText(19 * 60 * 1000), 'Giao trước khi đến · sớm 19 phút');
+  assert.equal(formatEarlyHandoverText(1 * 60 * 1000), 'Giao trước khi đến · sớm 1 phút');
+  assert.equal(formatEarlyHandoverText(59 * 60 * 1000), 'Giao trước khi đến · sớm 59 phút');
+
+  // 60 minutes or more
+  assert.equal(formatEarlyHandoverText(60 * 60 * 1000), 'Giao trước khi đến · sớm 1 giờ');
+  assert.equal(formatEarlyHandoverText(75 * 60 * 1000), 'Giao trước khi đến · sớm 1 giờ 15 phút');
+  assert.equal(formatEarlyHandoverText(120 * 60 * 1000), 'Giao trước khi đến · sớm 2 giờ');
+  assert.equal(formatEarlyHandoverText(125 * 60 * 1000), 'Giao trước khi đến · sớm 2 giờ 5 phút');
+
+  // Null, undefined, 0, negative
+  assert.equal(formatEarlyHandoverText(null), null);
+  assert.equal(formatEarlyHandoverText(undefined), null);
+  assert.equal(formatEarlyHandoverText(0), null);
+  assert.equal(formatEarlyHandoverText(-5000), null);
+});
+
+test('F13-PARCEL-CARD-01 U2: formatTctHours formats numeric hours consistently as comma decimal with h', () => {
+  // Direct numbers
+  assert.equal(formatTctHours(341.3), '341,3h');
+  assert.equal(formatTctHours(341.34), '341,3h');
+  assert.equal(formatTctHours(341.36), '341,4h');
+  assert.equal(formatTctHours(19.15), '19,1h');
+  assert.equal(formatTctHours(19.2), '19,2h');
+  assert.equal(formatTctHours(20), '20,0h');
+
+  // Objects with tct_ms (341.3 hours = 1228680000 ms)
+  assert.equal(formatTctHours({ tct_ms: 1228680000 }), '341,3h');
+
+  // Objects with tct.tct_hours or tct.hours
+  assert.equal(formatTctHours({ tct: { tct_hours: 19.15 } }), '19,1h');
+  assert.equal(formatTctHours({ tct: { hours: 4.5 } }), '4,5h');
+  assert.equal(formatTctHours({ tct_hours: 20 }), '20,0h');
+
+  // Never '4:28' or '19.15h'
+  const result = formatTctHours(19.15);
+  assert.notEqual(result, '19.15h');
+  assert.notEqual(result, '19:09');
+  assert.match(result, /^\d+,\d+h$/);
+
+  // Missing or invalid
+  assert.equal(formatTctHours(null), '—');
+  assert.equal(formatTctHours(undefined), '—');
+  assert.equal(formatTctHours({}), '—');
+});
+
+test('F13-PARCEL-CARD-01 U2: clearEvidenceAccessCache clears catalog and layout state', () => {
+  setCachedEvidenceCatalog({ can: { write: true } });
+  setCachedLayout({ units: { allow_all: true } });
+
+  const dummyCard = { can_analyse: true, ma_bcvh: '537015', danh_gia: 'Không đạt' };
+  assert.equal(canWriteParcelAnalysis(dummyCard), true);
+
+  // Clear cache
+  clearEvidenceAccessCache();
+
+  // Without cache, defaults to no permissions
+  assert.equal(canWriteParcelAnalysis(dummyCard), false);
+});
+
+test('F13-PARCEL-CARD-01 U2: sortEvidenceInPage sorts by gbt_before_arrive', () => {
+  const items = [
+    { ma_bg: 'A1', journey: { gbt_before_arrive_ms: 19 * 60000 } },
+    { ma_bg: 'A2', journey: { gbt_before_arrive_ms: null } },
+    { ma_bg: 'A3', journey: { gbt_before_arrive_ms: 75 * 60000 } },
+  ];
+
+  const sortedDesc = sortEvidenceInPage(items, 'gbt_before_arrive', 'desc');
+  assert.equal(sortedDesc[0].ma_bg, 'A3');
+  assert.equal(sortedDesc[1].ma_bg, 'A1');
+  assert.equal(sortedDesc[2].ma_bg, 'A2');
+
+  const sortedAsc = sortEvidenceInPage(items, 'gbt_before_arrive', 'asc');
+  assert.equal(sortedAsc[0].ma_bg, 'A2');
+  assert.equal(sortedAsc[1].ma_bg, 'A1');
+  assert.equal(sortedAsc[2].ma_bg, 'A3');
 });
 
 

@@ -29,6 +29,7 @@ import {
   formatJourneyLegHours,
   EVIDENCE_JOURNEY_LEGS,
   getMilestoneAt,
+  formatEarlyHandoverText,
   fetchEvidenceCatalogCached,
   fetchLayoutCached,
   setCachedEvidenceCatalog,
@@ -476,6 +477,25 @@ export default function F13V2ParcelCard({
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 pt-1">
                       {EVIDENCE_JOURNEY_LEGS.map((leg) => {
                         const val = legs[leg.key];
+                        const isArriveGbt = leg.key === 'arrive_gbt';
+                        const earlyMs = isArriveGbt ? (journey.gbt_before_arrive_ms ?? card?.gbt_before_arrive_ms) : null;
+                        const hasEarly = isArriveGbt && earlyMs !== null && earlyMs !== undefined && Number(earlyMs) > 0;
+
+                        if (hasEarly) {
+                          return (
+                            <div
+                              key={leg.key}
+                              className="p-2.5 rounded-lg border border-rose-200 bg-rose-50/70"
+                              title="Không tính vào thời gian chặng Đến–Giao"
+                            >
+                              <div className="text-[11px] text-rose-700 font-medium truncate">{leg.label}</div>
+                              <div className="text-xs font-bold text-rose-700 mt-1">
+                                {formatEarlyHandoverText(earlyMs)}
+                              </div>
+                            </div>
+                          );
+                        }
+
                         return (
                           <div key={leg.key} className="p-2.5 rounded-lg border border-slate-100 bg-slate-50/60" title={leg.title}>
                             <div className="text-[11px] text-slate-500 font-medium truncate">{leg.label}</div>

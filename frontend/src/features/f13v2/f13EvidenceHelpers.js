@@ -134,6 +134,56 @@ export function formatJourneyLegHours(val) {
 }
 
 /**
+ * F13-PARCEL-CARD-01 U2 (C5): Formats the duration an item was handed over to the postman
+ * before the arrival scan (ms_gbt < ms_arrive).
+ * Returns null if ms is null/undefined or <= 0.
+ * Format:
+ * - under 60 minutes: "Giao trước khi đến · sớm 19 phút"
+ * - 60 minutes or more: "Giao trước khi đến · sớm 1 giờ 15 phút" (or "sớm 1 giờ" when 0 mins)
+ */
+export function formatEarlyHandoverText(ms) {
+  if (ms === null || ms === undefined) return null;
+  const numMs = Number(ms);
+  if (Number.isNaN(numMs) || numMs <= 0) return null;
+  const totalMinutes = Math.round(numMs / 60000);
+  if (totalMinutes <= 0) return null;
+
+  if (totalMinutes < 60) {
+    return `Giao trước khi đến · sớm ${totalMinutes} phút`;
+  }
+
+  const hours = Math.floor(totalMinutes / 60);
+  const mins = totalMinutes % 60;
+  const timeStr = mins > 0 ? `${hours} giờ ${mins} phút` : `${hours} giờ`;
+  return `Giao trước khi đến · sớm ${timeStr}`;
+}
+
+/**
+ * F13-PARCEL-CARD-01 U2: One format only for Số giờ TCT, matching the card ("341,3h"),
+ * derived from numeric hours. Never returns "4:28" or "19.15h".
+ */
+export function formatTctHours(input) {
+  if (input === null || input === undefined || input === '') return '—';
+
+  // If passed an item or tct object
+  if (typeof input === 'object') {
+    if (input.journey?.tct_ms !== null && input.journey?.tct_ms !== undefined) {
+      return formatJourneyLegHours(Number(input.journey.tct_ms) / 3600000);
+    }
+    if (input.tct_ms !== null && input.tct_ms !== undefined) {
+      return formatJourneyLegHours(Number(input.tct_ms) / 3600000);
+    }
+    const val = input.tct?.hours ?? input.tct?.tct_hours ?? input.hours ?? input.tct_hours;
+    if (val !== null && val !== undefined && val !== '') {
+      return formatJourneyLegHours(val);
+    }
+    return '—';
+  }
+
+  return formatJourneyLegHours(input);
+}
+
+/**
  * U1-R1: Safely reads the time string of a journey milestone,
  * supporting both the string shape ("YYYY-MM-DD HH:mm:ss") and the object shape ({ at, source }).
  * Prevents String.prototype.at from returning a function when evaluating v?.at.
@@ -246,6 +296,10 @@ export function sortEvidenceInPage(items, sortField, sortDirection = 'asc') {
       case 'tms_ptc':
         valA = a.journey?.legs?.[sortField] ?? a[`leg_${sortField}_hours`] ?? -1;
         valB = b.journey?.legs?.[sortField] ?? b[`leg_${sortField}_hours`] ?? -1;
+        return (valA - valB) * factor;
+      case 'gbt_before_arrive':
+        valA = a.journey?.gbt_before_arrive_ms ?? a.gbt_before_arrive_ms ?? -1;
+        valB = b.journey?.gbt_before_arrive_ms ?? b.gbt_before_arrive_ms ?? -1;
         return (valA - valB) * factor;
       default:
         valA = a[sortField] || '';

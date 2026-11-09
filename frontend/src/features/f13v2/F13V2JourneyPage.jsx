@@ -441,6 +441,7 @@ export default function F13V2JourneyPage() {
         ) : routes?.length ? (
           <F13V2JourneyRouteTable
             routes={routes}
+            meta={routeState.data?.meta}
             periodLabel={periodLabel}
             selectedRoute={routeParam}
             onSelectRoute={handleSelectRoute}
