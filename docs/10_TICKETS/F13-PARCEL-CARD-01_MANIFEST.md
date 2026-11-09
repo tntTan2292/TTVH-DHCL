@@ -205,3 +205,22 @@ All 5 items of §11 implemented strictly in `frontend/src/features/f13v2/` with 
 - `node --test backend/src/routes/f13v2ParcelCard.test.js backend/src/routes/f13v2Evidence.test.js`: 24/24 pass.
 - `npm.cmd --prefix frontend run build`: Built production bundle successfully in 1.48s (0 errors).
 
+
+## 13. Opus real render of U1 (2026-11-09) - U1-FIX needed
+
+Isolated render: B3 database copy, backend on 5051, vite on 5199, Playwright, accounts leader (LD_BDTP, no write) and cq (Chuyên quản 537015).
+
+Passed:
+- Hành trình month: a "Xem (n)" button on every row. Row Ô tô Nam giữa / NGUYỄN NGỌC LỘC shows "Xem (3.107)", and the popup says "3.107 bưu gửi" (`/evidence/list?view=journey&...&route=533140149&postman=53B247`).
+- The bottom table is gone, replaced by the link "Tra cứu bưu gửi → Dữ liệu minh chứng".
+- The card opens from the Hành trình popup, the Dữ liệu minh chứng table and the Phân tích nguyên nhân window, with its 3 tabs and the 5 milestones with their sources.
+- The Phân tích form shows for cq on its own unit (1 textarea) and is hidden for the leader.
+- Escape closes the card and the popup. The view switch drops `view=journey` from the URL when going back to Nguyên nhân.
+- Not covered: Đề xuất quy tắc samples (the render accounts are not admin).
+
+Defects:
+- **U1-R1 (blocking): the 5 milestone columns of the list are empty in the Hành trình view** (popup and Dữ liệu minh chứng), with the console error "Functions are not valid as a React child … at td".
+  - Cause: `F13V2EvidenceTable.jsx` about lines 472-484 renders `ms.tms?.at || ms.tms`. `journey.milestones.*` are **strings**, and `String.prototype.at` is a function, so `"2026-…".at` is truthy and a function is rendered.
+  - Fix: one helper that reads the time of a milestone in either shape: `typeof v === 'string' ? v : v?.at ?? null`. Use it in all 5 cells and in any other place that reads `?.at` from `journey.milestones` (grep the card and the helpers too). Add a test with both shapes.
+- **U1-R2 (low): the card writes hours with a dot** ("341.32h", "4.53h") while the list writes "19,5h". Use the same Vietnamese hour format as the list (`formatJourneyLegHours` or its equivalent) for TCT hours, limit and remaining.
+- **U1-R3 (low): opening a card calls `/evidence/parcel` 3 times and `/evidence/catalog` 2 times.** Development StrictMode explains 2 calls. Make it one effect keyed on `ngay_do_kiem|ma_bg`, and read the catalog the page already has instead of fetching it again.
