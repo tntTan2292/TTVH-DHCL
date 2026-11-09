@@ -286,3 +286,16 @@ Fixed all three defects identified in Opus real render (§13) with zero backend 
 - `node --test backend/src/routes/f13v2ParcelCard.test.js backend/src/routes/f13v2Evidence.test.js`: 24/24 pass (0 fail).
 - `npm.cmd --prefix frontend run build`: Production bundle built in 1.98s (0 errors).
 
+
+## 17. Opus real render of U1-FIX2 (2026-11-09) - READY FOR PO CHECK, one low residual
+
+- Passed (same isolated render, leader and cq):
+  - The Chuyên quản now gets the write form on a card of its own unit opened from the Hành trình popup (1 textarea; U1F-R1 fixed).
+  - The leader sees "Tài khoản chỉ có quyền xem, không có quyền ghi phân tích." with no form.
+  - The catalog is fetched once per page load, not once per card.
+  - No page error.
+  - Milestones, comma hours and popup count = Sản lượng still hold.
+- **U1F2-R1 (low, before closing):** the access cache in `f13EvidenceHelpers.js` lives as long as the browser tab. `clearEvidenceAccessCache()` is never called, and logout is an in-app navigation (`AuthContext.logout` → `navigate('/login')`, no reload).
+  - Effect: if user A signs out and user B signs in on the same tab, B's cards show A's write right and units.
+  - The server still refuses a write outside B's unit (`EvidenceService._assertScope`), so this is a display defect, not a data one.
+  - Fix: clear the cache on logout and on login (`AuthContext`), or key it by the session id.
