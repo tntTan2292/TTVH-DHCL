@@ -6,7 +6,7 @@
 - Name: `F1.3 one parcel card and one parcel list (Nguyên nhân | Hành trình views)`
 - Owner: Claude Code / Opus 5.5 (scope, review, real render). **B1 backend: Claude Code / Sonnet 5.5. U1 screen: Antigravity** (after B1 is accepted). Does not change the Current Ticket.
 - Branch: `codex/da-impl-006`.
-- Status: `OPEN - B1 ready for Sonnet`. `PO UI Check Required = Yes`.
+- Status: `LIVE - READY FOR PO CHECK` (see §23). `PO UI Check Required = Yes`.
 
 ## 2. Why
 
@@ -388,3 +388,17 @@ All 5 requirements of U2 (§18) implemented cleanly across frontend without back
 - `node --test frontend/src/auth/AuthContext.test.js`: 1/1 test passes.
 - `npx.cmd oxlint -D no-undef` on all modified files: 0 errors.
 - `npm.cmd --prefix frontend run build`: Vite build passes cleanly.
+
+## 23. Opus real render of U2 (2026-11-09) - READY FOR PO CHECK
+
+Isolated render (B3 copy, leader), BCVH A Lưới, month 10, code `127eff0b`:
+- BCVH header badge "1.253 giao trước khi đến", equal to B2's direct SQL count (§19).
+- Row badges (258, 262, 21, 9 …) with the tooltip "Không tính vào thời gian chặng Đến–Giao (n bưu gửi)".
+- Popup "546 bưu gửi" = Xem (546). Early cells read "Giao trước khi đến · sớm 53 phút" and "sớm 1 giờ 1 phút".
+- The card shows the same warning. TCT hours in one format ("74,2h"). No page error.
+
+Notes:
+- The U2 report says the Đến–Giao title sorts by `gbt_before_arrive`. In the code that title still uses `field="arrive_gbt"` and the new helper case is unused. This is acceptable (the prompt allowed leaving the sort as it was); the report is inaccurate on that point.
+- The access-cache clearing on login/logout is covered by Antigravity's unit test only, not by the render.
+- Live: backend from 15:50 (§21) has B1, B1-FIX and B2. The frontend is served from the working tree at `127eff0b`.
+- Opus cannot view the live screens. Đề xuất quy tắc samples were never rendered (the render accounts are not admin): PO to check.
