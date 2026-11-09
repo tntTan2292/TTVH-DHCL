@@ -72,6 +72,16 @@ export function formatJourneyLegHours(val) {
   return `${num.toFixed(1).replace('.', ',')}h`;
 }
 
+/**
+ * U1-R1: Safely reads the time string of a journey milestone,
+ * supporting both the string shape ("YYYY-MM-DD HH:mm:ss") and the object shape ({ at, source }).
+ * Prevents String.prototype.at from returning a function when evaluating v?.at.
+ */
+export function getMilestoneAt(v) {
+  if (typeof v === 'string') return v;
+  return v?.at ?? null;
+}
+
 export function formatMilestoneTitle(milestoneKey) {
   const titles = {
     tms: '1. Quét xuống TMS',
@@ -148,24 +158,24 @@ export function sortEvidenceInPage(items, sortField, sortDirection = 'asc') {
         valB = b.journey?.ma_lo || b.ma_lo || '';
         break;
       case 'tms':
-        valA = a.journey?.milestones?.tms || a.ms_tms || '';
-        valB = b.journey?.milestones?.tms || b.ms_tms || '';
+        valA = getMilestoneAt(a.journey?.milestones?.tms) || a.ms_tms || '';
+        valB = getMilestoneAt(b.journey?.milestones?.tms) || b.ms_tms || '';
         break;
       case 'depart':
-        valA = a.journey?.milestones?.depart || a.ms_depart || '';
-        valB = b.journey?.milestones?.depart || b.ms_depart || '';
+        valA = getMilestoneAt(a.journey?.milestones?.depart) || a.ms_depart || '';
+        valB = getMilestoneAt(b.journey?.milestones?.depart) || b.ms_depart || '';
         break;
       case 'arrive':
-        valA = a.journey?.milestones?.arrive || a.ms_arrive || '';
-        valB = b.journey?.milestones?.arrive || b.ms_arrive || '';
+        valA = getMilestoneAt(a.journey?.milestones?.arrive) || a.ms_arrive || '';
+        valB = getMilestoneAt(b.journey?.milestones?.arrive) || b.ms_arrive || '';
         break;
       case 'gbt':
-        valA = a.journey?.milestones?.gbt || a.ms_gbt || '';
-        valB = b.journey?.milestones?.gbt || b.ms_gbt || '';
+        valA = getMilestoneAt(a.journey?.milestones?.gbt) || a.ms_gbt || '';
+        valB = getMilestoneAt(b.journey?.milestones?.gbt) || b.ms_gbt || '';
         break;
       case 'ptc':
-        valA = a.journey?.milestones?.ptc || a.ms_ptc || '';
-        valB = b.journey?.milestones?.ptc || b.ms_ptc || '';
+        valA = getMilestoneAt(a.journey?.milestones?.ptc) || a.ms_ptc || '';
+        valB = getMilestoneAt(b.journey?.milestones?.ptc) || b.ms_ptc || '';
         break;
       case 'tms_depart':
       case 'depart_arrive':

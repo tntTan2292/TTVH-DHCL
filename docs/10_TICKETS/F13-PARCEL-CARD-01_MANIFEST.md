@@ -224,3 +224,30 @@ Defects:
   - Fix: one helper that reads the time of a milestone in either shape: `typeof v === 'string' ? v : v?.at ?? null`. Use it in all 5 cells and in any other place that reads `?.at` from `journey.milestones` (grep the card and the helpers too). Add a test with both shapes.
 - **U1-R2 (low): the card writes hours with a dot** ("341.32h", "4.53h") while the list writes "19,5h". Use the same Vietnamese hour format as the list (`formatJourneyLegHours` or its equivalent) for TCT hours, limit and remaining.
 - **U1-R3 (low): opening a card calls `/evidence/parcel` 3 times and `/evidence/catalog` 2 times.** Development StrictMode explains 2 calls. Make it one effect keyed on `ngay_do_kiem|ma_bg`, and read the catalog the page already has instead of fetching it again.
+
+## 14. U1-FIX result (Antigravity, 2026-11-09) - U1-FIX completed
+
+Fixed all three defects identified in Opus real render (§13) with zero backend changes:
+1. **U1-R1 (Milestone display fix)**:
+   - Added `getMilestoneAt(v)` in `f13EvidenceHelpers.js`:
+     ```js
+     export function getMilestoneAt(v) {
+       if (typeof v === 'string') return v;
+       return v?.at ?? null;
+     }
+     ```
+   - Applied `getMilestoneAt` in all 5 milestone table cells in `F13V2EvidenceTable.jsx` (resolving `String.prototype.at` function collision).
+   - Applied `getMilestoneAt` in `fiveMilestonesList` in `F13V2ParcelCard.jsx` and in milestone sorting in `sortEvidenceInPage`.
+   - Added comprehensive unit test in `f13EvidenceHelpers.test.js` validating both string timestamps and `{ at, source }` object shapes.
+2. **U1-R2 (Vietnamese hour formatting with comma)**:
+   - Updated `F13V2ParcelCard.jsx` to format `tct.hours`, `tct.limit_hours`, and `tct.remaining_at_arrival_hours` via `formatJourneyLegHours` (producing e.g. "341,3h", "48,0h", "4,5h" instead of dot notation).
+3. **U1-R3 (Single fetch per open & reuse page catalog)**:
+   - Removed duplicate `/evidence/catalog` and `/layout` fetches inside `F13V2ParcelCard.jsx`, directly using `catalog` and `layout` props provided by the page.
+   - Refactored `loadCardData` effect to be strictly keyed on `${ngay_do_kiem}|${ma_bg}`, executing once per modal open without triggering cascading refetches.
+
+### Verification Evidence
+- `npx.cmd oxlint -D no-undef <all changed files>`: 0 errors.
+- `node --test frontend/src/features/f13v2/*.test.js`: 96/96 pass (0 fail).
+- `node --test backend/src/routes/f13v2ParcelCard.test.js backend/src/routes/f13v2Evidence.test.js`: 24/24 pass (0 fail).
+- `npm.cmd --prefix frontend run build`: Production bundle built in 1.81s (0 errors).
+

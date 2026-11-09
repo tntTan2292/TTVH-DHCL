@@ -14,7 +14,7 @@ import {
   Truck,
 } from 'lucide-react';
 import BlockCaptureButton from '../../../components/common/BlockCaptureButton.jsx';
-import { fetchEvidenceParcel, postEvidenceAnalysis, fetchEvidenceCatalog, fetchLayout } from '../api/f13v2Api.js';
+import { fetchEvidenceParcel, postEvidenceAnalysis } from '../api/f13v2Api.js';
 import {
   formatCauseLabel,
   formatPhatDetail,
@@ -28,13 +28,14 @@ import {
   canWriteParcelAnalysis,
   formatJourneyLegHours,
   EVIDENCE_JOURNEY_LEGS,
+  getMilestoneAt,
 } from '../f13EvidenceHelpers.js';
 
 export default function F13V2ParcelCard({
   parcelKey = null,
   onClose,
-  catalog: propCatalog = null,
-  layout: propLayout = null,
+  catalog = null,
+  layout = null,
   onAnalysisSuccess,
   initialTab = 'journey',
 }) {
@@ -43,10 +44,6 @@ export default function F13V2ParcelCard({
   const [card, setCard] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-
-  // Local fallback if catalog or layout were not passed as props
-  const [catalog, setCatalog] = useState(propCatalog);
-  const [layout, setLayout] = useState(propLayout);
 
   // Write Form state
   const [selectedCause, setSelectedCause] = useState('');
@@ -62,64 +59,44 @@ export default function F13V2ParcelCard({
     }
   }, [initialTab, parcelKey]);
 
-  // Load catalog and layout if needed
-  useEffect(() => {
-    if (propCatalog) setCatalog(propCatalog);
-    else {
-      fetchEvidenceCatalog().then((res) => res && setCatalog(res)).catch(() => {});
-    }
-    if (propLayout) setLayout(propLayout);
-    else {
-      fetchLayout().then((res) => res && setLayout(res)).catch(() => {});
-    }
-  }, [propCatalog, propLayout]);
-
   // Extract ngay_do_kiem and ma_bg from parcelKey
   const ngay_do_kiem = parcelKey?.ngay_do_kiem || parcelKey?.date || null;
   const ma_bg = parcelKey?.ma_bg || null;
+  const cardKey = ngay_do_kiem && ma_bg ? `${ngay_do_kiem}|${ma_bg}` : null;
+  const defaultCause = catalog?.causes?.[0]?.code || 'KHONG_TRON_LO';
 
   // Fetch card data from GET /api/f13/v2/evidence/parcel
-  const loadCardData = useCallback(() => {
+  const loadCardData = useCallback(async (isRefresh = false) => {
     if (!ngay_do_kiem || !ma_bg) {
       setCard(null);
       setError(null);
       return;
     }
-    let cancelled = false;
-    setLoading(true);
+    if (!isRefresh) setLoading(true);
     setError(null);
 
-    fetchEvidenceParcel({ ngay_do_kiem, ma_bg })
-      .then((res) => {
-        if (!cancelled) {
-          setCard(res);
-          const anl = res?.analysis;
-          if (anl) {
-            setSelectedCause(anl.cause || '');
-            setNote(anl.note || '');
-          } else {
-            setSelectedCause(catalog?.causes?.[0]?.code || 'KHONG_TRON_LO');
-            setNote('');
-          }
-        }
-      })
-      .catch((err) => {
-        if (!cancelled) {
-          setError(err?.response?.data?.error?.message || err?.message || 'Không thể tải phiếu bưu gửi.');
-        }
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
+    try {
+      const res = await fetchEvidenceParcel({ ngay_do_kiem, ma_bg });
+      setCard(res);
+      const anl = res?.analysis;
+      if (anl) {
+        setSelectedCause(anl.cause || '');
+        setNote(anl.note || '');
+      } else {
+        setSelectedCause(defaultCause);
+        setNote('');
+      }
+    } catch (err) {
+      setError(err?.response?.data?.error?.message || err?.message || 'Không thể tải phiếu bưu gửi.');
+    } finally {
+      setLoading(false);
+    }
+  }, [ngay_do_kiem, ma_bg, defaultCause]);
 
-    return () => {
-      cancelled = true;
-    };
-  }, [ngay_do_kiem, ma_bg, catalog]);
-
+  // U1-R3: One effect keyed on ngay_do_kiem|ma_bg
   useEffect(() => {
     loadCardData();
-  }, [loadCardData]);
+  }, [cardKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Handle escape key
   useEffect(() => {
@@ -199,33 +176,37 @@ export default function F13V2ParcelCard({
     {
       key: 'tms',
       label: '1. Quét xuống TMS',
-      time: milestones.tms,
-      source: 'F1.3',
+      time: getMilestoneAt(milestones.tms),
+      source: milestones.tms?.source || 'F1.3',
     },
     {
       key: 'depart',
       label: '2. Đóng đi khỏi sàn KTC1',
-      time: milestones.depart,
-      source: 'F1.1',
+      time: getMilestoneAt(milestones.depart),
+      source: milestones.depart?.source || 'F1.1',
     },
     {
       key: 'arrive',
       label: '3. Đến BCVH phát',
-      time: milestones.arrive,
-      source: milestones.arrive_source === 'BF' ? 'BatchFile' : (milestones.arrive_source || 'F4.1'),
+      time: getMilestoneAt(milestones.arrive),
+      source: milestones.arrive?.source || (milestones.arrive_source === 'BF' ? 'BatchFile' : (milestones.arrive_source || 'F4.1')),
     },
     {
       key: 'gbt',
       label: '4. Giao bưu tá phát',
-      time: milestones.gbt,
-      source: 'F4.2',
-      note: milestones.gbt_first && milestones.gbt_first !== milestones.gbt ? `Giao đầu: ${milestones.gbt_first}` : null,
+      time: getMilestoneAt(milestones.gbt),
+      source: milestones.gbt?.source || 'F4.2',
+      note: (() => {
+        const first = getMilestoneAt(milestones.gbt_first);
+        const curr = getMilestoneAt(milestones.gbt);
+        return first && first !== curr ? `Giao đầu: ${first}` : null;
+      })(),
     },
     {
       key: 'ptc',
       label: '5. Phát thành công (PTC)',
-      time: milestones.ptc,
-      source: 'F1.3',
+      time: getMilestoneAt(milestones.ptc),
+      source: milestones.ptc?.source || 'F1.3',
     },
   ];
 
@@ -400,7 +381,7 @@ export default function F13V2ParcelCard({
                     <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200">
                       <div className="text-[11px] text-slate-500">Số giờ TCT ghi nhận</div>
                       <div className="text-sm font-extrabold text-slate-900 mt-0.5">
-                        {tct.hours !== null && tct.hours !== undefined ? `${tct.hours}h` : '—'}
+                        {formatJourneyLegHours(tct.hours)}
                       </div>
                       {tct.hours_text && (
                         <div className="text-[10px] text-slate-400">Gốc: {tct.hours_text}</div>
@@ -410,16 +391,14 @@ export default function F13V2ParcelCard({
                     <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200">
                       <div className="text-[11px] text-slate-500">Hạn định phát</div>
                       <div className="text-sm font-extrabold text-slate-900 mt-0.5">
-                        {tct.limit_hours !== null && tct.limit_hours !== undefined ? `${tct.limit_hours}h` : '—'}
+                        {formatJourneyLegHours(tct.limit_hours)}
                       </div>
                     </div>
 
                     <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200">
                       <div className="text-[11px] text-slate-500">Thời gian còn khi đến</div>
                       <div className="text-sm font-extrabold text-slate-900 mt-0.5">
-                        {tct.remaining_at_arrival_hours !== null && tct.remaining_at_arrival_hours !== undefined
-                          ? `${tct.remaining_at_arrival_hours}h`
-                          : '—'}
+                        {formatJourneyLegHours(tct.remaining_at_arrival_hours)}
                       </div>
                     </div>
                   </div>

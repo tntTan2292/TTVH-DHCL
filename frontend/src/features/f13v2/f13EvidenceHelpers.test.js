@@ -14,6 +14,7 @@ import {
   EVIDENCE_JOURNEY_LEGS,
   EVIDENCE_VIEW_CAUSE,
   EVIDENCE_VIEW_JOURNEY,
+  getMilestoneAt,
 } from './f13EvidenceHelpers.js';
 import { buildWhyUnitOptions, resolveEffectiveBcvh } from './f13WhyHelpers.js';
 
@@ -310,6 +311,23 @@ test('f13EvidenceHelpers: EVIDENCE_JOURNEY_LEGS and view mode constants', () => 
     ['tms_depart', 'depart_arrive', 'tms_arrive', 'arrive_gbt', 'gbt_ptc', 'tms_ptc']
   );
 });
+
+test('f13EvidenceHelpers: getMilestoneAt (U1-R1) extracts time string from both string and {at, source} shapes', () => {
+  // Real backend journey.milestones.* string shape
+  assert.equal(getMilestoneAt('2026-10-15 08:30:00'), '2026-10-15 08:30:00');
+  assert.equal(getMilestoneAt(''), '');
+
+  // Object shape { at, source }
+  assert.equal(getMilestoneAt({ at: '2026-10-15 09:45:00', source: 'F1.1' }), '2026-10-15 09:45:00');
+  assert.equal(getMilestoneAt({ at: null, source: 'F4.1' }), null);
+  assert.equal(getMilestoneAt({ source: 'F4.1' }), null);
+
+  // Null, undefined or non-object primitives
+  assert.equal(getMilestoneAt(null), null);
+  assert.equal(getMilestoneAt(undefined), null);
+  assert.equal(getMilestoneAt(0), null);
+});
+
 
 
 

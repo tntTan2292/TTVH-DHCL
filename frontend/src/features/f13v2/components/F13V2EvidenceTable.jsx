@@ -5,7 +5,7 @@ import SortableTh from '../../../components/common/SortableTh.jsx';
 import { useIndicator } from '../../indicator/IndicatorContext.js';
 import { indicatorTheme } from '../../indicator/indicatorConfig.js';
 import { formatCauseLabel, formatPhatDetail, formatChoChuyenQuanReason, formatPostmanName } from '../f13WhyHelpers.js';
-import { formatAnalystCause, sortEvidenceInPage, formatJourneyLegHours } from '../f13EvidenceHelpers.js';
+import { formatAnalystCause, sortEvidenceInPage, formatJourneyLegHours, getMilestoneAt } from '../f13EvidenceHelpers.js';
 
 export default function F13V2EvidenceTable({
   items = [],
@@ -469,19 +469,19 @@ export default function F13V2EvidenceTable({
                       </td>
                       {/* 5 milestones */}
                       <td className="px-2 py-2 text-center border-r border-slate-100 font-mono text-[11px] whitespace-nowrap text-slate-700">
-                        {ms.tms?.at || ms.tms || '—'}
+                        {getMilestoneAt(ms.tms) || '—'}
                       </td>
                       <td className="px-2 py-2 text-center border-r border-slate-100 font-mono text-[11px] whitespace-nowrap text-slate-700">
-                        {ms.depart?.at || ms.depart || '—'}
+                        {getMilestoneAt(ms.depart) || '—'}
                       </td>
                       <td className="px-2 py-2 text-center border-r border-slate-100 font-mono text-[11px] whitespace-nowrap text-slate-700">
-                        {ms.arrive?.at || ms.arrive || '—'}
+                        {getMilestoneAt(ms.arrive) || '—'}
                       </td>
                       <td className="px-2 py-2 text-center border-r border-slate-100 font-mono text-[11px] whitespace-nowrap text-slate-700">
-                        {ms.gbt?.at || ms.gbt || ms.handover_shown?.at || '—'}
+                        {getMilestoneAt(ms.gbt) || getMilestoneAt(ms.handover_shown) || '—'}
                       </td>
                       <td className="px-2 py-2 text-center border-r border-slate-100 font-mono text-[11px] whitespace-nowrap text-slate-700">
-                        {ms.ptc?.at || ms.ptc || '—'}
+                        {getMilestoneAt(ms.ptc) || '—'}
                       </td>
                       {/* 6 leg hours */}
                       <td className="px-2 py-2 text-center border-r border-slate-100 tabular-nums">
