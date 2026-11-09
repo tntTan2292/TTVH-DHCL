@@ -2,7 +2,7 @@
 
 // F13-EVIDENCE-01 B1: the evidence behind every figure of "Phân tích nguyên nhân" and the analyses the Chuyên quản / Giám đốc BCVH record.
 //  - list / export: every F1.3 row of a filter (Đạt included) from f13_cause_parcel (same filter code as /why: one WHERE builder), with the five
-//    milestones taken from JourneyService._parcels (one implementation, never a second copy of the picking rules), TCT hours, limit, the
+//    milestones read from the cause table through the mapping shared with JourneyPeriodService (no JourneyService read), TCT hours, limit, the
 //    system's cause / reason, flags, hints and the current analysis.
 //  - record: appends a row to f13_analysis_log (append-only: triggers refuse UPDATE and DELETE). The system's own figures are never touched (PO V2).
 // Analysed counts for /why/* are in CauseAggQueryService (they join the same log).
@@ -16,12 +16,10 @@ const { CAUSE_CODES } = require('../../../migrate_f13_evidence_01_schema');
 const FAILED = 'Không đạt';
 const DEFAULT_PAGE_SIZE = 50;
 const MAX_PAGE_SIZE = 100;
-const MAX_PAGE_DAYS = 12; // distinct measurement days a page may need milestones for (each day is one JourneyService read)
+const MAX_PAGE_DAYS = 12; // kept for the exports of this module (no longer limits a page)
 const EXPORT_MAX_DAYS = 31;
 const EXPORT_MAX_ROWS = 150000;
 const NOTE_MAX = 1000;
-const DAY_CACHE_TTL_MS = 5 * 60 * 1000;
-const DAY_CACHE_MAX = 8;
 
 // The causes an analyst may choose (PO V4). `phat_detail` is stored for the two Phát choices.
 const ANALYST_CAUSES = Object.freeze([
@@ -105,7 +103,13 @@ function evidencePeriod(query) {
     if (query.date !== undefined) throw fail('MISSING_PARAM', 'Chỉ dùng một trong date, from+to, week, month');
     return resolvePeriod(query);
 }
-const hours =(ms) => (ms === null || ms === undefined ? null : Math.round((ms / 3600000) * 100) / 100);
+/** The 'H:MM' text of the TCT hours (rebuilt from tct_ms: the original fact_f13 text is not in the cause table). */
+const hoursText = (ms) => {
+    if (ms === null || ms === undefined) return null;
+    const minutes = Math.round(ms / 60000);
+    return `${Math.floor(minutes / 60)}:${minutes % 60}`; // the source text keeps the minutes unpadded ('85:3')
+};
+const hours = (ms) => (ms === null || ms === undefined ? null : Math.round((ms / 3600000) * 100) / 100);
 
 class EvidenceService {
     /**
@@ -113,10 +117,10 @@ class EvidenceService {
      *   db            read connection (shared config/db or a sqlite3 Database)
      *   writeDb       connection for the append (default: db)
      *   causeAgg      CauseAggQueryService (its _where is the one filter of /why and of this list)
-     *   journeyService JourneyService (milestones)
+     *   journeyService unused since F13-PARCEL-CARD-01 B1-FIX (the facts come from the cause table); still accepted so callers need no change
      */
     constructor({ db, writeDb = null, causeAgg, journeyService, now = () => new Date(), classifierVersion = null, clock = () => Date.now() } = {}) {
-        if (!db || !causeAgg || !journeyService) throw new Error('EvidenceService needs db, causeAgg and journeyService');
+        if (!db || !causeAgg) throw new Error('EvidenceService needs db and causeAgg');
         this.db = wrapDb(db);
         this.writeDb = wrapDb(writeDb || db);
         this.causeAgg = causeAgg;
@@ -124,7 +128,6 @@ class EvidenceService {
         this.now = now;
         this.clock = clock;
         this.classifierVersion = classifierVersion;
-        this.dayCache = new Map();
     }
 
     catalog() {
@@ -169,45 +172,55 @@ class EvidenceService {
         return Number((await this.db.get(`SELECT COUNT(*) AS n FROM ${WITH_ANALYSIS} WHERE ${where.sql}`, where.params)).n);
     }
 
-    // ---- milestones: one JourneyService read per measurement day, cached for a few minutes
-    async _dayParcels(day) {
-        const cached = this.dayCache.get(day);
-        if (cached && this.clock() - cached.at < DAY_CACHE_TTL_MS) return cached.map;
-        const parcels = await this.journeyService._parcels(day); // city-wide on purpose: the same rows the builder read
-        const map = new Map(parcels.map((parcel) => [parcel.ma_bg, parcel]));
-        this.dayCache.set(day, { at: this.clock(), map });
-        while (this.dayCache.size > DAY_CACHE_MAX) this.dayCache.delete(this.dayCache.keys().next().value);
-        return map;
+    /** Route names of a page of rows (a courtesy: one query over agg_f13_day, like /journey/parcels). */
+    async _routeNames(rows) {
+        const named = rows.filter((row) => row.ma_tuyen);
+        if (!named.length) return new Map();
+        const codes = [...new Set(named.map((row) => String(row.ma_bcvh)))];
+        const days = named.map((row) => row.ngay_do_kiem).sort();
+        try {
+            const found = await this.db.all(
+                `SELECT ma_bcvh, ma_tuyen, MAX(ten_tuyen) AS ten_tuyen FROM agg_f13_day
+                 WHERE ngay_do_kiem BETWEEN ? AND ? AND ma_bcvh IN (${codes.map(() => '?').join(', ')}) GROUP BY ma_bcvh, ma_tuyen`,
+                [days[0], days[days.length - 1], ...codes],
+            );
+            return new Map(found.map((row) => [`${row.ma_bcvh}|${row.ma_tuyen}`, row.ten_tuyen]));
+        } catch {
+            return new Map();
+        }
     }
 
-    _item(row, journey, state) {
-        const m = journey?.milestones || null;
+    // every journey fact comes from the cause-table row through the shared mapping (B1-FIX): no JourneyService read
+    _item(row, names) {
+        const journey = journeyFactsOf(row);
+        const m = journey.milestones;
+        const hasMilestones = ['tms', 'depart', 'arrive', 'gbt', 'gbt_first', 'ptc'].some((key) => m[key] !== null);
         const at = (value, source) => ({ at: value ?? null, source: value ? source : null });
         return {
             ngay_do_kiem: row.ngay_do_kiem,
             ma_bg: row.ma_bg,
             ma_bcvh: row.ma_bcvh,
             ma_tuyen: row.ma_tuyen,
-            ten_tuyen: journey?.ten_tuyen ?? null,
+            ten_tuyen: names.get(`${row.ma_bcvh}|${row.ma_tuyen}`) ?? routeLabelOf(row, names), // the name of the table, else the Hành trình label
             route_scope: row.route_scope,
             ma_buu_ta_first: row.ma_buu_ta_first,
             ten_buu_ta_first: row.ten_buu_ta_first,
             ma_buu_ta_shown: row.ma_buu_ta_shown,
             ten_buu_ta_shown: row.ten_buu_ta_shown,
             danh_gia: row.danh_gia,
-            tct: { hours_text: journey?.so_gio_tct ?? null, tct_hours: hours(row.tct_ms), limit_hours: hours(row.limit_ms), recomputed_hours: hours(row.r_ms), remaining_at_arrival_hours: hours(row.remaining_at_arrival_ms) },
+            tct: { hours_text: hoursText(row.tct_ms), tct_hours: hours(row.tct_ms), limit_hours: hours(row.limit_ms), recomputed_hours: hours(row.r_ms), remaining_at_arrival_hours: hours(row.remaining_at_arrival_ms) },
             // F13-PARCEL-CARD-01: the journey facts of /journey/parcels, from the cause table through the one shared mapping
-            journey: journeyFactsOf(row),
-            milestones_state: state,
-            milestones: m ? {
+            journey,
+            milestones_state: hasMilestones ? 'OK' : 'NOT_IN_SOURCE',
+            milestones: {
                 tms: at(m.tms, 'F1.3'),
                 depart: at(m.depart, 'F1.1'),
                 arrive: at(m.arrive, m.arrive_source === 'BF' ? 'BatchFile' : 'F4.1'),
                 handover_first: at(m.gbt_first, 'F4.2'),
                 handover_shown: at(m.gbt, 'F4.2'),
                 ptc: at(m.ptc, 'F1.3'),
-            } : null,
-            legs: journey?.legs ?? null,
+            },
+            legs: journey.legs,
             system: systemOf(row),
             flags: splitList(row.flags),
             hints: splitList(row.hints),
@@ -239,19 +252,8 @@ class EvidenceService {
             `SELECT * FROM ${WITH_ANALYSIS} WHERE ${where.sql} ORDER BY ${orderSql} LIMIT ? OFFSET ?`,
             [...where.params, size, (page - 1) * size],
         );
-        const days = [...new Set(rows.map((row) => row.ngay_do_kiem))];
-        const loadable = new Set(days.slice(0, MAX_PAGE_DAYS));
-        const byDay = new Map();
-        for (const day of loadable) {
-            try { byDay.set(day, await this._dayParcels(day)); } catch { byDay.set(day, null); }
-        }
-        const items = rows.map((row) => {
-            if (!loadable.has(row.ngay_do_kiem)) return this._item(row, null, 'SKIPPED_TOO_MANY_DAYS');
-            const map = byDay.get(row.ngay_do_kiem);
-            if (!map) return this._item(row, null, 'UNAVAILABLE');
-            const journey = map.get(row.ma_bg);
-            return this._item(row, journey, journey ? 'OK' : 'NOT_IN_SOURCE');
-        });
+        const names = await this._routeNames(rows);
+        const items = rows.map((row) => this._item(row, names));
         const meta = await this.causeAgg._meta(period, scope, query);
         return { items, meta: { ...meta, total, page, page_size: size, total_pages: totalPages, order: sortColumn ? 'SORT' : (dateOnly ? 'DATE' : 'PRIORITY'), sort: sortColumn ? String(query.sort) : null, period } };
     }
@@ -277,11 +279,9 @@ class EvidenceService {
         let written = 0;
         for (const day of days) {
             const rows = await this.db.all(`SELECT * FROM ${WITH_ANALYSIS} WHERE ${where.sql} AND ngay_do_kiem = ? ORDER BY ma_bcvh, ma_tuyen, ma_bg`, [...where.params, day]);
-            let map = null;
-            try { map = await this._dayParcels(day); } catch { map = null; }
+            const names = await this._routeNames(rows);
             for (const row of rows) {
-                const journey = map ? map.get(row.ma_bg) : null;
-                sheet.addRow(exportRow(this._item(row, journey, map ? (journey ? 'OK' : 'NOT_IN_SOURCE') : 'UNAVAILABLE'))).commit();
+                sheet.addRow(exportRow(this._item(row, names))).commit();
                 written += 1;
             }
         }
@@ -372,7 +372,7 @@ class EvidenceService {
             ma_bcvh: row.ma_bcvh,
             ten_bcvh: BCVH_NAMES[row.ma_bcvh] ?? null,
             ma_tuyen: row.ma_tuyen,
-            ten_tuyen: routeLabelOf(row, names),
+            ten_tuyen: names.get(`${row.ma_bcvh}|${row.ma_tuyen}`) ?? routeLabelOf(row, names), // the name of the table, else the Hành trình label
             route_scope: row.route_scope,
             danh_gia: row.danh_gia,
             postman: { first: { ma: row.ma_buu_ta_first, ten: row.ten_buu_ta_first }, shown: { ma: row.ma_buu_ta_shown, ten: row.ten_buu_ta_shown } },

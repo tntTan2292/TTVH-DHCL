@@ -22,7 +22,7 @@ const causeAggService = new CauseAggQueryService({ db: sharedDb });
 // F13-JOURNEY-ROUTE-02 B1: Hành trình over a period; the cause fields are read through the same query layer as /why.
 const journeyPeriodService = new JourneyPeriodService({ db: sharedDb, causeAgg: causeAggService });
 // F13-EVIDENCE-01: evidence list / export / analyses. The append goes through the shared connection (one INSERT, atomic).
-const evidenceService = new EvidenceService({ db: sharedDb, causeAgg: causeAggService, journeyService });
+const evidenceService = new EvidenceService({ db: sharedDb, causeAgg: causeAggService });
 
 function journeyScope(req) {
     const { ma_bcvh: maBcvh } = req.query;

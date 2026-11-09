@@ -91,3 +91,25 @@ Status: B1 done, waiting for the Opus review. No live build, no restart, no logi
 
   Fix: the list must not call `JourneyService` at all. Build the old `milestones` / `milestones_state` / `tct.hours_text` from the cause-table columns through the shared mapping, or drop them if no screen reads them (check `F13V2Evidence*`). The `/journey/parcels` speed (~0,1 s) is the target for the popup.
 - **For U1:** `can_analyse` only means "the parcel failed". The screen must also check `f13.analysis.write` and the unit before it shows the Phân tích form.
+
+## 9. B1-FIX result (Claude Code / Sonnet 5.5, 2026-11-09)
+
+Status: B1-R1 fixed, waiting for the Opus review. No live build, no restart, no login to the live backend; all measuring on the B3 database copy.
+
+- `/evidence/list` and `/export` no longer call `JourneyService` (the day cache, `_dayParcels`, and the 12-day page limit are gone). Every old field is filled from the `f13_cause_parcel` row through the shared `journeyFactsOf`: `milestones` (with sources F1.3 / F1.1 / F4.1 or BatchFile / F4.2), `milestones_state`, `legs`, `tct.hours_text`, and `ten_tuyen` (one `agg_f13_day` query per page, else the Hành trình label). No frontend file needed to change: `F13V2EvidenceDetailModal` and `F13V2EvidenceTable` read exactly these fields, so all were kept. `EvidenceService` still accepts a `journeyService` option but ignores it.
+- **Same items, same counts, same order** - old service (HEAD) against the new one, same four requests, row by row on the copy: total equal, `ma_bg` order equal, in all four. Field differences, all explained:
+  1. `tct.hours_text` is rebuilt as `H:M` from `tct_ms` (the source text keeps the minutes unpadded, e.g. `85:3`), and matches the old text wherever the table has `tct_ms`. **Not rebuildable:** a parcel with no `tct_ms` in the table (no PTC yet) had a text in `fact_f13` (e.g. `9:21`); it is now `null` (1 of 20 in the popup, 6 of 20 on the day request). The only reader is the small caption "Gốc: ..." of the detail modal.
+  2. Rows that the old code returned empty because the page spanned more than 12 days (`SKIPPED_TOO_MANY_DAYS`: `milestones`, `legs`, `ten_tuyen` null; 5 of 100 on the leg sort) are now filled, `milestones_state = OK`. This is the intended improvement.
+  3. `milestones_state` is `OK` when the row has any milestone, else `NOT_IN_SOURCE`; `UNAVAILABLE` no longer exists.
+- **Time, in-process on the copy (service call, leader scope = city, 2nd call warm).** Old = first call, which loads the days (the HTTP numbers of §8 are the same cause):
+
+  | Request | Old, first call | New, first / warm |
+  |---|---|---|
+  | popup: `view=journey&month=2026-10&bcvh=533140&route=53314049&postman=53B383&page_size=20` | 7,4 s | 0,43 s / 0,29 s |
+  | `view=journey&month=2026-10&bcvh=533140&page_size=20` | 4,2 s | 0,30 s / 0,29 s |
+  | `...&sort=gbt_ptc&order=desc&page_size=100` | 16,1 s (17,7 s on the 2nd call: 100 rows span more days than the cache holds) | 0,26 s / 0,30 s |
+  | `view=journey&date=2026-10-15&bcvh=533140&page_size=20` | 1,4 s | 0,009 s / 0,008 s |
+
+  (The fifth request of §8, `/journey/parcels`, is unchanged, ~0,1 s.) The rest of the 0,3 s on a month is the total count and `_meta` on 57 700 rows.
+- Test fixture of `f13v2Evidence.test.js`: it now fills `ms_tms` / `ms_ptc` of the cause table (the list reads them from there), instead of relying on `fact_f13` through `JourneyService`.
+- Suites: `f13v2ParcelCard` 8, `f13v2Evidence` 16, `JourneyPeriodService` 16, `f13v2Routes.scope` 13, `f13v2WhyRoutes.scope` 5, `f13v2RuleProposal` 8, all pass.

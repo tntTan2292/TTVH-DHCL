@@ -83,6 +83,9 @@ test.before(async () => {
             }
         }
     }
+    // the milestones the list shows are read from the cause table (B1-FIX): the TMS scan and, for rated parcels, the PTC of the fact rows above
+    await run(`UPDATE f13_cause_parcel SET ms_tms = CAST(strftime('%s', ngay_do_kiem || ' 07:00:00') AS INTEGER) * 1000,
+        ms_ptc = CASE WHEN danh_gia IS NOT NULL THEN CAST(strftime('%s', ngay_do_kiem || ' 17:12:41') AS INTEGER) * 1000 END`);
     await run('COMMIT');
     const app = express();
     app.use('/api/f13/v2', f13v2Routes);
