@@ -10,6 +10,7 @@
 const ExcelJS = require('exceljs');
 const { resolvePeriod, lineOf, labelOfLine } = require('./CauseAggQueryService');
 const { computeClassifierVersion } = require('./CauseAggBuilder');
+const { resolveJourneyPeriod, journeyFactsOf, routeLabelOf, PARCEL_SORT_COLUMN, BCVH_NAMES } = require('./JourneyPeriodService');
 const { CAUSE_CODES } = require('../../../migrate_f13_evidence_01_schema');
 
 const FAILED = 'Không đạt';
@@ -92,7 +93,19 @@ function analysisOf(row) {
 }
 
 const splitList = (text) => (text ? String(text).split(',').filter(Boolean) : []);
-const hours = (ms) => (ms === null || ms === undefined ? null : Math.round((ms / 3600000) * 100) / 100);
+
+/**
+ * The period of an evidence request: from+to / week / month as before, plus `date` (= one day). With view=journey the Hành trình rules apply:
+ * the 93-day limit (resolveJourneyPeriod). Without it the old limit of the evidence page stays.
+ */
+function evidencePeriod(query) {
+    if (String(query.view || '') === 'journey') return resolveJourneyPeriod(query);
+    const hasSelector = query.from !== undefined || query.to !== undefined || query.week !== undefined || query.month !== undefined;
+    if (query.date !== undefined && !hasSelector) return resolveJourneyPeriod({ date: query.date });
+    if (query.date !== undefined) throw fail('MISSING_PARAM', 'Chỉ dùng một trong date, from+to, week, month');
+    return resolvePeriod(query);
+}
+const hours =(ms) => (ms === null || ms === undefined ? null : Math.round((ms / 3600000) * 100) / 100);
 
 class EvidenceService {
     /**
@@ -120,9 +133,15 @@ class EvidenceService {
 
     // ---- filter: the /why filter plus analysed / analyst_cause
     _where(period, scope, filter) {
-        const base = this.causeAgg._where(period, scope, filter, { forParcels: true });
+        // view=journey: `postman` is the postman SHOWN of the journey (a code or @NONE), as in /journey/parcels; otherwise it stays the /why first postman
+        const journeyPostman = String(filter.view || '') === 'journey' && filter.postman ? String(filter.postman) : null;
+        const base = this.causeAgg._where(period, scope, journeyPostman ? { ...filter, postman: undefined } : filter, { forParcels: true });
         const clauses = [base.sql];
         const params = [...base.params];
+        if (journeyPostman) {
+            if (journeyPostman === '@NONE' || journeyPostman === 'NONE') clauses.push("(ma_buu_ta_shown IS NULL OR ma_buu_ta_shown = '')");
+            else { clauses.push('ma_buu_ta_shown = ?'); params.push(journeyPostman); }
+        }
         if (filter.analysed !== undefined && filter.analysed !== null && filter.analysed !== '') {
             const value = String(filter.analysed).toLowerCase();
             // like /why, only failed parcels count as analysed (B1-R1); the item of any other parcel still shows its old analysis
@@ -146,7 +165,7 @@ class EvidenceService {
 
     /** The total of a filter: the same WHERE as the list, without loading milestones (used by the parity checks). */
     async count(query, scope) {
-        const where = this._where(resolvePeriod(query), scope, query);
+        const where = this._where(evidencePeriod(query), scope, query);
         return Number((await this.db.get(`SELECT COUNT(*) AS n FROM ${WITH_ANALYSIS} WHERE ${where.sql}`, where.params)).n);
     }
 
@@ -177,6 +196,8 @@ class EvidenceService {
             ten_buu_ta_shown: row.ten_buu_ta_shown,
             danh_gia: row.danh_gia,
             tct: { hours_text: journey?.so_gio_tct ?? null, tct_hours: hours(row.tct_ms), limit_hours: hours(row.limit_ms), recomputed_hours: hours(row.r_ms), remaining_at_arrival_hours: hours(row.remaining_at_arrival_ms) },
+            // F13-PARCEL-CARD-01: the journey facts of /journey/parcels, from the cause table through the one shared mapping
+            journey: journeyFactsOf(row),
             milestones_state: state,
             milestones: m ? {
                 tms: at(m.tms, 'F1.3'),
@@ -200,7 +221,7 @@ class EvidenceService {
 
     /** Paged list. Default order: failed parcels waiting for the Chuyên quản and not yet analysed first (PO V3), then the newest day, then the code. */
     async list(query, scope) {
-        const period = resolvePeriod(query);
+        const period = evidencePeriod(query);
         const where = this._where(period, scope, query);
         const size = Math.min(Math.max(Number(query.page_size ?? query.pageSize) || DEFAULT_PAGE_SIZE, 1), MAX_PAGE_SIZE);
         const total = Number((await this.db.get(`SELECT COUNT(*) AS n FROM ${WITH_ANALYSIS} WHERE ${where.sql}`, where.params)).n);
@@ -208,9 +229,14 @@ class EvidenceService {
         const page = Math.min(Math.max(Number(query.page) || 1, 1), totalPages);
         const dateOnly = String(query.sort || '') === 'date';
         const direction = String(query.order || '').toLowerCase() === 'asc' ? 'ASC' : 'DESC';
-        const priority = dateOnly ? '' : `(CASE WHEN cause_status = 'CHO_CHUYEN_QUAN' AND danh_gia = '${FAILED}' AND a_id IS NULL THEN 0 ELSE 1 END) ASC, `;
+        // a milestone / leg / lot sort key (the names of /journey/parcels): missing values last in both directions, then the stable order
+        const sortColumn = Object.hasOwn(PARCEL_SORT_COLUMN, String(query.sort || '')) ? PARCEL_SORT_COLUMN[String(query.sort)] : null;
+        const priority = dateOnly || sortColumn ? '' : `(CASE WHEN cause_status = 'CHO_CHUYEN_QUAN' AND danh_gia = '${FAILED}' AND a_id IS NULL THEN 0 ELSE 1 END) ASC, `;
+        const orderSql = sortColumn
+            ? `${sortColumn} IS NULL, ${sortColumn} ${direction}, ngay_do_kiem ASC, ma_bg ASC`
+            : `${priority}ngay_do_kiem ${direction}, ma_bg ASC`;
         const rows = await this.db.all(
-            `SELECT * FROM ${WITH_ANALYSIS} WHERE ${where.sql} ORDER BY ${priority}ngay_do_kiem ${direction}, ma_bg ASC LIMIT ? OFFSET ?`,
+            `SELECT * FROM ${WITH_ANALYSIS} WHERE ${where.sql} ORDER BY ${orderSql} LIMIT ? OFFSET ?`,
             [...where.params, size, (page - 1) * size],
         );
         const days = [...new Set(rows.map((row) => row.ngay_do_kiem))];
@@ -227,12 +253,12 @@ class EvidenceService {
             return this._item(row, journey, journey ? 'OK' : 'NOT_IN_SOURCE');
         });
         const meta = await this.causeAgg._meta(period, scope, query);
-        return { items, meta: { ...meta, total, page, page_size: size, total_pages: totalPages, order: dateOnly ? 'DATE' : 'PRIORITY' } };
+        return { items, meta: { ...meta, total, page, page_size: size, total_pages: totalPages, order: sortColumn ? 'SORT' : (dateOnly ? 'DATE' : 'PRIORITY'), sort: sortColumn ? String(query.sort) : null, period } };
     }
 
     // ---- Excel export of the whole filtered set (server side)
     async _exportPlan(query, scope) {
-        const period = resolvePeriod(query);
+        const period = evidencePeriod(query);
         const days = Math.round((Date.parse(`${period.to}T00:00:00Z`) - Date.parse(`${period.from}T00:00:00Z`)) / 86400000) + 1;
         if (days > EXPORT_MAX_DAYS) throw fail('EXPORT_TOO_LARGE', `Xuất Excel tối đa ${EXPORT_MAX_DAYS} ngày một lần (đang chọn ${days} ngày). Hãy thu hẹp khoảng thời gian.`);
         const where = this._where(period, scope, query);
@@ -320,6 +346,46 @@ class EvidenceService {
         const row = await this._parcelRow(ngay, maBg);
         if (!row) throw fail('PARCEL_NOT_FOUND', 'Không tìm thấy bưu gửi (ngày đo kiểm, mã bưu gửi) trong bảng phân tích');
         this._assertScope(row, scope);
+        return this._historyOf(row);
+    }
+
+    /**
+     * F13-PARCEL-CARD-01: the whole parcel card in one call. Same unit scope as the list (a parcel of another unit: 403 OUT_OF_SCOPE; unknown: 404).
+     * Journey facts from the cause table (one shared mapping), the system conclusion with its basis, the latest analysis and the history.
+     */
+    async parcel(ngay, maBg, scope) {
+        if (!String(ngay || '').trim() || !String(maBg || '').trim()) throw fail('MISSING_PARAM', 'Yêu cầu ngay_do_kiem và ma_bg');
+        const row = await this._parcelRow(ngay, maBg);
+        if (!row) throw fail('PARCEL_NOT_FOUND', 'Không tìm thấy bưu gửi (ngày đo kiểm, mã bưu gửi) trong bảng phân tích');
+        this._assertScope(row, scope);
+        let names = null;
+        if (row.route_scope === 'POSTMAN') {
+            try {
+                const found = await this.db.get('SELECT MAX(ten_tuyen) AS ten_tuyen FROM agg_f13_day WHERE ngay_do_kiem = ? AND ma_bcvh = ? AND ma_tuyen = ?', [row.ngay_do_kiem, row.ma_bcvh, row.ma_tuyen]);
+                names = new Map([[`${row.ma_bcvh}|${row.ma_tuyen}`, found?.ten_tuyen ?? null]]);
+            } catch { names = null; } // the name is a courtesy
+        }
+        const history = await this._historyOf(row);
+        return {
+            ngay_do_kiem: row.ngay_do_kiem,
+            ma_bg: row.ma_bg,
+            ma_bcvh: row.ma_bcvh,
+            ten_bcvh: BCVH_NAMES[row.ma_bcvh] ?? null,
+            ma_tuyen: row.ma_tuyen,
+            ten_tuyen: routeLabelOf(row, names),
+            route_scope: row.route_scope,
+            danh_gia: row.danh_gia,
+            postman: { first: { ma: row.ma_buu_ta_first, ten: row.ten_buu_ta_first }, shown: { ma: row.ma_buu_ta_shown, ten: row.ten_buu_ta_shown } },
+            journey: journeyFactsOf(row),
+            tct: { hours: hours(row.tct_ms), limit_hours: hours(row.limit_ms), recomputed_hours: hours(row.r_ms), remaining_at_arrival_hours: hours(row.remaining_at_arrival_ms) },
+            system: { ...systemOf(row), flags: splitList(row.flags), hints: splitList(row.hints), a_source: row.a_source ?? null, remaining_at_arrival_hours: hours(row.remaining_at_arrival_ms) },
+            analysis: analysisOf(row),
+            can_analyse: row.danh_gia === FAILED,
+            history: { entries: history.entries },
+        };
+    }
+
+    async _historyOf(row) {
         const entries = await this.db.all('SELECT * FROM f13_analysis_log WHERE ngay_do_kiem = ? AND ma_bg = ? ORDER BY id DESC', [row.ngay_do_kiem, row.ma_bg]);
         return {
             ngay_do_kiem: row.ngay_do_kiem,

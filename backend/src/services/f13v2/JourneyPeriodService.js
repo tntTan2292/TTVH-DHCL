@@ -152,6 +152,32 @@ const NO_POSTMAN = 'NONE'; // the postman filter value (and key part) of parcels
 const ROUTE_KEY_SQL = "CASE WHEN route_scope = 'POSTMAN' THEN ma_tuyen ELSE '@' || route_scope END";
 const POSTMAN_KEY_SQL = "COALESCE(NULLIF(ma_buu_ta_shown, ''), 'NONE')";
 
+/**
+ * The journey facts of one f13_cause_parcel row (lot, TCT hours, leg hours, the six milestones): THE mapping of /journey/parcels, shared with the
+ * evidence list and the parcel card (F13-PARCEL-CARD-01), so a parcel shows the same facts everywhere.
+ */
+function journeyFactsOf(row) {
+    return {
+        ma_lo: row.ma_lo,
+        khong_tron_lo: Boolean(row.khong_tron_lo),
+        limit_ms: row.limit_ms,
+        tct_ms: row.tct_ms,
+        l_ms: row.l_ms,
+        r_ms: row.r_ms,
+        legs: Object.fromEntries(LEGS.map((leg) => [leg, hoursOf(row[LEG_COLUMN[leg]])])),
+        milestones: {
+            tms: formatTime(row.ms_tms), depart: formatTime(row.ms_depart), arrive: formatTime(row.ms_arrive), arrive_source: row.ms_arrive_source ?? null,
+            gbt: formatTime(row.ms_gbt), gbt_first: formatTime(row.ms_gbt_first), ptc: formatTime(row.ms_ptc),
+        },
+    };
+}
+
+/** The route name of a row: the table name for a postman route, a fixed label for the other two groups. `names` maps `${bcvh}|${route}` to a name. */
+function routeLabelOf(row, names) {
+    if (row.route_scope === 'POSTMAN') return names?.get(`${row.ma_bcvh}|${row.ma_tuyen}`) ?? null;
+    return row.route_scope === 'NON_POSTMAN' ? NON_POSTMAN_LABEL : OTHER_LABEL;
+}
+
 function emptyMix() {
     return { counts: {}, chua_du: { count: 0, by_step: {}, by_flag: {} }, cho: { count: 0, by_reason: {} }, unclassified: 0 };
 }
@@ -408,46 +434,32 @@ class JourneyPeriodService {
             [...params, size, (current - 1) * size],
         );
         const names = await this._routeNames(period, [...new Set(rows.map((row) => String(row.ma_bcvh)))]);
-        const parcels = rows.map((row) => {
-            const legs = Object.fromEntries(LEGS.map((leg) => [leg, hoursOf(row[LEG_COLUMN[leg]])]));
-            const isPostman = row.route_scope === 'POSTMAN';
-            return {
-                ngay_do_kiem: row.ngay_do_kiem,
-                ma_bg: row.ma_bg,
-                ma_bcvh: row.ma_bcvh,
-                ten_bcvh: BCVH_NAMES[row.ma_bcvh] ?? null,
-                ma_tuyen: row.ma_tuyen,
-                ten_tuyen: isPostman ? (names.get(`${row.ma_bcvh}|${row.ma_tuyen}`) ?? null) : (row.route_scope === 'NON_POSTMAN' ? NON_POSTMAN_LABEL : OTHER_LABEL),
-                route_scope: row.route_scope,
-                danh_gia: row.danh_gia,
-                ma_buu_ta: row.ma_buu_ta_shown,
-                ten_buu_ta: row.ten_buu_ta_shown,
-                ma_buu_ta_first: row.ma_buu_ta_first,
-                ten_buu_ta_first: row.ten_buu_ta_first,
-                cause: row.cause_code
-                    ? { code: row.cause_code, label: CAUSES[row.cause_code]?.label ?? labelOfLine(row.cause_code), detail: row.cause_detail ?? null, detail_label: PHAT_DETAILS[row.cause_detail]?.label ?? null, line: lineOf(row.cause_code, row.cause_detail) }
-                    : null,
-                cause_status: row.cause_status,
-                cause_step: row.cause_step,
-                cause_reason: row.cause_reason ?? null,
-                cause_basis: row.basis ?? null,
-                a_source: row.a_source ?? null,
-                remaining_at_arrival_ms: row.remaining_at_arrival_ms ?? null,
-                flags: splitList(row.flags),
-                hints: splitList(row.hints),
-                ma_lo: row.ma_lo,
-                khong_tron_lo: Boolean(row.khong_tron_lo),
-                limit_ms: row.limit_ms,
-                tct_ms: row.tct_ms,
-                l_ms: row.l_ms,
-                r_ms: row.r_ms,
-                legs,
-                milestones: {
-                    tms: formatTime(row.ms_tms), depart: formatTime(row.ms_depart), arrive: formatTime(row.ms_arrive), arrive_source: row.ms_arrive_source ?? null,
-                    gbt: formatTime(row.ms_gbt), gbt_first: formatTime(row.ms_gbt_first), ptc: formatTime(row.ms_ptc),
-                },
-            };
-        });
+        const parcels = rows.map((row) => ({
+            ngay_do_kiem: row.ngay_do_kiem,
+            ma_bg: row.ma_bg,
+            ma_bcvh: row.ma_bcvh,
+            ten_bcvh: BCVH_NAMES[row.ma_bcvh] ?? null,
+            ma_tuyen: row.ma_tuyen,
+            ten_tuyen: routeLabelOf(row, names),
+            route_scope: row.route_scope,
+            danh_gia: row.danh_gia,
+            ma_buu_ta: row.ma_buu_ta_shown,
+            ten_buu_ta: row.ten_buu_ta_shown,
+            ma_buu_ta_first: row.ma_buu_ta_first,
+            ten_buu_ta_first: row.ten_buu_ta_first,
+            cause: row.cause_code
+                ? { code: row.cause_code, label: CAUSES[row.cause_code]?.label ?? labelOfLine(row.cause_code), detail: row.cause_detail ?? null, detail_label: PHAT_DETAILS[row.cause_detail]?.label ?? null, line: lineOf(row.cause_code, row.cause_detail) }
+                : null,
+            cause_status: row.cause_status,
+            cause_step: row.cause_step,
+            cause_reason: row.cause_reason ?? null,
+            cause_basis: row.basis ?? null,
+            a_source: row.a_source ?? null,
+            remaining_at_arrival_ms: row.remaining_at_arrival_ms ?? null,
+            flags: splitList(row.flags),
+            hints: splitList(row.hints),
+            ...journeyFactsOf(row),
+        }));
         return {
             parcels,
             meta: { date: period.from === period.to ? period.from : null, period, total, page: current, page_size: size, total_pages: totalPages },
@@ -455,4 +467,4 @@ class JourneyPeriodService {
     }
 }
 
-module.exports = { JourneyPeriodService, resolveJourneyPeriod, mainCauseOf, slowestLegOf, routeKeyOf, shiftIsoDate, MAX_DAYS, LEGS, STAGE_LEGS };
+module.exports = { JourneyPeriodService, resolveJourneyPeriod, journeyFactsOf, routeLabelOf, PARCEL_SORT_COLUMN, BCVH_NAMES, mainCauseOf, slowestLegOf, routeKeyOf, shiftIsoDate, MAX_DAYS, LEGS, STAGE_LEGS };

@@ -200,6 +200,11 @@ class F13V2Controller {
         await F13V2Controller.why(req, res, (request) => evidenceService.history(request.query.ngay_do_kiem, request.query.ma_bg, request.scope));
     }
 
+    // F13-PARCEL-CARD-01 B1: the whole parcel card in one call
+    async getEvidenceParcel(req, res) {
+        await F13V2Controller.why(req, res, (request) => evidenceService.parcel(request.query.ngay_do_kiem, request.query.ma_bg, request.scope));
+    }
+
     static async why(req, res, handler) {
         try {
             res.status(200).json({ success: true, data: await handler(whyRequest(req)) });

@@ -58,3 +58,18 @@ Written in detail after B1. Outline:
 ## 6. Change log
 
 - 2026-11-09: created by Claude Code / Opus 5.5 after the PO chose "phiếu chung + gộp danh sách".
+
+## 7. B1 backend result (Claude Code / Sonnet 5.5, 2026-11-09)
+
+Status: B1 done, waiting for the Opus review. No live build, no restart, no login to the live backend, no figure and no cause rule changed. `/journey/*` responses are unchanged.
+
+- **One shared mapping.** `journeyFactsOf(row)` and `routeLabelOf(row, names)` in `JourneyPeriodService.js` build the lot, TCT, leg-hour and milestone facts. `/journey/parcels`, `/evidence/list` and `/evidence/parcel` all call them, so there is no copy. They read `f13_cause_parcel` (`ms_*`, `leg_*_ms`); no rebuild is needed.
+- **`/evidence/list` and `/export`.**
+  - Each item has a new `journey` object (`ma_lo`, `khong_tron_lo`, `limit_ms`, `tct_ms`, `l_ms`, `r_ms`, `legs`, `milestones`). The old `milestones` and `legs` fields are untouched.
+  - `date` is a new period form beside `from+to`, `week` and `month`.
+  - Sort keys: `tms`, `depart`, `arrive`, `gbt`, `gbt_first`, `ptc`, the six `leg` names (`tms_depart` ... `tms_ptc`), and `ma_lo`, `danh_gia`, `ma_tuyen`. Missing values come last in both directions; `meta.order = SORT`.
+  - `route` was already accepted (the `/why` meaning). `postman`: see the decision below.
+- **Decision made by the executor (technical, please confirm).** `view=journey` switches the list to the Hành trình rules: `postman` is the postman SHOWN of the journey (a code or `@NONE`, as in `/journey/parcels`), and the 93-day limit applies. Without `view=journey` nothing changes: `postman` stays the `/why` first postman (the existing Dữ liệu minh chứng filter and its tests), and the limit stays at the evidence page's 366 days. U1 must send `view=journey` when it opens a row of Hành trình. The alternative (always the shown postman) would silently change the counts of the existing postman drill-down.
+- **`GET /api/f13/v2/evidence/parcel?ngay_do_kiem=&ma_bg=`.** Capability `f13.analysis.view`, unit scope as `/evidence/list`: another unit 403 `OUT_OF_SCOPE`, unknown parcel 404 `PARCEL_NOT_FOUND`, missing parameters 400 `MISSING_PARAM`. Response `data`: `ngay_do_kiem`, `ma_bg`, `ma_bcvh`, `ten_bcvh`, `ma_tuyen`, `ten_tuyen`, `route_scope`, `danh_gia`, `postman {first{ma,ten}, shown{ma,ten}}`, `journey {…as in the list}`, `tct {hours, limit_hours, recomputed_hours, remaining_at_arrival_hours}`, `system {status, code, detail, line, label, reason, step, basis, flags[], hints[], a_source, remaining_at_arrival_hours}`, `analysis` (latest or null), `can_analyse`, `history {entries[]}` (same entries as `/evidence/history`).
+- **Tests** (`node --test --experimental-sqlite`, one file at a time): new `src/routes/f13v2ParcelCard.test.js` 8/8 (week and month parity of count and journey fields for every route + postman row, route alone = `route_volume`, `date` and the 93-day limit, sort keys, export, card shape, 404/400, Chuyên quản 403 on another unit). Existing: `f13v2Evidence` 16, `f13v2Routes.scope` 13, `f13v2WhyRoutes.scope` 5, `JourneyPeriodService` 16, `CauseAggQueryService` 22, `CauseAggBuilder` 21, `f13v2RuleProposal` 8, all pass.
+- The list still reads one `JourneyService` day per page for the old `milestones` field; U1 can ignore it. Removing that read and the old fields is a later decision, together with the removal of `/journey/parcels`.

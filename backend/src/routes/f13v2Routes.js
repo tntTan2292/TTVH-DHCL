@@ -47,6 +47,7 @@ router.get('/evidence/catalog', needs(CAPABILITIES.F13_ANALYSIS_VIEW), controlle
 router.get('/evidence/list', needs(CAPABILITIES.F13_ANALYSIS_VIEW), controller.getEvidenceList);
 router.get('/evidence/export', needs(CAPABILITIES.F13_ANALYSIS_VIEW), controller.exportEvidence);
 router.get('/evidence/history', needs(CAPABILITIES.F13_ANALYSIS_VIEW), controller.getEvidenceHistory);
+router.get('/evidence/parcel', needs(CAPABILITIES.F13_ANALYSIS_VIEW), controller.getEvidenceParcel);
 router.post('/evidence/analyses', express.json({ limit: '32kb' }), needs(CAPABILITIES.F13_ANALYSIS_WRITE), controller.postEvidenceAnalysis);
 
 // F13-GOLIVE-PLAN-01: G2 and G3 own one router file each, so two executors never edit this file at the same time.
