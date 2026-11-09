@@ -353,3 +353,10 @@ Done, no rebuild, no new column, no change to a figure, median, cause rule or ex
   - `/evidence/parcel` does not exist, so the parcel card cannot load;
   - `view=journey` is ignored, so `postman` filters on the first postman and the popup count can differ from Sản lượng.
 - The PO check of §17 must wait for the restart. U2 starts after it.
+
+## 21. Live backend restart (2026-11-09 15:50, by the PO)
+
+- The PO restarted through `TTVH_ControlCenter.ps1` (backend pid 12900 from 15:50:12, frontend pid 15304 from 15:50:15). The running code is HEAD `dd5fb7c5` (committed 15:49:32, working tree clean), so B1, B1-FIX and B2 are live.
+- Realign dry run: 0 to change. No rebuild needed (read-time fields only).
+- Not verified by Opus: the DKCL re-attach, because this start method logs to its own console window and not to `logs/`; and the live screens, because Opus does not log in to the live backend.
+- Next: U2 (§18), then the real render, then the PO check of the card and the shared list.
