@@ -113,3 +113,35 @@ Status: B1-R1 fixed, waiting for the Opus review. No live build, no restart, no 
   (The fifth request of §8, `/journey/parcels`, is unchanged, ~0,1 s.) The rest of the 0,3 s on a month is the total count and `_meta` on 57 700 rows.
 - Test fixture of `f13v2Evidence.test.js`: it now fills `ms_tms` / `ms_ptc` of the cause table (the list reads them from there), instead of relying on `fact_f13` through `JourneyService`.
 - Suites: `f13v2ParcelCard` 8, `f13v2Evidence` 16, `JourneyPeriodService` 16, `f13v2Routes.scope` 13, `f13v2WhyRoutes.scope` 5, `f13v2RuleProposal` 8, all pass.
+
+## 10. Opus review of B1-FIX (2026-11-09) - B1 accepted
+
+- Re-timed over HTTP on the B3 copy (isolated 5051, leader), warm: Hành trình popup 0,10 s (was 6,3 s); leg sort with 100 rows 0,15 s (was 14,2 s); city-wide month with 100 rows 0,22 s.
+- Parity: route 53314049 + postman 53B383, month 10: list total 984 = `route_volume` 984.
+- Re-run: `f13v2ParcelCard` 8/8, `f13v2Evidence` 16/16.
+- Accepted residual: `tct.hours_text` is null for a parcel without `tct_ms` (no PTC yet). Its only reader is the "Gốc" caption of the old detail modal, which U1 replaces.
+
+## 11. U1 screen (Antigravity) - scope
+
+All in `frontend/src/features/f13v2/`. No backend change. Same figures (C4).
+
+1. **`components/F13V2ParcelCard.jsx`**, a modal fed by one `GET /evidence/parcel?ngay_do_kiem=&ma_bg=` call. Header: code, day, BCVH, route, postman shown (and the first postman when it differs), verdict. Three tabs:
+   - **Hành trình**: 5 milestones with their source, 6 leg hours, lot (`ma_lo`, không trọn lô), TCT hours / limit.
+   - **Nguyên nhân**: system status, label, reason, step, basis, flags, hints.
+   - **Phân tích**: the latest analysis and the history. The write form is reused from `F13V2EvidenceAnalysisModal`, shown only when `can_analyse` AND the user holds `f13.analysis.write` AND the parcel is in the user's units. After saving, refresh the card and the list behind it.
+2. **Every parcel number in F1.3 v2 opens the card:**
+   - Dữ liệu minh chứng table;
+   - Phân tích nguyên nhân parcel window (`F13V2WhyParcelModal`);
+   - Đề xuất quy tắc samples (`F13V2RuleProposalDetailPanel`);
+   - the shared list on Hành trình.
+
+   The card replaces `F13V2EvidenceDetailModal`. The "open in Hành trình" links (`/f13/v2/hanh-trinh?...&search=`) are removed, because the bottom table they relied on goes away.
+3. **Dữ liệu minh chứng: view switch "Nguyên nhân | Hành trình".**
+   - Nguyên nhân = today's columns.
+   - Hành trình = Số hiệu, Ngày, Bưu tá, Đánh giá, Mã lô, the 5 milestones, the 6 leg hours, Số giờ TCT.
+   - The view is kept in the URL (`view=journey`) and sent to the API. Filters, 20/50/100 paging, sorting by column and the export work in both views.
+4. **Hành trình bưu gửi:**
+   - Clicking a postman row opens the shared list (the same table component, Hành trình view) in the existing popup, calling `/evidence/list` with `view=journey`, the period, `bcvh`, `route` and `postman` (a code or `@NONE`) from the row's `filter`. The count must equal the row's Sản lượng.
+   - Add a "Bưu gửi / Xem (n)" button on each row so the click target is visible.
+   - Remove the bottom "Hành trình từng bưu gửi" table and its `/journey/parcels` call. In its place, a link "Tra cứu bưu gửi → Dữ liệu minh chứng" carrying the same period and BCVH.
+5. Follow `docs/05_DEVELOPMENT/Implementation/report_block_ui_standard.md`: camera, click-to-order titles, follow the date filter, the no-undef check. Keep all other wording.
