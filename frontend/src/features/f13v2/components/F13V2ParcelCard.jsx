@@ -19,6 +19,11 @@ import {
   formatCauseLabel,
   formatPhatDetail,
   formatChoChuyenQuanReason,
+  formatCauseStatusLabel,
+  formatCauseBasisLabel,
+  formatCauseStepLabel,
+  formatCauseHintLabel,
+  formatFlagLabel,
 } from '../f13WhyHelpers.js';
 import {
   ANALYST_CAUSES,
@@ -521,7 +526,7 @@ export default function F13V2ParcelCard({
                         Kết luận của Hệ thống
                       </span>
                       <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-slate-100 text-slate-700">
-                        Trạng thái: {sys.status || 'CHUA_XAC_DINH'}
+                        Trạng thái: {formatCauseStatusLabel(sys.status)}
                       </span>
                     </div>
 
@@ -552,7 +557,7 @@ export default function F13V2ParcelCard({
                       {sys.step && (
                         <div>
                           <div className="text-[11px] text-slate-500 font-semibold">Bước phân loại:</div>
-                          <div className="text-xs font-semibold text-slate-700 mt-0.5">{sys.step}</div>
+                          <div className="text-xs font-semibold text-slate-700 mt-0.5">{formatCauseStepLabel(sys.step)}</div>
                         </div>
                       )}
                     </div>
@@ -561,7 +566,7 @@ export default function F13V2ParcelCard({
                       <div className="pt-2 border-t border-slate-100">
                         <div className="text-[11px] text-slate-500 font-semibold">Căn cứ phân loại:</div>
                         <div className="text-xs text-slate-700 italic mt-0.5 bg-slate-50 p-2.5 rounded-lg border border-slate-200/80">
-                          {sys.basis}
+                          {formatCauseBasisLabel(sys.basis)}
                         </div>
                       </div>
                     )}
@@ -576,12 +581,12 @@ export default function F13V2ParcelCard({
                       <div className="flex flex-wrap gap-2 pt-1">
                         {sys.flags?.map((flag) => (
                           <span key={flag} className="px-2 py-0.5 rounded-md text-[11px] font-semibold bg-rose-50 text-rose-800 border border-rose-200">
-                            Cờ: {flag}
+                            Cờ: {formatFlagLabel(flag)}
                           </span>
                         ))}
                         {sys.hints?.map((hint) => (
                           <span key={hint} className="px-2 py-0.5 rounded-md text-[11px] font-semibold bg-blue-50 text-blue-800 border border-blue-200">
-                            Gợi ý: {hint}
+                            Gợi ý: {formatCauseHintLabel(hint)}
                           </span>
                         ))}
                       </div>

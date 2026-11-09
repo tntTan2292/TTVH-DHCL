@@ -20,6 +20,11 @@ import {
   setCachedEvidenceCatalog,
   setCachedLayout,
   clearEvidenceAccessCache,
+  formatCauseStatusLabel,
+  formatCauseBasisLabel,
+  formatCauseStepLabel,
+  formatCauseHintLabel,
+  formatFlagLabel,
 } from './f13EvidenceHelpers.js';
 import { buildWhyUnitOptions, resolveEffectiveBcvh } from './f13WhyHelpers.js';
 
@@ -461,6 +466,64 @@ test('F13-PARCEL-CARD-01 U2: sortEvidenceInPage sorts by gbt_before_arrive', () 
   assert.equal(sortedAsc[0].ma_bg, 'A2');
   assert.equal(sortedAsc[1].ma_bg, 'A1');
   assert.equal(sortedAsc[2].ma_bg, 'A3');
+});
+
+test('F13-PARCEL-CARD-01 U3: every code of the §24 table maps to its text and unknown code gives "Mã khác"', () => {
+  // Status (4 codes)
+  assert.equal(formatCauseStatusLabel('CAUSE'), 'Đã xác định nguyên nhân');
+  assert.equal(formatCauseStatusLabel('CHO_CHUYEN_QUAN'), 'Chờ Chuyên quản phân tích');
+  assert.equal(formatCauseStatusLabel('CHUA_DU_CAN_CU'), 'Chưa đủ căn cứ');
+  assert.equal(formatCauseStatusLabel('KHONG_PHAN_TICH'), 'Không phân tích (bưu gửi Đạt hoặc chưa đánh giá)');
+  assert.equal(formatCauseStatusLabel('UNKNOWN_STATUS'), 'Mã khác');
+  assert.equal(formatCauseStatusLabel('RANDOM_123'), 'Mã khác');
+  assert.equal(formatCauseStatusLabel(null), '—');
+  assert.equal(formatCauseStatusLabel(undefined), '—');
+
+  // Basis (2 codes)
+  assert.equal(formatCauseBasisLabel('INTERVAL'), 'Tính theo số giờ TCT (khoảng thời gian)');
+  assert.equal(formatCauseBasisLabel('MILESTONES'), 'Tính theo các mốc hành trình');
+  assert.equal(formatCauseBasisLabel('UNKNOWN_BASIS'), 'Mã khác');
+  assert.equal(formatCauseBasisLabel(null), '—');
+  assert.equal(formatCauseBasisLabel(undefined), '—');
+
+  // Step (4 codes: T-A, T-G, T-E, THOI_GIAN)
+  assert.equal(formatCauseStepLabel('T-A'), 'Chặng TMS → Đến BCVH');
+  assert.equal(formatCauseStepLabel('T-G'), 'Chặng TMS → Giao bưu tá');
+  assert.equal(formatCauseStepLabel('T-E'), 'Chặng TMS → Phát');
+  assert.equal(formatCauseStepLabel('THOI_GIAN'), 'Theo thời gian');
+  assert.equal(formatCauseStepLabel('CHI_TIEU'), 'Mã khác');
+  assert.equal(formatCauseStepLabel('UNKNOWN_STEP'), 'Mã khác');
+  assert.equal(formatCauseStepLabel(null), '—');
+  assert.equal(formatCauseStepLabel(undefined), '—');
+
+  // Hints (2 codes)
+  assert.equal(formatCauseHintLabel('DEN_BCVH_CON_IT_GIO'), 'Bưu gửi đến BCVH còn ít giờ');
+  assert.equal(formatCauseHintLabel('DAU_HIEU_CHAM_TAI_BCVH'), 'Có dấu hiệu chậm tại BCVH');
+  assert.equal(formatCauseHintLabel('UNKNOWN_HINT'), 'Mã khác');
+  assert.equal(formatCauseHintLabel(null), '—');
+  assert.equal(formatCauseHintLabel(undefined), '—');
+
+  // Flags (17 codes)
+  assert.equal(formatFlagLabel('A_TRUOC_TMS_GIAO_TRUC_TIEP'), 'Giao nhận trực tiếp ĐTC1: đến BCVH trước giờ quét TMS, chặng TMS -> đến tính 0');
+  assert.equal(formatFlagLabel('THIEU_F41'), 'Không có dữ liệu F4.1');
+  assert.equal(formatFlagLabel('KHONG_XAC_NHAN_DEN'), 'Không có giờ xác nhận đến BCVH');
+  assert.equal(formatFlagLabel('SAI_TRINH_TU_NGHIEP_VU'), 'Các mốc sai trình tự nghiệp vụ');
+  assert.equal(formatFlagLabel('G_TRUOC_T'), 'Giao bưu tá trước giờ quét TMS');
+  assert.equal(formatFlagLabel('THIEU_MOC_D'), 'Thiếu mốc rời KTC1');
+  assert.equal(formatFlagLabel('MOC_D_DAO_THU_TU'), 'Mốc rời KTC1 sai thứ tự');
+  assert.equal(formatFlagLabel('THIEU_MOC_G'), 'Thiếu mốc giao bưu tá');
+  assert.equal(formatFlagLabel('MOC_G_KHONG_HOP_LE'), 'Mốc giao bưu tá sai thứ tự');
+  assert.equal(formatFlagLabel('MOC_A_KHONG_HOP_LE'), 'Mốc đến BCVH sai thứ tự');
+  assert.equal(formatFlagLabel('THIEU_MOC_E'), 'Thiếu giờ phát');
+  assert.equal(formatFlagLabel('THOI_GIAN_KHONG_HOP_LE'), 'Thời gian không hợp lệ');
+  assert.equal(formatFlagLabel('R_KHONG_HOP_LE'), 'Không tính lại được số giờ TCT');
+  assert.equal(formatFlagLabel('UNLOCATED_TCT_EXCLUSION'), 'Có khoảng loại trừ TCT chưa xác định vị trí');
+  assert.equal(formatFlagLabel('KET_QUA_KHONG_KHOP_CHI_TIEU'), 'Kết quả TCT không khớp chỉ tiêu');
+  assert.equal(formatFlagLabel('THIEU_CHI_TIEU'), 'Thiếu chỉ tiêu');
+  assert.equal(formatFlagLabel('F41_KHONG_DUY_NHAT'), 'F4.1 có nhiều dòng');
+  assert.equal(formatFlagLabel('UNKNOWN_FLAG'), 'Mã khác');
+  assert.equal(formatFlagLabel(null), '—');
+  assert.equal(formatFlagLabel(undefined), '—');
 });
 
 

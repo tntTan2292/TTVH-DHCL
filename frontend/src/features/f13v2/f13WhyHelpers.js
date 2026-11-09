@@ -46,14 +46,75 @@ export function formatStoryCauseLabel(code, defaultLabel = '') {
   return STORY_CAUSE_LABELS[code] || defaultLabel || formatCauseLabel(code);
 }
 
-// F13-WHY-DATA-03: label of a data-quality flag (only the flags that need a sentence; others show their code).
+// F13-WHY-DATA-03 & F13-PARCEL-CARD-01 U3: label of a data-quality flag (show words only, never raw code).
 export const FLAG_LABELS = Object.freeze({
   A_TRUOC_TMS_GIAO_TRUC_TIEP: 'Giao nhận trực tiếp ĐTC1: đến BCVH trước giờ quét TMS, chặng TMS -> đến tính 0',
+  THIEU_F41: 'Không có dữ liệu F4.1',
+  KHONG_XAC_NHAN_DEN: 'Không có giờ xác nhận đến BCVH',
+  SAI_TRINH_TU_NGHIEP_VU: 'Các mốc sai trình tự nghiệp vụ',
+  G_TRUOC_T: 'Giao bưu tá trước giờ quét TMS',
+  THIEU_MOC_D: 'Thiếu mốc rời KTC1',
+  MOC_D_DAO_THU_TU: 'Mốc rời KTC1 sai thứ tự',
+  THIEU_MOC_G: 'Thiếu mốc giao bưu tá',
+  MOC_G_KHONG_HOP_LE: 'Mốc giao bưu tá sai thứ tự',
+  MOC_A_KHONG_HOP_LE: 'Mốc đến BCVH sai thứ tự',
+  THIEU_MOC_E: 'Thiếu giờ phát',
+  THOI_GIAN_KHONG_HOP_LE: 'Thời gian không hợp lệ',
+  R_KHONG_HOP_LE: 'Không tính lại được số giờ TCT',
+  UNLOCATED_TCT_EXCLUSION: 'Có khoảng loại trừ TCT chưa xác định vị trí',
+  KET_QUA_KHONG_KHOP_CHI_TIEU: 'Kết quả TCT không khớp chỉ tiêu',
+  THIEU_CHI_TIEU: 'Thiếu chỉ tiêu',
+  F41_KHONG_DUY_NHAT: 'F4.1 có nhiều dòng',
 });
 
 export function formatFlagLabel(code) {
   if (!code) return '—';
-  return FLAG_LABELS[code] || String(code);
+  return FLAG_LABELS[code] || 'Mã khác';
+}
+
+// F13-PARCEL-CARD-01 U3: human labels for system diagnosis status, basis, step, hints
+export const CAUSE_STATUS_LABELS = Object.freeze({
+  CAUSE: 'Đã xác định nguyên nhân',
+  CHO_CHUYEN_QUAN: 'Chờ Chuyên quản phân tích',
+  CHUA_DU_CAN_CU: 'Chưa đủ căn cứ',
+  KHONG_PHAN_TICH: 'Không phân tích (bưu gửi Đạt hoặc chưa đánh giá)',
+});
+
+export function formatCauseStatusLabel(code) {
+  if (!code) return '—';
+  return CAUSE_STATUS_LABELS[code] || 'Mã khác';
+}
+
+export const CAUSE_BASIS_LABELS = Object.freeze({
+  INTERVAL: 'Tính theo số giờ TCT (khoảng thời gian)',
+  MILESTONES: 'Tính theo các mốc hành trình',
+});
+
+export function formatCauseBasisLabel(code) {
+  if (!code) return '—';
+  return CAUSE_BASIS_LABELS[code] || 'Mã khác';
+}
+
+export const CAUSE_STEP_LABELS = Object.freeze({
+  'T-A': 'Chặng TMS → Đến BCVH',
+  'T-G': 'Chặng TMS → Giao bưu tá',
+  'T-E': 'Chặng TMS → Phát',
+  THOI_GIAN: 'Theo thời gian',
+});
+
+export function formatCauseStepLabel(code) {
+  if (!code) return '—';
+  return CAUSE_STEP_LABELS[code] || 'Mã khác';
+}
+
+export const CAUSE_HINT_LABELS = Object.freeze({
+  DEN_BCVH_CON_IT_GIO: 'Bưu gửi đến BCVH còn ít giờ',
+  DAU_HIEU_CHAM_TAI_BCVH: 'Có dấu hiệu chậm tại BCVH',
+});
+
+export function formatCauseHintLabel(code) {
+  if (!code) return '—';
+  return CAUSE_HINT_LABELS[code] || 'Mã khác';
 }
 
 export const CAUSE_LABELS = Object.freeze({

@@ -363,6 +363,63 @@ test('F13-PARCEL-CARD-01 U2: Journey route table, parcel card, evidence table, a
   );
 });
 
+test('F13-PARCEL-CARD-01 U3: clicking parcel number always lands on journey tab in both views, and card uses words instead of raw codes', () => {
+  const evidencePageSrc = readSrc('./F13V2EvidencePage.jsx');
+  const evidenceTableSrc = readSrc('./components/F13V2EvidenceTable.jsx');
+  const parcelCardSrc = readSrc('./components/F13V2ParcelCard.jsx');
+
+  // U3-R1: landing tab is Hành trình from parcel number in both views
+  assert.ok(
+    evidencePageSrc.includes("setCardInitialTab(tab || 'journey')"),
+    'EvidencePage must default card landing tab to journey'
+  );
+  assert.ok(
+    evidencePageSrc.includes("onOpenDetail={(item) => {\n          setSelectedCardParcel(item);\n          setCardInitialTab('journey');\n        }}"),
+    'EvidencePage onOpenDetail must open journey tab'
+  );
+  assert.ok(
+    !evidencePageSrc.includes("setCardInitialTab(tab || (isJourneyView") &&
+    !evidencePageSrc.includes("setCardInitialTab(isJourneyView"),
+    'EvidencePage must not switch card landing tab to cause view'
+  );
+  assert.ok(
+    evidencePageSrc.includes("setCardInitialTab('analysis')"),
+    'EvidencePage onOpenAnalysis must keep opening analysis tab'
+  );
+
+  // EvidenceTable calls handleOpenParcel with 'journey' on parcel number & eye button in both views
+  assert.ok(
+    !evidenceTableSrc.includes("handleOpenParcel(item, 'cause')"),
+    'EvidenceTable must never open card on cause tab for parcel clicks'
+  );
+
+  // U3-R2: card uses formatters showing words instead of codes
+  assert.ok(
+    parcelCardSrc.includes('formatCauseStatusLabel(sys.status)'),
+    'ParcelCard must format status with formatCauseStatusLabel'
+  );
+  assert.ok(
+    parcelCardSrc.includes('formatCauseBasisLabel(sys.basis)'),
+    'ParcelCard must format basis with formatCauseBasisLabel'
+  );
+  assert.ok(
+    parcelCardSrc.includes('formatCauseStepLabel(sys.step)'),
+    'ParcelCard must format step with formatCauseStepLabel'
+  );
+  assert.ok(
+    parcelCardSrc.includes('formatCauseHintLabel(hint)'),
+    'ParcelCard must format hints with formatCauseHintLabel'
+  );
+  assert.ok(
+    parcelCardSrc.includes('formatFlagLabel(flag)'),
+    'ParcelCard must format flags with formatFlagLabel'
+  );
+  assert.ok(
+    !parcelCardSrc.includes("Trạng thái: {sys.status"),
+    'ParcelCard must not render raw sys.status'
+  );
+});
+
 
 
 

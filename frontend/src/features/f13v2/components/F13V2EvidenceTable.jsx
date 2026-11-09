@@ -560,7 +560,7 @@ export default function F13V2EvidenceTable({
                     <td className="px-3 py-2.5 font-mono font-bold text-slate-900">
                       <button
                         type="button"
-                        onClick={() => handleOpenParcel(item, 'cause')}
+                        onClick={() => handleOpenParcel(item, 'journey')}
                         className="text-blue-700 hover:text-blue-900 hover:underline cursor-pointer text-left font-mono font-bold"
                         title="Xem phiếu bưu gửi"
                       >
@@ -695,7 +695,7 @@ export default function F13V2EvidenceTable({
                         {/* Chi tiết phiếu bưu gửi */}
                         <button
                           type="button"
-                          onClick={() => handleOpenParcel(item, 'cause')}
+                          onClick={() => handleOpenParcel(item, 'journey')}
                           title="Xem phiếu bưu gửi"
                           className="p-1.5 rounded-lg border border-slate-200 hover:bg-slate-100 text-slate-600 hover:text-slate-900 transition-colors cursor-pointer"
                         >

@@ -440,3 +440,25 @@ The live card opens from Phân tích nguyên nhân, Dữ liệu minh chứng and
   | flag F41_KHONG_DUY_NHAT | F4.1 có nhiều dòng |
 
   `A_TRUOC_TMS_GIAO_TRUC_TIEP` keeps the existing `FLAG_LABELS` text. A code not in the table shows "Mã khác", never the raw code. Reasons keep `formatChoChuyenQuanReason`. The wording is a display proposal by Opus; no rule changes.
+
+## 25. U3 screen result (Antigravity, 2026-11-09) - U3 completed
+
+Both items of U3 (§24) implemented cleanly across frontend without backend modification:
+1. **U3-R1 One landing tab**:
+   - In `F13V2EvidencePage.jsx`: clicking a parcel number (or the view eye button) always defaults `cardInitialTab` to `'journey'` in both views (`setCardInitialTab(tab || 'journey')` and `onOpenDetail` setting `'journey'`). Removed switching to `'cause'` when in cause view.
+   - In `F13V2EvidenceTable.jsx`: parcel numbers and eye buttons in both `journey` view and `cause` view explicitly call `handleOpenParcel(item, 'journey')`. The "ghi kết luận" action button continues opening `'analysis'`.
+2. **U3-R2 Human words instead of raw codes on Nguyên nhân tab**:
+   - Mapped all 28 codes from §24 in `f13WhyHelpers.js` beside `FLAG_LABELS`:
+     - `CAUSE_STATUS_LABELS` (4 codes: `CAUSE`, `CHO_CHUYEN_QUAN`, `CHUA_DU_CAN_CU`, `KHONG_PHAN_TICH`)
+     - `CAUSE_BASIS_LABELS` (2 codes: `INTERVAL`, `MILESTONES`)
+     - `CAUSE_STEP_LABELS` (4 codes: `T-A`, `T-G`, `T-E`, `THOI_GIAN`)
+     - `CAUSE_HINT_LABELS` (2 codes: `DEN_BCVH_CON_IT_GIO`, `DAU_HIEU_CHAM_TAI_BCVH`)
+     - `FLAG_LABELS` (17 codes: 16 from §24 table + existing `A_TRUOC_TMS_GIAO_TRUC_TIEP`)
+   - Formatter functions (`formatCauseStatusLabel`, `formatCauseBasisLabel`, `formatCauseStepLabel`, `formatCauseHintLabel`, `formatFlagLabel`): any unknown code returns `"Mã khác"`, never the raw code. Empty/null returns `"—"`.
+   - In `F13V2ParcelCard.jsx`: wired all formatters for `sys.status`, `sys.step`, `sys.basis`, `sys.hints`, and `sys.flags`. Reasons keep `formatChoChuyenQuanReason`.
+
+**Verification**:
+- Unit tests: Added tests in `f13EvidenceHelpers.test.js` validating every single code in §24 maps to its exact text, unknown codes return `"Mã khác"`, and null/undefined returns `"—"`. Added block tests in `f13EvidenceBlocksStandard.test.js` verifying the landing tab is Hành trình from parcel number / eye button in both views.
+- `node --test frontend/src/features/f13v2/*.test.js`: 105/105 tests pass.
+- `npx.cmd oxlint -D no-undef` on all modified files: 0 errors.
+- `npm.cmd --prefix frontend run build`: Vite build passes cleanly.

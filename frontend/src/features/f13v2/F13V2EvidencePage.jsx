@@ -589,11 +589,11 @@ export default function F13V2EvidencePage() {
         }}
         onOpenCard={(item, tab) => {
           setSelectedCardParcel(item);
-          setCardInitialTab(tab || (isJourneyView ? 'journey' : 'cause'));
+          setCardInitialTab(tab || 'journey');
         }}
         onOpenDetail={(item) => {
           setSelectedCardParcel(item);
-          setCardInitialTab(isJourneyView ? 'journey' : 'cause');
+          setCardInitialTab('journey');
         }}
         onOpenAnalysis={(item) => {
           setSelectedCardParcel(item);

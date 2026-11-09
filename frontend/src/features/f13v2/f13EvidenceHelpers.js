@@ -3,6 +3,18 @@
  * the F1.3 "Dữ liệu minh chứng" evidence view and Chuyên quản analysis log.
  */
 import { fetchEvidenceCatalog, fetchLayout } from './api/f13v2Api.js';
+export {
+  FLAG_LABELS,
+  formatFlagLabel,
+  CAUSE_STATUS_LABELS,
+  formatCauseStatusLabel,
+  CAUSE_BASIS_LABELS,
+  formatCauseBasisLabel,
+  CAUSE_STEP_LABELS,
+  formatCauseStepLabel,
+  CAUSE_HINT_LABELS,
+  formatCauseHintLabel,
+} from './f13WhyHelpers.js';
 
 let cachedCatalog = null;
 let cachedCatalogPromise = null;
