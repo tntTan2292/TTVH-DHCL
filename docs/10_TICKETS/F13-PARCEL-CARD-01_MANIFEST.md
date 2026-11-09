@@ -263,3 +263,26 @@ Fixed all three defects identified in Opus real render (§13) with zero backend 
 - **U1F-R1 (blocking, regression from U1-R3):** the card now reads `catalog`/`layout` only from props, and only `F13V2EvidencePage` passes them. So a Chuyên quản (cq, 537015, holds `f13.analysis.write`) who opens a card of its own unit from the Hành trình popup sees "Tài khoản chỉ có quyền xem (f13.analysis.view), không có quyền ghi phân tích", with no form. U1 showed the form there. Same for `F13V2WhyParcelModal` and `F13V2RuleProposalDetailPanel`.
   - Fix: give the card the write right on every caller. Either read it once from a shared source (the auth/access context, or one cached catalog hook used by all four callers), or pass `catalog`/`layout` from each caller's page. Do not call `/evidence/catalog` once per card open.
   - Also write the message in words without the capability code: "Tài khoản chỉ có quyền xem, không có quyền ghi phân tích".
+
+## 16. U1-FIX2 result (Antigravity, 2026-11-09) - U1-FIX2 completed
+
+### Implementation Details
+1. **Shared Cached Access for All 4 Callers (`f13EvidenceHelpers.js`, `F13V2ParcelCard.jsx`)**:
+   - Implemented in-memory memoized loaders `fetchEvidenceCatalogCached()` and `fetchLayoutCached()` in `f13EvidenceHelpers.js`.
+   - `canWriteParcelAnalysis(card, catalog, layout)` evaluates against explicit props or falls back to `cachedCatalog` and `cachedLayout`.
+   - `F13V2ParcelCard` initializes state synchronously from the cached store (`getCachedEvidenceAccess()`) or explicit props, making at most 1 network call per session without fetching `/evidence/catalog` on every card open.
+   - When a Chuyên quản with `f13.analysis.write` opens a card from any of the four callers (`F13V2EvidencePage`, `F13V2JourneyParcelModal`, `F13V2WhyParcelModal`, `F13V2RuleProposalDetailPanel`), the write form is properly enabled for their unit.
+2. **List Refresh After Save on All 4 Callers**:
+   - `F13V2EvidencePage`: `onAnalysisSuccess` re-fetches summary and evidence list.
+   - `F13V2JourneyParcelModal` & `F13V2JourneyPage`: `onAnalysisSuccess` triggers `reloadTick` in the popup and `refreshTick` in `F13V2JourneyPage` route table.
+   - `F13V2WhyParcelModal` & `F13V2WhyPage`: `onAnalysisSuccess` triggers `reloadTick` in why parcel list and `fetchData()` in `F13V2WhyPage`.
+   - `F13V2RuleProposalDetailPanel` & `F13V2RuleProposalPage`: `onAnalysisSuccess` triggers `detailRefreshTick` (re-fetching proposal detail samples) and `loadProposals()`.
+3. **Read-Only Message Update**:
+   - Changed message in `F13V2ParcelCard.jsx` to exact wording without capability code: `"Tài khoản chỉ có quyền xem, không có quyền ghi phân tích."`.
+
+### Verification Evidence
+- `npx.cmd oxlint -D no-undef <all changed files>`: 0 errors.
+- `node --test frontend/src/features/f13v2/*.test.js`: 98/98 pass (0 fail).
+- `node --test backend/src/routes/f13v2ParcelCard.test.js backend/src/routes/f13v2Evidence.test.js`: 24/24 pass (0 fail).
+- `npm.cmd --prefix frontend run build`: Production bundle built in 1.98s (0 errors).
+

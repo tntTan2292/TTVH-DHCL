@@ -52,6 +52,7 @@ export default function F13V2RuleProposalPage() {
   const [detailData, setDetailData] = useState(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState(null);
+  const [detailRefreshTick, setDetailRefreshTick] = useState(0);
 
   // Decision submission state
   const [decisionSubmitting, setDecisionSubmitting] = useState(false);
@@ -122,7 +123,7 @@ export default function F13V2RuleProposalPage() {
     return () => {
       active = false;
     };
-  }, [selectedProposal?.key]);
+  }, [selectedProposal?.key, detailRefreshTick]);
 
   // Tab switch handler
   const handleTabChange = (tabKey) => {
@@ -368,6 +369,10 @@ export default function F13V2RuleProposalPage() {
             decisionSubmitting={decisionSubmitting}
             decisionError={decisionError}
             canDecide={canDecide}
+            onAnalysisSuccess={() => {
+              setDetailRefreshTick((t) => t + 1);
+              loadProposals(activeStatus);
+            }}
           />
         )}
 

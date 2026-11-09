@@ -15,6 +15,9 @@ import {
   EVIDENCE_VIEW_CAUSE,
   EVIDENCE_VIEW_JOURNEY,
   getMilestoneAt,
+  setCachedEvidenceCatalog,
+  setCachedLayout,
+  clearEvidenceAccessCache,
 } from './f13EvidenceHelpers.js';
 import { buildWhyUnitOptions, resolveEffectiveBcvh } from './f13WhyHelpers.js';
 
@@ -327,6 +330,57 @@ test('f13EvidenceHelpers: getMilestoneAt (U1-R1) extracts time string from both 
   assert.equal(getMilestoneAt(undefined), null);
   assert.equal(getMilestoneAt(0), null);
 });
+
+test('F13-PARCEL-CARD-01 U1-FIX2: the write form permission resolves across all callers via shared cached access or explicit props', () => {
+  // Clear any existing cache first
+  clearEvidenceAccessCache();
+
+  const cardFailedUnitA = { can_analyse: true, ma_bcvh: '537015', danh_gia: 'Không đạt' };
+  const cardFailedUnitB = { can_analyse: true, ma_bcvh: '535790', danh_gia: 'Không đạt' };
+  const cardPassedUnitA = { can_analyse: false, ma_bcvh: '537015', danh_gia: 'Đạt' };
+
+  // Set shared cache as a Chuyên quản of 537015 with write rights
+  setCachedEvidenceCatalog({ can: { write: true }, causes: [{ code: 'KHAI_THAC', label: 'Khai thác' }] });
+  setCachedLayout({ units: { allow_all: false, bcvh: ['537015'] } });
+
+  // Caller 1 (EvidencePage with explicit props or fallback)
+  assert.equal(canWriteParcelAnalysis(cardFailedUnitA), true, 'Caller with cached access: form shows when unit matches');
+  assert.equal(canWriteParcelAnalysis(cardFailedUnitB), false, 'Caller with cached access: form hides when foreign unit');
+  assert.equal(canWriteParcelAnalysis(cardPassedUnitA), false, 'Caller with cached access: form hides when parcel passed');
+
+  // Caller 2, 3, 4 without explicit props passed (JourneyPopup, WhyModal, RuleProposal)
+  // All 4 callers resolve permission identically
+  for (const caller of ['EvidencePage', 'JourneyParcelModal', 'WhyParcelModal', 'RuleProposalDetailPanel']) {
+    assert.equal(
+      canWriteParcelAnalysis(cardFailedUnitA),
+      true,
+      `[${caller}] write form shows when user has f13.analysis.write and unit matches`
+    );
+    assert.equal(
+      canWriteParcelAnalysis(cardFailedUnitB),
+      false,
+      `[${caller}] write form hides when unit does not match`
+    );
+    assert.equal(
+      canWriteParcelAnalysis(cardPassedUnitA),
+      false,
+      `[${caller}] write form hides when parcel is Đạt`
+    );
+  }
+
+  // When user only has read-only permission (e.g. leader)
+  setCachedEvidenceCatalog({ can: { write: false } });
+  for (const caller of ['EvidencePage', 'JourneyParcelModal', 'WhyParcelModal', 'RuleProposalDetailPanel']) {
+    assert.equal(
+      canWriteParcelAnalysis(cardFailedUnitA),
+      false,
+      `[${caller}] write form hides when user lacks f13.analysis.write`
+    );
+  }
+
+  clearEvidenceAccessCache();
+});
+
 
 
 

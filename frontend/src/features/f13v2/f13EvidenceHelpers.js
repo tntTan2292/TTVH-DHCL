@@ -2,6 +2,63 @@
  * F13-EVIDENCE-01: Helper functions, constants and table utilities for
  * the F1.3 "Dữ liệu minh chứng" evidence view and Chuyên quản analysis log.
  */
+import { fetchEvidenceCatalog, fetchLayout } from './api/f13v2Api.js';
+
+let cachedCatalog = null;
+let cachedCatalogPromise = null;
+let cachedLayout = null;
+let cachedLayoutPromise = null;
+
+export function fetchEvidenceCatalogCached() {
+  if (cachedCatalog) return Promise.resolve(cachedCatalog);
+  if (!cachedCatalogPromise) {
+    cachedCatalogPromise = fetchEvidenceCatalog()
+      .then((res) => {
+        cachedCatalog = res;
+        return res;
+      })
+      .catch((err) => {
+        cachedCatalogPromise = null;
+        throw err;
+      });
+  }
+  return cachedCatalogPromise;
+}
+
+export function fetchLayoutCached() {
+  if (cachedLayout) return Promise.resolve(cachedLayout);
+  if (!cachedLayoutPromise) {
+    cachedLayoutPromise = fetchLayout()
+      .then((res) => {
+        cachedLayout = res;
+        return res;
+      })
+      .catch((err) => {
+        cachedLayoutPromise = null;
+        throw err;
+      });
+  }
+  return cachedLayoutPromise;
+}
+
+export function setCachedEvidenceCatalog(catalog) {
+  if (catalog) cachedCatalog = catalog;
+}
+
+export function setCachedLayout(layout) {
+  if (layout) cachedLayout = layout;
+}
+
+export function getCachedEvidenceAccess() {
+  return { catalog: cachedCatalog, layout: cachedLayout };
+}
+
+export function clearEvidenceAccessCache() {
+  cachedCatalog = null;
+  cachedCatalogPromise = null;
+  cachedLayout = null;
+  cachedLayoutPromise = null;
+}
 
 export const ANALYST_CAUSES = Object.freeze([
   { code: 'KHONG_TRON_LO', label: 'Không trọn lô', phat_detail: null },
@@ -43,12 +100,16 @@ export function isNoteMandatory(causeCode, systemLine) {
  */
 export function canWriteParcelAnalysis(card, catalog, layout) {
   if (!card?.can_analyse) return false;
-  if (!catalog?.can?.write) return false;
 
-  const allowAll = Boolean(layout?.units?.allow_all || layout?.scope?.mode === 'all');
+  const effectiveCatalog = catalog || cachedCatalog;
+  const effectiveLayout = layout || cachedLayout;
+
+  if (!effectiveCatalog?.can?.write) return false;
+
+  const allowAll = Boolean(effectiveLayout?.units?.allow_all || effectiveLayout?.scope?.mode === 'all');
   if (allowAll) return true;
 
-  const userUnits = layout?.units?.bcvh || layout?.scope?.bcvh || [];
+  const userUnits = effectiveLayout?.units?.bcvh || effectiveLayout?.scope?.bcvh || [];
   if (!card?.ma_bcvh) return false;
   return userUnits.map(String).includes(String(card.ma_bcvh));
 }

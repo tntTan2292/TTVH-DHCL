@@ -36,6 +36,9 @@ export default function F13V2RuleProposalDetailPanel({
   decisionSubmitting = false,
   decisionError = null,
   canDecide = true,
+  catalog = null,
+  layout = null,
+  onAnalysisSuccess,
 }) {
   const currentItem = detail || proposal;
 
@@ -497,7 +500,12 @@ export default function F13V2RuleProposalDetailPanel({
       {selectedCardParcel && (
         <F13V2ParcelCard
           parcelKey={selectedCardParcel}
+          catalog={catalog}
+          layout={layout}
           onClose={() => setSelectedCardParcel(null)}
+          onAnalysisSuccess={() => {
+            onAnalysisSuccess?.();
+          }}
         />
       )}
     </div>

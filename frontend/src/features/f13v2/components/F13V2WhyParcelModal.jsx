@@ -22,6 +22,9 @@ export default function F13V2WhyParcelModal({
   subtitle = '',
   filter = null,
   expectedCount = null,
+  catalog = null,
+  layout = null,
+  onAnalysisSuccess,
 }) {
   const modalContentRef = useRef(null);
   const indicator = useIndicator();
@@ -34,6 +37,7 @@ export default function F13V2WhyParcelModal({
   const [{ page, pageSize }, setPagination] = useState({ page: 1, pageSize: 20 });
   const [sort, setSort] = useState({ field: 'ngay_do_kiem', direction: 'desc' });
   const [selectedCardParcel, setSelectedCardParcel] = useState(null);
+  const [reloadTick, setReloadTick] = useState(0);
 
   // Reset page to 1 whenever a new filter opens
   const filterKey = filter ? JSON.stringify(filter) : null;
@@ -82,7 +86,7 @@ export default function F13V2WhyParcelModal({
       });
 
     return () => { active = false; };
-  }, [isOpen, filter, page, pageSize, sort, indicator.apiBase]);
+  }, [isOpen, filter, page, pageSize, sort, indicator.apiBase, reloadTick]);
 
   // Handle page change
   const handlePageChange = (newPage) => {
@@ -419,7 +423,13 @@ export default function F13V2WhyParcelModal({
       {selectedCardParcel && (
         <F13V2ParcelCard
           parcelKey={selectedCardParcel}
+          catalog={catalog}
+          layout={layout}
           onClose={() => setSelectedCardParcel(null)}
+          onAnalysisSuccess={() => {
+            setReloadTick((t) => t + 1);
+            onAnalysisSuccess?.();
+          }}
         />
       )}
     </div>

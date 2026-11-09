@@ -14,6 +14,9 @@ export default function F13V2JourneyParcelModal({
   row = null,
   periodQuery = {},
   periodLabel = '',
+  catalog = null,
+  layout = null,
+  onAnalysisSuccess,
 }) {
   const modalContentRef = useRef(null);
   const [data, setData] = useState(null);
@@ -22,6 +25,7 @@ export default function F13V2JourneyParcelModal({
   const [{ page, pageSize }, setPagination] = useState({ page: 1, pageSize: 20 });
   const [sort] = useState({ field: 'tms_ptc', direction: 'desc' });
   const [selectedCardParcel, setSelectedCardParcel] = useState(null);
+  const [reloadTick, setReloadTick] = useState(0);
 
   // Reset page to 1 whenever a new row opens
   const rowKey = row ? (row.key || `${row.ma_tuyen}_${row.ma_buu_ta || 'none'}`) : null;
@@ -73,7 +77,7 @@ export default function F13V2JourneyParcelModal({
       });
 
     return () => { active = false; };
-  }, [isOpen, row, periodQuery, page, pageSize, sort]);
+  }, [isOpen, row, periodQuery, page, pageSize, sort, reloadTick]);
 
   // Close on Escape key
   useEffect(() => {
@@ -178,8 +182,14 @@ export default function F13V2JourneyParcelModal({
       {selectedCardParcel && (
         <F13V2ParcelCard
           parcelKey={selectedCardParcel}
+          catalog={catalog}
+          layout={layout}
           initialTab="journey"
           onClose={() => setSelectedCardParcel(null)}
+          onAnalysisSuccess={() => {
+            setReloadTick((t) => t + 1);
+            onAnalysisSuccess?.();
+          }}
         />
       )}
     </div>

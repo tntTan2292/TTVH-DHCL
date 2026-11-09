@@ -29,13 +29,18 @@ import {
   formatJourneyLegHours,
   EVIDENCE_JOURNEY_LEGS,
   getMilestoneAt,
+  fetchEvidenceCatalogCached,
+  fetchLayoutCached,
+  setCachedEvidenceCatalog,
+  setCachedLayout,
+  getCachedEvidenceAccess,
 } from '../f13EvidenceHelpers.js';
 
 export default function F13V2ParcelCard({
   parcelKey = null,
   onClose,
-  catalog = null,
-  layout = null,
+  catalog: propCatalog = null,
+  layout: propLayout = null,
   onAnalysisSuccess,
   initialTab = 'journey',
 }) {
@@ -44,6 +49,33 @@ export default function F13V2ParcelCard({
   const [card, setCard] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+
+  // Cached shared catalog & layout across all four callers
+  const initialAccess = getCachedEvidenceAccess();
+  const [catalog, setCatalog] = useState(() => propCatalog || initialAccess.catalog);
+  const [layout, setLayout] = useState(() => propLayout || initialAccess.layout);
+
+  useEffect(() => {
+    if (propCatalog) {
+      setCachedEvidenceCatalog(propCatalog);
+      setCatalog(propCatalog);
+    } else if (!catalog) {
+      fetchEvidenceCatalogCached().then((res) => {
+        if (res) setCatalog(res);
+      }).catch(() => {});
+    }
+  }, [propCatalog, catalog]);
+
+  useEffect(() => {
+    if (propLayout) {
+      setCachedLayout(propLayout);
+      setLayout(propLayout);
+    } else if (!layout) {
+      fetchLayoutCached().then((res) => {
+        if (res) setLayout(res);
+      }).catch(() => {});
+    }
+  }, [propLayout, layout]);
 
   // Write Form state
   const [selectedCause, setSelectedCause] = useState('');
@@ -719,7 +751,7 @@ export default function F13V2ParcelCard({
                       {isPassed ? (
                         <p>Bưu gửi Đạt chỉ tiêu thời gian - không cần phân tích nguyên nhân.</p>
                       ) : !catalog?.can?.write ? (
-                        <p>Tài khoản chỉ có quyền xem (f13.analysis.view), không có quyền ghi phân tích.</p>
+                        <p>Tài khoản chỉ có quyền xem, không có quyền ghi phân tích.</p>
                       ) : (
                         <p>Bưu gửi thuộc đơn vị ngoài phạm vi phân quyền của tài khoản.</p>
                       )}

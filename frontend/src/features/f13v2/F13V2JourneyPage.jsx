@@ -488,6 +488,8 @@ export default function F13V2JourneyPage() {
           row={popupRow}
           periodQuery={queryPeriod}
           periodLabel={periodLabel}
+          layout={layout}
+          onAnalysisSuccess={() => setRefreshTick((t) => t + 1)}
         />
       </div>
     </PageContainer>

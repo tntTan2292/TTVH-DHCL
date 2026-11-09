@@ -286,7 +286,32 @@ test('F13-PARCEL-CARD-01: F13V2ParcelCard complies with report standards, 3 tabs
 
   // Controls marked data-no-capture
   assert.ok(content.includes('data-no-capture="true"'), 'Interactive controls must have data-no-capture');
+
+  // U1-FIX2: Exact message without capability code
+  assert.ok(
+    content.includes('Tài khoản chỉ có quyền xem, không có quyền ghi phân tích.'),
+    'Must display exact message without capability code'
+  );
+  assert.ok(
+    !content.includes('(f13.analysis.view)') && !content.includes('(f13.analysis.write)'),
+    'Must not include capability code in message'
+  );
 });
+
+test('F13-PARCEL-CARD-01 U1-FIX2: all 4 callers wire F13V2ParcelCard with onAnalysisSuccess', () => {
+  const callers = [
+    { name: 'EvidencePage', src: readSrc('./F13V2EvidencePage.jsx') },
+    { name: 'JourneyParcelModal', src: readSrc('./components/F13V2JourneyParcelModal.jsx') },
+    { name: 'WhyParcelModal', src: readSrc('./components/F13V2WhyParcelModal.jsx') },
+    { name: 'RuleProposalDetailPanel', src: readSrc('./components/F13V2RuleProposalDetailPanel.jsx') },
+  ];
+
+  for (const { name, src } of callers) {
+    assert.ok(src.includes('<F13V2ParcelCard'), `${name} must render F13V2ParcelCard`);
+    assert.ok(src.includes('onAnalysisSuccess'), `${name} must wire onAnalysisSuccess to refresh the list behind it`);
+  }
+});
+
 
 
 

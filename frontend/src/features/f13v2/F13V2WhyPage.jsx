@@ -392,6 +392,8 @@ export default function F13V2WhyPage() {
               subtitle={parcelModal.subtitle}
               filter={parcelModal.filter}
               expectedCount={parcelModal.expectedCount}
+              layout={layout}
+              onAnalysisSuccess={fetchData}
             />
           </>
         )}
