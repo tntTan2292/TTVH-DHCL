@@ -73,3 +73,21 @@ Status: B1 done, waiting for the Opus review. No live build, no restart, no logi
 - **`GET /api/f13/v2/evidence/parcel?ngay_do_kiem=&ma_bg=`.** Capability `f13.analysis.view`, unit scope as `/evidence/list`: another unit 403 `OUT_OF_SCOPE`, unknown parcel 404 `PARCEL_NOT_FOUND`, missing parameters 400 `MISSING_PARAM`. Response `data`: `ngay_do_kiem`, `ma_bg`, `ma_bcvh`, `ten_bcvh`, `ma_tuyen`, `ten_tuyen`, `route_scope`, `danh_gia`, `postman {first{ma,ten}, shown{ma,ten}}`, `journey {…as in the list}`, `tct {hours, limit_hours, recomputed_hours, remaining_at_arrival_hours}`, `system {status, code, detail, line, label, reason, step, basis, flags[], hints[], a_source, remaining_at_arrival_hours}`, `analysis` (latest or null), `can_analyse`, `history {entries[]}` (same entries as `/evidence/history`).
 - **Tests** (`node --test --experimental-sqlite`, one file at a time): new `src/routes/f13v2ParcelCard.test.js` 8/8 (week and month parity of count and journey fields for every route + postman row, route alone = `route_volume`, `date` and the 93-day limit, sort keys, export, card shape, 404/400, Chuyên quản 403 on another unit). Existing: `f13v2Evidence` 16, `f13v2Routes.scope` 13, `f13v2WhyRoutes.scope` 5, `JourneyPeriodService` 16, `CauseAggQueryService` 22, `CauseAggBuilder` 21, `f13v2RuleProposal` 8, all pass.
 - The list still reads one `JourneyService` day per page for the old `milestones` field; U1 can ignore it. Removing that read and the old fields is a later decision, together with the removal of `/journey/parcels`.
+
+## 8. Opus review of B1 (2026-11-09) - B1-FIX needed
+
+- Accepted: the shared mapping, the `/evidence/parcel` card, the unit scope, and `view=journey` (keeps the existing first-postman drill-down unchanged, C4). Re-run: `f13v2ParcelCard` 8/8, `JourneyPeriodService` 16/16.
+- **B1-R1 (blocking U1), speed.** Timed warm on the B3 database copy (isolated server on 5051, leader account):
+
+  | Request | Time |
+  |---|---|
+  | `evidence/list?view=journey&month=2026-10&bcvh=533140&route=53314049&postman=53B383&page_size=20`, the Hành trình row popup | **6,3 s** |
+  | `evidence/list?view=journey&month=2026-10&bcvh=533140&page_size=20` | 5,0 s |
+  | `evidence/list?view=journey&month=2026-10&bcvh=533140&sort=gbt_ptc&order=desc&page_size=100` | **14,2 s** |
+  | `journey/parcels?month=2026-10&sort=tms_ptc&order=desc&page_size=100`, today's popup | 0,11 s |
+  | `evidence/list?view=journey&date=2026-10-15&bcvh=533140&page_size=20` | 1,45 s |
+
+  Cause: every distinct day on a page loads a whole `JourneyService` day for the old `milestones` field. A month page spans up to 20-100 days.
+
+  Fix: the list must not call `JourneyService` at all. Build the old `milestones` / `milestones_state` / `tct.hours_text` from the cause-table columns through the shared mapping, or drop them if no screen reads them (check `F13V2Evidence*`). The `/journey/parcels` speed (~0,1 s) is the target for the popup.
+- **For U1:** `can_analyse` only means "the parcel failed". The screen must also check `f13.analysis.write` and the unit before it shows the Phân tích form.
