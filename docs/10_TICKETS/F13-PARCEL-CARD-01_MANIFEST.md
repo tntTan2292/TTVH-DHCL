@@ -345,3 +345,11 @@ Done, no rebuild, no new column, no change to a figure, median, cause rule or ex
 - Tests: `f13v2GbtBeforeArrive.test.js` (4: counts per row and per BCVH = direct SQL; medians = median of the in-order parcels; minutes 10/20/30/40 on journey, list and card; sort both directions). `f13v2ParcelCard` pick list now includes the new key.
 - B3 copy, 2026-10-01..2026-10-31 (same from/to and month): A Lưới 535790 = 1 253 of 3 141 early (Đến–Giao counted 1 852); Hương Thủy 536250 = 3 482 of 18 277 (counted 11 375). Equal to a direct SQL count on the copy. Warm `getRoutes` for a month: ~3.1–3.3 s in process, same as the code before B2 (3.1 s); the first call after start was 12 s (cold file cache). The routes (538 rows) and meta are identical to the old service apart from the new fields.
 - Note for U2: the live figures of §18 (1 548 and 4 225) cover a longer period than this copy; "counted" is not volume minus early, because parcels with no handover scan are also out of the median.
+
+## 20. Opus review of B2 (2026-11-09) - accepted; the live backend is behind
+
+- B2 accepted: one read-time function, no change to a median or a figure. Re-run: `f13v2GbtBeforeArrive` 4/4, `f13v2ParcelCard` 8/8, `JourneyPeriodService` 16/16.
+- **Correction to §17 and to what the PO was told.** "Live without a restart" was true only of the frontend. The live backend process started 2026-11-08 22:59, before B1 (2026-11-09 09:03), so it has none of B1, B1-FIX or B2. The real renders ran on an isolated backend from the current code, which hid this. Until the restart, on the live site:
+  - `/evidence/parcel` does not exist, so the parcel card cannot load;
+  - `view=journey` is ignored, so `postman` filters on the first postman and the popup count can differ from Sản lượng.
+- The PO check of §17 must wait for the restart. U2 starts after it.
