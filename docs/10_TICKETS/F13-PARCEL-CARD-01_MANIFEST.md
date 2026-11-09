@@ -402,3 +402,41 @@ Notes:
 - The access-cache clearing on login/logout is covered by Antigravity's unit test only, not by the render.
 - Live: backend from 15:50 (§21) has B1, B1-FIX and B2. The frontend is served from the working tree at `127eff0b`.
 - Opus cannot view the live screens. Đề xuất quy tắc samples were never rendered (the render accounts are not admin): PO to check.
+
+## 24. PO check 2026-11-09 (live): the same parcel opens differently; U3
+
+The live card opens from Phân tích nguyên nhân, Dữ liệu minh chứng and Hành trình (parcel CE295909029VN), so B1 is live. The PO marks the Dữ liệu minh chứng one as a defect.
+
+- **U3-R1, one landing tab.** `F13V2EvidencePage.jsx` lines 592 and 596 open the card on the Nguyên nhân tab when the page is in the Nguyên nhân view, while every other caller opens on Hành trình. Reading of the PO's C1 ("click a parcel number, same place"): **a parcel number always opens on the Hành trình tab, in both views.** Only the row's "ghi kết luận" action opens on Phân tích.
+- **U3-R2, raw codes on the Nguyên nhân tab** ("Trạng thái: CAUSE", "INTERVAL", "Gợi ý: DEN_BCVH_CON_IT_GIO"). Show words only:
+
+  | Code | Text |
+  |---|---|
+  | status CAUSE | Đã xác định nguyên nhân |
+  | status CHO_CHUYEN_QUAN | Chờ Chuyên quản phân tích |
+  | status CHUA_DU_CAN_CU | Chưa đủ căn cứ |
+  | status KHONG_PHAN_TICH | Không phân tích (bưu gửi Đạt hoặc chưa đánh giá) |
+  | basis INTERVAL | Tính theo số giờ TCT (khoảng thời gian) |
+  | basis MILESTONES | Tính theo các mốc hành trình |
+  | step T-A / T-G / T-E | Chặng TMS → Đến BCVH / TMS → Giao bưu tá / TMS → Phát |
+  | step THOI_GIAN | Theo thời gian |
+  | hint DEN_BCVH_CON_IT_GIO | Bưu gửi đến BCVH còn ít giờ |
+  | hint DAU_HIEU_CHAM_TAI_BCVH | Có dấu hiệu chậm tại BCVH |
+  | flag THIEU_F41 | Không có dữ liệu F4.1 |
+  | flag KHONG_XAC_NHAN_DEN | Không có giờ xác nhận đến BCVH |
+  | flag SAI_TRINH_TU_NGHIEP_VU | Các mốc sai trình tự nghiệp vụ |
+  | flag G_TRUOC_T | Giao bưu tá trước giờ quét TMS |
+  | flag THIEU_MOC_D | Thiếu mốc rời KTC1 |
+  | flag MOC_D_DAO_THU_TU | Mốc rời KTC1 sai thứ tự |
+  | flag THIEU_MOC_G | Thiếu mốc giao bưu tá |
+  | flag MOC_G_KHONG_HOP_LE | Mốc giao bưu tá sai thứ tự |
+  | flag MOC_A_KHONG_HOP_LE | Mốc đến BCVH sai thứ tự |
+  | flag THIEU_MOC_E | Thiếu giờ phát |
+  | flag THOI_GIAN_KHONG_HOP_LE | Thời gian không hợp lệ |
+  | flag R_KHONG_HOP_LE | Không tính lại được số giờ TCT |
+  | flag UNLOCATED_TCT_EXCLUSION | Có khoảng loại trừ TCT chưa xác định vị trí |
+  | flag KET_QUA_KHONG_KHOP_CHI_TIEU | Kết quả TCT không khớp chỉ tiêu |
+  | flag THIEU_CHI_TIEU | Thiếu chỉ tiêu |
+  | flag F41_KHONG_DUY_NHAT | F4.1 có nhiều dòng |
+
+  `A_TRUOC_TMS_GIAO_TRUC_TIEP` keeps the existing `FLAG_LABELS` text. A code not in the table shows "Mã khác", never the raw code. Reasons keep `formatChoChuyenQuanReason`. The wording is a display proposal by Opus; no rule changes.
