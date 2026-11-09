@@ -33,7 +33,7 @@ const DAYS = ['2026-10-15', '2026-10-17', '2026-10-21', '2026-10-24', '2026-10-3
 const WEEK = '2026-W42';
 const MONTH = '2026-10';
 const BUILT_AT = '2026-11-05T00:00:00.000Z';
-const JOURNEY_KEYS = ['ma_lo', 'khong_tron_lo', 'limit_ms', 'tct_ms', 'l_ms', 'r_ms', 'legs', 'milestones'];
+const JOURNEY_KEYS = ['gbt_before_arrive_ms', 'ma_lo', 'khong_tron_lo', 'limit_ms', 'tct_ms', 'l_ms', 'r_ms', 'legs', 'milestones'];
 
 let server;
 let baseUrl;

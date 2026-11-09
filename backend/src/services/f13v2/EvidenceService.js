@@ -243,7 +243,11 @@ class EvidenceService {
         const dateOnly = String(query.sort || '') === 'date';
         const direction = String(query.order || '').toLowerCase() === 'asc' ? 'ASC' : 'DESC';
         // a milestone / leg / lot sort key (the names of /journey/parcels): missing values last in both directions, then the stable order
-        const sortColumn = Object.hasOwn(PARCEL_SORT_COLUMN, String(query.sort || '')) ? PARCEL_SORT_COLUMN[String(query.sort)] : null;
+        // gbt_before_arrive (C5): how many ms early the handover was; parcels in the right order sort as missing
+        const sortKey = String(query.sort || '');
+        const sortColumn = sortKey === 'gbt_before_arrive'
+            ? '(CASE WHEN ms_gbt < ms_arrive THEN ms_arrive - ms_gbt END)'
+            : (Object.hasOwn(PARCEL_SORT_COLUMN, sortKey) ? PARCEL_SORT_COLUMN[sortKey] : null);
         const priority = dateOnly || sortColumn ? '' : `(CASE WHEN cause_status = 'CHO_CHUYEN_QUAN' AND danh_gia = '${FAILED}' AND a_id IS NULL THEN 0 ELSE 1 END) ASC, `;
         const orderSql = sortColumn
             ? `${sortColumn} IS NULL, ${sortColumn} ${direction}, ngay_do_kiem ASC, ma_bg ASC`

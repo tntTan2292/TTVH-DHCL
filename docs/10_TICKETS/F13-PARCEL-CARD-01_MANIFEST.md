@@ -335,3 +335,13 @@ All values are computed at read time from `ms_arrive` / `ms_gbt` of `f13_cause_p
 - Fix with it:
   - the Số giờ TCT column of the list mixes "4:28" and "19.15h". Use one format, the same as the card ("341,3h");
   - U1F2-R1: clear the access cache on logout and on login.
+
+## 19. B2 backend result (2026-11-09): handover before arrival, read time only
+
+Done, no rebuild, no new column, no change to a figure, median, cause rule or existing field.
+- `journeyFactsOf` (JourneyPeriodService.js): new `gbt_before_arrive_ms` = `ms_arrive - ms_gbt` when `ms_gbt < ms_arrive`, else null. It reaches `/journey/parcels`, `/evidence/list` (`item.journey`), `/evidence/parcel` (`journey`) and the export through the one shared mapping.
+- `/journey/routes`: each row has `gbt_before_arrive` (parcels with `ms_gbt < ms_arrive`) and `arrive_gbt_counted` (parcels with a non-null Đến–Giao leg, the ones the median uses). Per BCVH: new `meta.bcvh[] = { ma_bcvh, volume, gbt_before_arrive, arrive_gbt_counted }`.
+- `/evidence/list`: sort key `gbt_before_arrive` (largest early first for `desc`; parcels in the right order last in both directions).
+- Tests: `f13v2GbtBeforeArrive.test.js` (4: counts per row and per BCVH = direct SQL; medians = median of the in-order parcels; minutes 10/20/30/40 on journey, list and card; sort both directions). `f13v2ParcelCard` pick list now includes the new key.
+- B3 copy, 2026-10-01..2026-10-31 (same from/to and month): A Lưới 535790 = 1 253 of 3 141 early (Đến–Giao counted 1 852); Hương Thủy 536250 = 3 482 of 18 277 (counted 11 375). Equal to a direct SQL count on the copy. Warm `getRoutes` for a month: ~3.1–3.3 s in process, same as the code before B2 (3.1 s); the first call after start was 12 s (cold file cache). The routes (538 rows) and meta are identical to the old service apart from the new fields.
+- Note for U2: the live figures of §18 (1 548 and 4 225) cover a longer period than this copy; "counted" is not volume minus early, because parcels with no handover scan are also out of the median.

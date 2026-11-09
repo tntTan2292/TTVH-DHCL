@@ -152,12 +152,20 @@ const NO_POSTMAN = 'NONE'; // the postman filter value (and key part) of parcels
 const ROUTE_KEY_SQL = "CASE WHEN route_scope = 'POSTMAN' THEN ma_tuyen ELSE '@' || route_scope END";
 const POSTMAN_KEY_SQL = "COALESCE(NULLIF(ma_buu_ta_shown, ''), 'NONE')";
 
+/** F13-PARCEL-CARD-01 B2 (C5): positive ms when the parcel was handed to the postman before the BCVH arrival scan (ms_gbt < ms_arrive), else null. Read time only. */
+function gbtBeforeArriveMs(row) {
+    const arrive = row.ms_arrive;
+    const gbt = row.ms_gbt;
+    return arrive !== null && arrive !== undefined && gbt !== null && gbt !== undefined && gbt < arrive ? arrive - gbt : null;
+}
+
 /**
  * The journey facts of one f13_cause_parcel row (lot, TCT hours, leg hours, the six milestones): THE mapping of /journey/parcels, shared with the
  * evidence list and the parcel card (F13-PARCEL-CARD-01), so a parcel shows the same facts everywhere.
  */
 function journeyFactsOf(row) {
     return {
+        gbt_before_arrive_ms: gbtBeforeArriveMs(row),
         ma_lo: row.ma_lo,
         khong_tron_lo: Boolean(row.khong_tron_lo),
         limit_ms: row.limit_ms,
@@ -231,7 +239,7 @@ class JourneyPeriodService {
         const lotCodes = new Set();
         const legCols = LEGS.map((leg) => LEG_COLUMN[leg]).join(', ');
         await this.db.each(
-            `SELECT ma_bcvh, route_scope, ma_tuyen, danh_gia, khong_tron_lo, ma_lo, ma_buu_ta_shown, ten_buu_ta_shown, ${legCols}
+            `SELECT ma_bcvh, route_scope, ma_tuyen, danh_gia, khong_tron_lo, ma_lo, ma_buu_ta_shown, ten_buu_ta_shown, ms_arrive, ms_gbt, ${legCols}
              FROM f13_cause_parcel WHERE ${where.sql}`,
             where.params,
             (row) => {
@@ -250,12 +258,14 @@ class JourneyPeriodService {
                     group = {
                         key, route_key: `${row.ma_bcvh}|${routeKey}`, ma_buu_ta: row.ma_buu_ta_shown || null, ten_buu_ta: null,
                         ma_bcvh: String(row.ma_bcvh), route_scope: row.route_scope, ma_tuyen: row.route_scope === 'POSTMAN' ? row.ma_tuyen : null,
-                        volume: 0, passed: 0, failed: 0, khong_tron_lo: 0, mix: emptyMix(),
+                        volume: 0, passed: 0, failed: 0, khong_tron_lo: 0, gbt_before_arrive: 0, arrive_gbt_counted: 0, mix: emptyMix(),
                         values: Object.fromEntries(LEGS.map((leg) => [leg, { all: [], failed: [], passed: [] }])),
                     };
                     groups.set(key, group);
                 }
                 group.volume += 1;
+                if (gbtBeforeArriveMs(row) !== null) group.gbt_before_arrive += 1;
+                if (row.leg_arrive_gbt_ms !== null && row.leg_arrive_gbt_ms !== undefined) group.arrive_gbt_counted += 1;
                 if (row.danh_gia === PASSED) group.passed += 1;
                 if (failed) group.failed += 1;
                 if (row.khong_tron_lo) group.khong_tron_lo += 1;
@@ -336,6 +346,8 @@ class JourneyPeriodService {
                 failed: group.failed,
                 rate: Number(((group.passed / group.volume) * 100).toFixed(1)),
                 khong_tron_lo: group.khong_tron_lo,
+                gbt_before_arrive: group.gbt_before_arrive,
+                arrive_gbt_counted: group.arrive_gbt_counted,
                 own_shortfall: metrics.own_shortfall,
                 own_shortfall_x10: metrics.own_shortfall_x10,
                 shortfall: metrics.shortfall,
@@ -356,9 +368,18 @@ class JourneyPeriodService {
             || String(a.ma_tuyen).localeCompare(String(b.ma_tuyen))
             || String(a.ma_buu_ta).localeCompare(String(b.ma_buu_ta)));
 
+        const byBcvh = new Map();
+        for (const group of groups.values()) {
+            const unit = byBcvh.get(group.ma_bcvh) || { ma_bcvh: group.ma_bcvh, volume: 0, gbt_before_arrive: 0, arrive_gbt_counted: 0 };
+            unit.volume += group.volume;
+            unit.gbt_before_arrive += group.gbt_before_arrive;
+            unit.arrive_gbt_counted += group.arrive_gbt_counted;
+            byBcvh.set(group.ma_bcvh, unit);
+        }
         return {
             routes,
             meta: {
+                bcvh: [...byBcvh.values()].sort((a, b) => a.ma_bcvh.localeCompare(b.ma_bcvh)),
                 date: period.from === period.to ? period.from : null,
                 period,
                 has_data: coverage.parcels > 0,
@@ -467,4 +488,4 @@ class JourneyPeriodService {
     }
 }
 
-module.exports = { JourneyPeriodService, resolveJourneyPeriod, journeyFactsOf, routeLabelOf, PARCEL_SORT_COLUMN, BCVH_NAMES, mainCauseOf, slowestLegOf, routeKeyOf, shiftIsoDate, MAX_DAYS, LEGS, STAGE_LEGS };
+module.exports = { JourneyPeriodService, resolveJourneyPeriod, journeyFactsOf, gbtBeforeArriveMs, routeLabelOf, PARCEL_SORT_COLUMN, BCVH_NAMES, mainCauseOf, slowestLegOf, routeKeyOf, shiftIsoDate, MAX_DAYS, LEGS, STAGE_LEGS };
