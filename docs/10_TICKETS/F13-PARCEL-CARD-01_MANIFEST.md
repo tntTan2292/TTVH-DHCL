@@ -299,3 +299,39 @@ Fixed all three defects identified in Opus real render (§13) with zero backend 
   - Effect: if user A signs out and user B signs in on the same tab, B's cards show A's write right and units.
   - The server still refuses a write outside B's unit (`EvidenceService._assertScope`), so this is a display defect, not a data one.
   - Fix: clear the cache on logout and on login (`AuthContext`), or key it by the session id.
+
+## 18. PO decision C5 (2026-11-09): handover before arrival, shown in red
+
+Finding (live database, read only, 2026-10-01..2026-11-08, parcels with both milestones):
+- 6 317 of 134 481 parcels have `ms_gbt < ms_arrive`: the parcel was handed to the postman before the BCVH arrival scan. Their `leg_arrive_gbt_ms` is null, so the Đến–Giao cell shows "—".
+- By BCVH:
+  - A Lưới 535790: 1 548 / 3 942 (39,3 %), on average 48 min early;
+  - Hương Thủy 536250: 4 225 / 18 698 (22,6 %), on average 349 min early;
+  - 537015, 537220 and 533140: 1 % or less;
+  - 535470: 0 %.
+- Arrival source: F41 6 274, BF 43.
+- Example: BCVH A Lưới, postman ĐINH THỊ LOAN (53A005), 08/11, all 7 parcels.
+
+**C5:** these parcels are shown, not hidden and not set to 0.
+- The Đến–Giao cell reads "Giao trước khi đến · sớm 19 phút" in red.
+- The card shows the same warning on that leg.
+- The Hành trình table shows how many parcels of each row, and of each BCVH, are in this case.
+- No official figure, no median rule and no cause rule changes. The leg median keeps using only the parcels in the right order, and the screen says how many were left out.
+
+### B2 backend (Sonnet)
+
+All values are computed at read time from `ms_arrive` / `ms_gbt` of `f13_cause_parcel`. No rebuild, no new column.
+- `journeyFactsOf`: add `gbt_before_arrive_ms` (positive ms when `ms_gbt < ms_arrive`, else null). It then appears in `/journey/parcels`, `/evidence/list` and `/evidence/parcel`.
+- `/journey/routes`: per row and per BCVH group, add `gbt_before_arrive` (count of parcels in the case) and `arrive_gbt_counted` (count used for the Đến–Giao median).
+- Add sort key `gbt_before_arrive` to `/evidence/list`.
+- Tests: counts equal a direct SQL count on a seeded table; the examples above give the expected minutes; the existing medians are unchanged.
+
+### U2 screen (Antigravity, after B2 is accepted)
+
+- C5 display:
+  - red cell in the list and on the card;
+  - a red badge "n giao trước khi đến" next to the Đến BCVH → Giao bưu tá stage of each row and in the BCVH header;
+  - tooltip: "Không tính vào thời gian chặng Đến–Giao (n bưu gửi)".
+- Fix with it:
+  - the Số giờ TCT column of the list mixes "4:28" and "19.15h". Use one format, the same as the card ("341,3h");
+  - U1F2-R1: clear the access cache on logout and on login.
