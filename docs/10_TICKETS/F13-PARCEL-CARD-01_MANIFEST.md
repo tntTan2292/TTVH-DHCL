@@ -251,3 +251,15 @@ Fixed all three defects identified in Opus real render (§13) with zero backend 
 - `node --test backend/src/routes/f13v2ParcelCard.test.js backend/src/routes/f13v2Evidence.test.js`: 24/24 pass (0 fail).
 - `npm.cmd --prefix frontend run build`: Production bundle built in 1.81s (0 errors).
 
+
+## 15. Opus real render of U1-FIX (2026-11-09) - one regression, U1-FIX2
+
+- Working tree incident: at 14:22 the PO accidentally cancelled an Antigravity save. Three files went back to a mixed old state and the live page failed ("no export getMilestoneAt"). On the PO's word, Opus restored the three files from commit a22ff930 with `git checkout --`. No code was written.
+- Passed:
+  - U1-R1: the 5 milestone columns are filled in the list (e.g. CQ810379531VN: 2026-10-11 04:45:12 … 2026-10-20 16:59:14).
+  - U1-R2: the card shows "341,3h" and "4,5h".
+  - U1-R3: 2 calls of `/evidence/parcel` per open (development StrictMode), 0 catalog calls from the card.
+  - No page error.
+- **U1F-R1 (blocking, regression from U1-R3):** the card now reads `catalog`/`layout` only from props, and only `F13V2EvidencePage` passes them. So a Chuyên quản (cq, 537015, holds `f13.analysis.write`) who opens a card of its own unit from the Hành trình popup sees "Tài khoản chỉ có quyền xem (f13.analysis.view), không có quyền ghi phân tích", with no form. U1 showed the form there. Same for `F13V2WhyParcelModal` and `F13V2RuleProposalDetailPanel`.
+  - Fix: give the card the write right on every caller. Either read it once from a shared source (the auth/access context, or one cached catalog hook used by all four callers), or pass `catalog`/`layout` from each caller's page. Do not call `/evidence/catalog` once per card open.
+  - Also write the message in words without the capability code: "Tài khoản chỉ có quyền xem, không có quyền ghi phân tích".
