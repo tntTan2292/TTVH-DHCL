@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useMemo, useRef, useState, Fragment } from 'react';
 import { Route, Layers, ChevronDown, ChevronRight, User, Package } from 'lucide-react';
 import BlockCaptureButton from '../../../components/common/BlockCaptureButton.jsx';
 import SortableTh from '../../../components/common/SortableTh.jsx';
@@ -302,12 +302,12 @@ function SingleBcvhRoutesBlock({
                 const isExpanded = expandedRouteKey === route.key;
 
                 return (
-                  <tr
-                    key={route.key || route.ma_tuyen}
-                    className={`transition-colors duration-100 ${
-                      hasRouteDeficit ? 'bg-amber-50/15' : ''
-                    } ${isExpanded ? 'bg-blue-50/20' : 'hover:bg-blue-50/30'}`}
-                  >
+                  <Fragment key={route.key || route.ma_tuyen}>
+                    <tr
+                      className={`transition-colors duration-100 ${
+                        hasRouteDeficit ? 'bg-amber-50/15' : ''
+                      } ${isExpanded ? 'bg-blue-50/20' : 'hover:bg-blue-50/30'}`}
+                    >
                     <td className="px-2 py-2 text-center font-semibold text-slate-500 border-r border-slate-100">
                       {idx + 1}
                     </td>
@@ -425,23 +425,19 @@ function SingleBcvhRoutesBlock({
                       </div>
                     </td>
                   </tr>
-                );
-              })
-            )}
-            {/* Inline Expanded Postmen Sub-table for the selected route */}
-            {sortedPostman.map((route) => {
-              if (expandedRouteKey !== route.key) return null;
-              return (
-                <tr key={`${route.key}_postmen_sub`} className="bg-slate-50/80">
-                  <td colSpan={12} className="p-2 sm:p-3 border-b border-slate-200">
-                    <F13V2WhyPostmanSubTable
-                      route={route}
-                      onOpenParcels={onOpenParcels}
-                    />
-                  </td>
-                </tr>
+                  {isExpanded && (
+                    <tr key={`${route.key}_postmen_sub`} className="bg-slate-50/80">
+                      <td colSpan={12} className="p-2 sm:p-3 border-b border-slate-200">
+                        <F13V2WhyPostmanSubTable
+                          route={route}
+                          onOpenParcels={onOpenParcels}
+                        />
+                      </td>
+                    </tr>
+                  )}
+                </Fragment>
               );
-            })}
+            }))}
           </tbody>
         </table>
       </div>

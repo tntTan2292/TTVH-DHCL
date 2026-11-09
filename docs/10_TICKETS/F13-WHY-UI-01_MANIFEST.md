@@ -79,6 +79,7 @@ If a figure the design needs is not in the API, ask Claude Code; never compute a
 
 - 2026-11-05: problem written from the PO's own words; ready for Antigravity (Claude Code / Opus 5.5).
 - 2026-11-05: split into step 1 / step 2 and programme order recorded (section 2A), PO approved.
+- 2026-11-09: defect fix - postman sub-table placed directly under clicked route row using keyed Fragment in the same loop (commit by Antigravity).
 
 ## 9. Opus review of step 1 (2026-11-05, Claude Code / Opus 5.5; commit `0f55278a` by Antigravity)
 
@@ -120,3 +121,11 @@ PO checklist (step 1): menu F1.3 > "Phân tích nguyên nhân"; from Kết quả
 PO checklist (step 2): expand a postman route with "Bưu tá"; the first-handover postmen and "Chưa có bưu tá" appear with volume, failed and cause chips, the neutral footnote; click any number or chip (BCVH card, route, postman, a Chờ Chuyên quản reason, a time-left bucket): the list opens with the same count; causes and reasons in Vietnamese; "Xem hành trình" opens Hành trình bưu gửi on that parcel and day.
 
 **Step 2 PO UI PASS (2026-11-06, in chat: "PASS bước 2"). Ticket CLOSED.** Commits: step 2 `fb05ffa3`, rule-11 fix `c802f7d7`. Open for later (not blocking): a "Khai thác - Vận chuyển chưa phân biệt" chip at route and postman level (section 10). Next in the programme (section 2A): Dữ liệu minh chứng with the Chuyên quản analysis (E8), then the Thuận Hóa trial.
+
+## 11. Defect Fix (2026-11-09)
+
+- **Defect**: Postman sub-table placed wrong (at the end of that BCVH's route table instead of under the clicked route row).
+- **Cause**: In `frontend/src/features/f13v2/components/F13V2WhyRouteTable.jsx` (lines 432-445), the expanded `<tr>` was rendered by a second loop over `sortedPostman` after all route rows.
+- **Fix**: Wrapped route rows with keyed React `<Fragment key={route.key || route.ma_tuyen}>` in the main loop to render `F13V2WhyPostmanSubTable` immediately following the clicked route's own `<tr>`. Removed second loop.
+- **Behavior preserved**: Only one route expanded at a time; re-sorting keeps sub-table under its route; "Phát tại quầy" and "Tuyến chưa xác định" groups unaffected; colSpan (12) and styling unchanged.
+- **Verification**: `oxlint -D no-undef` clean (0 errors), 87/87 f13v2 tests passed (`node --test`), frontend production build passed (`npm run build`).
