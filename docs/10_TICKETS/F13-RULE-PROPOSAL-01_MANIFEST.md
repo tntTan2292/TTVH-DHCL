@@ -37,6 +37,7 @@ Page "Đề xuất quy tắc" in the F1.3 menu for the admin tier: list by statu
 ## 5. Change log
 
 - 2026-11-07: created by Claude Code / Opus 5.5 after the PO approved the plan.
+- 2026-11-09: U2 batch decisions (select several proposals, decide together with one shared note) implemented by Antigravity.
 
 ## 6. B1 results (Claude Code / Sonnet 5.5, 2026-11-07)
 
@@ -75,3 +76,22 @@ Isolated 5051/5199 with the real `f13v2Routes` (rule proposal migration applied,
 - Flow: Duyệt with a note -> tabs 1 / 1, ready text with Sao chép, history "Đã duyệt" with the snapshot; then "Đã áp dụng" with ticket F13-WHY-DATA-04 -> history shows both decisions. No failed call, no page error.
 
 Fixed in the review (Claude Code / Opus, small display points): raw proposal key removed from the table and the detail header; English subtitle and "Product Owner" / "(ready text)" wording replaced; times shown dd/mm/yyyy HH:mm on the Vietnam clock (`formatDecisionTime`); BCVH names instead of codes (`formatBcvhName`); breadcrumb "Đề xuất quy tắc" instead of the slug; purple ticket badge to blue (report standard); the decision form is cleared after a decision. Tests: `f13RuleProposal*` 15/15 (one new), navigation / auth 26/26, oxlint clean on the touched files.
+
+## 9. U2 Screen: Batch Decisions for Rule Proposals (Antigravity, 2026-11-09)
+
+- **PO Decision (2026-11-09):** One shared note for the whole batch. Every proposal is still saved as its own decision via the existing endpoint.
+- **Scope & Gating:**
+  - Limited to the "Chờ duyệt" (`PENDING`) tab only.
+  - Checkboxes and batch action bar are hidden on all other tabs (`APPROVED`, `REJECTED`, `APPLIED`) and for users without `f13.rule.decide`.
+- **UI Components:**
+  - `F13V2RuleProposalTable.jsx`: "Chọn tất cả" checkbox in header, individual row checkboxes with propagation stop so clicking does not open the detail panel. Action bar appears when >= 1 proposal is checked, showing "Duyệt (n)" and "Không duyệt (n)" with clear selection button.
+  - `F13V2RuleProposalPage.jsx`: Selection state management, `RuleProposalBatchModal` dialog with mandatory note (up to 1000 characters), business notice that each proposal creates its own snapshot decision.
+- **Execution & Flow:**
+  - On confirm, sends `POST /api/f13/v2/rule-proposals/:key/decisions` sequentially for each ticked key (using `encodeURIComponent(key)`).
+  - Displays result summary as `"x thành công / y lỗi"` and names failed keys if any.
+  - Automatically clears selection and reloads proposal list and tab counts.
+  - Preserved single-row "Chi tiết" flow, camera capture buttons, column sorting, and standard vocabulary. Zero backend changes.
+- **Verification:**
+  - `f13RuleProposalHelpers.test.js` tests selection toggle, select-all toggle, all-selected check, and batch summary formatting (18/18 PASS; f13v2 suite 90/90 PASS).
+  - Oxlint clean (0 undefined errors).
+  - Production build passed (`npm run build`).

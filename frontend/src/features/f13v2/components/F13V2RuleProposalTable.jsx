@@ -1,5 +1,5 @@
 import { useRef } from 'react';
-import { ArrowRight, CheckCircle2, ChevronRight, Eye, FileText } from 'lucide-react';
+import { ArrowRight, CheckCircle2, ChevronRight, Eye, FileText, XCircle } from 'lucide-react';
 import BlockCaptureButton from '../../../components/common/BlockCaptureButton.jsx';
 import SortableTh from '../../../components/common/SortableTh.jsx';
 import { useIndicator } from '../../indicator/IndicatorContext.js';
@@ -11,6 +11,7 @@ import {
   proposalStatusBadgeClass,
   formatStillRatio,
   formatDateSpan,
+  isAllProposalsSelected,
 } from '../f13RuleProposalHelpers.js';
 
 export default function F13V2RuleProposalTable({
@@ -22,10 +23,19 @@ export default function F13V2RuleProposalTable({
   onSelectProposal,
   selectedKey = null,
   activeStatus = 'PENDING',
+  selectable = false,
+  selectedKeys = [],
+  onToggleSelectKey,
+  onToggleSelectAll,
+  onClearSelection,
+  onOpenBatchDialog,
 }) {
   const indicator = useIndicator();
   const theme = indicatorTheme(indicator);
   const tableCardRef = useRef(null);
+
+  const isAllSelected = isAllProposalsSelected(items, selectedKeys);
+  const colSpanCount = selectable ? 9 : 8;
 
   return (
     <div
@@ -62,6 +72,48 @@ export default function F13V2RuleProposalTable({
         </div>
       </div>
 
+      {/* Batch action bar when rows are selected */}
+      {selectable && selectedKeys.length > 0 && (
+        <div
+          className="px-5 py-2.5 bg-blue-50/90 border-b border-blue-200 flex flex-wrap items-center justify-between gap-3 animate-in fade-in"
+          data-no-capture="true"
+        >
+          <div className="flex items-center gap-2 text-xs sm:text-sm text-blue-900 font-medium">
+            <span className="inline-flex items-center justify-center px-2 py-0.5 rounded-full bg-blue-600 text-white text-xs font-bold">
+              {selectedKeys.length}
+            </span>
+            <span>Đã chọn {selectedKeys.length} đề xuất</span>
+            {onClearSelection && (
+              <button
+                type="button"
+                onClick={onClearSelection}
+                className="text-xs text-blue-700 hover:text-blue-900 underline ml-2 cursor-pointer font-normal"
+              >
+                Bỏ chọn
+              </button>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => onOpenBatchDialog && onOpenBatchDialog('APPROVE')}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-blue-600 hover:bg-blue-700 text-white shadow-sm transition-colors cursor-pointer"
+            >
+              <CheckCircle2 className="w-3.5 h-3.5" />
+              <span>Duyệt ({selectedKeys.length})</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => onOpenBatchDialog && onOpenBatchDialog('REJECT')}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-red-600 hover:bg-red-700 text-white shadow-sm transition-colors cursor-pointer"
+            >
+              <XCircle className="w-3.5 h-3.5" />
+              <span>Không duyệt ({selectedKeys.length})</span>
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Error state */}
       {error && (
         <div className="m-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
@@ -74,6 +126,23 @@ export default function F13V2RuleProposalTable({
         <table className="w-full text-left text-sm text-gray-600 border-collapse">
           <thead className="bg-gray-50/90 text-xs font-semibold text-gray-600 uppercase tracking-wider border-b border-gray-200">
             <tr>
+              {selectable && (
+                <th
+                  className="py-3 px-3 text-center w-10 whitespace-nowrap"
+                  data-no-capture="true"
+                >
+                  <div className="flex items-center justify-center">
+                    <input
+                      type="checkbox"
+                      title="Chọn tất cả"
+                      aria-label="Chọn tất cả"
+                      checked={isAllSelected}
+                      onChange={onToggleSelectAll}
+                      className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
+                    />
+                  </div>
+                </th>
+              )}
               <SortableTh
                 field="pair"
                 sort={sort}
@@ -141,7 +210,7 @@ export default function F13V2RuleProposalTable({
           <tbody className="divide-y divide-gray-100">
             {loading && items.length === 0 ? (
               <tr>
-                <td colSpan={8} className="py-12 text-center text-gray-500">
+                <td colSpan={colSpanCount} className="py-12 text-center text-gray-500">
                   <div className="inline-flex items-center gap-2">
                     <span className="inline-block w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
                     <span>Đang tải danh sách đề xuất...</span>
@@ -150,7 +219,7 @@ export default function F13V2RuleProposalTable({
               </tr>
             ) : items.length === 0 ? (
               <tr>
-                <td colSpan={8} className="py-16 text-center">
+                <td colSpan={colSpanCount} className="py-16 text-center">
                   <div className="flex flex-col items-center justify-center max-w-sm mx-auto text-gray-500">
                     <div className="p-3 bg-gray-50 rounded-full mb-3 text-gray-400">
                       <CheckCircle2 className="w-8 h-8" />
@@ -165,6 +234,7 @@ export default function F13V2RuleProposalTable({
             ) : (
               items.map((item) => {
                 const isSelected = selectedKey === item.key;
+                const isRowTicked = selectedKeys.includes(item.key);
                 const sysText = formatSystemConclusion(item.system);
                 const chosenText = formatChosenCause(item.chosen);
                 const stillRatioText = formatStillRatio(item.still_system_conclusion, item.parcels);
@@ -177,9 +247,29 @@ export default function F13V2RuleProposalTable({
                     key={item.key}
                     onClick={() => onSelectProposal && onSelectProposal(item)}
                     className={`cursor-pointer transition-colors duration-150 hover:bg-blue-50/40 ${
-                      isSelected ? 'bg-blue-50/80 font-medium' : ''
+                      isSelected ? 'bg-blue-50/80 font-medium' : isRowTicked ? 'bg-blue-50/30' : ''
                     }`}
                   >
+                    {/* Checkbox for batch decision */}
+                    {selectable && (
+                      <td
+                        className="py-3.5 px-3 text-center whitespace-nowrap"
+                        data-no-capture="true"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <div className="flex items-center justify-center">
+                          <input
+                            type="checkbox"
+                            title={`Chọn đề xuất ${item.key}`}
+                            aria-label={`Chọn đề xuất ${item.key}`}
+                            checked={isRowTicked}
+                            onChange={() => onToggleSelectKey && onToggleSelectKey(item.key)}
+                            className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
+                          />
+                        </div>
+                      </td>
+                    )}
+
                     {/* System conclusion -> Chosen cause */}
                     <td className="py-3.5 px-4">
                       <div className="flex flex-col gap-1.5">

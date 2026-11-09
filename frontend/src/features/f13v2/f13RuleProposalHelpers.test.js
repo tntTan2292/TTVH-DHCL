@@ -185,3 +185,56 @@ test('F13-RULE-PROPOSAL-01 review: decision time on the Vietnam clock and BCVH n
   assert.equal(formatBcvhName('999999'), '999999');
   assert.equal(formatBcvhName(null), '—');
 });
+
+test('F13-RULE-PROPOSAL-01 U2: toggleProposalSelection toggles key presence', async () => {
+  const { toggleProposalSelection } = await import('./f13RuleProposalHelpers.js');
+  // Add key to empty selection
+  assert.deepEqual(toggleProposalSelection([], 'key1'), ['key1']);
+  // Add another key
+  assert.deepEqual(toggleProposalSelection(['key1'], 'key2'), ['key1', 'key2']);
+  // Remove existing key
+  assert.deepEqual(toggleProposalSelection(['key1', 'key2'], 'key1'), ['key2']);
+  // Toggle with null or empty
+  assert.deepEqual(toggleProposalSelection(['key1'], null), ['key1']);
+  assert.deepEqual(toggleProposalSelection(null, 'key1'), ['key1']);
+});
+
+test('F13-RULE-PROPOSAL-01 U2: toggleSelectAllProposals and isAllProposalsSelected logic', async () => {
+  const { toggleSelectAllProposals, isAllProposalsSelected } = await import('./f13RuleProposalHelpers.js');
+  const items = [{ key: 'k1' }, { key: 'k2' }, { key: 'k3' }];
+
+  // None selected
+  assert.equal(isAllProposalsSelected(items, []), false);
+  assert.deepEqual(toggleSelectAllProposals(items, []), ['k1', 'k2', 'k3']);
+
+  // Partially selected
+  assert.equal(isAllProposalsSelected(items, ['k1', 'k2']), false);
+  assert.deepEqual(toggleSelectAllProposals(items, ['k1', 'k2']), ['k1', 'k2', 'k3']);
+
+  // All selected -> deselect all
+  assert.equal(isAllProposalsSelected(items, ['k1', 'k2', 'k3']), true);
+  assert.deepEqual(toggleSelectAllProposals(items, ['k1', 'k2', 'k3']), []);
+
+  // Empty or invalid inputs
+  assert.equal(isAllProposalsSelected([], ['k1']), false);
+  assert.equal(isAllProposalsSelected(null, ['k1']), false);
+  assert.deepEqual(toggleSelectAllProposals([], []), []);
+  assert.deepEqual(toggleSelectAllProposals(null, []), []);
+});
+
+test('F13-RULE-PROPOSAL-01 U2: formatBatchDecisionSummary formats result with failed keys', async () => {
+  const { formatBatchDecisionSummary } = await import('./f13RuleProposalHelpers.js');
+  // All success
+  assert.equal(formatBatchDecisionSummary(5, 0), '5 thành công / 0 lỗi');
+  assert.equal(formatBatchDecisionSummary(1, 0, []), '1 thành công / 0 lỗi');
+
+  // Some failures
+  assert.equal(
+    formatBatchDecisionSummary(2, 1, ['PROP_KEY_A']),
+    '2 thành công / 1 lỗi: PROP_KEY_A'
+  );
+  assert.equal(
+    formatBatchDecisionSummary(0, 2, ['PROP_KEY_A', 'PROP_KEY_B']),
+    '0 thành công / 2 lỗi: PROP_KEY_A, PROP_KEY_B'
+  );
+});

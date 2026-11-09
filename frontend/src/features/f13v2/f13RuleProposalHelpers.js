@@ -282,3 +282,53 @@ export function formatBcvhName(code) {
   if (!code) return '—';
   return BCVH_BY_CODE[String(code)] || String(code);
 }
+
+/**
+ * Toggles selection of a proposal key in an array of selected keys.
+ */
+export function toggleProposalSelection(selectedKeys = [], key) {
+  if (!key) return Array.isArray(selectedKeys) ? [...selectedKeys] : [];
+  const current = Array.isArray(selectedKeys) ? selectedKeys : [];
+  const index = current.indexOf(key);
+  if (index >= 0) {
+    return current.filter((k) => k !== key);
+  }
+  return [...current, key];
+}
+
+/**
+ * Toggles select-all state for an array of proposal items.
+ * If all items are currently selected, returns an empty array (deselect all).
+ * Otherwise, returns an array containing all item keys.
+ */
+export function toggleSelectAllProposals(items = [], currentSelectedKeys = []) {
+  if (!Array.isArray(items) || items.length === 0) return [];
+  const allKeys = items.map((item) => item?.key).filter(Boolean);
+  if (allKeys.length === 0) return [];
+  const selectedSet = new Set(Array.isArray(currentSelectedKeys) ? currentSelectedKeys : []);
+  const isAllSelected = allKeys.every((k) => selectedSet.has(k));
+  return isAllSelected ? [] : allKeys;
+}
+
+/**
+ * Checks if all items in the list are currently selected.
+ */
+export function isAllProposalsSelected(items = [], currentSelectedKeys = []) {
+  if (!Array.isArray(items) || items.length === 0) return false;
+  const allKeys = items.map((item) => item?.key).filter(Boolean);
+  if (allKeys.length === 0) return false;
+  const selectedSet = new Set(Array.isArray(currentSelectedKeys) ? currentSelectedKeys : []);
+  return allKeys.every((k) => selectedSet.has(k));
+}
+
+/**
+ * Formats the batch decision result summary string: "x thành công / y lỗi" (naming failed keys).
+ */
+export function formatBatchDecisionSummary(successCount = 0, failCount = 0, failedKeys = []) {
+  const s = Number(successCount) || 0;
+  const f = Number(failCount) || 0;
+  if (f > 0 && Array.isArray(failedKeys) && failedKeys.length > 0) {
+    return `${s} thành công / ${f} lỗi: ${failedKeys.join(', ')}`;
+  }
+  return `${s} thành công / ${f} lỗi`;
+}
