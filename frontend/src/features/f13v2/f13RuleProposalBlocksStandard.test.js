@@ -39,9 +39,9 @@ test('F13-RULE-PROPOSAL-01: F13V2RuleProposalTable complies with report block st
 test('F13-RULE-PROPOSAL-01: F13V2RuleProposalDetailPanel implements samples, history, decisions and ready text', () => {
   const content = readSrc('./components/F13V2RuleProposalDetailPanel.jsx');
 
-  // Samples with notes and parcel journey link
+  // Samples with notes and parcel card (F13-PARCEL-CARD-01: opens F13V2ParcelCard)
   assert.ok(content.includes('samples.map'), 'Must render sample list');
-  assert.ok(content.includes('/f13/v2/hanh-trinh'), 'Samples must link to parcel journey');
+  assert.ok(content.includes('F13V2ParcelCard'), 'Samples must open parcel card');
 
   // Decision history
   assert.ok(content.includes('history.map'), 'Must render decision history');

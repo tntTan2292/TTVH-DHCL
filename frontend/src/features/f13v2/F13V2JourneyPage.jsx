@@ -1,12 +1,11 @@
 import { useEffect, useMemo, useState, useCallback } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import { CalendarDays, BarChart2, Activity, AlertCircle, RefreshCw } from 'lucide-react';
+import { useSearchParams, Link } from 'react-router-dom';
+import { CalendarDays, BarChart2, Activity, AlertCircle, RefreshCw, ArrowRight } from 'lucide-react';
 import api from '../../api/client.js';
 import { PageContainer } from '../../components/common/Containers.jsx';
-import { nextSortState } from '../../components/common/tableSort.js';
 import { useIndicator } from '../indicator/IndicatorContext.js';
 import { indicatorTheme, F13_INDICATOR } from '../indicator/indicatorConfig.js';
-import { fetchJourneyParcels, fetchJourneyRoutes, fetchLayout, resolvePeriod } from './api/f13v2Api.js';
+import { fetchJourneyRoutes, fetchLayout, resolvePeriod } from './api/f13v2Api.js';
 import { buildScopedUnitOptions } from './f13v2Helpers.js';
 import {
   JOURNEY_MILESTONES,
@@ -14,10 +13,7 @@ import {
   formatPeriodDisplay,
 } from './journeyHelpers.js';
 import F13V2JourneyRouteTable from './components/F13V2JourneyRouteTable.jsx';
-import F13V2JourneyParcelTable from './components/F13V2JourneyParcelTable.jsx';
 import F13V2JourneyParcelModal from './components/F13V2JourneyParcelModal.jsx';
-
-const TEXT_SORT_FIELDS = ['ma_bg', 'ten_buu_ta', 'danh_gia', 'ma_lo'];
 
 const TABS = [
   { id: 'day', label: 'Theo ngày', icon: CalendarDays },
@@ -58,9 +54,6 @@ export default function F13V2JourneyPage() {
   const [availableMonths, setAvailableMonths] = useState([]);
 
   const [routeState, setRouteState] = useState({ loading: true, data: null, error: null, isRangeTooLong: false });
-  const [parcelState, setParcelState] = useState({ loading: true, data: null, error: null });
-  const [parcelSort, setParcelSort] = useState({ field: 'tms_ptc', direction: 'desc' });
-  const [{ page, pageSize }, setPagination] = useState({ page: 1, pageSize: 20 });
   const [searchText, setSearchText] = useState(searchParam);
   const [selectedRouteObj, setSelectedRouteObj] = useState(null);
   const [popupRow, setPopupRow] = useState(null);
@@ -77,7 +70,6 @@ export default function F13V2JourneyPage() {
       });
       return next;
     }, { replace: true });
-    setPagination((prev) => ({ ...prev, page: 1 }));
   }, [setSearchParams]);
 
   // Initial load: Layout, Meta, Weeks, Months
@@ -180,42 +172,6 @@ export default function F13V2JourneyPage() {
 
     return () => { active = false; };
   }, [queryPeriod, bcvhParam, refreshTick]);
-
-  // Fetch parcels data whenever period, unit, route, pagination, or refreshTick changes
-  useEffect(() => {
-    if (!queryPeriod.from && !queryPeriod.week && !queryPeriod.month) return undefined;
-    let active = true;
-    setParcelState((previous) => ({ ...previous, loading: true, error: null }));
-
-    fetchJourneyParcels({
-      ...queryPeriod,
-      maBcvh: bcvhParam,
-      route: routeParam,
-      search: searchParam,
-      onlyKhongTronLo,
-      sort: parcelSort.field,
-      order: parcelSort.direction,
-      page,
-      pageSize,
-    })
-      .then((data) => {
-        if (active) setParcelState({ loading: false, data, error: null });
-      })
-      .catch((error) => {
-        if (active) {
-          const errCode = error?.response?.data?.error?.code || '';
-          const errMsg = error?.response?.data?.error?.message || error?.message || 'Không tải được bưu gửi.';
-          const isRangeTooLong = errCode === 'RANGE_TOO_LONG' || errMsg.includes('RANGE_TOO_LONG') || errMsg.includes('93 ngày');
-          setParcelState({
-            loading: false,
-            data: null,
-            error: isRangeTooLong ? 'Khoảng thời gian xem tối đa 93 ngày. Vui lòng chọn khoảng thời gian ngắn hơn.' : errMsg,
-          });
-        }
-      });
-
-    return () => { active = false; };
-  }, [queryPeriod, bcvhParam, routeParam, searchParam, onlyKhongTronLo, parcelSort, page, pageSize, refreshTick]);
 
   // Scoped unit options
   const unitOptions = useMemo(() => buildScopedUnitOptions({ layout, metaUnits }), [layout, metaUnits]);
@@ -495,24 +451,35 @@ export default function F13V2JourneyPage() {
           </div>
         )}
 
-        {/* Parcel Details Table */}
-        <F13V2JourneyParcelTable
-          data={parcelState.data}
-          loading={parcelState.loading}
-          error={parcelState.error}
-          periodLabel={periodLabel}
-          routeName={selectedRouteName}
-          sort={parcelSort}
-          onSort={(field) => {
-            setParcelSort((current) => nextSortState(current, field, { textFields: TEXT_SORT_FIELDS }));
-            setPagination((prev) => ({ ...prev, page: 1 }));
-          }}
-          onPage={(newPage) => setPagination((prev) => ({ ...prev, page: newPage }))}
-          pageSize={pageSize}
-          onPageSizeChange={(newSize) => {
-            setPagination({ page: 1, pageSize: newSize });
-          }}
-        />
+        {/* F13-PARCEL-CARD-01 U1: Tra cứu bưu gửi link to Dữ liệu minh chứng */}
+        <div className="rounded-2xl border border-blue-200/90 bg-gradient-to-r from-blue-50/80 via-white to-slate-50 p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 shadow-2xs">
+          <div>
+            <h3 className="text-sm sm:text-base font-bold text-slate-900">
+              Tra cứu bưu gửi → Dữ liệu minh chứng
+            </h3>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Toàn bộ tìm kiếm bưu gửi và minh chứng 5 mốc hành trình được chuyển về màn hình Dữ liệu minh chứng ({periodLabel}).
+            </p>
+          </div>
+          <Link
+            to={(() => {
+              const params = new globalThis.URLSearchParams();
+              if (periodMode === 'week' && weekParam) params.set('week', weekParam);
+              else if (periodMode === 'month' && monthParam) params.set('month', monthParam);
+              else {
+                if (fromParam) params.set('from', fromParam);
+                if (toParam) params.set('to', toParam);
+              }
+              if (bcvhParam && bcvhParam !== 'all') params.set('bcvh', bcvhParam);
+              params.set('view', 'journey');
+              return `/f13/v2/evidence?${params.toString()}`;
+            })()}
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-colors cursor-pointer shrink-0 shadow-xs"
+          >
+            <span>Tra cứu bưu gửi → Dữ liệu minh chứng</span>
+            <ArrowRight className="h-4 w-4" />
+          </Link>
+        </div>
 
         {/* J8: Popup window displaying parcels of the clicked route + postman row */}
         <F13V2JourneyParcelModal

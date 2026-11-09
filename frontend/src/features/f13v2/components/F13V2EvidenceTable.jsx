@@ -1,11 +1,11 @@
 import { useState, useMemo, useRef } from 'react';
-import { Eye, Edit3, ExternalLink, ChevronLeft, ChevronRight, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { Eye, Edit3, ChevronLeft, ChevronRight, CheckCircle2, AlertTriangle } from 'lucide-react';
 import BlockCaptureButton from '../../../components/common/BlockCaptureButton.jsx';
 import SortableTh from '../../../components/common/SortableTh.jsx';
 import { useIndicator } from '../../indicator/IndicatorContext.js';
 import { indicatorTheme } from '../../indicator/indicatorConfig.js';
 import { formatCauseLabel, formatPhatDetail, formatChoChuyenQuanReason, formatPostmanName } from '../f13WhyHelpers.js';
-import { formatAnalystCause, sortEvidenceInPage } from '../f13EvidenceHelpers.js';
+import { formatAnalystCause, sortEvidenceInPage, formatJourneyLegHours } from '../f13EvidenceHelpers.js';
 
 export default function F13V2EvidenceTable({
   items = [],
@@ -14,10 +14,16 @@ export default function F13V2EvidenceTable({
   loading = false,
   page = 1,
   pageSize = 20,
+  view = 'cause', // 'cause' | 'journey'
+  onViewChange,
   onPageChange,
   onPageSizeChange,
   onOpenDetail,
+  onOpenCard,
   onOpenAnalysis,
+  inModal = false,
+  title = '',
+  subtitle = '',
 }) {
   const cardRef = useRef(null);
   const indicator = useIndicator();
@@ -45,39 +51,81 @@ export default function F13V2EvidenceTable({
   const totalPages = meta?.total_pages || 1;
   const activePageSize = meta?.page_size || pageSize || 20;
 
+  const handleOpenParcel = (item, tab) => {
+    if (onOpenCard) {
+      onOpenCard(item, tab);
+    } else if (onOpenDetail) {
+      onOpenDetail(item);
+    }
+  };
+
+  const isJourney = view === 'journey';
+
   return (
     <div
       ref={cardRef}
-      className="rounded-2xl border border-slate-200/90 bg-white p-4 sm:p-5 shadow-sm transition-[box-shadow,border-color] duration-150 flex flex-col gap-3"
+      className={`rounded-2xl border border-slate-200/90 bg-white p-4 sm:p-5 shadow-sm transition-[box-shadow,border-color] duration-150 flex flex-col gap-3 ${
+        inModal ? 'border-none p-0 shadow-none' : ''
+      }`}
     >
       {/* Block Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pb-3 border-b border-slate-100">
-        <div>
-          <div className="flex items-center gap-2">
-            <h3 className="text-base font-bold text-slate-900">
-              Danh sách Minh chứng Bưu gửi F1.3
-            </h3>
-            <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-blue-100 text-blue-800">
-              {total.toLocaleString('vi-VN')} bưu gửi
-            </span>
+      {!inModal && (
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-3 border-b border-slate-100">
+          <div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <h3 className="text-base font-bold text-slate-900">
+                {title || 'Danh sách Minh chứng Bưu gửi F1.3'}
+              </h3>
+              <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-blue-100 text-blue-800">
+                {total.toLocaleString('vi-VN')} bưu gửi
+              </span>
+            </div>
+            <p className="text-xs text-slate-500 mt-0.5">
+              {subtitle || `Minh chứng nguồn gốc 5 mốc hành trình và kết luận phân tích (phân trang ${activePageSize} dòng/trang)`}
+            </p>
           </div>
-          <p className="text-xs text-slate-500 mt-0.5">
-            Minh chứng nguồn gốc 5 mốc hành trình và kết luận phân tích (phân trang {activePageSize} dòng/trang)
-          </p>
-        </div>
 
-        <div className="flex items-center gap-2">
-          <BlockCaptureButton
-            targetRef={cardRef}
-            blockTitle="Danh_sach_minh_chung_F13"
-          />
+          <div className="flex items-center gap-2.5 flex-wrap" data-no-capture="true">
+            {/* View Switcher: C2 (Nguyên nhân / Hành trình) */}
+            {onViewChange && (
+              <div className="inline-flex p-1 rounded-xl bg-slate-100/90 border border-slate-200 text-xs font-bold">
+                <button
+                  type="button"
+                  onClick={() => onViewChange('cause')}
+                  className={`px-3 py-1 rounded-lg transition-all cursor-pointer ${
+                    !isJourney
+                      ? 'bg-white text-blue-700 shadow-2xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  Nguyên nhân
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onViewChange('journey')}
+                  className={`px-3 py-1 rounded-lg transition-all cursor-pointer ${
+                    isJourney
+                      ? 'bg-white text-blue-700 shadow-2xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  Hành trình
+                </button>
+              </div>
+            )}
+
+            <BlockCaptureButton
+              targetRef={cardRef}
+              blockTitle={isJourney ? 'Hanh_trinh_buu_gui_F13' : 'Danh_sach_minh_chung_F13'}
+            />
+          </div>
         </div>
-      </div>
+      )}
 
       {/* In-page sort indicator notice */}
       <div className="flex items-center justify-between text-[11px] text-slate-500 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-100">
         <span>
-          * <strong className="text-slate-700">Sắp xếp trong trang:</strong> Bấm tiêu đề cột để sắp xếp {activePageSize} dòng đang xem. Thứ tự toàn bộ dữ liệu do máy chủ quản lý ({meta?.order === 'DATE' ? 'Theo ngày đo mới nhất' : 'Ưu tiên Chờ CQ & Chưa phân tích trước'}).
+          * <strong className="text-slate-700">Sắp xếp trong trang:</strong> Bấm tiêu đề cột để sắp xếp {activePageSize} dòng đang xem. Thứ tự toàn bộ dữ liệu do máy chủ quản lý ({meta?.order === 'SORT' ? 'Theo cột đã chọn' : meta?.order === 'DATE' ? 'Theo ngày đo mới nhất' : 'Ưu tiên Chờ CQ & Chưa phân tích trước'}).
         </span>
         {inPageSortField && (
           <button
@@ -94,84 +142,251 @@ export default function F13V2EvidenceTable({
       </div>
 
       {/* Table Container */}
-      <div className="overflow-x-auto rounded-xl border border-slate-200/80">
+      <div className="overflow-x-auto rounded-xl border border-slate-200/80 bg-white">
         <table className="w-full text-left text-xs border-collapse">
           <thead>
-            <tr className="border-b border-slate-200 bg-slate-50/90 text-slate-700 font-bold select-none">
-              <th className="px-3 py-2.5 w-12 text-center">STT</th>
-              <SortableTh
-                field="ma_bg"
-                sort={{ field: inPageSortField, direction: inPageSortDir }}
-                onSort={handleSortChange}
-                className="px-3 py-2.5 font-bold"
-              >
-                Mã bưu gửi
-              </SortableTh>
-              <SortableTh
-                field="ngay_do_kiem"
-                sort={{ field: inPageSortField, direction: inPageSortDir }}
-                onSort={handleSortChange}
-                className="px-3 py-2.5 font-bold"
-              >
-                Ngày đo
-              </SortableTh>
-              <SortableTh
-                field="ma_bcvh"
-                sort={{ field: inPageSortField, direction: inPageSortDir }}
-                onSort={handleSortChange}
-                className="px-3 py-2.5 font-bold"
-              >
-                BCVH / Tuyến
-              </SortableTh>
-              <SortableTh
-                field="postman"
-                sort={{ field: inPageSortField, direction: inPageSortDir }}
-                onSort={handleSortChange}
-                className="px-3 py-2.5 font-bold"
-              >
-                Bưu tá bàn giao đầu
-              </SortableTh>
-              <SortableTh
-                field="danh_gia"
-                sort={{ field: inPageSortField, direction: inPageSortDir }}
-                onSort={handleSortChange}
-                className="px-3 py-2.5 font-bold text-center"
-              >
-                Đánh giá
-              </SortableTh>
-              <SortableTh
-                field="tct_hours"
-                sort={{ field: inPageSortField, direction: inPageSortDir }}
-                onSort={handleSortChange}
-                className="px-3 py-2.5 font-bold text-right"
-              >
-                Giờ TCT / Hạn
-              </SortableTh>
-              <SortableTh
-                field="system_cause"
-                sort={{ field: inPageSortField, direction: inPageSortDir }}
-                onSort={handleSortChange}
-                className="px-3 py-2.5 font-bold"
-              >
-                Nguyên nhân Hệ thống
-              </SortableTh>
-              <SortableTh
-                field="analyst_cause"
-                sort={{ field: inPageSortField, direction: inPageSortDir }}
-                onSort={handleSortChange}
-                className="px-3 py-2.5 font-bold"
-              >
-                Kết luận Chuyên quản
-              </SortableTh>
-              <th className="px-3 py-2.5 text-center w-36 font-bold" data-no-capture="true">
-                Thao tác
-              </th>
-            </tr>
+            {isJourney ? (
+              // HÀNH TRÌNH VIEW HEADERS (C2: Số hiệu, Ngày, Bưu tá, Đánh giá, Mã lô, 5 mốc, 6 chặng, Số giờ TCT)
+              <>
+                <tr className="border-b border-slate-200 bg-slate-100/90 text-slate-700 text-[11px] font-bold select-none uppercase tracking-tight">
+                  <th colSpan={6} className="border-r border-slate-200 px-2 py-1.5 text-center bg-slate-100">
+                    Thông tin bưu gửi & Lô
+                  </th>
+                  <th colSpan={5} className="border-r border-slate-200 px-2 py-1.5 text-center bg-blue-100/60 text-blue-900">
+                    5 Mốc hành trình
+                  </th>
+                  <th colSpan={6} className="border-r border-slate-200 px-2 py-1.5 text-center bg-slate-100 text-slate-800">
+                    Thời gian 6 chặng
+                  </th>
+                  <th colSpan={2} className="px-2 py-1.5 text-center bg-slate-100">
+                    Chỉ tiêu & Thao tác
+                  </th>
+                </tr>
+                <tr className="border-b border-slate-200 bg-slate-50/90 text-slate-700 font-bold select-none whitespace-nowrap">
+                  <th className="px-2.5 py-2 w-10 text-center border-r border-slate-200">STT</th>
+                  <SortableTh
+                    field="ma_bg"
+                    sort={{ field: inPageSortField, direction: inPageSortDir }}
+                    onSort={handleSortChange}
+                    className="px-2.5 py-2 font-bold border-r border-slate-200"
+                  >
+                    Số hiệu
+                  </SortableTh>
+                  <SortableTh
+                    field="ngay_do_kiem"
+                    sort={{ field: inPageSortField, direction: inPageSortDir }}
+                    onSort={handleSortChange}
+                    className="px-2 py-2 font-bold text-center border-r border-slate-200"
+                  >
+                    Ngày
+                  </SortableTh>
+                  <SortableTh
+                    field="postman"
+                    sort={{ field: inPageSortField, direction: inPageSortDir }}
+                    onSort={handleSortChange}
+                    className="px-2.5 py-2 font-bold border-r border-slate-200"
+                  >
+                    Bưu tá
+                  </SortableTh>
+                  <SortableTh
+                    field="danh_gia"
+                    sort={{ field: inPageSortField, direction: inPageSortDir }}
+                    onSort={handleSortChange}
+                    className="px-2 py-2 font-bold text-center border-r border-slate-200"
+                  >
+                    Đánh giá
+                  </SortableTh>
+                  <SortableTh
+                    field="ma_lo"
+                    sort={{ field: inPageSortField, direction: inPageSortDir }}
+                    onSort={handleSortChange}
+                    className="px-2.5 py-2 font-bold border-r border-slate-200"
+                  >
+                    Mã lô
+                  </SortableTh>
+                  {/* 5 milestones */}
+                  <SortableTh
+                    field="tms"
+                    sort={{ field: inPageSortField, direction: inPageSortDir }}
+                    onSort={handleSortChange}
+                    className="px-2 py-2 text-center font-bold border-r border-slate-200 bg-blue-50/30"
+                  >
+                    Quét TMS
+                  </SortableTh>
+                  <SortableTh
+                    field="depart"
+                    sort={{ field: inPageSortField, direction: inPageSortDir }}
+                    onSort={handleSortChange}
+                    className="px-2 py-2 text-center font-bold border-r border-slate-200 bg-blue-50/30"
+                  >
+                    Rời KTC1
+                  </SortableTh>
+                  <SortableTh
+                    field="arrive"
+                    sort={{ field: inPageSortField, direction: inPageSortDir }}
+                    onSort={handleSortChange}
+                    className="px-2 py-2 text-center font-bold border-r border-slate-200 bg-blue-50/30"
+                  >
+                    Đến BCVH
+                  </SortableTh>
+                  <SortableTh
+                    field="gbt"
+                    sort={{ field: inPageSortField, direction: inPageSortDir }}
+                    onSort={handleSortChange}
+                    className="px-2 py-2 text-center font-bold border-r border-slate-200 bg-blue-50/30"
+                  >
+                    Giao BT
+                  </SortableTh>
+                  <SortableTh
+                    field="ptc"
+                    sort={{ field: inPageSortField, direction: inPageSortDir }}
+                    onSort={handleSortChange}
+                    className="px-2 py-2 text-center font-bold border-r border-slate-200 bg-blue-50/30"
+                  >
+                    Phát TC
+                  </SortableTh>
+                  {/* 6 leg hours */}
+                  <SortableTh
+                    field="tms_depart"
+                    sort={{ field: inPageSortField, direction: inPageSortDir }}
+                    onSort={handleSortChange}
+                    className="px-2 py-2 text-center font-bold border-r border-slate-200"
+                  >
+                    TMS-Xuất
+                  </SortableTh>
+                  <SortableTh
+                    field="depart_arrive"
+                    sort={{ field: inPageSortField, direction: inPageSortDir }}
+                    onSort={handleSortChange}
+                    className="px-2 py-2 text-center font-bold border-r border-slate-200"
+                  >
+                    Xuất-Đến
+                  </SortableTh>
+                  <SortableTh
+                    field="tms_arrive"
+                    sort={{ field: inPageSortField, direction: inPageSortDir }}
+                    onSort={handleSortChange}
+                    className="px-2 py-2 text-center font-bold border-r border-slate-200"
+                  >
+                    TMS-Đến
+                  </SortableTh>
+                  <SortableTh
+                    field="arrive_gbt"
+                    sort={{ field: inPageSortField, direction: inPageSortDir }}
+                    onSort={handleSortChange}
+                    className="px-2 py-2 text-center font-bold border-r border-slate-200"
+                  >
+                    Đến-Giao
+                  </SortableTh>
+                  <SortableTh
+                    field="gbt_ptc"
+                    sort={{ field: inPageSortField, direction: inPageSortDir }}
+                    onSort={handleSortChange}
+                    className="px-2 py-2 text-center font-bold border-r border-slate-200"
+                  >
+                    Giao-Phát
+                  </SortableTh>
+                  <SortableTh
+                    field="tms_ptc"
+                    sort={{ field: inPageSortField, direction: inPageSortDir }}
+                    onSort={handleSortChange}
+                    className="px-2 py-2 text-center font-bold border-r border-slate-200"
+                  >
+                    TMS-Phát
+                  </SortableTh>
+                  {/* TCT hours */}
+                  <SortableTh
+                    field="tct_ms"
+                    sort={{ field: inPageSortField, direction: inPageSortDir }}
+                    onSort={handleSortChange}
+                    className="px-2.5 py-2 text-center font-bold border-r border-slate-200"
+                  >
+                    Số giờ TCT
+                  </SortableTh>
+                  <th className="px-2.5 py-2 text-center w-20 font-bold" data-no-capture="true">
+                    Thao tác
+                  </th>
+                </tr>
+              </>
+            ) : (
+              // NGUYÊN NHÂN VIEW HEADERS
+              <tr className="border-b border-slate-200 bg-slate-50/90 text-slate-700 font-bold select-none whitespace-nowrap">
+                <th className="px-3 py-2.5 w-12 text-center">STT</th>
+                <SortableTh
+                  field="ma_bg"
+                  sort={{ field: inPageSortField, direction: inPageSortDir }}
+                  onSort={handleSortChange}
+                  className="px-3 py-2.5 font-bold"
+                >
+                  Mã bưu gửi
+                </SortableTh>
+                <SortableTh
+                  field="ngay_do_kiem"
+                  sort={{ field: inPageSortField, direction: inPageSortDir }}
+                  onSort={handleSortChange}
+                  className="px-3 py-2.5 font-bold"
+                >
+                  Ngày đo
+                </SortableTh>
+                <SortableTh
+                  field="ma_bcvh"
+                  sort={{ field: inPageSortField, direction: inPageSortDir }}
+                  onSort={handleSortChange}
+                  className="px-3 py-2.5 font-bold"
+                >
+                  BCVH / Tuyến
+                </SortableTh>
+                <SortableTh
+                  field="postman"
+                  sort={{ field: inPageSortField, direction: inPageSortDir }}
+                  onSort={handleSortChange}
+                  className="px-3 py-2.5 font-bold"
+                >
+                  Bưu tá bàn giao đầu
+                </SortableTh>
+                <SortableTh
+                  field="danh_gia"
+                  sort={{ field: inPageSortField, direction: inPageSortDir }}
+                  onSort={handleSortChange}
+                  className="px-3 py-2.5 font-bold text-center"
+                >
+                  Đánh giá
+                </SortableTh>
+                <SortableTh
+                  field="tct_hours"
+                  sort={{ field: inPageSortField, direction: inPageSortDir }}
+                  onSort={handleSortChange}
+                  className="px-3 py-2.5 font-bold text-right"
+                >
+                  Giờ TCT / Hạn
+                </SortableTh>
+                <SortableTh
+                  field="system_cause"
+                  sort={{ field: inPageSortField, direction: inPageSortDir }}
+                  onSort={handleSortChange}
+                  className="px-3 py-2.5 font-bold"
+                >
+                  Nguyên nhân Hệ thống
+                </SortableTh>
+                <SortableTh
+                  field="analyst_cause"
+                  sort={{ field: inPageSortField, direction: inPageSortDir }}
+                  onSort={handleSortChange}
+                  className="px-3 py-2.5 font-bold"
+                >
+                  Kết luận Chuyên quản
+                </SortableTh>
+                <th className="px-3 py-2.5 text-center w-28 font-bold" data-no-capture="true">
+                  Thao tác
+                </th>
+              </tr>
+            )}
           </thead>
+
           <tbody className="divide-y divide-slate-100 bg-white">
             {loading ? (
               <tr>
-                <td colSpan={10} className="px-4 py-12 text-center text-slate-500">
+                <td colSpan={isJourney ? 19 : 10} className="px-4 py-12 text-center text-slate-500">
                   <div className="flex flex-col items-center justify-center gap-2">
                     <div className="h-6 w-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
                     <span>Đang tải danh sách minh chứng...</span>
@@ -180,7 +395,7 @@ export default function F13V2EvidenceTable({
               </tr>
             ) : displayedItems.length === 0 ? (
               <tr>
-                <td colSpan={10} className="px-4 py-12 text-center text-slate-500 italic">
+                <td colSpan={isJourney ? 19 : 10} className="px-4 py-12 text-center text-slate-500 italic">
                   Không tìm thấy bưu gửi nào phù hợp với bộ lọc hiện tại.
                 </td>
               </tr>
@@ -191,13 +406,131 @@ export default function F13V2EvidenceTable({
                 const isPassed = item.danh_gia === 'Đạt';
                 const sys = item.system || {};
                 const anl = item.analysis;
+                const journeyObj = item.journey || {};
+                const ms = journeyObj.milestones || item.milestones || {};
+                const legsObj = journeyObj.legs || item.legs || {};
 
                 const canWrite = Boolean(catalog?.can?.write);
                 const canAnalyse = Boolean(item.can_analyse);
 
+                if (isJourney) {
+                  // HÀNH TRÌNH VIEW ROW
+                  return (
+                    <tr
+                      key={`${item.ngay_do_kiem}_${item.ma_bg}_${idx}`}
+                      className="hover:bg-blue-50/20 transition-colors"
+                    >
+                      <td className="px-2.5 py-2 text-center text-slate-400 font-mono text-[11px] border-r border-slate-100">
+                        {stt}
+                      </td>
+                      {/* Số hiệu (Clickable opens card) */}
+                      <td className="px-2.5 py-2 font-mono font-bold border-r border-slate-100 whitespace-nowrap">
+                        <button
+                          type="button"
+                          onClick={() => handleOpenParcel(item, 'journey')}
+                          className="text-blue-700 hover:text-blue-900 hover:underline cursor-pointer text-left font-mono font-bold"
+                          title="Xem phiếu bưu gửi"
+                        >
+                          {item.ma_bg}
+                        </button>
+                      </td>
+                      {/* Ngày */}
+                      <td className="px-2 py-2 text-center text-slate-700 whitespace-nowrap border-r border-slate-100 font-mono text-[11px]">
+                        {item.ngay_do_kiem}
+                      </td>
+                      {/* Bưu tá */}
+                      <td className="px-2.5 py-2 text-slate-700 border-r border-slate-100 whitespace-nowrap max-w-[130px] truncate" title={item.ten_buu_ta_shown || item.ten_buu_ta || item.ten_buu_ta_first}>
+                        {formatPostmanName(item.ten_buu_ta_shown || item.ten_buu_ta || item.ten_buu_ta_first, item.ma_buu_ta_shown || item.ma_buu_ta_first)}
+                      </td>
+                      {/* Đánh giá */}
+                      <td className="px-2 py-2 text-center border-r border-slate-100 whitespace-nowrap">
+                        {isPassed ? (
+                          <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800">
+                            Đạt
+                          </span>
+                        ) : isFailed ? (
+                          <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-100 text-rose-800">
+                            K.đạt
+                          </span>
+                        ) : (
+                          <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-slate-600">
+                            —
+                          </span>
+                        )}
+                        {(journeyObj.khong_tron_lo || item.khong_tron_lo) && (
+                          <span className="block text-[9px] font-bold text-amber-800 mt-0.5">
+                            K.trọn lô
+                          </span>
+                        )}
+                      </td>
+                      {/* Mã lô */}
+                      <td className="px-2.5 py-2 font-mono text-slate-600 border-r border-slate-100 whitespace-nowrap text-[11px]">
+                        {journeyObj.ma_lo || item.ma_lo || '—'}
+                      </td>
+                      {/* 5 milestones */}
+                      <td className="px-2 py-2 text-center border-r border-slate-100 font-mono text-[11px] whitespace-nowrap text-slate-700">
+                        {ms.tms?.at || ms.tms || '—'}
+                      </td>
+                      <td className="px-2 py-2 text-center border-r border-slate-100 font-mono text-[11px] whitespace-nowrap text-slate-700">
+                        {ms.depart?.at || ms.depart || '—'}
+                      </td>
+                      <td className="px-2 py-2 text-center border-r border-slate-100 font-mono text-[11px] whitespace-nowrap text-slate-700">
+                        {ms.arrive?.at || ms.arrive || '—'}
+                      </td>
+                      <td className="px-2 py-2 text-center border-r border-slate-100 font-mono text-[11px] whitespace-nowrap text-slate-700">
+                        {ms.gbt?.at || ms.gbt || ms.handover_shown?.at || '—'}
+                      </td>
+                      <td className="px-2 py-2 text-center border-r border-slate-100 font-mono text-[11px] whitespace-nowrap text-slate-700">
+                        {ms.ptc?.at || ms.ptc || '—'}
+                      </td>
+                      {/* 6 leg hours */}
+                      <td className="px-2 py-2 text-center border-r border-slate-100 tabular-nums">
+                        {formatJourneyLegHours(legsObj.tms_depart ?? item.leg_tms_depart_hours)}
+                      </td>
+                      <td className="px-2 py-2 text-center border-r border-slate-100 tabular-nums">
+                        {formatJourneyLegHours(legsObj.depart_arrive ?? item.leg_depart_arrive_hours)}
+                      </td>
+                      <td className="px-2 py-2 text-center border-r border-slate-100 tabular-nums">
+                        {formatJourneyLegHours(legsObj.tms_arrive ?? item.leg_tms_arrive_hours)}
+                      </td>
+                      <td className="px-2 py-2 text-center border-r border-slate-100 tabular-nums">
+                        {formatJourneyLegHours(legsObj.arrive_gbt ?? item.leg_arrive_gbt_hours)}
+                      </td>
+                      <td className="px-2 py-2 text-center border-r border-slate-100 tabular-nums">
+                        {formatJourneyLegHours(legsObj.gbt_ptc ?? item.leg_gbt_ptc_hours)}
+                      </td>
+                      <td className="px-2 py-2 text-center border-r border-slate-100 tabular-nums font-semibold text-slate-900">
+                        {formatJourneyLegHours(legsObj.tms_ptc ?? item.leg_tms_ptc_hours)}
+                      </td>
+                      {/* Số giờ TCT */}
+                      <td className="px-2 py-2 text-center border-r border-slate-100 font-bold text-slate-900 tabular-nums whitespace-nowrap">
+                        {journeyObj.tct_ms !== null && journeyObj.tct_ms !== undefined
+                          ? `${(journeyObj.tct_ms / 3600000).toFixed(1).replace('.', ',')}h`
+                          : item.tct?.hours !== null && item.tct?.hours !== undefined
+                          ? `${item.tct.hours}h`
+                          : item.tct?.tct_hours !== null && item.tct?.tct_hours !== undefined
+                          ? `${item.tct.tct_hours}h`
+                          : item.tct?.hours_text || '—'}
+                      </td>
+                      {/* Thao tác */}
+                      <td className="px-2 py-2 text-center whitespace-nowrap" data-no-capture="true">
+                        <button
+                          type="button"
+                          onClick={() => handleOpenParcel(item, 'journey')}
+                          title="Xem phiếu bưu gửi"
+                          className="p-1 rounded-md border border-slate-200 hover:bg-slate-100 text-slate-600 hover:text-slate-900 transition-colors cursor-pointer"
+                        >
+                          <Eye className="h-3.5 w-3.5" />
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                }
+
+                // NGUYÊN NHÂN VIEW ROW
                 return (
                   <tr
-                    key={`${item.ngay_do_kiem}_${item.ma_bg}`}
+                    key={`${item.ngay_do_kiem}_${item.ma_bg}_${idx}`}
                     className="hover:bg-slate-50/80 transition-colors"
                   >
                     {/* STT */}
@@ -205,12 +538,19 @@ export default function F13V2EvidenceTable({
                       {stt}
                     </td>
 
-                    {/* Mã BG & Lô */}
+                    {/* Mã BG & Lô (Clickable opens card) */}
                     <td className="px-3 py-2.5 font-mono font-bold text-slate-900">
-                      <div>{item.ma_bg}</div>
-                      {item.ma_lo && (
+                      <button
+                        type="button"
+                        onClick={() => handleOpenParcel(item, 'cause')}
+                        className="text-blue-700 hover:text-blue-900 hover:underline cursor-pointer text-left font-mono font-bold"
+                        title="Xem phiếu bưu gửi"
+                      >
+                        {item.ma_bg}
+                      </button>
+                      {(journeyObj.ma_lo || item.ma_lo) && (
                         <div className="text-[10px] text-slate-500 font-sans font-normal mt-0.5">
-                          Lô: {item.ma_lo}
+                          Lô: {journeyObj.ma_lo || item.ma_lo}
                         </div>
                       )}
                     </td>
@@ -255,7 +595,9 @@ export default function F13V2EvidenceTable({
                     {/* Giờ TCT / Hạn định */}
                     <td className="px-3 py-2.5 text-right whitespace-nowrap">
                       <div className="font-bold text-slate-900">
-                        {item.tct?.tct_hours !== null && item.tct?.tct_hours !== undefined
+                        {item.tct?.hours !== null && item.tct?.hours !== undefined
+                          ? `${item.tct.hours}h`
+                          : item.tct?.tct_hours !== null && item.tct?.tct_hours !== undefined
                           ? `${item.tct.tct_hours}h`
                           : '—'}
                       </div>
@@ -279,7 +621,7 @@ export default function F13V2EvidenceTable({
                             </div>
                           )}
                         </div>
-                      ) : sys.label ? (
+                      ) : sys.label || sys.code ? (
                         <div>
                           <span className="inline-block px-2 py-0.5 rounded-md text-[11px] font-semibold bg-slate-100 text-slate-800">
                             {formatCauseLabel(sys.code) || sys.label}
@@ -329,14 +671,14 @@ export default function F13V2EvidenceTable({
                       )}
                     </td>
 
-                    {/* Thao tác */}
+                    {/* Thao tác (PO C1: Replaced open in Hành trình with Parcel Card) */}
                     <td className="px-3 py-2.5 text-center whitespace-nowrap" data-no-capture="true">
                       <div className="flex items-center justify-center gap-1">
-                        {/* Chi tiết 5 mốc */}
+                        {/* Chi tiết phiếu bưu gửi */}
                         <button
                           type="button"
-                          onClick={() => onOpenDetail?.(item)}
-                          title="Xem chi tiết 5 mốc hành trình và nguồn gốc"
+                          onClick={() => handleOpenParcel(item, 'cause')}
+                          title="Xem phiếu bưu gửi"
                           className="p-1.5 rounded-lg border border-slate-200 hover:bg-slate-100 text-slate-600 hover:text-slate-900 transition-colors cursor-pointer"
                         >
                           <Eye className="h-3.5 w-3.5" />
@@ -346,7 +688,10 @@ export default function F13V2EvidenceTable({
                         {canWrite && canAnalyse && (
                           <button
                             type="button"
-                            onClick={() => onOpenAnalysis?.(item)}
+                            onClick={() => {
+                              if (onOpenAnalysis) onOpenAnalysis(item);
+                              else handleOpenParcel(item, 'analysis');
+                            }}
                             title="Ghi kết luận phân tích của Chuyên quản"
                             className="flex items-center gap-1 px-2 py-1 rounded-lg bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-700 font-bold transition-colors cursor-pointer text-[11px]"
                           >
@@ -354,17 +699,6 @@ export default function F13V2EvidenceTable({
                             <span>{anl ? 'Sửa' : 'Ghi'}</span>
                           </button>
                         )}
-
-                        {/* Link to Hành trình */}
-                        <a
-                          href={`/f13/v2/hanh-trinh?date=${item.ngay_do_kiem}&search=${item.ma_bg}&bcvh=${item.ma_bcvh}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          title="Mở chuyên đề Hành trình bưu gửi"
-                          className="p-1.5 rounded-lg border border-slate-200 hover:bg-slate-100 text-slate-400 hover:text-blue-600 transition-colors"
-                        >
-                          <ExternalLink className="h-3.5 w-3.5" />
-                        </a>
                       </div>
                     </td>
                   </tr>

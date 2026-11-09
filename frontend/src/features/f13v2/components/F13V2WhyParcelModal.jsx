@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
-import { X, ExternalLink, Package, AlertCircle } from 'lucide-react';
+import { X, Package, AlertCircle, Eye, ExternalLink } from 'lucide-react';
 import BlockCaptureButton from '../../../components/common/BlockCaptureButton.jsx';
 import SortableTh from '../../../components/common/SortableTh.jsx';
 import { useIndicator } from '../../indicator/IndicatorContext.js';
@@ -13,6 +13,7 @@ import {
   formatRemainingAtArrival,
   formatPostmanName,
 } from '../f13WhyHelpers.js';
+import F13V2ParcelCard from './F13V2ParcelCard.jsx';
 
 export default function F13V2WhyParcelModal({
   isOpen = false,
@@ -32,6 +33,7 @@ export default function F13V2WhyParcelModal({
   const [error, setError] = useState(null);
   const [{ page, pageSize }, setPagination] = useState({ page: 1, pageSize: 20 });
   const [sort, setSort] = useState({ field: 'ngay_do_kiem', direction: 'desc' });
+  const [selectedCardParcel, setSelectedCardParcel] = useState(null);
 
   // Reset page to 1 whenever a new filter opens
   const filterKey = filter ? JSON.stringify(filter) : null;
@@ -262,7 +264,7 @@ export default function F13V2WhyParcelModal({
                       Đến BCVH
                     </th>
                     <th className="w-24 px-2 py-2 text-center" data-no-capture="true">
-                      Hành trình
+                      Thao tác
                     </th>
                   </tr>
                 </thead>
@@ -276,7 +278,6 @@ export default function F13V2WhyParcelModal({
                     const detailLabel = formatPhatDetail(detail);
                     const cqReason = p.cause_reason ? formatChoChuyenQuanReason(p.cause_reason) : '';
                     const postmanDisplay = formatPostmanName(p.ten_buu_ta_first, p.ma_buu_ta_first);
-                    const journeyUrl = `/f13/v2/hanh-trinh?date=${p.ngay_do_kiem}&search=${p.ma_bg}&bcvh=${p.ma_bcvh || ''}`;
 
                     return (
                       <tr key={`${p.ma_bg}_${p.ngay_do_kiem}_${idx}`} className="hover:bg-blue-50/30 transition-colors">
@@ -284,16 +285,14 @@ export default function F13V2WhyParcelModal({
                           {rowNum}
                         </td>
                         <td className="px-2.5 py-2 border-r border-slate-200">
-                          <a
-                            href={journeyUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="font-mono font-bold text-blue-700 hover:text-blue-900 hover:underline flex items-center gap-1"
-                            title="Mở hành trình bưu gửi cho ngày này"
+                          <button
+                            type="button"
+                            onClick={() => setSelectedCardParcel({ ngay_do_kiem: p.ngay_do_kiem, ma_bg: p.ma_bg, ma_bcvh: p.ma_bcvh })}
+                            className="font-mono font-bold text-blue-700 hover:text-blue-900 hover:underline cursor-pointer text-left"
+                            title="Xem phiếu bưu gửi"
                           >
-                            <span>{p.ma_bg}</span>
-                            <ExternalLink className="h-3 w-3 shrink-0 opacity-60" />
-                          </a>
+                            {p.ma_bg}
+                          </button>
                         </td>
                         <td className="px-2 py-2 text-center font-medium text-slate-600 border-r border-slate-200 whitespace-nowrap">
                           {p.ngay_do_kiem}
@@ -346,16 +345,16 @@ export default function F13V2WhyParcelModal({
                         <td className="px-2 py-2 text-center border-r border-slate-200 text-slate-600 font-medium">
                           {formatRemainingAtArrival(p.remaining_at_arrival_ms)}
                         </td>
-                        <td className="px-2 py-2 text-center" data-no-capture="true">
-                          <a
-                            href={journeyUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 rounded border border-blue-200 bg-blue-50/80 px-2 py-1 text-[11px] font-bold text-blue-700 hover:bg-blue-100 transition-colors"
+                        <td className="px-2 py-2 text-center whitespace-nowrap" data-no-capture="true">
+                          <button
+                            type="button"
+                            onClick={() => setSelectedCardParcel({ ngay_do_kiem: p.ngay_do_kiem, ma_bg: p.ma_bg, ma_bcvh: p.ma_bcvh })}
+                            className="inline-flex items-center gap-1 rounded border border-blue-200 bg-blue-50/80 px-2 py-1 text-[11px] font-bold text-blue-700 hover:bg-blue-100 transition-colors cursor-pointer"
+                            title="Xem phiếu bưu gửi"
                           >
-                            <span>Hành trình</span>
-                            <ExternalLink className="h-3 w-3" />
-                          </a>
+                            <Eye className="h-3 w-3" />
+                            <span>Xem phiếu</span>
+                          </button>
                         </td>
                       </tr>
                     );
@@ -415,6 +414,14 @@ export default function F13V2WhyParcelModal({
           </div>
         </div>
       </div>
+
+      {/* F13-PARCEL-CARD-01: Shared parcel card */}
+      {selectedCardParcel && (
+        <F13V2ParcelCard
+          parcelKey={selectedCardParcel}
+          onClose={() => setSelectedCardParcel(null)}
+        />
+      )}
     </div>
   );
 }

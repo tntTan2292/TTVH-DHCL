@@ -1,14 +1,13 @@
 import { useEffect, useState, useRef } from 'react';
 import { X, Truck } from 'lucide-react';
 import BlockCaptureButton from '../../../components/common/BlockCaptureButton.jsx';
-import { nextSortState } from '../../../components/common/tableSort.js';
-import { fetchJourneyParcels } from '../api/f13v2Api.js';
+import { fetchEvidenceList } from '../api/f13v2Api.js';
 import { formatJourneyPostman } from '../journeyHelpers.js';
-import F13V2JourneyParcelTable from './F13V2JourneyParcelTable.jsx';
+import F13V2EvidenceTable from './F13V2EvidenceTable.jsx';
+import F13V2ParcelCard from './F13V2ParcelCard.jsx';
 
-const TEXT_SORT_FIELDS = ['ma_bg', 'ten_buu_ta', 'danh_gia', 'ma_lo'];
-
-// J8: Popup window displaying parcels of a clicked route + postman row for the active period.
+// F13-PARCEL-CARD-01 U1: Popup window displaying the shared evidence list in journey view
+// for a clicked route + postman row for the active period. Reuses F13V2EvidenceTable.
 export default function F13V2JourneyParcelModal({
   isOpen = false,
   onClose,
@@ -21,7 +20,8 @@ export default function F13V2JourneyParcelModal({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [{ page, pageSize }, setPagination] = useState({ page: 1, pageSize: 20 });
-  const [sort, setSort] = useState({ field: 'tms_ptc', direction: 'desc' });
+  const [sort] = useState({ field: 'tms_ptc', direction: 'desc' });
+  const [selectedCardParcel, setSelectedCardParcel] = useState(null);
 
   // Reset page to 1 whenever a new row opens
   const rowKey = row ? (row.key || `${row.ma_tuyen}_${row.ma_buu_ta || 'none'}`) : null;
@@ -33,7 +33,7 @@ export default function F13V2JourneyParcelModal({
     }
   }, [isOpen, rowKey]);
 
-  // Main fetch effect (U2-R3: exactly one parcel request per page, pageSize, sort, or row change)
+  // Main fetch effect calling GET /evidence/list?view=journey
   useEffect(() => {
     if (!isOpen || !row) {
       setData(null);
@@ -47,15 +47,16 @@ export default function F13V2JourneyParcelModal({
     const filter = row.filter || {};
     const route = filter.route || row.ma_tuyen;
     const postman = filter.postman ?? (row.ma_buu_ta || (row.ma_buu_ta === null ? '@NONE' : undefined));
-    const maBcvh = filter.ma_bcvh || row.ma_bcvh;
+    const bcvh = filter.ma_bcvh || row.ma_bcvh;
 
-    fetchJourneyParcels({
+    fetchEvidenceList({
       ...periodQuery,
+      view: 'journey',
+      bcvh,
       route,
       postman,
-      maBcvh,
       page,
-      pageSize,
+      page_size: pageSize,
       sort: sort.field,
       order: sort.direction,
     })
@@ -93,17 +94,11 @@ export default function F13V2JourneyParcelModal({
   const postmanLabel = formatJourneyPostman(row);
   const totalCount = data?.meta?.total ?? row.volume ?? 0;
 
-  const handleSort = (field) => {
-    setSort((current) => nextSortState(current, field, { textFields: TEXT_SORT_FIELDS }));
-    setPagination((prev) => ({ ...prev, page: 1 }));
-  };
-
   const handlePageChange = (newPage) => {
     setPagination((prev) => ({ ...prev, page: newPage }));
   };
 
   const handlePageSizeChange = (newSize) => {
-    // U2-R3: set page and size in one state update, triggering exactly one request
     setPagination({ page: 1, pageSize: newSize });
   };
 
@@ -155,23 +150,38 @@ export default function F13V2JourneyParcelModal({
           </div>
         </div>
 
-        {/* Modal Body: reusing F13V2JourneyParcelTable with inModal */}
-        <div className="flex-1 overflow-y-auto p-4">
-          <F13V2JourneyParcelTable
-            inModal={true}
-            data={data}
-            loading={loading}
-            error={error}
-            periodLabel={periodLabel}
-            routeName={routeTitle}
-            sort={sort}
-            onSort={handleSort}
-            onPage={handlePageChange}
-            pageSize={pageSize}
-            onPageSizeChange={handlePageSizeChange}
-          />
+        {/* Modal Body: reusing shared F13V2EvidenceTable in Hành trình view */}
+        <div className="flex-1 overflow-y-auto p-4 space-y-3">
+          {error ? (
+            <div className="rounded-xl border border-rose-200 bg-rose-50/70 p-4 text-center text-sm font-bold text-rose-800">
+              {error}
+            </div>
+          ) : (
+            <F13V2EvidenceTable
+              inModal={true}
+              view="journey"
+              items={data?.items || []}
+              meta={data?.meta || null}
+              loading={loading}
+              page={page}
+              pageSize={pageSize}
+              onPageChange={handlePageChange}
+              onPageSizeChange={handlePageSizeChange}
+              onOpenCard={(item) => setSelectedCardParcel(item)}
+              onOpenDetail={(item) => setSelectedCardParcel(item)}
+            />
+          )}
         </div>
       </div>
+
+      {/* F13-PARCEL-CARD-01: Shared parcel card */}
+      {selectedCardParcel && (
+        <F13V2ParcelCard
+          parcelKey={selectedCardParcel}
+          initialTab="journey"
+          onClose={() => setSelectedCardParcel(null)}
+        />
+      )}
     </div>
   );
 }

@@ -259,7 +259,19 @@ function F13V2JourneyBcvhBlock({
                       )}
                     </td>
                     <td className="px-2 py-2 text-right font-medium text-slate-800 border-r border-slate-100 tabular-nums">
-                      {formatVolume(row.volume)}
+                      <div className="flex items-center justify-end">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onSelectRoute?.(row);
+                          }}
+                          className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 transition-colors cursor-pointer"
+                          title={`Xem ${formatVolume(row.volume)} bưu gửi`}
+                        >
+                          Xem ({formatVolume(row.volume)})
+                        </button>
+                      </div>
                     </td>
                     {/* J7: Rate badge with route_rate shown beside / below */}
                     <td className="px-2 py-2 text-center border-r border-slate-100">
@@ -370,7 +382,19 @@ function F13V2JourneyBcvhBlock({
                         )}
                       </td>
                       <td className="px-2 py-2 text-right font-medium text-slate-800 border-r border-slate-200 tabular-nums">
-                        {formatVolume(row.volume)}
+                        <div className="flex items-center justify-end">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onSelectRoute?.(row);
+                            }}
+                            className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 transition-colors cursor-pointer"
+                            title={`Xem ${formatVolume(row.volume)} bưu gửi`}
+                          >
+                            Xem ({formatVolume(row.volume)})
+                          </button>
+                        </div>
                       </td>
                       <td className="px-2 py-2 text-center border-r border-slate-200">
                         <div className="flex flex-col items-center justify-center gap-0.5">

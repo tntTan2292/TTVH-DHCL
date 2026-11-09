@@ -110,6 +110,6 @@ test('F13-WHY-UI-01 Step 2: F13V2WhyParcelModal complies with report standards a
   // Rule 7: controls marked data-no-capture
   assert.match(source, /data-no-capture="true"/);
 
-  // Manifest Section 2A: opens Hành trình bưu gửi for its day
-  assert.match(source, /\/f13\/v2\/hanh-trinh/);
+  // F13-PARCEL-CARD-01: opens F13V2ParcelCard
+  assert.match(source, /F13V2ParcelCard/);
 });

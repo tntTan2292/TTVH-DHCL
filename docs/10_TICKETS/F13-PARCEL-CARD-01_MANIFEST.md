@@ -145,3 +145,63 @@ All in `frontend/src/features/f13v2/`. No backend change. Same figures (C4).
    - Add a "Bưu gửi / Xem (n)" button on each row so the click target is visible.
    - Remove the bottom "Hành trình từng bưu gửi" table and its `/journey/parcels` call. In its place, a link "Tra cứu bưu gửi → Dữ liệu minh chứng" carrying the same period and BCVH.
 5. Follow `docs/05_DEVELOPMENT/Implementation/report_block_ui_standard.md`: camera, click-to-order titles, follow the date filter, the no-undef check. Keep all other wording.
+
+## 12. U1 screen result (Antigravity, 2026-11-09) - U1 completed
+
+### Implementation Summary
+All 5 items of §11 implemented strictly in `frontend/src/features/f13v2/` with zero backend changes:
+1. **`F13V2ParcelCard` component (`components/F13V2ParcelCard.jsx`)**:
+   - Replaced old `F13V2EvidenceDetailModal` and `F13V2EvidenceAnalysisModal`.
+   - Single data source: `GET /api/f13/v2/evidence/parcel?ngay_do_kiem=&ma_bg=`.
+   - Header: `ma_bg`, `ngay_do_kiem`, `bcvh` (`ma_bcvh` - `ten_bcvh`), `route` (`ma_tuyen` - `ten_tuyen`), `postman` (`ten_buu_ta` / `ma_buu_ta` with first postman if differing), verdict badge, and `BlockCaptureButton`.
+   - 3 Tabs:
+     - **Hành trình**: 5 milestones (Gốc, TMS đi, TMS đến, GBT, PTC) with timestamps & data sources; 6 leg hours (`tms_di`, `noi_tinh`, `den_gbt`, `gbt_ptc`, `tms_ptc`, `phat_goc`); lot metadata (`ma_lo`, không trọn lô badge); TCT hours against target limit.
+     - **Nguyên nhân**: System verdict facts, step, reason label & detail, basis, system flags, and operation hints.
+     - **Phân tích**: Latest manual analysis record and historical timeline. Embedded write form guarded by `canWriteParcelAnalysis` (`can_analyse && f13.analysis.write && user_units.includes(ma_bcvh)`). Refreshes card and parent list on save.
+2. **Universal Parcel Card Trigger**:
+   - Every parcel number (`ma_bg`) in F1.3 v2 now opens `F13V2ParcelCard`.
+   - Removed all 4 old "open in Hành trình" hyperlinks (`/f13/v2/hanh-trinh?...&search=`) across evidence table, why parcel modal, rule proposal panel, and journey popup.
+3. **Dữ liệu minh chứng View Switch ("Nguyên nhân | Hành trình")**:
+   - Tab switch in `F13V2EvidenceTable` synchronized with URL search param `view=journey`.
+   - "Nguyên nhân" view: standard cause diagnosis columns.
+   - "Hành trình" view: `ma_bg`, `ngay_do_kiem`, `buu_ta`, `ket_luan`, `ma_lo`, 5 milestones, 6 leg durations, and `tct_hours`.
+   - Column sorting, 20/50/100 pagination, search, and export fully functional in both views.
+4. **Hành trình bưu gửi Updates**:
+   - Postman & route rows now feature an explicit "Xem (n)" action button (`Xem (${formatVolume(row.volume)})`).
+   - Clicking a row / button opens `F13V2JourneyParcelModal` using the shared `F13V2EvidenceTable` with `view=journey` and row filter. Popup count matches row `Sản lượng`.
+   - Removed the bottom parcel table and `/journey/parcels` fetch in `F13V2JourneyPage`; replaced with quick-nav card: "Tra cứu bưu gửi → Dữ liệu minh chứng" preserving current period and BCVH.
+5. **Guard & Helper Support**:
+   - `canWriteParcelAnalysis(card, catalog, layout)` in `f13EvidenceHelpers.js`.
+   - `formatJourneyLegHours` in `f13EvidenceHelpers.js`.
+   - Sorting helper extended to handle all journey leg duration columns.
+
+### Files Modified & Created
+| File | Action | Purpose |
+|---|---|---|
+| `frontend/src/features/f13v2/api/f13v2Api.js` | Modified | Added `fetchEvidenceParcel` API client call |
+| `frontend/src/features/f13v2/f13EvidenceHelpers.js` | Modified | Added `canWriteParcelAnalysis`, `formatJourneyLegHours`, view constants, journey leg sorting |
+| `frontend/src/features/f13v2/f13EvidenceHelpers.test.js` | Modified | Unit tests for helper functions and sorting |
+| `frontend/src/features/f13v2/components/F13V2ParcelCard.jsx` | Created | Unified 3-tab parcel card modal dialog |
+| `frontend/src/features/f13v2/components/F13V2EvidenceTable.jsx` | Modified | View switch tabs, Hành trình columns, parcel card click trigger |
+| `frontend/src/features/f13v2/F13V2EvidencePage.jsx` | Modified | URL `view=journey` sync, parcel card integration |
+| `frontend/src/features/f13v2/components/F13V2WhyParcelModal.jsx` | Modified | Opens parcel card, removed old `/f13/v2/hanh-trinh` link |
+| `frontend/src/features/f13v2/components/F13V2RuleProposalDetailPanel.jsx` | Modified | Sample parcels open parcel card, removed old journey link |
+| `frontend/src/features/f13v2/components/F13V2JourneyRouteTable.jsx` | Modified | Added visible "Xem (n)" button on each route/postman row |
+| `frontend/src/features/f13v2/components/F13V2JourneyParcelModal.jsx` | Modified | Switched to shared `fetchEvidenceList` (`view=journey`) and `F13V2EvidenceTable` |
+| `frontend/src/features/f13v2/F13V2JourneyPage.jsx` | Modified | Replaced bottom parcel table with navigation link to Dữ liệu minh chứng |
+| `frontend/src/features/f13v2/f13EvidenceBlocksStandard.test.js` | Modified | Updated block standard test for parcel card and removal of legacy journey links |
+| `frontend/src/features/f13v2/f13RuleProposalBlocksStandard.test.js` | Modified | Updated block standard test for parcel card trigger on samples |
+| `frontend/src/features/f13v2/f13WhyBlocksStandard.test.js` | Modified | Updated block standard test for parcel card trigger in Why modal |
+
+### Parcel Number Trigger Locations
+1. **Dữ liệu minh chứng Table (`F13V2EvidenceTable.jsx`)**: Clicking `ma_bg` in both "Nguyên nhân" and "Hành trình" views opens `F13V2ParcelCard`.
+2. **Phân tích nguyên nhân Parcel Window (`F13V2WhyParcelModal.jsx`)**: Clicking parcel code link or "Xem phiếu" button opens `F13V2ParcelCard`.
+3. **Đề xuất quy tắc Samples (`F13V2RuleProposalDetailPanel.jsx`)**: Clicking any `sample.ma_bg` opens `F13V2ParcelCard`.
+4. **Hành trình Popup List (`F13V2JourneyParcelModal.jsx`)**: Clicking any parcel code row opens `F13V2ParcelCard`.
+
+### Verification Evidence
+- `npx.cmd oxlint -D no-undef <all changed files>`: 0 errors.
+- `node --test frontend/src/features/f13v2/*.test.js`: 95/95 pass.
+- `node --test backend/src/routes/f13v2ParcelCard.test.js backend/src/routes/f13v2Evidence.test.js`: 24/24 pass.
+- `npm.cmd --prefix frontend run build`: Built production bundle successfully in 1.48s (0 errors).
+

@@ -34,6 +34,44 @@ export function isNoteMandatory(causeCode, systemLine) {
   return false;
 }
 
+/**
+ * F13-PARCEL-CARD-01 U1: Permission check for displaying analysis write form in F13V2ParcelCard.
+ * Requires:
+ * 1. card.can_analyse === true (only failed parcels)
+ * 2. catalog.can.write === true (f13.analysis.write capability)
+ * 3. parcel unit in user's scoped units (or allow_all / mode === 'all')
+ */
+export function canWriteParcelAnalysis(card, catalog, layout) {
+  if (!card?.can_analyse) return false;
+  if (!catalog?.can?.write) return false;
+
+  const allowAll = Boolean(layout?.units?.allow_all || layout?.scope?.mode === 'all');
+  if (allowAll) return true;
+
+  const userUnits = layout?.units?.bcvh || layout?.scope?.bcvh || [];
+  if (!card?.ma_bcvh) return false;
+  return userUnits.map(String).includes(String(card.ma_bcvh));
+}
+
+export const EVIDENCE_VIEW_CAUSE = 'cause';
+export const EVIDENCE_VIEW_JOURNEY = 'journey';
+
+export const EVIDENCE_JOURNEY_LEGS = Object.freeze([
+  { key: 'tms_depart', label: 'TMS → Rời KTC1', title: 'Từ Quét TMS đến Đóng rời sàn KTC1' },
+  { key: 'depart_arrive', label: 'Rời KTC1 → Đến BCVH', title: 'Từ Đóng rời sàn KTC1 đến Đến BCVH phát' },
+  { key: 'tms_arrive', label: 'TMS → Đến BCVH', title: 'Từ Quét TMS đến Đến BCVH phát' },
+  { key: 'arrive_gbt', label: 'Đến BCVH → Giao BT', title: 'Từ Đến BCVH phát đến Giao bưu tá phát' },
+  { key: 'gbt_ptc', label: 'Giao BT → Phát TC', title: 'Từ Giao bưu tá phát đến Phát thành công' },
+  { key: 'tms_ptc', label: 'TMS → Phát TC', title: 'Từ Quét TMS đến Phát thành công (toàn trình)' },
+]);
+
+export function formatJourneyLegHours(val) {
+  if (val === null || val === undefined || val === '') return '—';
+  const num = Number(val);
+  if (Number.isNaN(num)) return '—';
+  return `${num.toFixed(1).replace('.', ',')}h`;
+}
+
 export function formatMilestoneTitle(milestoneKey) {
   const titles = {
     tms: '1. Quét xuống TMS',
@@ -93,8 +131,9 @@ export function sortEvidenceInPage(items, sortField, sortDirection = 'asc') {
         valB = b.danh_gia || '';
         break;
       case 'tct_hours':
-        valA = a.tct?.tct_hours ?? -1;
-        valB = b.tct?.tct_hours ?? -1;
+      case 'tct_ms':
+        valA = a.tct?.hours ?? a.tct?.tct_hours ?? a.journey?.tct_ms ?? -1;
+        valB = b.tct?.hours ?? b.tct?.tct_hours ?? b.journey?.tct_ms ?? -1;
         return (valA - valB) * factor;
       case 'system_cause':
         valA = a.system?.label || a.system?.code || '';
@@ -104,6 +143,39 @@ export function sortEvidenceInPage(items, sortField, sortDirection = 'asc') {
         valA = a.analysis?.label || '';
         valB = b.analysis?.label || '';
         break;
+      case 'ma_lo':
+        valA = a.journey?.ma_lo || a.ma_lo || '';
+        valB = b.journey?.ma_lo || b.ma_lo || '';
+        break;
+      case 'tms':
+        valA = a.journey?.milestones?.tms || a.ms_tms || '';
+        valB = b.journey?.milestones?.tms || b.ms_tms || '';
+        break;
+      case 'depart':
+        valA = a.journey?.milestones?.depart || a.ms_depart || '';
+        valB = b.journey?.milestones?.depart || b.ms_depart || '';
+        break;
+      case 'arrive':
+        valA = a.journey?.milestones?.arrive || a.ms_arrive || '';
+        valB = b.journey?.milestones?.arrive || b.ms_arrive || '';
+        break;
+      case 'gbt':
+        valA = a.journey?.milestones?.gbt || a.ms_gbt || '';
+        valB = b.journey?.milestones?.gbt || b.ms_gbt || '';
+        break;
+      case 'ptc':
+        valA = a.journey?.milestones?.ptc || a.ms_ptc || '';
+        valB = b.journey?.milestones?.ptc || b.ms_ptc || '';
+        break;
+      case 'tms_depart':
+      case 'depart_arrive':
+      case 'tms_arrive':
+      case 'arrive_gbt':
+      case 'gbt_ptc':
+      case 'tms_ptc':
+        valA = a.journey?.legs?.[sortField] ?? a[`leg_${sortField}_hours`] ?? -1;
+        valB = b.journey?.legs?.[sortField] ?? b[`leg_${sortField}_hours`] ?? -1;
+        return (valA - valB) * factor;
       default:
         valA = a[sortField] || '';
         valB = b[sortField] || '';

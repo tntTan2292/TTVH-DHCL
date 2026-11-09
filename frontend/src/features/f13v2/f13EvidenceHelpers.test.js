@@ -9,6 +9,11 @@ import {
   sortEvidenceInPage,
   buildEvidenceExportFilename,
   extractEvidenceSummary,
+  canWriteParcelAnalysis,
+  formatJourneyLegHours,
+  EVIDENCE_JOURNEY_LEGS,
+  EVIDENCE_VIEW_CAUSE,
+  EVIDENCE_VIEW_JOURNEY,
 } from './f13EvidenceHelpers.js';
 import { buildWhyUnitOptions, resolveEffectiveBcvh } from './f13WhyHelpers.js';
 
@@ -232,6 +237,80 @@ test('F13-EVIDENCE-01 U1-R6: extractEvidenceSummary extracts non-zero figures fr
   const completionRateText = ((completionRate || 0) * 100).toFixed(1).replace('.', ',') + '%';
   assert.equal(completionRateText, '30,0%');
 });
+
+test('f13EvidenceHelpers: canWriteParcelAnalysis adheres to card.can_analyse, catalog.can.write and unit scope', () => {
+  const cardFailedA = { can_analyse: true, ma_bcvh: '537015', danh_gia: 'Không đạt' };
+  const cardPassedA = { can_analyse: false, ma_bcvh: '537015', danh_gia: 'Đạt' };
+  const cardFailedB = { can_analyse: true, ma_bcvh: '535790', danh_gia: 'Không đạt' };
+
+  const catalogCanWrite = { can: { write: true } };
+  const catalogReadOnly = { can: { write: false } };
+
+  const layoutCity = { units: { allow_all: true, bcvh: [] } };
+  const layoutUnitA = { units: { allow_all: false, bcvh: ['537015'] } };
+
+  // City-wide leader with write permission: can analyse failed parcels of any unit
+  assert.equal(canWriteParcelAnalysis(cardFailedA, catalogCanWrite, layoutCity), true);
+  assert.equal(canWriteParcelAnalysis(cardFailedB, catalogCanWrite, layoutCity), true);
+
+  // Unit A Chuyên quản with write permission: can analyse failed parcel in 537015, cannot in 535790
+  assert.equal(canWriteParcelAnalysis(cardFailedA, catalogCanWrite, layoutUnitA), true);
+  assert.equal(canWriteParcelAnalysis(cardFailedB, catalogCanWrite, layoutUnitA), false);
+
+  // Passing parcel: never writable
+  assert.equal(canWriteParcelAnalysis(cardPassedA, catalogCanWrite, layoutCity), false);
+  assert.equal(canWriteParcelAnalysis(cardPassedA, catalogCanWrite, layoutUnitA), false);
+
+  // Read-only catalog (no f13.analysis.write capability): never writable
+  assert.equal(canWriteParcelAnalysis(cardFailedA, catalogReadOnly, layoutCity), false);
+  assert.equal(canWriteParcelAnalysis(cardFailedA, catalogReadOnly, layoutUnitA), false);
+
+  // Missing parameters
+  assert.equal(canWriteParcelAnalysis(null, catalogCanWrite, layoutCity), false);
+  assert.equal(canWriteParcelAnalysis(cardFailedA, null, layoutCity), false);
+});
+
+test('f13EvidenceHelpers: formatJourneyLegHours formats numbers with decimal comma', () => {
+  assert.equal(formatJourneyLegHours(5.67), '5,7h');
+  assert.equal(formatJourneyLegHours(0), '0,0h');
+  assert.equal(formatJourneyLegHours(null), '—');
+  assert.equal(formatJourneyLegHours(undefined), '—');
+  assert.equal(formatJourneyLegHours(''), '—');
+});
+
+test('f13EvidenceHelpers: sortEvidenceInPage orders journey columns correctly', () => {
+  const items = [
+    { ma_bg: 'BG1', journey: { ma_lo: 'LO2', milestones: { tms: '2026-10-15 10:00:00' }, legs: { tms_ptc: 25.5 } } },
+    { ma_bg: 'BG2', journey: { ma_lo: 'LO1', milestones: { tms: '2026-10-15 08:00:00' }, legs: { tms_ptc: 12.0 } } },
+    { ma_bg: 'BG3', journey: { ma_lo: 'LO3', milestones: { tms: '2026-10-15 12:00:00' }, legs: { tms_ptc: 30.2 } } },
+  ];
+
+  // Sort by ma_lo ascending
+  const sortedLo = sortEvidenceInPage(items, 'ma_lo', 'asc');
+  assert.equal(sortedLo[0].ma_bg, 'BG2');
+  assert.equal(sortedLo[2].ma_bg, 'BG3');
+
+  // Sort by tms descending
+  const sortedTms = sortEvidenceInPage(items, 'tms', 'desc');
+  assert.equal(sortedTms[0].ma_bg, 'BG3');
+  assert.equal(sortedTms[2].ma_bg, 'BG2');
+
+  // Sort by tms_ptc ascending
+  const sortedLeg = sortEvidenceInPage(items, 'tms_ptc', 'asc');
+  assert.equal(sortedLeg[0].ma_bg, 'BG2');
+  assert.equal(sortedLeg[2].ma_bg, 'BG3');
+});
+
+test('f13EvidenceHelpers: EVIDENCE_JOURNEY_LEGS and view mode constants', () => {
+  assert.equal(EVIDENCE_VIEW_CAUSE, 'cause');
+  assert.equal(EVIDENCE_VIEW_JOURNEY, 'journey');
+  assert.equal(EVIDENCE_JOURNEY_LEGS.length, 6);
+  assert.deepEqual(
+    EVIDENCE_JOURNEY_LEGS.map((l) => l.key),
+    ['tms_depart', 'depart_arrive', 'tms_arrive', 'arrive_gbt', 'gbt_ptc', 'tms_ptc']
+  );
+});
+
 
 
 

@@ -43,8 +43,9 @@ test('F13-EVIDENCE-01: F13V2EvidenceTable complies with report standards, in-pag
   // Requirement 4: Ghi phân tích visible when catalog.can.write && item.can_analyse
   assert.ok(content.includes('canWrite && canAnalyse'), 'EvidenceTable must guard action with canWrite && canAnalyse');
 
-  // Parcel Journey link
-  assert.ok(content.includes('/f13/v2/hanh-trinh'), 'EvidenceTable must link to parcel journey');
+  // F13-PARCEL-CARD-01: Removed open in Hành trình link, parcel number opens card
+  assert.ok(!content.includes('/f13/v2/hanh-trinh'), 'EvidenceTable must remove the open in Hành trình link (PO C1/C3)');
+  assert.ok(content.includes('onOpenCard') || content.includes('onOpenDetail'), 'EvidenceTable must open parcel card');
 
   // data-no-capture on action column
   assert.ok(content.includes('data-no-capture="true"'), 'Interactive action column must have data-no-capture');
@@ -259,5 +260,33 @@ test('F13-EVIDENCE-01 U1-R9: Static check that no file in features/f13v2 calls /
   assert.ok(!whyContent.includes("'2026-10'"), 'F13V2WhyPage must not contain hardcoded 2026-10');
   assert.ok(!whyContent.includes("'2026-11-04'"), 'F13V2WhyPage must not contain hardcoded 2026-11-04');
 });
+
+test('F13-PARCEL-CARD-01: F13V2ParcelCard complies with report standards, 3 tabs, and analysis permissions', () => {
+  const content = readSrc('./components/F13V2ParcelCard.jsx');
+
+  // Standard 1: Block capture button
+  assert.ok(content.includes('<BlockCaptureButton'), 'ParcelCard must include BlockCaptureButton');
+
+  // C1 Decision: Three tabs (Hành trình, Nguyên nhân, Phân tích)
+  assert.ok(content.includes("activeTab === 'journey'"), 'Must have Hành trình tab');
+  assert.ok(content.includes("activeTab === 'cause'"), 'Must have Nguyên nhân tab');
+  assert.ok(content.includes("activeTab === 'analysis'"), 'Must have Phân tích tab');
+
+  // Backend single call
+  assert.ok(content.includes('fetchEvidenceParcel'), 'Must load card via fetchEvidenceParcel');
+
+  // Permissions check via pure helper
+  assert.ok(content.includes('canWriteParcelAnalysis'), 'Must guard analysis write form with canWriteParcelAnalysis');
+
+  // 5 milestones and sources
+  assert.ok(content.includes('F1.3') && content.includes('F1.1') && content.includes('F4.2'), 'Must list official data sources');
+
+  // Escape listener
+  assert.ok(content.includes('globalThis.addEventListener'), 'Must use globalThis for escape key listener');
+
+  // Controls marked data-no-capture
+  assert.ok(content.includes('data-no-capture="true"'), 'Interactive controls must have data-no-capture');
+});
+
 
 

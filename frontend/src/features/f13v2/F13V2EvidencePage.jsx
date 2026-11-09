@@ -18,8 +18,7 @@ import { buildEvidenceExportFilename } from './f13EvidenceHelpers.js';
 import F13V2EvidenceFilterBar from './components/F13V2EvidenceFilterBar.jsx';
 import F13V2EvidenceSummaryCard from './components/F13V2EvidenceSummaryCard.jsx';
 import F13V2EvidenceTable from './components/F13V2EvidenceTable.jsx';
-import F13V2EvidenceDetailModal from './components/F13V2EvidenceDetailModal.jsx';
-import F13V2EvidenceAnalysisModal from './components/F13V2EvidenceAnalysisModal.jsx';
+import F13V2ParcelCard from './components/F13V2ParcelCard.jsx';
 
 export default function F13V2EvidencePage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -41,9 +40,9 @@ export default function F13V2EvidencePage() {
   const [listLoading, setListLoading] = useState(false);
   const [pageError, setPageError] = useState('');
 
-  // Modals
-  const [selectedDetailItem, setSelectedDetailItem] = useState(null);
-  const [selectedAnalysisItem, setSelectedAnalysisItem] = useState(null);
+  // F13-PARCEL-CARD-01: One parcel card replacing detail and analysis modals
+  const [selectedCardParcel, setSelectedCardParcel] = useState(null);
+  const [cardInitialTab, setCardInitialTab] = useState('journey');
 
   // Export State (B1-R3)
   const [exporting, setExporting] = useState(false);
@@ -68,6 +67,8 @@ export default function F13V2EvidencePage() {
   const analystCauseParam = searchParams.get('analyst_cause') || '';
   const searchNeedle = searchParams.get('search') || '';
   const sortParam = searchParams.get('sort') || 'priority';
+  const viewParam = searchParams.get('view') || '';
+  const isJourneyView = viewParam === 'journey';
   const pageParam = Math.max(1, Number(searchParams.get('page') || '1') || 1);
   const pageSizeParam = Number(searchParams.get('page_size') || '20') || 20;
 
@@ -195,6 +196,7 @@ export default function F13V2EvidencePage() {
     if (analystCauseParam) filters.analyst_cause = analystCauseParam;
     if (searchNeedle) filters.search = searchNeedle;
     if (sortParam) filters.sort = sortParam;
+    if (isJourneyView) filters.view = 'journey';
     return filters;
   }, [
     fromParam,
@@ -215,6 +217,7 @@ export default function F13V2EvidencePage() {
     analystCauseParam,
     searchNeedle,
     sortParam,
+    isJourneyView,
   ]);
 
   // Fetch Summary data directly from /api/f13/v2/why/summary (Requirement 3)
@@ -557,7 +560,7 @@ export default function F13V2EvidencePage() {
         </p>
       ) : null}
 
-      {/* Tier 3: Evidence Table (J10: 20 / 50 / 100 rows/page, default 20) */}
+      {/* Tier 3: Evidence Table (J10: 20 / 50 / 100 rows/page, default 20, C2: Nguyên nhân | Hành trình views) */}
       <F13V2EvidenceTable
         items={evidenceData.items}
         meta={evidenceData.meta}
@@ -565,6 +568,16 @@ export default function F13V2EvidencePage() {
         loading={listLoading}
         page={pageParam}
         pageSize={pageSizeParam}
+        view={isJourneyView ? 'journey' : 'cause'}
+        onViewChange={(v) => {
+          setSearchParams((prev) => {
+            const next = new globalThis.URLSearchParams(prev);
+            if (v === 'journey') next.set('view', 'journey');
+            else next.delete('view');
+            next.set('page', '1');
+            return next;
+          }, { replace: true });
+        }}
         onPageChange={handlePageChange}
         onPageSizeChange={(newSize) => {
           setSearchParams((prev) => {
@@ -574,30 +587,29 @@ export default function F13V2EvidencePage() {
             return next;
           }, { replace: true });
         }}
-        onOpenDetail={(item) => setSelectedDetailItem(item)}
-        onOpenAnalysis={(item) => setSelectedAnalysisItem(item)}
+        onOpenCard={(item, tab) => {
+          setSelectedCardParcel(item);
+          setCardInitialTab(tab || (isJourneyView ? 'journey' : 'cause'));
+        }}
+        onOpenDetail={(item) => {
+          setSelectedCardParcel(item);
+          setCardInitialTab(isJourneyView ? 'journey' : 'cause');
+        }}
+        onOpenAnalysis={(item) => {
+          setSelectedCardParcel(item);
+          setCardInitialTab('analysis');
+        }}
       />
 
-      {/* Detail Modal */}
-      {selectedDetailItem && (
-        <F13V2EvidenceDetailModal
-          item={selectedDetailItem}
-          canWrite={Boolean(catalog?.can?.write)}
-          onClose={() => setSelectedDetailItem(null)}
-          onOpenAnalysis={(item) => {
-            setSelectedDetailItem(null);
-            setSelectedAnalysisItem(item);
-          }}
-        />
-      )}
-
-      {/* Analysis Modal */}
-      {selectedAnalysisItem && (
-        <F13V2EvidenceAnalysisModal
-          item={selectedAnalysisItem}
+      {/* F13-PARCEL-CARD-01: One parcel card replaces Detail and Analysis modals */}
+      {selectedCardParcel && (
+        <F13V2ParcelCard
+          parcelKey={selectedCardParcel}
           catalog={catalog}
-          onClose={() => setSelectedAnalysisItem(null)}
-          onSuccess={() => {
+          layout={layout}
+          initialTab={cardInitialTab}
+          onClose={() => setSelectedCardParcel(null)}
+          onAnalysisSuccess={() => {
             loadSummaryData();
             loadListData();
           }}

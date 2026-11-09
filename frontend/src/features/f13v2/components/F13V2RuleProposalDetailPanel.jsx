@@ -10,7 +10,6 @@ import {
   FileCode,
   Tag,
   AlertTriangle,
-  ExternalLink,
   Send,
 } from 'lucide-react';
 import {
@@ -25,6 +24,7 @@ import {
   formatDecisionTime,
   formatBcvhName,
 } from '../f13RuleProposalHelpers.js';
+import F13V2ParcelCard from './F13V2ParcelCard.jsx';
 
 export default function F13V2RuleProposalDetailPanel({
   proposal = null,
@@ -44,6 +44,7 @@ export default function F13V2RuleProposalDetailPanel({
   const [note, setNote] = useState('');
   const [ticketId, setTicketId] = useState('');
   const [clientValidationError, setClientValidationError] = useState('');
+  const [selectedCardParcel, setSelectedCardParcel] = useState(null);
 
   // After a decision is recorded the detail comes back with a new current decision: clear the form and pick the next sensible action.
   const currentDecisionId = detail?.decision?.id ?? null;
@@ -386,16 +387,14 @@ export default function F13V2RuleProposalDetailPanel({
                           {sample.ngay_do_kiem}
                         </td>
                         <td className="py-2 px-3 whitespace-nowrap">
-                          <a
-                            href={`/f13/v2/hanh-trinh?date=${sample.ngay_do_kiem}&search=${sample.ma_bg}&bcvh=${sample.ma_bcvh || ''}`}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="inline-flex items-center gap-1 font-mono font-medium text-blue-600 hover:text-blue-800 hover:underline"
-                            title="Xem hành trình bưu gửi"
+                          <button
+                            type="button"
+                            onClick={() => setSelectedCardParcel({ ngay_do_kiem: sample.ngay_do_kiem, ma_bg: sample.ma_bg, ma_bcvh: sample.ma_bcvh })}
+                            className="font-mono font-medium text-blue-600 hover:text-blue-800 hover:underline cursor-pointer text-left"
+                            title="Xem phiếu bưu gửi"
                           >
-                            <span>{sample.ma_bg}</span>
-                            <ExternalLink className="w-3 h-3 opacity-60" />
-                          </a>
+                            {sample.ma_bg}
+                          </button>
                         </td>
                         <td className="py-2 px-2 text-center font-mono text-gray-600">
                           {formatBcvhName(sample.ma_bcvh)}
@@ -493,6 +492,14 @@ export default function F13V2RuleProposalDetailPanel({
           </div>
         </div>
       </div>
+
+      {/* F13-PARCEL-CARD-01: Shared parcel card */}
+      {selectedCardParcel && (
+        <F13V2ParcelCard
+          parcelKey={selectedCardParcel}
+          onClose={() => setSelectedCardParcel(null)}
+        />
+      )}
     </div>
   );
 }

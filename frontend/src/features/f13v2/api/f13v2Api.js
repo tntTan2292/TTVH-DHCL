@@ -123,6 +123,13 @@ export async function fetchEvidenceHistory({ ngay_do_kiem, ma_bg }, apiBase = '/
   return response?.data?.data || null;
 }
 
+export async function fetchEvidenceParcel({ ngay_do_kiem, ma_bg }, apiBase = '/f13') {
+  const response = await api.get(`${apiBase}/v2/evidence/parcel`, {
+    params: { ngay_do_kiem, ma_bg },
+  });
+  return response?.data?.data || null;
+}
+
 export async function postEvidenceAnalysis({ ngay_do_kiem, ma_bg, cause, note }, apiBase = '/f13') {
   const response = await api.post(`${apiBase}/v2/evidence/analyses`, {
     ngay_do_kiem,
