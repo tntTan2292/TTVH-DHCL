@@ -208,16 +208,21 @@ test('lot batches: counts equal a direct count, the own batch is marked, the bat
         assert.equal(list.body.data.meta.total, b.volume, `${b.tms}: list total = batch count`);
         assert.ok(list.body.data.items.every((item) => item.ma_lo === 'LOT-1'));
     }
-    assert.equal(lot.complete_at, '2026-10-21 08:07:00'); // the last parcel of the lot arrives at 08:00 + 7 min
+    assert.equal(lot.complete_at, '2026-10-20 15:00:00'); // Q3: the last TMS scan of the lot
+    assert.equal(lot.arrive_complete_at, '2026-10-21 08:07:00'); // the last parcel of the lot arrives at 08:00 + 7 min
     assert.equal((await get_(admin, `/evidence/list?from=${lot.period.from}&to=${lot.period.to}&ma_lo=LOT-1&page_size=50`)).body.data.meta.total, 7);
     assert.equal((await get_(admin, `/evidence/list?from=${lot.period.from}&to=${lot.period.to}&tms_batch=bad`)).status, 400);
 });
 
-test('a Chuyên quản sees whole-lot counts but only its own unit in the list, and no code of another unit', async () => {
+test('a Chuyên quản gets null whole-lot totals, correct in-scope counts and only its own unit in the list, and no code of another unit', async () => {
     const cq = session('CHUYEN_QUAN', { bcvh: [A] });
     const data = await card(cq, 'BG-LA3');
     const lot = data.lot;
-    assert.equal(lot.volume, 7);
+    assert.equal(lot.volume, null); // Q2: no whole-lot totals without allow_all
+    assert.equal(lot.failed, null);
+    assert.ok(lot.batches.every((b) => b.volume === null && b.failed === null));
+    assert.deepEqual(lot.batches.map((b) => b.tms), ['2026-10-20 10:00:00', '2026-10-20 12:30:00', '2026-10-20 15:00:00']); // the TMS times stay
+    assert.equal(lot.complete_at, '2026-10-20 15:00:00');
     assert.equal(lot.volume_in_scope, 3);
     assert.equal(lot.failed_in_scope, 1);
     assert.equal(lot.scope_hidden, true);

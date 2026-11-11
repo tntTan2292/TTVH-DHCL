@@ -457,6 +457,7 @@ class EvidenceService {
         const batches = new Map();
         const lot = { volume: 0, failed: 0, volume_in_scope: 0, failed_in_scope: 0, no_tms: 0 };
         let lastArrive = null;
+        let lastTms = null;
         let first = null;
         let last = null;
         for (const item of rows) {
@@ -469,6 +470,7 @@ class EvidenceService {
             if (last === null || item.ngay_do_kiem > last) last = item.ngay_do_kiem;
             if (item.ms_arrive !== null && (lastArrive === null || item.ms_arrive > lastArrive)) lastArrive = item.ms_arrive;
             if (item.ms_tms === null || item.ms_tms === undefined) { lot.no_tms += 1; continue; }
+            if (lastTms === null || item.ms_tms > lastTms) lastTms = item.ms_tms;
             const batch = batches.get(item.ms_tms) || { tms: item.ms_tms, volume: 0, failed: 0, volume_in_scope: 0, failed_in_scope: 0, arrive_first: null, arrive_last: null };
             batch.volume += 1;
             if (failed) batch.failed += 1;
@@ -480,22 +482,25 @@ class EvidenceService {
             batches.set(item.ms_tms, batch);
         }
         const ordered = [...batches.values()].sort((a, b) => a.tms - b.tms);
+        // Q2 (B3-FIX): an account without allow_all never learns the volume of other units, so the whole-lot totals are null for it
+        const allowAll = allowed === null;
         return {
             ma_lo: row.ma_lo,
-            volume: lot.volume,
-            failed: lot.failed,
+            volume: allowAll ? lot.volume : null,
+            failed: allowAll ? lot.failed : null,
             volume_in_scope: lot.volume_in_scope,
             failed_in_scope: lot.failed_in_scope,
             scope_hidden: lot.volume_in_scope < lot.volume,
             no_tms: lot.no_tms,
             tms_batches: ordered.length,
             incomplete: ordered.length > 1,
-            complete_at: ordered.length > 1 ? timeText(lastArrive) : null, // the lot is complete when its last parcel has arrived
+            complete_at: ordered.length > 1 ? timeText(lastTms) : null, // Q3: the last TMS scan of the lot ("TMS đợt cuối": the lot is whole from then)
+            arrive_complete_at: ordered.length > 1 ? timeText(lastArrive) : null, // the latest arrival of any parcel of the lot
             period: { from: first, to: last }, // pass as from/to with ma_lo (and tms_batch) to /evidence/list
             batches: ordered.map((batch) => ({
                 tms: timeText(batch.tms),
-                volume: batch.volume,
-                failed: batch.failed,
+                volume: allowAll ? batch.volume : null,
+                failed: allowAll ? batch.failed : null,
                 volume_in_scope: batch.volume_in_scope,
                 failed_in_scope: batch.failed_in_scope,
                 arrive_first: timeText(batch.arrive_first),

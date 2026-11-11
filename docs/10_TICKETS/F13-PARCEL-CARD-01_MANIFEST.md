@@ -604,3 +604,11 @@ Lot table (only when `card.lot` exists): columns Đợt, Quét TMS, Số BG, Kh�
 - **C6.3:** the Số BG of a batch is a button. It opens a popup list `/evidence/list?ma_lo=&tms_batch=&from=&to=` (from `lot.period`) in the Hành trình view. The list total must equal the number clicked, and parcel numbers there open the card.
 
 Unit tests: the text of every rule with seeded evidence, the null-volume fallback, the batch click query. Lint no-undef, f13v2 tests, build.
+
+## 31. B3-FIX result (2026-11-11): scope totals and complete_at
+
+Done in `EvidenceService._lotOf`, nothing else changed.
+- **Q2:** for an account without `allow_all` (`scope.allowedCodes` is a list), `lot.volume`, `lot.failed` and each batch's `volume` / `failed` are `null`. `volume_in_scope`, `failed_in_scope`, `scope_hidden`, the batch TMS times, `tms_batches`, `incomplete` and `period` stay. An `allow_all` account gets both.
+- **Q3:** `complete_at` = the last TMS scan of the lot (only with 2 batches or more). New `arrive_complete_at` = the latest arrival of any parcel of the lot.
+- Test (`f13v2ParcelCardEvidence`): a Chuyên quản on a lot shared with another unit gets null totals, null batch volume / failed, correct in-scope counts (3 / 1, batches 2-1-0) and the TMS times; the admin test checks `complete_at` and `arrive_complete_at`.
+- Checks: `f13v2ParcelCardEvidence` 6/6, `f13v2ParcelCard` 8/8, `f13v2Evidence` 16/16, `CauseClassifier` 36/36.
