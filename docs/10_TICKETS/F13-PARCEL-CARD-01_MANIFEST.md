@@ -572,3 +572,35 @@ Done. No rule, figure, stored conclusion or existing field changes; no rebuild, 
   - For an account without `allow_all`: return `volume`, `failed` (lot and batch) as null. Keep `volume_in_scope` / `failed_in_scope`, `scope_hidden` and the batch TMS times.
   - Accounts with `allow_all` get both. Add a test with a Chuyên quản on a lot shared with another unit.
 - **Q3, `complete_at` (B3-FIX):** use the **last TMS scan of the lot**. Hành trình already defines "TMS đợt cuối" as "từ giờ này lô mới trọn". Keep the last arrival as a separate `arrive_complete_at`.
+
+## 30. U4 screen scope (Antigravity), runs in parallel with B3-FIX
+
+Files: `F13V2ParcelCard.jsx`, the f13v2 helpers and their tests, and a list popup reused from `F13V2JourneyParcelModal`. No backend change.
+
+Data:
+- `card.evidence` and `card.lot`, shapes in §28. After B3-FIX (§29), `lot.volume` / `lot.failed` and the batch `volume` / `failed` are **null for a BCVH account**: use the `*_in_scope` values then. `complete_at` becomes the last TMS scan.
+- Hours are shown as "14,6 giờ" (comma, one decimal). Times are shown as "dd/MM HH:mm".
+
+Box "Vì sao kết luận: <cause label>" at the top of the Nguyên nhân tab. The decisive stage is highlighted in light red. One text per `decision.rule`:
+
+| rule | Text (values from `evidence`) |
+|---|---|
+| DEN_BCVH_QUA_HAN | "Bưu gửi đến BCVH đã quá hạn {t_a.over} (hạn {limit})." / "Từ quét TMS đến BCVH: {t_a.clock} theo đồng hồ, {t_a.net} sau khi trừ giờ đêm theo cách tính TCT." / two lines "Khai thác (TMS → rời KTC1): {t_d.net}" and "Vận chuyển (rời KTC1 → đến BCVH): {d_a.net}", the longer one highlighted / `why`: T_D_LON_HON_D_A "Chặng khai thác dài hơn", D_A_LON_HON_T_D "Chặng vận chuyển dài hơn", HAI_CHANG_CHONG_LAN "Hai chặng chồng lấn nhau, chưa tách được", THIEU_MOC_D "Thiếu mốc rời KTC1, chưa tách được", MOC_D_DAO_THU_TU "Mốc rời KTC1 sai thứ tự, chưa tách được" |
+| KHONG_TRON_LO | "Lô {ma_lo} về Huế trong {tms_batches} đợt quét TMS; lô trọn lúc {complete_at}." + the batch table below; when `stage` = t_a: "Khi đến BCVH bưu gửi còn {remaining}." |
+| PHAT_CHAM_GIAO_BUU_TA | via T_G_QUA_HAN: "Từ quét TMS đến lúc giao bưu tá: {t_g.net}, quá hạn {t_g.over} (hạn {limit})." / via G_NGAY_SAU_NGAY_DEN: "Đến BCVH lúc {arrive} nhưng giao bưu tá lúc {gbt}, sang ngày hôm sau." / plus "Khi đến BCVH còn {remaining}." |
+| PHAT_SAU_GIAO | "Giao bưu tá trong hạn lúc {gbt} ({t_g.net}, hạn {limit})." / "Phát thành công lúc {ptc}: từ giao đến phát {clock.gbt_ptc}." / when t_e: "Tổng đến lúc phát {t_e.net}, quá hạn {t_e.over}." |
+| PHAT_KHONG_CHI_TIET | "Chậm ở khâu phát, chưa xác định chi tiết vì: {missing and out_of_order in words}." |
+| CHO_CHUYEN_QUAN reasons | the reason in words (`formatChoChuyenQuanReason`), then the missing / out-of-order milestones in words with their times, then the decisive stage line when there is one |
+| CHI_TIEU / KHONG_CO_MOC | "Thiếu chỉ tiêu (hạn phát)" / "Không có mốc nào dùng được" |
+
+Rules for the box:
+- Negative remaining reads "đã quá hạn x giờ".
+- A missing value reads "không có".
+- When `evidence.matches_stored` is false, add the line "Kết luận đã lưu khác kết quả tính lại, dữ liệu đang được cập nhật."
+
+Lot table (only when `card.lot` exists): columns Đợt, Quét TMS, Số BG, Không đạt, Đến BCVH (first – last).
+- The parcel's own batch row reads "← bưu gửi này" and is highlighted.
+- Under the table: "Lô trọn lúc {complete_at}". When `scope_hidden`: "Chỉ tính bưu gửi của đơn vị bạn; lô còn bưu gửi của đơn vị khác." When `no_tms` > 0: "{no_tms} bưu gửi không có giờ quét TMS."
+- **C6.3:** the Số BG of a batch is a button. It opens a popup list `/evidence/list?ma_lo=&tms_batch=&from=&to=` (from `lot.period`) in the Hành trình view. The list total must equal the number clicked, and parcel numbers there open the card.
+
+Unit tests: the text of every rule with seeded evidence, the null-volume fallback, the batch click query. Lint no-undef, f13v2 tests, build.
