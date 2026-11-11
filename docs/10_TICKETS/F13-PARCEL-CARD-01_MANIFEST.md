@@ -462,3 +462,15 @@ Both items of U3 (§24) implemented cleanly across frontend without backend modi
 - `node --test frontend/src/features/f13v2/*.test.js`: 105/105 tests pass.
 - `npx.cmd oxlint -D no-undef` on all modified files: 0 errors.
 - `npm.cmd --prefix frontend run build`: Vite build passes cleanly.
+
+## 26. Opus review and real render of U3 (2026-11-11) - accepted, READY FOR PO CHECK
+
+- Code `fc00dbbe`:
+  - Dữ liệu minh chứng opens the card on `journey` from the parcel number and the view button; only "ghi kết luận" opens `analysis`.
+  - The label maps match the §24 table exactly; unknown codes give "Mã khác".
+  - `formatFlagLabel` now falls back to "Mã khác" instead of the raw code. Its only caller is the card.
+- `node --test frontend/src/features/f13v2/*.test.js`: 105 pass, 0 fail.
+- Isolated render (B3 copy, leader, A Lưới, week 42), in both views:
+  - the card lands on Hành trình;
+  - the Nguyên nhân tab reads "Trạng thái: Chờ Chuyên quản phân tích", "Chặng TMS → Đến BCVH", "Tính theo số giờ TCT (khoảng thời gian)", "Cờ: Các mốc sai trình tự nghiệp vụ", "Cờ: Mốc đến BCVH sai thứ tự", with no raw code;
+  - no page error.
