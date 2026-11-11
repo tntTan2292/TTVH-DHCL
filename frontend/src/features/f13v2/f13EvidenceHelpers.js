@@ -14,6 +14,19 @@ export {
   formatCauseStepLabel,
   CAUSE_HINT_LABELS,
   formatCauseHintLabel,
+  SPLIT_WHY_LABELS,
+  EVIDENCE_MILESTONE_LABELS,
+  MISSING_MILESTONE_WORDS,
+  EVIDENCE_STAGE_LABELS,
+  formatEvidenceHours,
+  formatEvidenceTime,
+  formatEvidenceRemaining,
+  formatMissingAndOutOfOrderWords,
+  resolveConclusionLabel,
+  buildWhyConclusion,
+  resolveLotCounts,
+  formatBatchArrivalRange,
+  buildLotBatchQuery,
 } from './f13WhyHelpers.js';
 
 let cachedCatalog = null;

@@ -420,6 +420,50 @@ test('F13-PARCEL-CARD-01 U3: clicking parcel number always lands on journey tab 
   );
 });
 
+test('F13-PARCEL-CARD-01 U4: ParcelCard renders "Vì sao kết luận" box, lot batch table with own-batch marker, and batch count popup', () => {
+  const parcelCardSrc = readSrc('./components/F13V2ParcelCard.jsx');
+  const journeyModalSrc = readSrc('./components/F13V2JourneyParcelModal.jsx');
+
+  // C6.1: "Vì sao kết luận" box
+  assert.ok(
+    parcelCardSrc.includes('buildWhyConclusion'),
+    'ParcelCard must use buildWhyConclusion helper for the Vì sao kết luận box'
+  );
+  assert.ok(
+    parcelCardSrc.includes('whyBox.title') && parcelCardSrc.includes('whyBox.lines'),
+    'ParcelCard must render whyBox title and lines'
+  );
+
+  // C6.2: Lot batch table & own batch marker & footer notes
+  assert.ok(
+    parcelCardSrc.includes('← bưu gửi này'),
+    'ParcelCard must mark own batch row with "← bưu gửi này"'
+  );
+  assert.ok(
+    parcelCardSrc.includes('Lô trọn lúc'),
+    'ParcelCard must show "Lô trọn lúc {complete_at}" under the lot table'
+  );
+  assert.ok(
+    parcelCardSrc.includes('Chỉ tính bưu gửi của đơn vị bạn; lô còn bưu gửi của đơn vị khác.'),
+    'ParcelCard must show scope_hidden note when applicable'
+  );
+  assert.ok(
+    parcelCardSrc.includes('bưu gửi không có giờ quét TMS.'),
+    'ParcelCard must show no_tms note when no_tms > 0'
+  );
+
+  // C6.3: Batch count button opens shared list popup in Hành trình view
+  assert.ok(
+    parcelCardSrc.includes('setActiveBatchModal') && parcelCardSrc.includes('<F13V2JourneyParcelModal'),
+    'ParcelCard must open F13V2JourneyParcelModal when a batch count button is clicked'
+  );
+  assert.ok(
+    journeyModalSrc.includes('buildLotBatchQuery') && journeyModalSrc.includes('lotBatch'),
+    'F13V2JourneyParcelModal must support lotBatch mode using buildLotBatchQuery'
+  );
+});
+
+
 
 
 

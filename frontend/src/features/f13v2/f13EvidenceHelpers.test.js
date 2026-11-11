@@ -25,6 +25,14 @@ import {
   formatCauseStepLabel,
   formatCauseHintLabel,
   formatFlagLabel,
+  SPLIT_WHY_LABELS,
+  formatEvidenceHours,
+  formatEvidenceTime,
+  formatEvidenceRemaining,
+  buildWhyConclusion,
+  resolveLotCounts,
+  formatBatchArrivalRange,
+  buildLotBatchQuery,
 } from './f13EvidenceHelpers.js';
 import { buildWhyUnitOptions, resolveEffectiveBcvh } from './f13WhyHelpers.js';
 
@@ -525,6 +533,299 @@ test('F13-PARCEL-CARD-01 U3: every code of the §24 table maps to its text and u
   assert.equal(formatFlagLabel(null), '—');
   assert.equal(formatFlagLabel(undefined), '—');
 });
+
+test('F13-PARCEL-CARD-01 U4: formatEvidenceHours, formatEvidenceTime, and formatEvidenceRemaining follow §30 rules', () => {
+  const HOUR = 3600000;
+
+  // Hours: "14,6 giờ" (comma, one decimal); missing -> "không có"
+  assert.equal(formatEvidenceHours(14.6 * HOUR), '14,6 giờ');
+  assert.equal(formatEvidenceHours(12 * HOUR), '12,0 giờ');
+  assert.equal(formatEvidenceHours(0), '0,0 giờ');
+  assert.equal(formatEvidenceHours(null), 'không có');
+  assert.equal(formatEvidenceHours(undefined), 'không có');
+
+  // Times: "dd/MM HH:mm"; missing -> "không có"
+  assert.equal(formatEvidenceTime(Date.parse('2026-10-20T10:00:00Z')), '20/10 10:00');
+  assert.equal(formatEvidenceTime('2026-10-21 14:30:00'), '21/10 14:30');
+  assert.equal(formatEvidenceTime('2026-10-21T08:05:00Z'), '21/10 08:05');
+  assert.equal(formatEvidenceTime(null), 'không có');
+  assert.equal(formatEvidenceTime(undefined), 'không có');
+  assert.equal(formatEvidenceTime(''), 'không có');
+
+  // Remaining: negative -> "đã quá hạn x giờ", positive -> "x,y giờ", missing -> "không có"
+  assert.equal(formatEvidenceRemaining(1.5 * HOUR), '1,5 giờ');
+  assert.equal(formatEvidenceRemaining(0), '0,0 giờ');
+  assert.equal(formatEvidenceRemaining(-4 * HOUR), 'đã quá hạn 4,0 giờ');
+  assert.equal(formatEvidenceRemaining(null), 'không có');
+});
+
+test('F13-PARCEL-CARD-01 U4: buildWhyConclusion generates exact §30 text for every decision.rule and highlights decisive stage', () => {
+  const HOUR = 3600000;
+  const at = (text) => Date.parse(`${text.replace(' ', 'T')}:00Z`);
+
+  // 1. DEN_BCVH_QUA_HAN (VAN_CHUYEN: D_A_LON_HON_T_D)
+  const evVanChuyen = {
+    status: 'CAUSE',
+    cause_code: 'VAN_CHUYEN',
+    limit_ms: 12 * HOUR,
+    remaining_at_arrival_ms: -4 * HOUR,
+    milestones: { tms: at('2026-10-20 10:00'), depart: at('2026-10-20 16:00'), arrive: at('2026-10-21 12:00') },
+    stages: {
+      t_a: { clock_ms: 26 * HOUR, net_ms: 16 * HOUR, over_ms: 4 * HOUR },
+      t_d: { net_ms: 6 * HOUR },
+      d_a: { net_ms: 10 * HOUR },
+    },
+    decision: { rule: 'DEN_BCVH_QUA_HAN', stage: 't_a', split: { result: 'VAN_CHUYEN', why: 'D_A_LON_HON_T_D' } },
+    matches_stored: true,
+  };
+  const boxVC = buildWhyConclusion(evVanChuyen);
+  assert.equal(boxVC.title, 'Vì sao kết luận: Vận chuyển (đến BCVH quá hạn)');
+  assert.deepEqual(boxVC.lines.map((l) => l.text), [
+    'Bưu gửi đến BCVH đã quá hạn 4,0 giờ (hạn 12,0 giờ).',
+    'Từ quét TMS đến BCVH: 26,0 giờ theo đồng hồ, 16,0 giờ sau khi trừ giờ đêm theo cách tính TCT.',
+    'Khai thác (TMS → rời KTC1): 6,0 giờ',
+    'Vận chuyển (rời KTC1 → đến BCVH): 10,0 giờ',
+    'Chặng vận chuyển dài hơn',
+  ]);
+  assert.equal(boxVC.lines.find((l) => l.key === 'leg_da').highlight, true);
+  assert.equal(boxVC.lines.find((l) => l.key === 'leg_td').highlight, false);
+
+  // 1b. DEN_BCVH_QUA_HAN (KHAI_THAC: T_D_LON_HON_D_A)
+  const boxKT = buildWhyConclusion({
+    ...evVanChuyen,
+    cause_code: 'KHAI_THAC',
+    stages: {
+      t_a: { clock_ms: 26 * HOUR, net_ms: 16 * HOUR, over_ms: 4 * HOUR },
+      t_d: { net_ms: 11 * HOUR },
+      d_a: { net_ms: 5 * HOUR },
+    },
+    decision: { rule: 'DEN_BCVH_QUA_HAN', stage: 't_a', split: { result: 'KHAI_THAC', why: 'T_D_LON_HON_D_A' } },
+  });
+  assert.equal(boxKT.lines.find((l) => l.key === 'leg_td').highlight, true);
+  assert.equal(boxKT.lines.find((l) => l.key === 'leg_da').highlight, false);
+  assert.equal(boxKT.lines.at(-1).text, 'Chặng khai thác dài hơn');
+
+  // 1c. DEN_BCVH_QUA_HAN (CHUA_PHAN_BIET: THIEU_MOC_D, HAI_CHANG_CHONG_LAN, MOC_D_DAO_THU_TU)
+  for (const [whyCode, expectedWhyText] of Object.entries(SPLIT_WHY_LABELS)) {
+    const b = buildWhyConclusion({
+      ...evVanChuyen,
+      cause_code: 'KHAI_THAC_VAN_CHUYEN_CHUA_PHAN_BIET',
+      stages: { t_a: { clock_ms: 26 * HOUR, net_ms: 16 * HOUR, over_ms: 4 * HOUR } },
+      decision: { rule: 'DEN_BCVH_QUA_HAN', stage: 't_a', split: { result: 'KHAI_THAC_VAN_CHUYEN_CHUA_PHAN_BIET', why: whyCode } },
+    });
+    assert.equal(b.lines.at(-1).text, expectedWhyText);
+    if (!['T_D_LON_HON_D_A', 'D_A_LON_HON_T_D'].includes(whyCode)) {
+      assert.equal(b.lines.find((l) => l.key === 'leg_td').text, 'Khai thác (TMS → rời KTC1): không có');
+      assert.equal(b.lines.find((l) => l.key === 'leg_da').text, 'Vận chuyển (rời KTC1 → đến BCVH): không có');
+      assert.equal(b.lines[0].highlight, true);
+    }
+  }
+
+  // 2. KHONG_TRON_LO (with positive and negative remaining at arrival)
+  const lotSample = { ma_lo: 'LOT-NEW', tms_batches: 3, complete_at: '2026-10-20 15:00:00' };
+  const boxLotPos = buildWhyConclusion(
+    {
+      status: 'CAUSE',
+      cause_code: 'KHONG_TRON_LO',
+      remaining_at_arrival_ms: 2.5 * HOUR,
+      decision: { rule: 'KHONG_TRON_LO', stage: 't_a' },
+      matches_stored: true,
+    },
+    lotSample
+  );
+  assert.deepEqual(boxLotPos.lines.map((l) => l.text), [
+    'Lô LOT-NEW về Huế trong 3 đợt quét TMS; lô trọn lúc 20/10 15:00.',
+    'Khi đến BCVH bưu gửi còn 2,5 giờ.',
+  ]);
+
+  const boxLotNeg = buildWhyConclusion(
+    {
+      status: 'CAUSE',
+      cause_code: 'KHONG_TRON_LO',
+      remaining_at_arrival_ms: -4 * HOUR,
+      decision: { rule: 'KHONG_TRON_LO', stage: 't_a' },
+      matches_stored: true,
+    },
+    lotSample
+  );
+  assert.deepEqual(boxLotNeg.lines.map((l) => l.text), [
+    'Lô LOT-NEW về Huế trong 3 đợt quét TMS; lô trọn lúc 20/10 15:00.',
+    'Khi đến BCVH bưu gửi đã quá hạn 4,0 giờ.',
+  ]);
+
+  // 3. PHAT_CHAM_GIAO_BUU_TA (via T_G_QUA_HAN and via G_NGAY_SAU_NGAY_DEN)
+  const boxGbtOver = buildWhyConclusion({
+    status: 'CAUSE',
+    cause_code: 'PHAT',
+    detail: 'CHAM_GIAO_BUU_TA',
+    limit_ms: 17 * HOUR,
+    remaining_at_arrival_ms: 1 * HOUR,
+    stages: { t_g: { net_ms: 18 * HOUR, over_ms: 1 * HOUR } },
+    decision: { rule: 'PHAT_CHAM_GIAO_BUU_TA', stage: 't_g', via: 'T_G_QUA_HAN' },
+    matches_stored: true,
+  });
+  assert.deepEqual(boxGbtOver.lines.map((l) => l.text), [
+    'Từ quét TMS đến lúc giao bưu tá: 18,0 giờ, quá hạn 1,0 giờ (hạn 17,0 giờ).',
+    'Khi đến BCVH còn 1,0 giờ.',
+  ]);
+  assert.equal(boxGbtOver.lines[0].highlight, true);
+
+  const boxGbtNextDay = buildWhyConclusion({
+    status: 'CAUSE',
+    cause_code: 'PHAT',
+    detail: 'CHAM_GIAO_BUU_TA',
+    limit_ms: 17 * HOUR,
+    remaining_at_arrival_ms: 3 * HOUR,
+    milestones: { arrive: at('2026-10-20 16:00'), gbt: at('2026-10-21 08:30') },
+    decision: { rule: 'PHAT_CHAM_GIAO_BUU_TA', stage: 't_g', via: 'G_NGAY_SAU_NGAY_DEN', next_day: true },
+    matches_stored: true,
+  });
+  assert.deepEqual(boxGbtNextDay.lines.map((l) => l.text), [
+    'Đến BCVH lúc 20/10 16:00 nhưng giao bưu tá lúc 21/10 08:30, sang ngày hôm sau.',
+    'Khi đến BCVH còn 3,0 giờ.',
+  ]);
+  assert.equal(boxGbtNextDay.lines[0].highlight, true);
+
+  // 4. PHAT_SAU_GIAO
+  const boxPhatSauGiao = buildWhyConclusion({
+    status: 'CAUSE',
+    cause_code: 'PHAT',
+    detail: 'PHAT_CHAM_SAU_GIAO',
+    limit_ms: 18 * HOUR,
+    milestones: { gbt: at('2026-10-21 14:00'), ptc: at('2026-10-21 20:00') },
+    clock_ms: { gbt_ptc: 6 * HOUR },
+    stages: {
+      t_g: { net_ms: 18 * HOUR, over_ms: 0 },
+      t_e: { net_ms: 24 * HOUR, over_ms: 6 * HOUR },
+    },
+    decision: { rule: 'PHAT_SAU_GIAO', stage: 't_g', via: 'T_G_TRONG_HAN' },
+    matches_stored: true,
+  });
+  assert.deepEqual(boxPhatSauGiao.lines.map((l) => l.text), [
+    'Giao bưu tá trong hạn lúc 21/10 14:00 (18,0 giờ, hạn 18,0 giờ).',
+    'Phát thành công lúc 21/10 20:00: từ giao đến phát 6,0 giờ.',
+    'Tổng đến lúc phát 24,0 giờ, quá hạn 6,0 giờ.',
+  ]);
+  assert.equal(boxPhatSauGiao.lines[1].highlight, true);
+
+  // 5. PHAT_KHONG_CHI_TIET
+  const boxPhatNoDetail = buildWhyConclusion({
+    status: 'CAUSE',
+    cause_code: 'PHAT',
+    detail: null,
+    missing: ['gbt'],
+    out_of_order: ['MOC_G_KHONG_HOP_LE'],
+    decision: { rule: 'PHAT_KHONG_CHI_TIET', stage: null },
+    matches_stored: true,
+  });
+  assert.equal(
+    boxPhatNoDetail.lines[0].text,
+    'Chậm ở khâu phát, chưa xác định chi tiết vì: Thiếu mốc giao bưu tá, Mốc giao bưu tá sai thứ tự.'
+  );
+  assert.equal(boxPhatNoDetail.lines[0].highlight, true);
+
+  // 6. CHO_CHUYEN_QUAN reasons (with missing/out-of-order milestones + times + decisive stage)
+  const boxWait = buildWhyConclusion({
+    status: 'CHO_CHUYEN_QUAN',
+    reason: 'CHAM_DEN_HAY_CHAM_GIAO',
+    limit_ms: 17 * HOUR,
+    milestones: { tms: at('2026-10-20 10:00'), depart: at('2026-10-20 16:00'), arrive: null, gbt: at('2026-10-21 14:00'), ptc: at('2026-10-21 20:00') },
+    missing: ['arrive'],
+    out_of_order: [],
+    stages: { t_g: { clock_ms: 28 * HOUR, net_ms: 18 * HOUR, over_ms: 1 * HOUR } },
+    decision: { rule: 'CHAM_DEN_HAY_CHAM_GIAO', stage: 't_g' },
+    decisive: { stage: 't_g', clock_ms: 28 * HOUR, net_ms: 18 * HOUR, over_ms: 1 * HOUR, limit_ms: 17 * HOUR },
+    matches_stored: true,
+  });
+  assert.equal(boxWait.lines[0].text, 'Không có xác nhận đến BCVH, chưa tách được đến muộn hay giao muộn');
+  assert.ok(boxWait.lines[1].text.includes('Không có giờ xác nhận đến BCVH (Đến BCVH: không có)'));
+  assert.ok(boxWait.lines[1].text.includes('Quét TMS: 20/10 10:00'));
+  assert.equal(boxWait.lines[2].text, 'Chặng TMS → Giao bưu tá: 18,0 giờ (đồng hồ 28,0 giờ), quá hạn 1,0 giờ (hạn 17,0 giờ).');
+  assert.equal(boxWait.lines[2].highlight, true);
+
+  // 7. CHI_TIEU and KHONG_CO_MOC
+  const boxChiTieu = buildWhyConclusion({
+    status: 'CHUA_DU_CAN_CU',
+    reason: 'CHI_TIEU',
+    decision: { rule: 'CHI_TIEU' },
+    matches_stored: true,
+  });
+  assert.equal(boxChiTieu.lines[0].text, 'Thiếu chỉ tiêu (hạn phát)');
+
+  const boxKhongCoMoc = buildWhyConclusion({
+    status: 'CHUA_DU_CAN_CU',
+    reason: 'KHONG_CO_MOC',
+    decision: { rule: 'KHONG_CO_MOC' },
+    matches_stored: true,
+  });
+  assert.equal(boxKhongCoMoc.lines[0].text, 'Không có mốc nào dùng được');
+
+  // 8. matches_stored === false warning line
+  const boxMismatch = buildWhyConclusion({
+    status: 'CHUA_DU_CAN_CU',
+    reason: 'CHI_TIEU',
+    decision: { rule: 'CHI_TIEU' },
+    matches_stored: false,
+  });
+  assert.equal(
+    boxMismatch.lines.at(-1).text,
+    'Kết luận đã lưu khác kết quả tính lại, dữ liệu đang được cập nhật.'
+  );
+  assert.equal(boxMismatch.lines.at(-1).isMismatch, true);
+});
+
+test('F13-PARCEL-CARD-01 U4: resolveLotCounts falls back to *_in_scope when volume/failed are null for BCVH accounts, and buildLotBatchQuery builds batch query', () => {
+  // Admin / allow_all account: volume and failed are populated
+  const adminLot = {
+    ma_lo: 'LOT-1',
+    volume: 7,
+    failed: 2,
+    volume_in_scope: 7,
+    failed_in_scope: 2,
+    period: { from: '2026-10-11', to: '2026-10-26' },
+    batches: [
+      { tms: '2026-10-20 12:30:00', volume: 2, failed: 1, volume_in_scope: 2, failed_in_scope: 1, arrive_first: '2026-10-21 08:04:00', arrive_last: '2026-10-21 08:05:00', is_own: true },
+    ],
+  };
+  assert.deepEqual(resolveLotCounts(adminLot), { volume: 7, failed: 2 });
+  assert.deepEqual(resolveLotCounts(adminLot.batches[0]), { volume: 2, failed: 1 });
+  assert.equal(formatBatchArrivalRange(adminLot.batches[0]), '21/10 08:04 – 21/10 08:05');
+
+  // Scoped BCVH account (§29): volume and failed are null, falls back to volume_in_scope and failed_in_scope
+  const bcvhLot = {
+    ma_lo: 'LOT-1',
+    volume: null,
+    failed: null,
+    volume_in_scope: 3,
+    failed_in_scope: 1,
+    scope_hidden: true,
+    period: { from: '2026-10-11', to: '2026-10-26' },
+    batches: [
+      { tms: '2026-10-20 10:00:00', volume: null, failed: null, volume_in_scope: 2, failed_in_scope: 0, is_own: false },
+      { tms: '2026-10-20 12:30:00', volume: null, failed: null, volume_in_scope: 1, failed_in_scope: 1, is_own: true },
+      { tms: '2026-10-20 15:00:00', volume: null, failed: null, volume_in_scope: 0, failed_in_scope: 0, is_own: false },
+    ],
+  };
+  assert.deepEqual(resolveLotCounts(bcvhLot), { volume: 3, failed: 1 });
+  assert.deepEqual(bcvhLot.batches.map((b) => resolveLotCounts(b)), [
+    { volume: 2, failed: 0 },
+    { volume: 1, failed: 1 },
+    { volume: 0, failed: 0 },
+  ]);
+
+  // Batch click query (§30 C6.3): ma_lo, tms_batch, from, to, view=journey
+  const query = buildLotBatchQuery(bcvhLot, bcvhLot.batches[1], { page: 1, page_size: 20 });
+  assert.deepEqual(query, {
+    view: 'journey',
+    ma_lo: 'LOT-1',
+    tms_batch: '2026-10-20 12:30:00',
+    from: '2026-10-11',
+    to: '2026-10-26',
+    page: 1,
+    page_size: 20,
+  });
+});
+
 
 
 

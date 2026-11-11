@@ -851,3 +851,418 @@ export function sortWhyPostmen(postmen = [], sortField = 'own_shortfall', sortDi
     return diff !== 0 ? diff : (b.volume || 0) - (a.volume || 0);
   });
 }
+
+// ============================================================================
+// F13-PARCEL-CARD-01 U4 (C6): "Vì sao kết luận" box & Lot batch helpers
+// ============================================================================
+
+export const SPLIT_WHY_LABELS = Object.freeze({
+  T_D_LON_HON_D_A: 'Chặng khai thác dài hơn',
+  D_A_LON_HON_T_D: 'Chặng vận chuyển dài hơn',
+  HAI_CHANG_CHONG_LAN: 'Hai chặng chồng lấn nhau, chưa tách được',
+  THIEU_MOC_D: 'Thiếu mốc rời KTC1, chưa tách được',
+  MOC_D_DAO_THU_TU: 'Mốc rời KTC1 sai thứ tự, chưa tách được',
+});
+
+export const EVIDENCE_MILESTONE_LABELS = Object.freeze({
+  tms: 'Quét TMS',
+  depart: 'Rời KTC1',
+  arrive: 'Đến BCVH',
+  gbt: 'Giao bưu tá',
+  ptc: 'Phát thành công',
+});
+
+export const MISSING_MILESTONE_WORDS = Object.freeze({
+  tms: 'Thiếu mốc quét TMS',
+  depart: 'Thiếu mốc rời KTC1',
+  arrive: 'Không có giờ xác nhận đến BCVH',
+  gbt: 'Thiếu mốc giao bưu tá',
+  ptc: 'Thiếu giờ phát',
+});
+
+export const EVIDENCE_STAGE_LABELS = Object.freeze({
+  t_a: 'Chặng TMS → Đến BCVH',
+  t_g: 'Chặng TMS → Giao bưu tá',
+  t_e: 'Chặng TMS → Phát',
+  t_d: 'Khai thác (TMS → rời KTC1)',
+  d_a: 'Vận chuyển (rời KTC1 → đến BCVH)',
+});
+
+/**
+ * Formats a duration in ms as "14,6 giờ" (comma, one decimal).
+ * Missing value reads "không có".
+ */
+export function formatEvidenceHours(ms) {
+  if (ms === null || ms === undefined || ms === '') return 'không có';
+  const num = Number(ms);
+  if (!Number.isFinite(num)) return 'không có';
+  return `${(num / 3600000).toFixed(1).replace('.', ',')} giờ`;
+}
+
+/**
+ * Formats a timestamp (local-clock ms or 'YYYY-MM-DD HH:MM(:SS)') as "dd/MM HH:mm".
+ * Missing value reads "không có".
+ */
+export function formatEvidenceTime(timeVal) {
+  if (timeVal === null || timeVal === undefined || timeVal === '') return 'không có';
+  if (typeof timeVal === 'number') {
+    if (!Number.isFinite(timeVal)) return 'không có';
+    const iso = new Date(timeVal).toISOString();
+    const m = iso.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
+    if (m) {
+      return `${m[3]}/${m[2]} ${m[4]}:${m[5]}`;
+    }
+    return 'không có';
+  }
+  const str = String(timeVal).trim();
+  if (!str) return 'không có';
+  const m = str.match(/^(\d{4})-(\d{1,2})-(\d{1,2})[T\s](\d{1,2}):(\d{1,2})/);
+  if (m) {
+    const [, , mm, dd, hh, min] = m;
+    return `${dd.padStart(2, '0')}/${mm.padStart(2, '0')} ${hh.padStart(2, '0')}:${min.padStart(2, '0')}`;
+  }
+  return str;
+}
+
+/**
+ * Formats remaining time at arrival (ms).
+ * - Negative remaining reads "đã quá hạn x,y giờ".
+ * - Non-negative remaining reads "x,y giờ".
+ * - Missing value reads "không có".
+ */
+export function formatEvidenceRemaining(ms) {
+  if (ms === null || ms === undefined || ms === '') return 'không có';
+  const num = Number(ms);
+  if (!Number.isFinite(num)) return 'không có';
+  if (num < 0) {
+    return `đã quá hạn ${(Math.abs(num) / 3600000).toFixed(1).replace('.', ',')} giờ`;
+  }
+  return `${(num / 3600000).toFixed(1).replace('.', ',')} giờ`;
+}
+
+function buildArrivalRemainingLine(prefix, ms) {
+  const rem = formatEvidenceRemaining(ms);
+  if (ms !== null && ms !== undefined && ms !== '' && Number(ms) < 0) {
+    return `${prefix} ${rem}.`;
+  }
+  return `${prefix} còn ${rem}.`;
+}
+
+/**
+ * Formats missing and out-of-order milestones in words, optionally with milestone times.
+ */
+export function formatMissingAndOutOfOrderWords(evidence, { withTimes = false } = {}) {
+  if (!evidence) return 'không có';
+  const missing = Array.isArray(evidence.missing) ? evidence.missing : [];
+  const outOfOrder = Array.isArray(evidence.out_of_order) ? evidence.out_of_order : [];
+  const milestones = evidence.milestones || {};
+
+  if (!withTimes) {
+    const parts = [
+      ...missing.map((k) => MISSING_MILESTONE_WORDS[k] || `Thiếu ${EVIDENCE_MILESTONE_LABELS[k] || k}`),
+      ...outOfOrder.map((flag) => formatFlagLabel(flag)),
+    ];
+    if (parts.length === 0) return 'Chưa đủ chắc chắn quá hạn hay còn hạn';
+    return parts.join(', ');
+  }
+
+  const issueParts = [
+    ...missing.map((k) => `${MISSING_MILESTONE_WORDS[k] || k} (${EVIDENCE_MILESTONE_LABELS[k] || k}: không có)`),
+    ...outOfOrder.map((flag) => formatFlagLabel(flag)),
+  ];
+
+  const timeParts = ['tms', 'depart', 'arrive', 'gbt', 'ptc'].map((k) => {
+    const rawVal = k === 'arrive' ? (milestones.arrive_raw ?? milestones.arrive) : milestones[k];
+    return `${EVIDENCE_MILESTONE_LABELS[k]}: ${formatEvidenceTime(rawVal)}`;
+  });
+
+  if (issueParts.length > 0) {
+    return `${issueParts.join('; ')}. Các mốc: ${timeParts.join(', ')}.`;
+  }
+  return `Các mốc: ${timeParts.join(', ')}.`;
+}
+
+function formatDecisiveStageLine(evidence) {
+  if (!evidence) return null;
+  const stageKey = evidence.decisive?.stage || evidence.decision?.stage || null;
+  const stageObj = evidence.decisive || (stageKey ? evidence.stages?.[stageKey] : null);
+  if (!stageKey || !stageObj) return null;
+
+  const label = EVIDENCE_STAGE_LABELS[stageKey] || stageKey;
+  const net = formatEvidenceHours(stageObj.net_ms);
+  const clock = formatEvidenceHours(stageObj.clock_ms);
+  const limit = formatEvidenceHours(stageObj.limit_ms ?? evidence.limit_ms);
+
+  if (stageObj.over_ms !== null && stageObj.over_ms !== undefined && Number(stageObj.over_ms) > 0) {
+    return `${label}: ${net} (đồng hồ ${clock}), quá hạn ${formatEvidenceHours(stageObj.over_ms)} (hạn ${limit}).`;
+  }
+  if (
+    stageObj.lower_ms !== null &&
+    stageObj.lower_ms !== undefined &&
+    stageObj.upper_ms !== null &&
+    stageObj.upper_ms !== undefined &&
+    stageObj.lower_ms !== stageObj.upper_ms
+  ) {
+    return `${label}: ${net} (khoảng ${formatEvidenceHours(stageObj.lower_ms)} – ${formatEvidenceHours(stageObj.upper_ms)}, đồng hồ ${clock}, hạn ${limit}).`;
+  }
+  return `${label}: ${net} (đồng hồ ${clock}, hạn ${limit}).`;
+}
+
+export function resolveConclusionLabel(evidence, system = null) {
+  if (system?.status === 'CHO_CHUYEN_QUAN' || evidence?.status === 'CHO_CHUYEN_QUAN') {
+    return 'Chờ Chuyên quản phân tích';
+  }
+  if (system?.status === 'CHUA_DU_CAN_CU' || evidence?.status === 'CHUA_DU_CAN_CU') {
+    return 'Chưa đủ căn cứ';
+  }
+  if (system?.label) return system.label;
+  const code = evidence?.cause_code || system?.code;
+  const detail = evidence?.detail || system?.detail;
+  if (code === 'PHAT') {
+    if (detail === 'CHAM_GIAO_BUU_TA') return 'Phát - Chậm giao bưu tá';
+    if (detail === 'PHAT_CHAM_SAU_GIAO') return 'Phát - Phát chậm sau khi giao';
+    return 'Phát (chưa rõ chi tiết)';
+  }
+  return formatCauseLabel(code);
+}
+
+/**
+ * Builds the "Vì sao kết luận: <cause label>" box model for the Nguyên nhân tab (§30).
+ * Pure function reading `evidence` and `lot` without recomputing any rule.
+ */
+export function buildWhyConclusion(evidence, lot = null, system = null) {
+  if (!evidence || typeof evidence !== 'object') return null;
+
+  const decision = evidence.decision || {};
+  const rule = decision.rule || evidence.reason || evidence.cause_code || evidence.status || '';
+  const stages = evidence.stages || {};
+  const milestones = evidence.milestones || {};
+  const clockMs = evidence.clock_ms || {};
+  const causeLabel = resolveConclusionLabel(evidence, system);
+  const lines = [];
+
+  if (rule === 'DEN_BCVH_QUA_HAN') {
+    const t_a = stages.t_a;
+    const t_d = stages.t_d;
+    const d_a = stages.d_a;
+    const why = decision.split?.why;
+    const tdLonger =
+      why === 'T_D_LON_HON_D_A' ||
+      (!why && t_d?.net_ms != null && d_a?.net_ms != null && Number(t_d.net_ms) > Number(d_a.net_ms));
+    const daLonger =
+      why === 'D_A_LON_HON_T_D' ||
+      (!why && t_d?.net_ms != null && d_a?.net_ms != null && Number(d_a.net_ms) > Number(t_d.net_ms));
+
+    lines.push({
+      key: 'ta_over',
+      stage: 't_a',
+      highlight: !tdLonger && !daLonger,
+      text: `Bưu gửi đến BCVH đã quá hạn ${formatEvidenceHours(t_a?.over_ms)} (hạn ${formatEvidenceHours(evidence.limit_ms)}).`,
+    });
+    lines.push({
+      key: 'ta_clock_net',
+      stage: 't_a',
+      highlight: false,
+      text: `Từ quét TMS đến BCVH: ${formatEvidenceHours(t_a?.clock_ms)} theo đồng hồ, ${formatEvidenceHours(t_a?.net_ms)} sau khi trừ giờ đêm theo cách tính TCT.`,
+    });
+    lines.push({
+      key: 'leg_td',
+      stage: 't_d',
+      highlight: tdLonger,
+      text: `Khai thác (TMS → rời KTC1): ${formatEvidenceHours(t_d?.net_ms)}`,
+    });
+    lines.push({
+      key: 'leg_da',
+      stage: 'd_a',
+      highlight: daLonger,
+      text: `Vận chuyển (rời KTC1 → đến BCVH): ${formatEvidenceHours(d_a?.net_ms)}`,
+    });
+    if (why && SPLIT_WHY_LABELS[why]) {
+      lines.push({
+        key: 'split_why',
+        highlight: false,
+        text: SPLIT_WHY_LABELS[why],
+      });
+    }
+  } else if (rule === 'KHONG_TRON_LO') {
+    const effectiveLot = lot || evidence.lot || null;
+    const maLo = effectiveLot?.ma_lo ?? evidence.ma_lo ?? 'không có';
+    const tmsBatches =
+      effectiveLot?.tms_batches ??
+      (Array.isArray(effectiveLot?.batches) ? effectiveLot.batches.length : null) ??
+      evidence.tms_batches ??
+      'không có';
+    const completeAt = formatEvidenceTime(effectiveLot?.complete_at ?? evidence.complete_at);
+
+    lines.push({
+      key: 'lot_summary',
+      highlight: true,
+      text: `Lô ${maLo} về Huế trong ${tmsBatches} đợt quét TMS; lô trọn lúc ${completeAt}.`,
+    });
+
+    if (decision.stage === 't_a') {
+      lines.push({
+        key: 'lot_arrival_remaining',
+        stage: 't_a',
+        highlight: Number(evidence.remaining_at_arrival_ms) < 0,
+        text: buildArrivalRemainingLine('Khi đến BCVH bưu gửi', evidence.remaining_at_arrival_ms),
+      });
+    }
+  } else if (rule === 'PHAT_CHAM_GIAO_BUU_TA') {
+    const t_g = stages.t_g;
+    const via = decision.via;
+
+    if (via === 'G_NGAY_SAU_NGAY_DEN') {
+      lines.push({
+        key: 'gbt_next_day',
+        stage: 't_g',
+        highlight: true,
+        text: `Đến BCVH lúc ${formatEvidenceTime(milestones.arrive)} nhưng giao bưu tá lúc ${formatEvidenceTime(milestones.gbt)}, sang ngày hôm sau.`,
+      });
+    } else {
+      lines.push({
+        key: 'gbt_over',
+        stage: 't_g',
+        highlight: true,
+        text: `Từ quét TMS đến lúc giao bưu tá: ${formatEvidenceHours(t_g?.net_ms)}, quá hạn ${formatEvidenceHours(t_g?.over_ms)} (hạn ${formatEvidenceHours(evidence.limit_ms)}).`,
+      });
+    }
+
+    lines.push({
+      key: 'gbt_arrival_remaining',
+      stage: 't_a',
+      highlight: false,
+      text: buildArrivalRemainingLine('Khi đến BCVH', evidence.remaining_at_arrival_ms),
+    });
+  } else if (rule === 'PHAT_SAU_GIAO') {
+    const t_g = stages.t_g;
+    const t_e = stages.t_e;
+
+    lines.push({
+      key: 'gbt_in_time',
+      stage: 't_g',
+      highlight: false,
+      text: `Giao bưu tá trong hạn lúc ${formatEvidenceTime(milestones.gbt)} (${formatEvidenceHours(t_g?.net_ms)}, hạn ${formatEvidenceHours(evidence.limit_ms)}).`,
+    });
+    lines.push({
+      key: 'ptc_after_gbt',
+      stage: 'gbt_ptc',
+      highlight: true,
+      text: `Phát thành công lúc ${formatEvidenceTime(milestones.ptc)}: từ giao đến phát ${formatEvidenceHours(clockMs.gbt_ptc)}.`,
+    });
+    if (t_e) {
+      lines.push({
+        key: 'te_total',
+        stage: 't_e',
+        highlight: true,
+        text: `Tổng đến lúc phát ${formatEvidenceHours(t_e.net_ms)}, quá hạn ${formatEvidenceHours(t_e.over_ms)}.`,
+      });
+    }
+  } else if (rule === 'PHAT_KHONG_CHI_TIET') {
+    const words = formatMissingAndOutOfOrderWords(evidence, { withTimes: false });
+    lines.push({
+      key: 'phat_no_detail',
+      stage: decision.stage || 't_g',
+      highlight: true,
+      text: `Chậm ở khâu phát, chưa xác định chi tiết vì: ${words}.`,
+    });
+  } else if (rule === 'CHI_TIEU') {
+    lines.push({
+      key: 'no_limit',
+      highlight: true,
+      text: 'Thiếu chỉ tiêu (hạn phát)',
+    });
+  } else if (rule === 'KHONG_CO_MOC') {
+    lines.push({
+      key: 'no_milestone',
+      highlight: true,
+      text: 'Không có mốc nào dùng được',
+    });
+  } else {
+    // CHO_CHUYEN_QUAN reasons
+    const reasonCode = rule || evidence.reason;
+    const decisiveLine = formatDecisiveStageLine(evidence);
+
+    lines.push({
+      key: 'wait_reason',
+      highlight: !decisiveLine,
+      text: formatChoChuyenQuanReason(reasonCode),
+    });
+    lines.push({
+      key: 'wait_milestones',
+      highlight: false,
+      text: formatMissingAndOutOfOrderWords(evidence, { withTimes: true }),
+    });
+    if (decisiveLine) {
+      lines.push({
+        key: 'wait_decisive',
+        stage: evidence.decisive?.stage || decision.stage,
+        highlight: true,
+        text: decisiveLine,
+      });
+    }
+  }
+
+  if (evidence.matches_stored === false) {
+    lines.push({
+      key: 'mismatch_warning',
+      isMismatch: true,
+      highlight: false,
+      text: 'Kết luận đã lưu khác kết quả tính lại, dữ liệu đang được cập nhật.',
+    });
+  }
+
+  return {
+    title: `Vì sao kết luận: ${causeLabel}`,
+    causeLabel,
+    rule,
+    lines,
+    fullText: lines.map((l) => l.text).join(' '),
+  };
+}
+
+/**
+ * Resolves lot or batch volume and failed count, falling back to *_in_scope when volume/failed is null (§29, §30).
+ */
+export function resolveLotCounts(lotOrBatch) {
+  if (!lotOrBatch) return { volume: 0, failed: 0 };
+  const rawVolume =
+    lotOrBatch.volume !== null && lotOrBatch.volume !== undefined
+      ? lotOrBatch.volume
+      : lotOrBatch.volume_in_scope;
+  const rawFailed =
+    lotOrBatch.failed !== null && lotOrBatch.failed !== undefined
+      ? lotOrBatch.failed
+      : lotOrBatch.failed_in_scope;
+  return {
+    volume: Number(rawVolume) || 0,
+    failed: Number(rawFailed) || 0,
+  };
+}
+
+/**
+ * Formats the arrival range (first – last) of a lot batch as "dd/MM HH:mm – dd/MM HH:mm".
+ */
+export function formatBatchArrivalRange(batch) {
+  if (!batch || (!batch.arrive_first && !batch.arrive_last)) return 'không có';
+  const first = formatEvidenceTime(batch.arrive_first);
+  const last = formatEvidenceTime(batch.arrive_last);
+  if (!batch.arrive_first) return last;
+  if (!batch.arrive_last || first === last) return first;
+  return `${first} – ${last}`;
+}
+
+/**
+ * Builds the query parameters for `/evidence/list` when clicking a batch's parcel count (§30 C6.3).
+ */
+export function buildLotBatchQuery(lot, batch, extra = {}) {
+  if (!lot || !batch) return { ...extra };
+  const query = {
+    view: 'journey',
+    ma_lo: lot.ma_lo,
+    tms_batch: batch.tms,
+  };
+  if (lot.period?.from) query.from = lot.period.from;
+  if (lot.period?.to) query.to = lot.period.to;
+  return { ...query, ...extra };
+}

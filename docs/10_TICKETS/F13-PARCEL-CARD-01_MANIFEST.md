@@ -613,6 +613,27 @@ Done in `EvidenceService._lotOf`, nothing else changed.
 - Test (`f13v2ParcelCardEvidence`): a Chuyên quản on a lot shared with another unit gets null totals, null batch volume / failed, correct in-scope counts (3 / 1, batches 2-1-0) and the TMS times; the admin test checks `complete_at` and `arrive_complete_at`.
 - Checks: `f13v2ParcelCardEvidence` 6/6, `f13v2ParcelCard` 8/8, `f13v2Evidence` 16/16, `CauseClassifier` 36/36.
 
+## 32. U4 screen result (Antigravity, 2026-11-11) - U4 completed
+
+Implemented all §30 requirements on the Nguyên nhân tab of `F13V2ParcelCard` without backend changes:
+1. **"Vì sao kết luận: `<cause label>`" box (`buildWhyConclusion` in `f13WhyHelpers.js`, rendered in `F13V2ParcelCard.jsx`)**:
+   - Hours formatted as `"14,6 giờ"` (`formatEvidenceHours`), timestamps as `"dd/MM HH:mm"` (`formatEvidenceTime`), missing values as `"không có"`, and negative remaining time as `"đã quá hạn x,y giờ"` (`formatEvidenceRemaining`).
+   - Exact text per `decision.rule` (`DEN_BCVH_QUA_HAN` with all 5 `split.why` texts and longer leg highlighted, `KHONG_TRON_LO`, `PHAT_CHAM_GIAO_BUU_TA` via `T_G_QUA_HAN` and `G_NGAY_SAU_NGAY_DEN`, `PHAT_SAU_GIAO`, `PHAT_KHONG_CHI_TIET`, `CHO_CHUYEN_QUAN` reasons with missing/out-of-order milestones & times + decisive stage, and `CHI_TIEU` / `KHONG_CO_MOC`).
+   - Decisive / slow stage highlighted in light red (`bg-rose-50/80 border-rose-200 text-rose-800`).
+   - Appends `"Kết luận đã lưu khác kết quả tính lại, dữ liệu đang được cập nhật."` when `evidence.matches_stored === false`.
+2. **Lot batch table (`F13V2ParcelCard.jsx`, `resolveLotCounts`, `formatBatchArrivalRange`)**:
+   - Rendered when `card.lot` exists with columns `Đợt`, `Quét TMS`, `Số BG`, `Không đạt`, `Đến BCVH`.
+   - Parcel's own batch row is highlighted in light red and marked `"← bưu gửi này"`.
+   - Null-volume fallback (`resolveLotCounts`): falls back to `volume_in_scope` / `failed_in_scope` when `volume` / `failed` are `null` for scoped BCVH accounts (§29).
+   - Footer notes under the table: `"Lô trọn lúc {complete_at}"`, `"Chỉ tính bưu gửi của đơn vị bạn; lô còn bưu gửi của đơn vị khác."` when `scope_hidden`, and `"{no_tms} bưu gửi không có giờ quét TMS."` when `no_tms > 0`.
+3. **Batch count popup (`F13V2JourneyParcelModal.jsx`, `buildLotBatchQuery`)**:
+   - Clicking `Số BG` of a batch opens `F13V2JourneyParcelModal` in `lotBatch` mode, calling `/evidence/list` with `view=journey`, `ma_lo`, `tms_batch`, and `from`/`to` from `lot.period` (`F13V2EvidenceTable` in Hành trình view).
+   - Clicking any parcel number in the popup opens its card on the Hành trình tab.
+4. **Checks**:
+   - `npx.cmd oxlint -D no-undef` on all changed files: 0 errors.
+   - `node --test frontend/src/features/f13v2/*.test.js`: 109/109 pass.
+   - `npm.cmd --prefix frontend run build`: Vite build passes in 1.70s.
+
 ## 33. Opus review of B3-FIX (2026-11-11) - accepted
 
 - The lot and batch totals are null without `allow_all`. `complete_at` is the last TMS scan, and `arrive_complete_at` was added. `f13v2ParcelCardEvidence` 6/6 re-run.

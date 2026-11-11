@@ -40,7 +40,12 @@ import {
   setCachedEvidenceCatalog,
   setCachedLayout,
   getCachedEvidenceAccess,
+  buildWhyConclusion,
+  resolveLotCounts,
+  formatEvidenceTime,
+  formatBatchArrivalRange,
 } from '../f13EvidenceHelpers.js';
+import F13V2JourneyParcelModal from './F13V2JourneyParcelModal.jsx';
 
 export default function F13V2ParcelCard({
   parcelKey = null,
@@ -89,17 +94,22 @@ export default function F13V2ParcelCard({
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState('');
   const [formSuccess, setFormSuccess] = useState('');
+  const [overrideParcelKey, setOverrideParcelKey] = useState(null);
+  const [activeBatchModal, setActiveBatchModal] = useState(null);
 
   // Sync initial tab when parcelKey changes
   useEffect(() => {
+    setOverrideParcelKey(null);
+    setActiveBatchModal(null);
     if (initialTab) {
       setActiveTab(initialTab);
     }
   }, [initialTab, parcelKey]);
 
-  // Extract ngay_do_kiem and ma_bg from parcelKey
-  const ngay_do_kiem = parcelKey?.ngay_do_kiem || parcelKey?.date || null;
-  const ma_bg = parcelKey?.ma_bg || null;
+  // Extract ngay_do_kiem and ma_bg from effectiveParcelKey
+  const effectiveParcelKey = overrideParcelKey || parcelKey;
+  const ngay_do_kiem = effectiveParcelKey?.ngay_do_kiem || effectiveParcelKey?.date || null;
+  const ma_bg = effectiveParcelKey?.ma_bg || null;
   const cardKey = ngay_do_kiem && ma_bg ? `${ngay_do_kiem}|${ma_bg}` : null;
   const defaultCause = catalog?.causes?.[0]?.code || 'KHONG_TRON_LO';
 
@@ -138,13 +148,13 @@ export default function F13V2ParcelCard({
 
   // Handle escape key
   useEffect(() => {
-    if (!parcelKey) return;
+    if (!parcelKey || activeBatchModal) return;
     const handleKeyDown = (e) => {
       if (e.key === 'Escape') onClose?.();
     };
     globalThis.addEventListener?.('keydown', handleKeyDown);
     return () => globalThis.removeEventListener?.('keydown', handleKeyDown);
-  }, [parcelKey, onClose]);
+  }, [parcelKey, activeBatchModal, onClose]);
 
   if (!parcelKey) return null;
 
@@ -159,6 +169,9 @@ export default function F13V2ParcelCard({
   const sys = card?.system || {};
   const anl = card?.analysis || null;
   const historyEntries = card?.history?.entries || [];
+  const whyBox = buildWhyConclusion(card?.evidence, card?.lot, sys);
+  const lot = card?.lot || null;
+  const lotCounts = resolveLotCounts(lot);
 
   const canWrite = canWriteParcelAnalysis(card, catalog, layout);
   const causesList = catalog?.causes && catalog.causes.length > 0 ? catalog.causes : ANALYST_CAUSES;
@@ -518,6 +531,136 @@ export default function F13V2ParcelCard({
               {/* TAB 2: NGUYÊN NHÂN */}
               {activeTab === 'cause' && (
                 <div className="space-y-4">
+                  {/* F13-PARCEL-CARD-01 U4 (C6.1): "Vì sao kết luận" box */}
+                  {whyBox && (
+                    <div className="rounded-xl border border-blue-200 bg-blue-50/30 p-4 space-y-2.5">
+                      <div className="flex items-center justify-between pb-2 border-b border-blue-100">
+                        <span className="font-bold text-slate-900 flex items-center gap-2">
+                          <ShieldCheck className="h-4 w-4 text-blue-600" />
+                          {whyBox.title}
+                        </span>
+                      </div>
+
+                      <div className="space-y-1.5 pt-0.5">
+                        {whyBox.lines.map((line) => (
+                          <div
+                            key={line.key}
+                            className={
+                              line.isMismatch
+                                ? 'px-3 py-2 rounded-lg border border-amber-200 bg-amber-50 text-amber-900 font-semibold'
+                                : line.highlight
+                                ? 'px-3 py-2 rounded-lg border border-rose-200 bg-rose-50/80 text-rose-800 font-semibold'
+                                : 'px-3 py-1.5 rounded-lg bg-white/80 border border-slate-100 text-slate-700'
+                            }
+                          >
+                            {line.text}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* F13-PARCEL-CARD-01 U4 (C6.2 & C6.3): Lot batch table */}
+                  {lot && (
+                    <div className="rounded-xl border border-slate-200 bg-white p-4 space-y-3">
+                      <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-slate-100">
+                        <span className="font-bold text-slate-900 flex items-center gap-2">
+                          <Layers className="h-4 w-4 text-blue-600" />
+                          <span>
+                            Các đợt quét TMS của lô <strong className="font-mono text-blue-700">{lot.ma_lo}</strong>
+                          </span>
+                        </span>
+                        <span className="text-[11px] font-semibold text-slate-600">
+                          Số BG: <strong>{lotCounts.volume.toLocaleString('vi-VN')}</strong> · Không đạt:{' '}
+                          <strong className="text-rose-700">{lotCounts.failed.toLocaleString('vi-VN')}</strong>
+                        </span>
+                      </div>
+
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-left border-collapse text-xs">
+                          <thead>
+                            <tr className="border-b border-slate-200 text-[11px] font-bold text-slate-500 bg-slate-50/70">
+                              <th className="py-2 px-2.5">Đợt</th>
+                              <th className="py-2 px-2.5">Quét TMS</th>
+                              <th className="py-2 px-2.5 text-right">Số BG</th>
+                              <th className="py-2 px-2.5 text-right">Không đạt</th>
+                              <th className="py-2 px-2.5">Đến BCVH</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-100">
+                            {(lot.batches || []).map((batch, idx) => {
+                              const { volume: batchVol, failed: batchFailed } = resolveLotCounts(batch);
+                              const isOwn = Boolean(batch.is_own);
+                              return (
+                                <tr
+                                  key={batch.tms || idx}
+                                  className={
+                                    isOwn
+                                      ? 'bg-rose-50/60 font-semibold text-slate-900'
+                                      : 'hover:bg-slate-50/70 text-slate-700'
+                                  }
+                                >
+                                  <td className="py-2 px-2.5 whitespace-nowrap">
+                                    <span>Đợt {idx + 1}</span>
+                                    {isOwn && (
+                                      <span className="ml-1.5 inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800 border border-rose-200">
+                                        ← bưu gửi này
+                                      </span>
+                                    )}
+                                  </td>
+                                  <td className="py-2 px-2.5 font-mono whitespace-nowrap">
+                                    {formatEvidenceTime(batch.tms)}
+                                  </td>
+                                  <td className="py-2 px-2.5 text-right whitespace-nowrap" data-no-capture="true">
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        setActiveBatchModal({
+                                          lot,
+                                          batch,
+                                          batchIndex: idx + 1,
+                                          expectedTotal: batchVol,
+                                        })
+                                      }
+                                      className="inline-flex items-center justify-end px-2 py-0.5 rounded-md font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 transition-colors cursor-pointer"
+                                      title={`Xem danh sách ${batchVol.toLocaleString('vi-VN')} bưu gửi của đợt ${idx + 1}`}
+                                    >
+                                      {batchVol.toLocaleString('vi-VN')}
+                                    </button>
+                                  </td>
+                                  <td
+                                    className={`py-2 px-2.5 text-right whitespace-nowrap ${
+                                      batchFailed > 0 ? 'text-rose-700 font-bold' : 'text-slate-500'
+                                    }`}
+                                  >
+                                    {batchFailed.toLocaleString('vi-VN')}
+                                  </td>
+                                  <td className="py-2 px-2.5 font-mono whitespace-nowrap">
+                                    {formatBatchArrivalRange(batch)}
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+
+                      <div className="pt-2 border-t border-slate-100 space-y-1 text-[11px] text-slate-600">
+                        <div>Lô trọn lúc {formatEvidenceTime(lot.complete_at)}</div>
+                        {lot.scope_hidden ? (
+                          <div className="text-amber-800 font-medium">
+                            Chỉ tính bưu gửi của đơn vị bạn; lô còn bưu gửi của đơn vị khác.
+                          </div>
+                        ) : null}
+                        {Number(lot.no_tms) > 0 ? (
+                          <div className="text-slate-500">
+                            {lot.no_tms} bưu gửi không có giờ quét TMS.
+                          </div>
+                        ) : null}
+                      </div>
+                    </div>
+                  )}
+
                   {/* System Conclusion */}
                   <div className="rounded-xl border border-slate-200 bg-white p-4 space-y-3">
                     <div className="flex items-center justify-between pb-2 border-b border-slate-100">
@@ -799,6 +942,26 @@ export default function F13V2ParcelCard({
           </button>
         </div>
       </div>
+
+      {/* F13-PARCEL-CARD-01 U4 (C6.3): Batch parcel list popup in Hành trình view */}
+      {activeBatchModal && (
+        <F13V2JourneyParcelModal
+          isOpen={Boolean(activeBatchModal)}
+          lotBatch={activeBatchModal}
+          catalog={catalog}
+          layout={layout}
+          onClose={() => setActiveBatchModal(null)}
+          onSelectParcel={(item) => {
+            setOverrideParcelKey(item);
+            setActiveTab('journey');
+            setActiveBatchModal(null);
+          }}
+          onAnalysisSuccess={() => {
+            loadCardData(true);
+            onAnalysisSuccess?.();
+          }}
+        />
+      )}
     </div>
   );
 }
