@@ -558,3 +558,17 @@ Done. No rule, figure, stored conclusion or existing field changes; no rebuild, 
 - Existing suites unchanged and passing (a key list in `f13v2ParcelCard.test.js` gained `evidence` and `lot`).
 - B3 copy, failed parcels of 2026-10-12..2026-10-18: **9 561 re-run, 0 mismatches** with the stored cause_status / cause_code / cause_detail. Warm card (`ev.parcel` in process, parcel with a lot): ~33 ms.
 - Lot batch lists on the copy: batch count = list total in both batches checked.
+
+## 29. Opus review of B3 (2026-11-11) - accepted with B3-FIX; Opus answers to the three questions
+
+- Accepted:
+  - the evidence is built in the deciding pass;
+  - the read-time re-run uses the stored row's inputs and returns `matches_stored`;
+  - 0 mismatches on 9 561 failed parcels of week 12-18/10;
+  - card warm ~33 ms.
+  - Re-run: `f13v2ParcelCardEvidence` 6/6, `CauseClassifier` 36/36, `f13v2ParcelCard` 8/8.
+- **Q1, rollout:** the classifier version changes, so every built day becomes stale. At the rollout: restart, then `f13_cause_tool rebuild 2026-01-01..today`, then `verify` over the last 5 weeks, as on 2026-11-08 (§22 of F13-JOURNEY-ROUTE-02). Stored results are expected identical.
+- **Q2, scope counts (B3-FIX):** follow the existing rule: a BCVH account never learns another unit's volume (`JourneyService` line 145, and the RBAC lesson that derived figures leak too).
+  - For an account without `allow_all`: return `volume`, `failed` (lot and batch) as null. Keep `volume_in_scope` / `failed_in_scope`, `scope_hidden` and the batch TMS times.
+  - Accounts with `allow_all` get both. Add a test with a Chuyên quản on a lot shared with another unit.
+- **Q3, `complete_at` (B3-FIX):** use the **last TMS scan of the lot**. Hành trình already defines "TMS đợt cuối" as "từ giờ này lô mới trọn". Keep the last arrival as a separate `arrive_complete_at`.
