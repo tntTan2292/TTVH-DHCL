@@ -612,3 +612,9 @@ Done in `EvidenceService._lotOf`, nothing else changed.
 - **Q3:** `complete_at` = the last TMS scan of the lot (only with 2 batches or more). New `arrive_complete_at` = the latest arrival of any parcel of the lot.
 - Test (`f13v2ParcelCardEvidence`): a Chuyên quản on a lot shared with another unit gets null totals, null batch volume / failed, correct in-scope counts (3 / 1, batches 2-1-0) and the TMS times; the admin test checks `complete_at` and `arrive_complete_at`.
 - Checks: `f13v2ParcelCardEvidence` 6/6, `f13v2ParcelCard` 8/8, `f13v2Evidence` 16/16, `CauseClassifier` 36/36.
+
+## 33. Opus review of B3-FIX (2026-11-11) - accepted
+
+- The lot and batch totals are null without `allow_all`. `complete_at` is the last TMS scan, and `arrive_complete_at` was added. `f13v2ParcelCardEvidence` 6/6 re-run.
+- Low residual (fix with the next backend touch): `lot.no_tms` is still a whole-lot count for a BCVH account. It should be null there too, or counted in scope.
+- Rollout waits for U4: restart, rebuild 2026-01-01..today (new classifier version), verify the last 5 weeks. The PO's go-ahead is needed.
