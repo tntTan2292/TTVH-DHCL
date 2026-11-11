@@ -474,3 +474,35 @@ Both items of U3 (§24) implemented cleanly across frontend without backend modi
   - the card lands on Hành trình;
   - the Nguyên nhân tab reads "Trạng thái: Chờ Chuyên quản phân tích", "Chặng TMS → Đến BCVH", "Tính theo số giờ TCT (khoảng thời gian)", "Cờ: Các mốc sai trình tự nghiệp vụ", "Cờ: Mốc đến BCVH sai thứ tự", with no raw code;
   - no page error.
+
+## 27. PO decision C6 (2026-11-11): the Nguyên nhân tab proves its conclusion
+
+The Nguyên nhân tab gave the conclusion without its evidence, so the reader had to go back to Hành trình. The PO approved the Opus proposal and added one point.
+
+- **C6.1:** the tab opens with a "Vì sao kết luận …" box that shows **the numbers the classifier compared**. The slow stage is highlighted. Per cause:
+  - **Khai thác / Vận chuyển:** limit; TMS → Đến BCVH by the clock and net of the night rule; each leg; how much over the limit.
+  - **Chưa phân biệt:** the same, plus why the stages cannot be split.
+  - **Phát – Chậm giao bưu tá:** arrival, handover (later day, or hours late against the limit), time left at arrival.
+  - **Phát – Phát chậm sau giao:** arrival, handover in time, handover → delivery hours.
+  - **Chờ Chuyên quản:** the reason in words, the missing or out-of-order milestones with their times.
+- **C6.2, Không trọn lô:** a table of the lot's TMS batches with, per batch: quét TMS time, parcels, Không đạt, Đến BCVH. Mark the parcel's own batch and the time the lot became complete.
+- **C6.3 (PO):** clicking a batch's parcel count lists exactly those parcels.
+- No rule, figure or stored conclusion changes. The screen never recomputes the evidence.
+
+### B3 backend (Sonnet)
+
+- `CauseClassifier`: return an `evidence` object built **in the same pass** that decides the cause, with the values compared (limit, clock and net hours per stage or leg, interval bounds when the basis is INTERVAL, the decisive comparison, time left at arrival, the milestones used). Pure function, same inputs.
+- `/evidence/parcel`: add `evidence` (read time: re-run the classifier for that parcel with its day's inputs) and `lot` = `{ ma_lo, volume, failed, complete_at, batches: [{ tms, volume, failed, arrive_first, arrive_last, is_own }] }`.
+  - Batches follow `JourneyService`'s lot definition (distinct TMS scan times of the lot). Counts are for the whole lot.
+  - If the user's unit scope hides part of the lot, say so in a field; do not leak parcel codes outside the scope.
+- `/evidence/list`: filters `ma_lo` and `tms_batch` (the batch's TMS time), unit scope as usual, so a batch click lists its parcels. The count shown equals the list total within the scope.
+- Tests:
+  - re-running the classifier gives the stored `cause_code` / `cause_detail` / `cause_status` for a sample of every cause on a seeded day, and on the B3 copy for one week (report the mismatches, expected 0);
+  - batch counts equal a direct count;
+  - the batch list total equals its count;
+  - a Chuyên quản never sees another unit's parcel codes.
+- Card time on the copy: report it (target about 1 s).
+
+### U4 screen (Antigravity, after B3 is accepted)
+
+The "Vì sao kết luận" box and the lot table on the Nguyên nhân tab, as C6. A batch count opens the shared list (`/evidence/list?ma_lo=&tms_batch=`) in the same popup pattern as Hành trình, and parcel numbers there open the card. Light colours per `report_block_ui_standard.md`.
