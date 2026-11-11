@@ -506,3 +506,55 @@ The Nguyên nhân tab gave the conclusion without its evidence, so the reader ha
 ### U4 screen (Antigravity, after B3 is accepted)
 
 The "Vì sao kết luận" box and the lot table on the Nguyên nhân tab, as C6. A batch count opens the shared list (`/evidence/list?ma_lo=&tms_batch=`) in the same popup pattern as Hành trình, and parcel numbers there open the card. Light colours per `report_block_ui_standard.md`.
+
+## 28. B3 backend result (2026-11-11): evidence of the conclusion and lot batches
+
+Done. No rule, figure, stored conclusion or existing field changes; no rebuild, no new column. The classifier version (a hash of the files) changes because `CauseClassifier.js` changed, so the live build will mark every built day stale: **the rollout needs a rebuild of the classifier version (Opus/G7)**, with the same output as before (0 differences on the B3 copy, below).
+
+### What changed
+- `CauseClassifier.classify` (still pure) returns `evidence`, built by `buildEvidence` inside the same call that decides (a `decide(rule, extra)` call sits just before each `return`). `null` for a parcel that is not Không đạt. The existing `detail` object is untouched (it is what the build stores).
+- `/evidence/parcel` adds `evidence` and `lot`. `evidence` is the classifier re-run at read time from the cause-table row (limit_ms, tct_ms, ms_tms/ms_depart/ms_arrive/ms_gbt_first/ms_ptc, ms_arrive_source, khong_tron_lo, the F4.1 flags, the direct-handover BCVH list): the same inputs the build used, so no JourneyService read. `matches_stored` says the re-run reached the stored status/code/detail.
+- `/evidence/list`: filters `ma_lo` and `tms_batch` (`YYYY-MM-DD HH:MM:SS`, 400 INVALID_FILTER otherwise). The unit scope is the usual one. The list still needs a period: pass `lot.period` (`from`, `to`) of the card.
+
+### Shape of `evidence` (all times are local-clock ms, all durations ms)
+```
+{ version: 1,
+  status, cause_code, detail, reason, step,             // the re-run conclusion
+  basis: 'INTERVAL' | 'MILESTONES' | null,
+  limit_ms, tct_ms, l_ms, r_ms,
+  interval: { r_ms, tolerance_ms: 90000, unlocated } | null,   // INTERVAL only
+  remaining_at_arrival_ms,                                // limit - net T->A (negative = over)
+  a_source: 'F41' | 'BF' | null, direct_handover_applied: bool,
+  milestones: { tms, depart, arrive, arrive_raw, gbt, ptc },   // gbt = first handover; arrive = the one used (A_eff), arrive_raw = as scanned
+  missing: ['depart' | 'arrive' | 'gbt' | 'ptc' | 'tms', ...],
+  out_of_order: [flag codes: MOC_A_KHONG_HOP_LE, MOC_G_KHONG_HOP_LE, MOC_D_DAO_THU_TU, SAI_TRINH_TU_NGHIEP_VU, G_TRUOC_T],
+  clock_ms: { tms_depart, depart_arrive, tms_arrive, arrive_gbt, gbt_ptc, tms_gbt, tms_ptc },   // raw clock differences, null if a side is unknown, may be negative
+  stages: { t_a?, t_d?, d_a?, t_g?, t_e? },   // only the stages the classifier judged
+      // each: { from_ms, to_ms, clock_ms, night_ms, net_ms, lower_ms, upper_ms, verdict: 'QUA_HAN'|'CON_HAN'|'CHUA_DU_CAN_CU', over_ms }   (over_ms = net - limit)
+  decision: { rule, stage?, ... },            // the branch that decided, see below
+  decisive: { stage, ...stages[stage], limit_ms } | null,   // the comparison that decided
+  matches_stored: bool }
+```
+`decision` per cause:
+
+| Stored conclusion | `decision` |
+|---|---|
+| KHAI_THAC / VAN_CHUYEN / KHAI_THAC_VAN_CHUYEN_CHUA_PHAN_BIET | `{ rule: 'DEN_BCVH_QUA_HAN', stage: 't_a', split: { result, why } }`, `why` = `T_D_LON_HON_D_A`, `D_A_LON_HON_T_D`, `HAI_CHANG_CHONG_LAN`, `THIEU_MOC_D` or `MOC_D_DAO_THU_TU` |
+| KHONG_TRON_LO | `{ rule: 'KHONG_TRON_LO', stage: 't_a' or null }` |
+| PHAT / CHAM_GIAO_BUU_TA | `{ rule: 'PHAT_CHAM_GIAO_BUU_TA', stage: 't_g' or null, via: 'T_G_QUA_HAN' or 'G_NGAY_SAU_NGAY_DEN', next_day }` |
+| PHAT / PHAT_CHAM_SAU_GIAO | `{ rule: 'PHAT_SAU_GIAO', stage: 't_g', via: 'T_G_TRONG_HAN', next_day?, arrival_missing? }` |
+| PHAT without detail | `{ rule: 'PHAT_KHONG_CHI_TIET', stage: 't_g' or null }` |
+| CHO_CHUYEN_QUAN | `{ rule: <reason code>, stage? }`: stage `t_a` for KHOANG_CAT_CHI_TIEU at arrival, `t_g` for CHAM_DEN_HAY_CHAM_GIAO and KHOANG_CAT at handover, `t_e` for TCT_DAI_HON_MOC / KET_QUA_KHONG_KHOP_CHI_TIEU; the other reasons have no stage |
+| CHUA_DU_CAN_CU | `{ rule: 'CHI_TIEU' }` or `{ rule: 'KHONG_CO_MOC' }` |
+
+### `lot` (null when the parcel has no lot)
+`{ ma_lo, volume, failed, volume_in_scope, failed_in_scope, scope_hidden, no_tms, tms_batches, incomplete, complete_at, period: { from, to }, batches: [{ tms, volume, failed, volume_in_scope, failed_in_scope, arrive_first, arrive_last, is_own }] }`
+- Lot window and batches follow JourneyService: parcels of the lot in the D-10..D+5 window of the parcel's day; a batch is a distinct TMS scan time; parcels without a TMS time count in `volume` and `no_tms` only.
+- `volume` / `failed` are for the whole lot (as asked). **`volume_in_scope` / `failed_in_scope` are what the batch list returns for the account's units**, so a click matches its count; for an all-units account both are equal. No parcel code is returned, only counts and times.
+- `complete_at` = the latest arrival of any parcel of the lot, only when the lot has 2 batches or more (my reading of "the time the lot became complete": ask if the PO means the last TMS scan).
+
+### Tests and measures
+- New `f13v2ParcelCardEvidence.test.js` (6): a seeded parcel of every cause (VAN_CHUYEN, KHAI_THAC, CHUA_PHAN_BIET, GIAO_BUU_TA, PHAT_SAU_GIAO, KHONG_TRON_LO, CHO_CHUYEN_QUAN, CHUA_DU_CAN_CU) re-runs to its hand-written conclusion and names its branch; evidence values; no evidence for a passed parcel; lot batch counts = direct SQL count and batch list total = count; a Chuyên quản sees no code of another unit.
+- Existing suites unchanged and passing (a key list in `f13v2ParcelCard.test.js` gained `evidence` and `lot`).
+- B3 copy, failed parcels of 2026-10-12..2026-10-18: **9 561 re-run, 0 mismatches** with the stored cause_status / cause_code / cause_detail. Warm card (`ev.parcel` in process, parcel with a lot): ~33 ms.
+- Lot batch lists on the copy: batch count = list total in both batches checked.

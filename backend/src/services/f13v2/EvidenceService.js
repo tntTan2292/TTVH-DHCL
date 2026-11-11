@@ -12,6 +12,9 @@ const { resolvePeriod, lineOf, labelOfLine } = require('./CauseAggQueryService')
 const { computeClassifierVersion } = require('./CauseAggBuilder');
 const { resolveJourneyPeriod, journeyFactsOf, routeLabelOf, PARCEL_SORT_COLUMN, BCVH_NAMES } = require('./JourneyPeriodService');
 const { CAUSE_CODES } = require('../../../migrate_f13_evidence_01_schema');
+const { classify, FLAGS } = require('./CauseClassifier');
+const { DIRECT_HANDOVER_BCVH } = require('../../config/f13CauseConfig');
+const { shiftIsoDate, DAYS_BEFORE, DAYS_AFTER } = require('./JourneyService');
 
 const FAILED = 'Không đạt';
 const DEFAULT_PAGE_SIZE = 50;
@@ -90,6 +93,14 @@ function analysisOf(row) {
     };
 }
 
+const timeText = (ms) => (ms === null || ms === undefined ? null : new Date(ms).toISOString().slice(0, 19).replace('T', ' '));
+/** A TMS batch time 'YYYY-MM-DD HH:MM:SS' (the local clock the table keeps as ms); null when it is not a time. */
+function batchMs(text) {
+    const match = /^(\d{4}-\d{2}-\d{2})[ T](\d{2}:\d{2}:\d{2})$/.exec(String(text || '').trim());
+    const ms = match ? Date.parse(`${match[1]}T${match[2]}Z`) : NaN;
+    return Number.isFinite(ms) ? ms : null;
+}
+
 const splitList = (text) => (text ? String(text).split(',').filter(Boolean) : []);
 
 /**
@@ -157,6 +168,17 @@ class EvidenceService {
             if (!CAUSE_BY_CODE.has(cause)) throw fail('INVALID_FILTER', 'analyst_cause không hợp lệ');
             clauses.push(`a_cause = ? AND danh_gia = '${FAILED}'`);
             params.push(cause);
+        }
+        // F13-PARCEL-CARD-01 B3: a lot and one of its TMS batches (the click of the lot table); the unit scope is already in the base WHERE
+        if (filter.ma_lo) {
+            clauses.push('ma_lo = ?');
+            params.push(String(filter.ma_lo));
+        }
+        if (filter.tms_batch) {
+            const ms = batchMs(filter.tms_batch);
+            if (ms === null) throw fail('INVALID_FILTER', 'tms_batch phải có dạng YYYY-MM-DD HH:MM:SS');
+            clauses.push('ms_tms = ?');
+            params.push(ms);
         }
         if (filter.search) {
             clauses.push('(ma_bg LIKE ? OR ma_lo LIKE ?)');
@@ -386,6 +408,100 @@ class EvidenceService {
             analysis: analysisOf(row),
             can_analyse: row.danh_gia === FAILED,
             history: { entries: history.entries },
+            evidence: this._evidenceOf(row),
+            lot: await this._lotOf(row, scope),
+        };
+    }
+
+    /**
+     * F13-PARCEL-CARD-01 B3 (C6): the numbers the classifier compared, by re-running it for this parcel with the inputs the table keeps (the same ones the
+     * build used). `matches_stored` says whether the re-run reached the stored conclusion; it is false only if the table and the rules drifted apart.
+     */
+    _evidenceOf(row) {
+        if (row.danh_gia !== FAILED) return null;
+        const flags = splitList(row.flags);
+        const answer = classify({
+            failed: true,
+            khongTronLo: Boolean(row.khong_tron_lo),
+            limit: row.limit_ms === null || row.limit_ms === undefined ? null : row.limit_ms / 3600000,
+            tct: row.tct_ms ?? null,
+            f41: flags.includes(FLAGS.NO_F41) ? 'NONE' : (flags.includes(FLAGS.F41_NOT_UNIQUE) ? 'NOT_UNIQUE' : 'OK'),
+            aSource: row.ms_arrive_source ?? row.a_source ?? null,
+            tms: row.ms_tms ?? null,
+            depart: row.ms_depart ?? null,
+            arrive: row.ms_arrive ?? null,
+            gbt: row.ms_gbt_first ?? null,
+            ptc: row.ms_ptc ?? null,
+            directHandover: DIRECT_HANDOVER_BCVH.includes(String(row.ma_bcvh)),
+        });
+        const matches = answer.status === row.cause_status
+            && (answer.cause ? answer.cause.code : null) === (row.cause_code ?? null)
+            && (answer.cause ? (answer.cause.detail ?? null) : null) === (row.cause_detail ?? null);
+        return { ...answer.evidence, matches_stored: matches };
+    }
+
+    /**
+     * The lot of a parcel and its TMS batches (distinct TMS scan times of the lot, JourneyService's definition: the lot's parcels in the window of the day).
+     * `volume` / `failed` are for the whole lot; `*_in_scope` for the account's units, which is what the batch list returns, so a click matches its count.
+     * No parcel code is returned: only counts and times.
+     */
+    async _lotOf(row, scope) {
+        if (!row.ma_lo) return null;
+        const from = shiftIsoDate(row.ngay_do_kiem, -DAYS_BEFORE);
+        const to = shiftIsoDate(row.ngay_do_kiem, DAYS_AFTER);
+        const rows = await this.db.all(
+            'SELECT ma_bcvh, danh_gia, ms_tms, ms_arrive, ngay_do_kiem FROM f13_cause_parcel WHERE ma_lo = ? AND ngay_do_kiem BETWEEN ? AND ?',
+            [row.ma_lo, from, to],
+        );
+        const allowed = Array.isArray(scope?.allowedCodes) ? new Set(scope.allowedCodes.map(String)) : null;
+        const batches = new Map();
+        const lot = { volume: 0, failed: 0, volume_in_scope: 0, failed_in_scope: 0, no_tms: 0 };
+        let lastArrive = null;
+        let first = null;
+        let last = null;
+        for (const item of rows) {
+            const failed = item.danh_gia === FAILED;
+            const visible = !allowed || allowed.has(String(item.ma_bcvh));
+            lot.volume += 1;
+            if (failed) lot.failed += 1;
+            if (visible) { lot.volume_in_scope += 1; if (failed) lot.failed_in_scope += 1; }
+            if (first === null || item.ngay_do_kiem < first) first = item.ngay_do_kiem;
+            if (last === null || item.ngay_do_kiem > last) last = item.ngay_do_kiem;
+            if (item.ms_arrive !== null && (lastArrive === null || item.ms_arrive > lastArrive)) lastArrive = item.ms_arrive;
+            if (item.ms_tms === null || item.ms_tms === undefined) { lot.no_tms += 1; continue; }
+            const batch = batches.get(item.ms_tms) || { tms: item.ms_tms, volume: 0, failed: 0, volume_in_scope: 0, failed_in_scope: 0, arrive_first: null, arrive_last: null };
+            batch.volume += 1;
+            if (failed) batch.failed += 1;
+            if (visible) { batch.volume_in_scope += 1; if (failed) batch.failed_in_scope += 1; }
+            if (item.ms_arrive !== null && item.ms_arrive !== undefined) {
+                if (batch.arrive_first === null || item.ms_arrive < batch.arrive_first) batch.arrive_first = item.ms_arrive;
+                if (batch.arrive_last === null || item.ms_arrive > batch.arrive_last) batch.arrive_last = item.ms_arrive;
+            }
+            batches.set(item.ms_tms, batch);
+        }
+        const ordered = [...batches.values()].sort((a, b) => a.tms - b.tms);
+        return {
+            ma_lo: row.ma_lo,
+            volume: lot.volume,
+            failed: lot.failed,
+            volume_in_scope: lot.volume_in_scope,
+            failed_in_scope: lot.failed_in_scope,
+            scope_hidden: lot.volume_in_scope < lot.volume,
+            no_tms: lot.no_tms,
+            tms_batches: ordered.length,
+            incomplete: ordered.length > 1,
+            complete_at: ordered.length > 1 ? timeText(lastArrive) : null, // the lot is complete when its last parcel has arrived
+            period: { from: first, to: last }, // pass as from/to with ma_lo (and tms_batch) to /evidence/list
+            batches: ordered.map((batch) => ({
+                tms: timeText(batch.tms),
+                volume: batch.volume,
+                failed: batch.failed,
+                volume_in_scope: batch.volume_in_scope,
+                failed_in_scope: batch.failed_in_scope,
+                arrive_first: timeText(batch.arrive_first),
+                arrive_last: timeText(batch.arrive_last),
+                is_own: batch.tms === row.ms_tms,
+            })),
         };
     }
 

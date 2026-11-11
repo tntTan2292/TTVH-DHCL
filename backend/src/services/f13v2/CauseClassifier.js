@@ -101,6 +101,43 @@ function classify(input) {
     const hints = [];
     const detail = { limit_ms: null, tct_ms: null, l_ms: null, r_ms: null, raw_r_ms: null, stages: {} };
     const out = { basis: null, aSource: null, remaining: null };
+    // F13-PARCEL-CARD-01 B3 (C6): the evidence is built in the same pass as the decision, from the very values the decision compared.
+    let decision = null; // { rule, ...extra }: the branch that decided; set just before each return
+    const decide = (rule, extra = {}) => { decision = { rule, ...extra }; };
+    const buildEvidence = (status, causeCode, sub, reason, step) => {
+        const limitMs = detail.limit_ms;
+        const pairs = { t_a: [T, A], t_d: [T, D], d_a: [D, A], t_g: [T, G], t_e: [T, E] };
+        const stages = {};
+        for (const [name, value] of Object.entries(detail.stages)) {
+            const [from, to] = pairs[name];
+            const clockMs = to - from;
+            stages[name] = {
+                from_ms: from, to_ms: to, clock_ms: clockMs, night_ms: clockMs - value.net_ms, net_ms: value.net_ms,
+                lower_ms: value.lower_ms, upper_ms: value.upper_ms, verdict: value.verdict,
+                over_ms: limitMs === null ? null : value.net_ms - limitMs,
+            };
+        }
+        const gap = (from, to) => (isTime(from) && isTime(to) ? to - from : null);
+        const decisionNow = decision || { rule: reason || causeCode || status };
+        const orderFlags = [FLAGS.A_OUT_OF_ORDER, FLAGS.G_OUT_OF_ORDER, FLAGS.D_OUT_OF_ORDER, FLAGS.WRONG_ORDER, FLAGS.G_BEFORE_T].filter((flag) => flags.includes(flag));
+        return {
+            version: 1,
+            status, cause_code: causeCode, detail: sub, reason, step,
+            basis: out.basis,
+            limit_ms: limitMs, tct_ms: detail.tct_ms, l_ms: detail.l_ms, r_ms: detail.r_ms,
+            interval: out.basis === BASIS.INTERVAL ? { r_ms: detail.r_ms, tolerance_ms: TOLERANCE_MS, unlocated: detail.r_ms > TOLERANCE_MS } : null,
+            remaining_at_arrival_ms: out.remaining,
+            a_source: out.aSource,
+            direct_handover_applied: directEarly,
+            milestones: { tms: T, depart: D, arrive: A, arrive_raw: rawA, gbt: G, ptc: E },
+            missing: Object.entries({ tms: T, depart: D, arrive: A, gbt: G, ptc: E }).filter(([, value]) => !isTime(value)).map(([key]) => key),
+            out_of_order: orderFlags,
+            clock_ms: { tms_depart: gap(T, D), depart_arrive: gap(D, A), tms_arrive: gap(T, A), arrive_gbt: gap(A, G), gbt_ptc: gap(G, E), tms_gbt: gap(T, G), tms_ptc: gap(T, E) },
+            stages,
+            decision: decisionNow,
+            decisive: decisionNow.stage && stages[decisionNow.stage] ? { stage: decisionNow.stage, ...stages[decisionNow.stage], limit_ms: limitMs } : null,
+        };
+    };
     const answer = (status, causeCode, { sub = null, step = null, reason = null } = {}) => ({
         status,
         cause: causeCode ? { code: causeCode, ...CAUSES[causeCode], detail: sub, detail_label: sub ? PHAT_DETAILS[sub].label : null } : null,
@@ -112,11 +149,12 @@ function classify(input) {
         flags,
         hints,
         detail,
+        evidence: buildEvidence(status, causeCode, sub, reason, step),
     });
     const wait = (reason, step) => answer(STATUS.WAIT_ANALYST, null, { reason, step });
     const unknown = (reason, step) => answer(STATUS.UNDECIDED, null, { reason, step });
 
-    if (!input || !input.failed) return { status: STATUS.NOT_ANALYSED, cause: null, reason: null, step: null, basis: null, a_source: null, remaining_at_arrival_ms: null, flags: [], hints: [], detail };
+    if (!input || !input.failed) return { status: STATUS.NOT_ANALYSED, cause: null, reason: null, step: null, basis: null, a_source: null, remaining_at_arrival_ms: null, flags: [], hints: [], detail, evidence: null };
 
     const { tms: T = null, depart: D = null, arrive: rawA = null, gbt: G = null, ptc: E = null } = input;
     // F13-WHY-DATA-03: direct handover from ĐTC1. A_eff = T when A is earlier than T by at most the guard; every later use reads A_eff.
@@ -189,6 +227,7 @@ function classify(input) {
     // Step 1: Không trọn lô, independent of the time model.
     if (input.khongTronLo) {
         if (arrival && verdictOfStage('t_a') === VERDICT.OVER) hints.push(HINTS.BCVH_LATE_SIGN);
+        decide('KHONG_TRON_LO', { stage: arrival ? 't_a' : null });
         return answer(STATUS.CAUSE, 'KHONG_TRON_LO');
     }
 
@@ -202,12 +241,18 @@ function classify(input) {
             return wait(REASONS.NO_ARRIVAL_ORDER, 'T-A');
         }
         const arrivalVerdict = verdictOfStage('t_a');
-        if (arrivalVerdict === VERDICT.UNDECIDED) return wait(REASONS.INTERVAL_CUTS_LIMIT, 'T-A');
+        if (arrivalVerdict === VERDICT.UNDECIDED) { decide(REASONS.INTERVAL_CUTS_LIMIT, { stage: 't_a' }); return wait(REASONS.INTERVAL_CUTS_LIMIT, 'T-A'); }
         if (arrivalVerdict === VERDICT.OVER) {
             if (!isTime(D)) flags.push(FLAGS.NO_D);
             const first = isTime(D) ? stage('t_d', T, D) : null;
             const second = isTime(D) ? stage('d_a', D, A) : null;
             if (isTime(D) && !(first && second)) flags.push(FLAGS.D_OUT_OF_ORDER);
+            const split = (result, why) => decide('DEN_BCVH_QUA_HAN', { stage: 't_a', split: { result, why } });
+            if (!isTime(D)) split('KHAI_THAC_VAN_CHUYEN_CHUA_PHAN_BIET', 'THIEU_MOC_D');
+            else if (!first || !second) split('KHAI_THAC_VAN_CHUYEN_CHUA_PHAN_BIET', 'MOC_D_DAO_THU_TU');
+            else if (first.bounds[0] > second.bounds[1]) split('KHAI_THAC', 'T_D_LON_HON_D_A');
+            else if (second.bounds[0] > first.bounds[1]) split('VAN_CHUYEN', 'D_A_LON_HON_T_D');
+            else split('KHAI_THAC_VAN_CHUYEN_CHUA_PHAN_BIET', 'HAI_CHANG_CHONG_LAN');
             if (!first || !second) return answer(STATUS.CAUSE, 'KHAI_THAC_VAN_CHUYEN_CHUA_PHAN_BIET');
             if (first.bounds[0] > second.bounds[1]) return answer(STATUS.CAUSE, 'KHAI_THAC');
             if (second.bounds[0] > first.bounds[1]) return answer(STATUS.CAUSE, 'VAN_CHUYEN');
@@ -220,6 +265,7 @@ function classify(input) {
     const total = stage('t_e', T, E);
     if (!total) return wait(REASONS.NO_ARRIVAL_ORDER, 'T-E');
     if (verdictOfStage('t_e') !== VERDICT.OVER) {
+        decide(out.basis === BASIS.INTERVAL ? REASONS.RESULT_NOT_MATCHING_LIMIT : REASONS.TCT_LONGER_THAN_MILESTONES, { stage: 't_e' });
         if (out.basis === BASIS.INTERVAL) {
             flags.push(FLAGS.NOT_OVER_LIMIT);
             return wait(REASONS.RESULT_NOT_MATCHING_LIMIT, 'T-E');
@@ -240,14 +286,19 @@ function classify(input) {
         if (!isTime(G)) return wait(REASONS.NO_HANDOVER, 'T-G');
         if (!handover) return wait(REASONS.HANDOVER_ORDER, 'T-G');
         const handoverVerdict = verdictOfStage('t_g');
-        if (handoverVerdict === VERDICT.WITHIN) return answer(STATUS.CAUSE, 'PHAT', { sub: 'PHAT_CHAM_SAU_GIAO' });
-        if (handoverVerdict === VERDICT.OVER) return wait(REASONS.LATE_ARRIVAL_OR_HANDOVER, 'T-G');
+        if (handoverVerdict === VERDICT.WITHIN) { decide('PHAT_SAU_GIAO', { stage: 't_g', via: 'T_G_TRONG_HAN', arrival_missing: true }); return answer(STATUS.CAUSE, 'PHAT', { sub: 'PHAT_CHAM_SAU_GIAO' }); }
+        if (handoverVerdict === VERDICT.OVER) { decide(REASONS.LATE_ARRIVAL_OR_HANDOVER, { stage: 't_g' }); return wait(REASONS.LATE_ARRIVAL_OR_HANDOVER, 'T-G'); }
+        decide(REASONS.INTERVAL_CUTS_LIMIT, { stage: 't_g' });
         return wait(REASONS.INTERVAL_CUTS_LIMIT, 'T-G');
     }
     const handoverVerdict = handover ? verdictOfStage('t_g') : null;
     const nextDay = isTime(G) && dayOf(G) > dayOf(A); // arrived and handed over only the next day
-    if (handoverVerdict === VERDICT.OVER || nextDay) return answer(STATUS.CAUSE, 'PHAT', { sub: 'CHAM_GIAO_BUU_TA' });
-    if (handoverVerdict === VERDICT.WITHIN) return answer(STATUS.CAUSE, 'PHAT', { sub: 'PHAT_CHAM_SAU_GIAO' });
+    if (handoverVerdict === VERDICT.OVER || nextDay) {
+        decide('PHAT_CHAM_GIAO_BUU_TA', { stage: handover ? 't_g' : null, via: handoverVerdict === VERDICT.OVER ? 'T_G_QUA_HAN' : 'G_NGAY_SAU_NGAY_DEN', next_day: nextDay });
+        return answer(STATUS.CAUSE, 'PHAT', { sub: 'CHAM_GIAO_BUU_TA' });
+    }
+    if (handoverVerdict === VERDICT.WITHIN) { decide('PHAT_SAU_GIAO', { stage: 't_g', via: 'T_G_TRONG_HAN', next_day: false }); return answer(STATUS.CAUSE, 'PHAT', { sub: 'PHAT_CHAM_SAU_GIAO' }); }
+    decide('PHAT_KHONG_CHI_TIET', { stage: handover ? 't_g' : null });
     return answer(STATUS.CAUSE, 'PHAT'); // G missing, invalid or its interval crosses the limit: the stage is judged on A->E only, no detail
 }
 

@@ -224,7 +224,7 @@ test('GET /evidence/parcel: the whole card in one call, equal to the list and /j
     const card = await get_(admin, `/evidence/parcel?${qs(key)}`);
     assert.equal(card.status, 200, card.text);
     const data = card.body.data;
-    assert.deepEqual(Object.keys(data).sort(), ['analysis', 'can_analyse', 'danh_gia', 'history', 'journey', 'ma_bcvh', 'ma_bg', 'ma_tuyen', 'ngay_do_kiem', 'postman', 'route_scope', 'system', 'tct', 'ten_bcvh', 'ten_tuyen'].sort());
+    assert.deepEqual(Object.keys(data).sort(), ['analysis', 'can_analyse', 'danh_gia', 'evidence', 'history', 'journey', 'lot', 'ma_bcvh', 'ma_bg', 'ma_tuyen', 'ngay_do_kiem', 'postman', 'route_scope', 'system', 'tct', 'ten_bcvh', 'ten_tuyen'].sort());
     assert.equal(data.danh_gia, 'Không đạt');
     assert.equal(data.can_analyse, true);
     assert.equal(data.system.status, 'CAUSE');
