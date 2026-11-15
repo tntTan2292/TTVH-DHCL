@@ -118,3 +118,13 @@ P1 and P2 touch different files and can run in parallel.
 - `lot.no_tms` is null without `allow_all`, and `no_tms_in_scope` was added. The dead shipment code is deleted.
 - Push incident reported by Sonnet: a failed `git add` let the chained `git push` send HEAD, which carried the income session's finished commit `8cab22f0` (INC-PHAT-03). That commit was complete and already on the branch, so pushing it changed nothing but its timing. No other file was touched.
 - Live needs a backend restart (P2 is backend). It waits for P1, so one restart covers both. The working tree holds P1 work in progress.
+
+## 9. Opus real render of P1 (2026-11-15) - accepted
+
+Isolated render (B3 copy, leader), code `f49bd657`, no page error:
+1. Phân tích nguyên nhân, month: the city route block picture is now **2 698 x 3 956 px, 1,5 MB, 2,4 s** (Top 20), was 15 450 px / 6 MB / 10,4 s. Per-BCVH pictures run 2 614 x 2 694-2 862 px.
+2. Hành trình, week 42, whole table (Top 25 overall = 14 + 1 + 5 + 1 + 4 rows): the "Nguyên nhân chính" column is complete on the right, and the footer reads "F1.3 • Hành trình theo tuyến phát (Tuần 42)".
+3. `/f13/ranking/bcvh?bcvh_id=533140&from_date=2026-10-12&to_date=2026-10-18` → `/f13/v2/tuan?week=2026-W42&bcvh=533140`.
+4. `/f13/ranking/route?…&route_id=53314049` → `/f13/v2/why?…&route=53314049`: the row "53314049 533140 TMĐT 07" is highlighted and in view, and its postman sub-table is open.
+
+Rollout of P1 + P2: one backend restart (P2 is backend; P1 is live from the working tree). No rebuild (classifier unchanged). Then the PO final acceptance of F1.3.
