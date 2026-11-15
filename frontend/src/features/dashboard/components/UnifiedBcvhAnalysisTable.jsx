@@ -145,7 +145,7 @@ function buildDetailUrl(action) {
   Object.entries(action?.params || {}).forEach(([key, value]) => {
     if (value !== undefined && value !== null && value !== '') params.set(key, value);
   });
-  return `${action?.route || '/f13/ranking/route'}?${params.toString()}`;
+  return `${action?.route || '/f13/v2/why'}?${params.toString()}`;
 }
 
 function signalToneToBadge(tone) {

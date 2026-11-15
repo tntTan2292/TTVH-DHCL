@@ -175,66 +175,6 @@ test('F1.3 navigation shows the time axis and the Chuyên đề pages (old Bản
   assert.equal(f13SubItemsText.includes('/f13/message'), false, 'Message Center must be hidden from F1.3 navigation');
 });
 
-function loadSidebarMenuItems() {
-  const source = fs.readFileSync(new URL('../components/Sidebar.jsx', import.meta.url), 'utf8');
-  const match = source.match(/const menuItems = (\[[\s\S]*?\n  \];)/);
-  assert.ok(match, 'menuItems array must be defined in Sidebar.jsx');
-  const code = 'globalThis.menuItems = ' + match[1].replace(/<[^>]+>/g, 'null');
-  const context = {};
-  vm.createContext(context);
-  vm.runInContext(code, context);
-  return context.menuItems;
-}
-
-test('Sidebar.jsx is synchronized with exact 3 modules and F1.1 -> F1.2 -> F1.3 -> F4.1 -> F4.2 ordering', () => {
-  const menuItems = loadSidebarMenuItems();
-
-  assert.equal(menuItems.length, 3, 'Sidebar.jsx must contain exactly 3 modules');
-  assert.match(menuItems[0].title, /quản lý chất lượng/i);
-  assert.match(menuItems[1].title, /quản lý mạng lưới/i);
-  assert.match(menuItems[2].title, /quản trị hệ thống/i);
-
-  // Verify Quality Management ordering in Sidebar.jsx
-  const qualityItems = menuItems[0].subItems;
-  assert.equal(qualityItems.length, 6, 'Quản lý chất lượng in Sidebar.jsx must have 6 items');
-
-  assert.equal(qualityItems[0].title, 'F1.1 – Chất lượng toàn trình nội tỉnh');
-  assert.deepEqual(toPlain(qualityItems[0].subItems.map((item) => item.path)), ['/f11/dashboard', '/f11/ranking/bcvh']);
-
-  assert.equal(qualityItems[1].title, 'F1.2 – Thu gom liên tỉnh');
-  assert.deepEqual(toPlain(qualityItems[1].subItems.map((item) => item.path)), ['/f12/dashboard', '/f12/ranking/bcvh']);
-
-  assert.equal(qualityItems[2].title, 'F1.3 – Chất lượng phát liên tỉnh');
-  const f13Paths = qualityItems[2].subItems.map((item) => item.path);
-  assert.deepEqual(toPlain(f13Paths), [
-    '/f13/dashboard',
-    '/f13/ranking/bcvh',
-    '/f13/ranking/route',
-    '/f13/evidence',
-  ]);
-
-  assert.equal(qualityItems[3].title, 'F4.1 – Chất lượng phát thành công bưu cục');
-  assert.deepEqual(toPlain(qualityItems[3].subItems.map((item) => item.path)), ['/f41/dashboard', '/f41/ranking/bcvh']);
-
-  assert.equal(qualityItems[4].title, 'F4.2 – Chất lượng phát giao bưu tá');
-  assert.deepEqual(toPlain(qualityItems[4].subItems.map((item) => item.path)), ['/f42/dashboard', '/f42/ranking/bcvh']);
-
-  assert.equal(qualityItems[5].title, 'Chỉ số rà soát Hàng tồn');
-  assert.deepEqual(toPlain(qualityItems[5].subItems.map((item) => item.path)), [
-    '/hangton/overview', '/hangton/office', '/hangton/compare', '/hangton/items', '/hangton/handling',
-  ]);
-  const sidebarSource = fs.readFileSync(new URL('../components/Sidebar.jsx', import.meta.url), 'utf8');
-  assert.match(sidebarSource, /'Chỉ số rà soát Hàng tồn': true/, 'module opens pinned like the F modules');
-  assert.match(sidebarSource, /'F4.2 – Chất lượng phát giao bưu tá': true/, 'F4.2 opens pinned');
-  assert.match(sidebarSource, /includes\('F4.2'\)/, 'F4.2 has its own coloured indicator dot');
-  assert.match(sidebarSource, /includes\('Hàng tồn'\)/, 'module has its own coloured indicator dot');
-
-  // Verify Pareto and Message Center remain excluded
-  const subItemsText = JSON.stringify(qualityItems);
-  assert.equal(subItemsText.includes('/f13/pareto'), false, 'Pareto / RCA must be hidden from Sidebar.jsx');
-  assert.equal(subItemsText.includes('/f13/message'), false, 'Message Center must be hidden from Sidebar.jsx');
-});
-
 test('Home - Dashboard is the first flat menu entry, points to / and is visible to every role', () => {
   const { HOME_ITEM, getFullNavigationForRole } = loadNavigationModule();
   assert.equal(HOME_ITEM.path, '/');

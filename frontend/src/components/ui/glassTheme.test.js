@@ -169,9 +169,4 @@ test('UI-GLASS-THEME-03: report blocks and captured subtrees carry no backdrop-b
   // ChartZoomFrame holds charts for zoom interactions; must remain completely solid
   const zoomSource = fs.readFileSync(new URL('../../features/dashboard/components/ChartZoomFrame.jsx', import.meta.url), 'utf8');
   assert.ok(!/backdrop-blur|backdrop-filter/.test(zoomSource), 'ChartZoomFrame must not have backdrop-blur');
-
-  // RoutePerformancePage tables and panels must have solid backgrounds
-  const routeSource = fs.readFileSync(new URL('../../features/route/RoutePerformancePage.jsx', import.meta.url), 'utf8');
-  assert.match(routeSource, /data-testid="route-ranking-table"/, 'RoutePerformancePage must contain route ranking table');
-  assert.match(routeSource, /bg-white shadow-sm hover:shadow-md/, 'Route ranking table container must be solid bg-white');
 });

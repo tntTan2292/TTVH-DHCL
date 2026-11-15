@@ -160,7 +160,7 @@ export const F13_INDICATOR = Object.freeze({
   fullTitle: 'F1.3 – Chất lượng phát liên tỉnh',
   unitLabel: 'BCVH',
   apiBase: '/f13',
-  routes: Object.freeze({ dashboard: '/f13/dashboard', ranking: '/f13/ranking/bcvh' }),
+  routes: Object.freeze({ dashboard: '/f13/dashboard', ranking: '/f13/v2/tuan' }),
   endpoints: COMMON_ENDPOINTS,
   compactOperationTable: true,
   targetRate: 90,

@@ -104,13 +104,11 @@ test('T8-F41-NB2: Expanded-row analysis text for F4.1 strips late-cash and route
   assert.doesNotMatch(f13Row.analysis, /Chậm nộp tiền/); // no longer measured (PO 2026-11-03)
   assert.match(f13Row.analysis, /Tuyến tham gia/);
   assert.deepEqual(f13Row.action, {
-    route: '/f13/ranking/route',
+    route: '/f13/v2/why',
     params: {
-      from_date: '2026-08-01',
-      to_date: '2026-08-01',
-      interval: 'daily',
-      bcvh_id: '533140',
-      bcvh_name: 'BCVH Thuận Hóa',
+      from: '2026-08-01',
+      to: '2026-08-01',
+      bcvh: '533140',
     },
   });
 });

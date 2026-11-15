@@ -25,10 +25,8 @@ import F13V2WhyPage from './features/f13v2/F13V2WhyPage';
 import F13V2EvidencePage from './features/f13v2/F13V2EvidencePage';
 import F13V2RuleProposalPage from './features/f13v2/F13V2RuleProposalPage';
 import HangTonPage from './features/hangton/HangTonPage';
-import BcvhRankingPage from './features/ranking/BcvhRankingPage';
-import RoutePerformancePage from './features/route/RoutePerformancePage';
 import { translateLegacyViolationsSearch } from './features/route/routeViolationEvidenceData';
-import { translateLegacyEvidenceSearch, translateLegacyF13DashboardSearch } from './navigation/urlPreservation';
+import { translateLegacyEvidenceSearch, translateLegacyF13DashboardSearch, translateLegacyF13RouteSearch } from './navigation/urlPreservation';
 import ServicePointsPage from './features/networkMap/ServicePointsPage';
 import Level2RoutesPage from './features/networkMap/Level2RoutesPage';
 import DeliveryRoutesPage from './features/networkMap/DeliveryRoutesPage';
@@ -103,6 +101,12 @@ function LegacyTimeAxisRedirect({ to }) {
   return <Navigate to={`${to}${translateLegacyF13DashboardSearch(location.search)}`} replace />;
 }
 
+// The old F1.3 So sánh BCVH (/f13/ranking/bcvh) opens Theo tuần and Phân tích tuyến phát (/f13/ranking/route) opens Phân tích nguyên nhân (G6): old links keep period, unit and route.
+function LegacyF13RouteRedirect() {
+  const location = useLocation();
+  return <Navigate to={`/f13/v2/why${translateLegacyF13RouteSearch(location.search)}`} replace />;
+}
+
 function App() {
   return (
     <AuthProvider>
@@ -162,8 +166,8 @@ function App() {
             <Route path="f13">
               <Route index element={<Navigate to="v2/ngay" replace />} />
               <Route path="dashboard" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN, ROLE_VIEWER]}><LegacyF13DashboardRedirect /></ProtectedRoute>} />
-              <Route path="ranking/bcvh" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN, ROLE_VIEWER]}><BcvhRankingPage /></ProtectedRoute>} />
-              <Route path="ranking/route" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN, ROLE_VIEWER]}><RoutePerformancePage /></ProtectedRoute>} />
+              <Route path="ranking/bcvh" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN, ROLE_VIEWER]}><LegacyTimeAxisRedirect to="/f13/v2/tuan" /></ProtectedRoute>} />
+              <Route path="ranking/route" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN, ROLE_VIEWER]}><LegacyF13RouteRedirect /></ProtectedRoute>} />
               <Route path="ranking/route/violations" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN, ROLE_VIEWER]}><LegacyRouteViolationsRedirect /></ProtectedRoute>} />
               <Route path="ranking/shipment" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN, ROLE_VIEWER]}><LegacyShipmentRedirect /></ProtectedRoute>} />
               <Route path="pareto" element={<ProtectedRoute allowedRoles={[ROLE_ADMIN]}><PlaceholderPage title="Pareto / RCA" /></ProtectedRoute>} />

@@ -1,7 +1,7 @@
 export const F13_CROSS_MODULE_PATHS = [
   '/f13/dashboard',
-  '/f13/ranking/bcvh',
-  '/f13/ranking/route',
+  '/f13/v2/tuan',
+  '/f13/v2/why',
 ];
 
 // A menu item is lit on its own path and on the tabs of its page (Kết quả chất lượng: Theo ngày / tuần / tháng).
@@ -21,6 +21,16 @@ export function translateLegacyF13DashboardSearch(search) {
     translated.set('to', toDate);
   }
   if (bcvh && bcvh !== 'all') translated.set('bcvh', bcvh);
+  const query = translated.toString();
+  return query ? `?${query}` : '';
+}
+
+// The old F1.3 Phân tích tuyến phát (/f13/ranking/route) is retired (G6): its link opens Phân tích nguyên nhân on the same period, unit and route.
+export function translateLegacyF13RouteSearch(search) {
+  const params = new URLSearchParams(search);
+  const translated = new URLSearchParams(translateLegacyF13DashboardSearch(search));
+  const route = params.get('route_id');
+  if (route && route !== 'all') translated.set('route', route);
   const query = translated.toString();
   return query ? `?${query}` : '';
 }

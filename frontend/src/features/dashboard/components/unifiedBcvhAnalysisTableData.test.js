@@ -79,7 +79,7 @@ test('maps runtime row into current-day, D-1, D-7, late-cash, route, and analysi
   assert.equal(row.route_distribution.segments.length, 4);
   assert.match(row.analysis, /KPI ngày 75,0%/);
   assert.match(row.analysis, /khá 1/);
-  assert.equal(row.action.route, '/f13/ranking/route');
+  assert.equal(row.action.route, '/f13/v2/why');
 });
 
 test('maps total row without exposing raw total and preserves valid aggregate values', () => {

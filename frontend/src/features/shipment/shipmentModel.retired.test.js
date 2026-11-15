@@ -18,11 +18,8 @@ test('T-F01: fetchAllEvidenceRows, EVIDENCE_FETCH_PAGE_SIZE, EVIDENCE_FETCH_MAX_
   assert.equal('EVIDENCE_FETCH_MAX_PAGES' in shipmentData, false);
 });
 
-test('T-F01: ShipmentPerformancePage.jsx does not reference fetchAllEvidenceRows or fetch-all logic', () => {
-  const pageSource = fs.readFileSync(path.join(shipmentDir, 'ShipmentPerformancePage.jsx'), 'utf8');
-  assert.doesNotMatch(pageSource, /fetchAllEvidenceRows/);
-  assert.doesNotMatch(pageSource, /EVIDENCE_FETCH_PAGE_SIZE/);
-  assert.doesNotMatch(pageSource, /EVIDENCE_FETCH_MAX_PAGES/);
+test('T-F01: ShipmentPerformancePage.jsx is deleted (G6), so no page can use fetch-all logic', () => {
+  assert.equal(fs.existsSync(path.join(shipmentDir, 'ShipmentPerformancePage.jsx')), false);
 });
 
 test('T-F01: No file in frontend/src references fetchAllEvidenceRows', () => {

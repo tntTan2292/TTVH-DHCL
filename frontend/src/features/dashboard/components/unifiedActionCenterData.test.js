@@ -30,7 +30,7 @@ test('maps recommendation fields without inventing unavailable values', () => {
   assert.equal(item.owner, UNAVAILABLE_TEXT);
   assert.equal(item.status, UNAVAILABLE_TEXT);
   assert.equal(item.confidence, UNAVAILABLE_TEXT);
-  assert.equal(item.follow_up.href, '/f13/ranking/bcvh');
+  assert.equal(item.follow_up.href, '/f13/v2/tuan');
 });
 
 test('deduplicates each operational issue and keeps backend priority ordering', () => {

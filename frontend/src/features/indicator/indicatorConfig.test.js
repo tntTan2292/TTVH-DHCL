@@ -126,7 +126,7 @@ test('F4.1 hides every block that needs data F4.1 does not have; F1.3 keeps them
   assert.deepEqual({ ...F41_INDICATOR.features }, { routes: false, lateCash: false, operatingPattern: false, actionCenter: false });
   assert.deepEqual({ ...F13_INDICATOR.features }, { routes: true, lateCash: false, operatingPattern: true, actionCenter: true });
   assert.equal(F41_INDICATOR.routes.ranking, '/f41/ranking/bcvh');
-  assert.equal(F13_INDICATOR.routes.ranking, '/f13/ranking/bcvh');
+  assert.equal(F13_INDICATOR.routes.ranking, '/f13/v2/tuan');
 });
 
 test('F4.2 colour bands (PO 2026-10-27: 90/80/70) and target 90%', () => {

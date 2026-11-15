@@ -140,13 +140,11 @@ function buildAction(row, context = {}) {
   const indicator = context.indicator || F13_INDICATOR;
   if (!indicator.features?.routes) return null;
   return {
-    route: '/f13/ranking/route',
+    route: '/f13/v2/why',
     params: {
-      from_date: context.fromDate || '',
-      to_date: context.toDate || '',
-      interval: context.interval || (context.fromDate === context.toDate ? 'daily' : 'range'),
-      bcvh_id: row.ma_bcvh || '',
-      bcvh_name: row.ten_bcvh || '',
+      from: context.fromDate || '',
+      to: context.toDate || '',
+      bcvh: row.ma_bcvh || '',
     },
   };
 }

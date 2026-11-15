@@ -109,11 +109,11 @@ export function normalizeRecommendationItem(item = {}, index = 0, context = {}) 
       label: 'Chi tiết',
       href: (() => {
         const params = new URLSearchParams();
-        if (fromDate) params.set('from_date', fromDate);
-        if (toDate) params.set('to_date', toDate);
-        if (hasBcvhCode) params.set('bcvh_id', item.ma_bcvh);
+        if (fromDate) params.set('from', fromDate);
+        if (toDate) params.set('to', toDate);
+        if (hasBcvhCode) params.set('bcvh', item.ma_bcvh);
         const query = params.toString();
-        const basePath = hasBcvhCode ? '/f13/ranking/route' : '/f13/ranking/bcvh';
+        const basePath = hasBcvhCode ? '/f13/v2/why' : '/f13/v2/tuan';
         return query ? `${basePath}?${query}` : basePath;
       })(),
     },

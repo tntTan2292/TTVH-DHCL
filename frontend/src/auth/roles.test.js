@@ -9,8 +9,8 @@ test('viewer default route lands on the completed F1.3 dashboard', () => {
 
 test('viewer access policy allows only approved completed F1.3 surfaces', () => {
   assert.equal(canViewerAccessPath('/f13/dashboard'), true);
-  assert.equal(canViewerAccessPath('/f13/ranking/bcvh'), true);
-  assert.equal(canViewerAccessPath('/f13/ranking/route'), true);
+  assert.equal(canViewerAccessPath('/f13/v2/tuan'), true);
+  assert.equal(canViewerAccessPath('/f13/v2/why'), true);
   assert.equal(canViewerAccessPath('/network-map/service-points'), true);
   assert.equal(canViewerAccessPath('/network-map/level2-routes'), true);
   assert.equal(canViewerAccessPath('/network-map/delivery-routes'), true);

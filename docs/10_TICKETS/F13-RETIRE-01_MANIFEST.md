@@ -6,7 +6,7 @@
 - Name: `Retire the old F1.3 pages: redirect their links to the v2 pages and delete the dead code`
 - Owner: Claude Code / Opus 5.5 (scope, review, real render). **Executor: Claude Code / Sonnet 5.5** (frontend only). Does not change the Current Ticket.
 - Branch: `codex/da-impl-006`.
-- Status: `OPEN - blocked until the other session commits its 30 files (§4)`. `PO UI Check Required = Yes` (the PO checks the redirects).
+- Status: `READY FOR PO CHECK` (executed 2026-11-15; was blocked until the other session committed, §4 start check passed). `PO UI Check Required = Yes` (the PO checks the redirects).
 
 ## 2. Survey (Opus, 2026-11-15)
 
@@ -54,3 +54,12 @@ The shared working tree holds 30 uncommitted files from another session (F1.3 he
 ## 5. Change log
 
 - 2026-11-15: created by Claude Code / Opus 5.5 after F13-PARCEL-CARD-01 closed (PO: "Lập G6 ngay").
+
+## 6. Result (Claude Code / Sonnet 5.5, 2026-11-15)
+
+- Redirects: `/f13/ranking/bcvh` -> `/f13/v2/tuan` (existing `LegacyTimeAxisRedirect`); `/f13/ranking/route` -> `/f13/v2/why` (new `LegacyF13RouteRedirect` + `translateLegacyF13RouteSearch`, keeps from/to, bcvh, route). Tests: `urlPreservation.test.js` (one per path) and `App.role-routing.test.js` (route wiring). Note: the Tuần page reads `week`, not from/to, so the period carries only into `/f13/v2/why`.
+- Links repointed: `TopListAdapter`, `unifiedActionCenterData`, `UnifiedBcvhAnalysisTable`, `unifiedBcvhAnalysisTableData`, `indicatorConfig` (F13 `routes.ranking`), `urlPreservation` (`F13_CROSS_MODULE_PATHS`), `auth/roles.js` (old viewer prefixes removed; `/f13/v2` already covers them).
+- Deleted (24 files): `components/Sidebar.jsx`; `features/ranking/RouteRankingPage.jsx`; `features/shipment/ShipmentPerformancePage.jsx` + 6 tests (contract, evidenceStatus, groupPaginationRemediation, phase2, remediation, searchRemediation); `features/route/RoutePerformancePage.jsx` + 6 tests (blackReturned, dateResolution, delayedCash, delayedCashWidget, postman, volumeReconciliationTooltip); `routePeriodData.js`, `routeRankingFilters.js`, `routeRankingCalculations.js` + their 3 tests.
+- Kept: `BcvhRankingPage.jsx`, F1.1/1.2/4.1/4.2 pages, all backend, `routeViolationEvidenceData.js`, `shipmentPerformanceData.js` (+test; now only test-referenced, not in the §2 list), `buildBackToRouteRankingLink` (no caller; its output still works through the redirect).
+- Tests: sweep 997 -> 841 (156 removed with the deleted files and the dead-Sidebar test), 0 fail. Edited tests: App.role-routing, appNavigation (Sidebar test removed), glassTheme, roles, shipmentModel.retired, indicatorConfig, unifiedActionCenterData, unifiedBcvhAnalysisTableData, f41Pages.
+- `npm run build` OK; `oxlint -D no-undef` on changed files: only browser globals (`window`, `URLSearchParams`), pre-existing.

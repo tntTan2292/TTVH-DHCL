@@ -23,12 +23,10 @@ export default function TopListAdapter({ fromDate, toDate, interval = 'daily' })
 
   const handleRowClick = (item) => {
     const params = new URLSearchParams();
-    params.set('from_date', fromDate);
-    params.set('to_date', toDate);
-    params.set('interval', interval);
-    params.set('bcvh_id', item.ma_bcvh);
-    params.set('bcvh_name', item.ten_bcvh);
-    navigate(`/f13/ranking/bcvh?${params.toString()}`);
+    params.set('from', fromDate);
+    params.set('to', toDate);
+    params.set('bcvh', item.ma_bcvh);
+    navigate(`/f13/v2/tuan?${params.toString()}`);
   };
 
   if (!data) return (

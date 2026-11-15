@@ -15,8 +15,9 @@ test('viewer routing keeps only the approved completed F1.3 surfaces and blocks 
   for (const page of ['F13V2DayPage', 'F13V2WeekPage', 'F13V2MonthPage', 'F13V2JourneyPage']) {
     assert.ok(source.includes(`allowedRoles={[ROLE_ADMIN, ROLE_VIEWER]}><${page}`), page);
   }
-  assert.match(source, /path="ranking\/bcvh" element=\{<ProtectedRoute allowedRoles=\{\[ROLE_ADMIN, ROLE_VIEWER\]\}><BcvhRankingPage/);
-  assert.match(source, /path="ranking\/route" element=\{<ProtectedRoute allowedRoles=\{\[ROLE_ADMIN, ROLE_VIEWER\]\}><RoutePerformancePage/);
+  assert.match(source, /path="ranking\/bcvh" element=\{<ProtectedRoute allowedRoles=\{\[ROLE_ADMIN, ROLE_VIEWER\]\}><LegacyTimeAxisRedirect to="\/f13\/v2\/tuan" \/>/);
+  assert.match(source, /path="ranking\/route" element=\{<ProtectedRoute allowedRoles=\{\[ROLE_ADMIN, ROLE_VIEWER\]\}><LegacyF13RouteRedirect \/>/);
+  assert.doesNotMatch(source, /BcvhRankingPage|RoutePerformancePage/, 'App.jsx no longer mounts the old F1.3 pages');
   assert.match(source, /path="import" element=\{<ProtectedRoute allowedRoles=\{\[ROLE_ADMIN\]\}><DataImportCenter/);
   assert.match(source, /path="system-info" element=\{<ProtectedRoute allowedRoles=\{\[ROLE_ADMIN\]\}><SystemInformation/);
   assert.match(source, /path="ranking\/shipment" element=\{<ProtectedRoute allowedRoles=\{\[ROLE_ADMIN, ROLE_VIEWER\]\}><LegacyShipmentRedirect/);

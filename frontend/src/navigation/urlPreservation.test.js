@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { isNavItemActive, translateLegacyEvidenceSearch, translateLegacyF13DashboardSearch } from './urlPreservation.js';
+import { isNavItemActive, translateLegacyEvidenceSearch, translateLegacyF13DashboardSearch, translateLegacyF13RouteSearch } from './urlPreservation.js';
 
 test('an old /f13/evidence link opens /f13/v2/evidence with the new parameter names', () => {
   const parse = (search) => Object.fromEntries(new URLSearchParams(translateLegacyEvidenceSearch(search)));
@@ -36,4 +36,20 @@ test('an old F1.3 Bảng điều hành link opens Theo ngày on the same day and
 test('no date or only half a range: the page opens its latest day', () => {
   assert.equal(translateLegacyF13DashboardSearch(''), '');
   assert.equal(translateLegacyF13DashboardSearch('?from_date=2026-07-15'), '');
+});
+
+test('old /f13/ranking/bcvh opens /f13/v2/tuan keeping period and unit (App.jsx LegacyTimeAxisRedirect)', () => {
+  assert.equal(
+    translateLegacyF13DashboardSearch('?from_date=2026-10-22&to_date=2026-10-28&interval=range&bcvh_id=537015&bcvh_name=Thuan%20An'),
+    '?from=2026-10-22&to=2026-10-28&bcvh=537015',
+  );
+});
+
+test('old /f13/ranking/route opens /f13/v2/why keeping period, unit and route (App.jsx LegacyF13RouteRedirect)', () => {
+  assert.equal(
+    translateLegacyF13RouteSearch('?from_date=2026-10-22&to_date=2026-10-28&interval=range&bcvh_id=537015&route_id=53701501&route_name=X'),
+    '?from=2026-10-22&to=2026-10-28&bcvh=537015&route=53701501',
+  );
+  assert.equal(translateLegacyF13RouteSearch('?bcvh_id=all&route_id=all'), '');
+  assert.equal(translateLegacyF13RouteSearch(''), '');
 });
