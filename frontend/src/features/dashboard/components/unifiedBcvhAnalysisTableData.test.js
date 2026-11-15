@@ -33,8 +33,8 @@ test('maps runtime row into current-day, D-1, D-7, late-cash, route, and analysi
     route_distribution: {
       participating_postman_route_count: 8,
       green_route_count: 2,
-      pink_route_count: 1,
-      yellow_route_count: 3,
+      yellow_route_count: 1,
+      pink_route_count: 3,
       red_route_count: 2,
     },
     comparisons: {
@@ -64,7 +64,7 @@ test('maps runtime row into current-day, D-1, D-7, late-cash, route, and analysi
   assert.equal(row.current_day.pass_count, 90);
   assert.equal(row.current_day.fail_count, 30);
   assert.equal(row.current_day.rate, 75);
-  assert.equal(row.current_day.signal.label, 'Tốt');
+  assert.equal(row.current_day.signal.label, 'Cần chú ý');
   assert.equal(row.comparisons.d1.volume, 100);
   assert.equal(row.comparisons.d1.rate, 70);
   assert.equal(row.comparisons.d1.volume_delta, 20);
@@ -75,7 +75,7 @@ test('maps runtime row into current-day, D-1, D-7, late-cash, route, and analysi
   assert.equal(row.late_cash.count, 3);
   assert.equal(row.late_cash.rate, 10);
   assert.equal(row.route_distribution.participating_postman_route_count, 8);
-  assert.equal(row.route_distribution.counts.pink, 1);
+  assert.equal(row.route_distribution.counts.yellow, 1);
   assert.equal(row.route_distribution.segments.length, 4);
   assert.match(row.analysis, /KPI ngày 75,0%/);
   assert.match(row.analysis, /khá 1/);
@@ -104,8 +104,8 @@ test('maps total row without exposing raw total and preserves valid aggregate va
         route_distribution: {
           participating_postman_route_count: 4,
           green_route_count: 1,
-          pink_route_count: 1,
           yellow_route_count: 1,
+          pink_route_count: 1,
           red_route_count: 1,
         },
       },
@@ -139,7 +139,7 @@ test('maps total row without exposing raw total and preserves valid aggregate va
   assert.equal(mapped.total_row.late_cash.count, 1);
   assert.equal(mapped.total_row.late_cash.rate, 5.5);
   assert.equal(mapped.total_row.route_distribution.participating_postman_route_count, 4);
-  assert.equal(mapped.total_row.route_distribution.counts.pink, 1);
+  assert.equal(mapped.total_row.route_distribution.counts.yellow, 1);
   assert.match(mapped.meta.evaluation_label, /28\/07/);
 });
 
@@ -174,16 +174,16 @@ test('keeps KPI 2026 SSOT labels separate from route-distribution labels', () =>
     Object.values(ROUTE_BAND_META).map((item) => item.label),
     ['Tốt', 'Khá', 'Trung bình', 'Kém'],
   );
-  assert.notEqual(KPI_STATUS_META[1].label, ROUTE_BAND_META.pink.label);
-  assert.notEqual(KPI_STATUS_META[2].label, ROUTE_BAND_META.yellow.label);
+  assert.notEqual(KPI_STATUS_META[1].label, ROUTE_BAND_META.yellow.label);
+  assert.notEqual(KPI_STATUS_META[2].label, ROUTE_BAND_META.pink.label);
 });
 
 test('builds semantic four-band doughnut labels and preserves SSOT colors', () => {
   assert.equal(ROUTE_BAND_META.green.label, 'Tốt');
-  assert.equal(ROUTE_BAND_META.pink.label, 'Khá');
-  assert.equal(ROUTE_BAND_META.yellow.label, 'Trung bình');
+  assert.equal(ROUTE_BAND_META.yellow.label, 'Khá');
+  assert.equal(ROUTE_BAND_META.pink.label, 'Trung bình');
   assert.equal(ROUTE_BAND_META.red.label, 'Kém');
-  assert.equal(ROUTE_BAND_META.pink.color, '#ec4899');
+  assert.equal(ROUTE_BAND_META.yellow.color, '#eab308');
   assert.equal(
     buildDoughnutAriaLabel({
       segments: [

@@ -23,10 +23,10 @@ import { BCVH_BY_CODE, getModuleAccess } from '../../auth/accessModel.js';
 function toneFromKpi(rate, heatmapFloors) {
   if (rate === null || rate === undefined) return 'neutral';
   // Floors follow the page's indicator (F1.3 70/60/50, F4.1 80/70/60).
-  const [greenFloor, pinkFloor, yellowFloor] = heatmapFloors;
+  const [greenFloor, yellowFloor, pinkFloor] = heatmapFloors;
   if (rate >= greenFloor) return 'success';
-  if (rate >= pinkFloor) return 'info';
-  if (rate >= yellowFloor) return 'warning';
+  if (rate >= yellowFloor) return 'info';
+  if (rate >= pinkFloor) return 'warning';
   return 'danger';
 }
 
@@ -46,8 +46,8 @@ function SummaryRouteBands({ routeDistribution }) {
     <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
       {[
         ['Tốt', counts.green],
-        ['Khá', counts.pink],
-        ['Trung bình', counts.yellow],
+        ['Khá', counts.yellow],
+        ['Trung bình', counts.pink],
         ['Kém', counts.red],
       ].map(([label, value]) => (
         <div key={label} className="rounded-xl bg-[var(--color-surface-50)] px-3 py-2 text-[var(--color-text-main)]">
@@ -300,7 +300,7 @@ export default function BcvhRankingPage() {
     {
       label: 'Phân bổ chất lượng tuyến',
       value: formatNumber(routeDistribution.participating_postman_route_count),
-      delta: `Tốt ${formatNumber(routeDistribution.counts.green)} · Khá ${formatNumber(routeDistribution.counts.pink)} · Trung bình ${formatNumber(routeDistribution.counts.yellow)} · Kém ${formatNumber(routeDistribution.counts.red)}`,
+      delta: `Tốt ${formatNumber(routeDistribution.counts.green)} · Khá ${formatNumber(routeDistribution.counts.yellow)} · Trung bình ${formatNumber(routeDistribution.counts.pink)} · Kém ${formatNumber(routeDistribution.counts.red)}`,
       trend: buildDoughnutAriaLabel(routeDistribution),
       tone: 'danger',
     },

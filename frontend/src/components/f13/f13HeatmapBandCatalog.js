@@ -7,7 +7,7 @@
 //
 // This module is pure (no React, no fetch, no localStorage) so both
 // `features/dashboard/components/*` and `features/ranking/*` can import it without a
-// circular dependency. The default band set is the PO-approved 70/60/50 thresholds, but
+// circular dependency. The default band set is the PO-approved 80/70/60 thresholds (F1.3 default; PO 2026-11-12), but
 // `classifyF13HeatmapRate()` accepts a `bands` override so a future Admin screen can plug
 // in a different set without this module or its callers changing — no admin UI, API, or
 // persisted config is added by this ticket; the override parameter only prepares for one.
@@ -21,22 +21,22 @@ export const F13_HEATMAP_UNAVAILABLE_BAND = Object.freeze({
 // Ordered list, most-preferred (highest quality) band first. `max` is exclusive except for
 // the top band, which is unbounded (`Infinity`) so a rate of exactly 100 — or any value at
 // or above the 70 floor — always classifies as green.
-// Builds the 4-band set from the three floors [green, pink, yellow]; the colours/tones are the
-// same for every indicator, only the thresholds differ (F1.3 70/60/50, F4.1 80/70/60).
-export function buildHeatmapBands([greenFloor, pinkFloor, yellowFloor]) {
+// Builds the 4-band set from the three floors [green, yellow, pink]; the colours/tones are the
+// same for every indicator, only the thresholds differ (F1.3 and F4.1 80/70/60, F1.1/F1.2/F4.2 90/80/70).
+export function buildHeatmapBands([greenFloor, yellowFloor, pinkFloor]) {
   return Object.freeze([
     Object.freeze({ id: 'green', label: 'Xanh', min: greenFloor, max: Infinity, tone: 'band-green' }),
-    Object.freeze({ id: 'pink', label: 'Hồng', min: pinkFloor, max: greenFloor, tone: 'band-pink' }),
-    Object.freeze({ id: 'yellow', label: 'Vàng', min: yellowFloor, max: pinkFloor, tone: 'band-yellow' }),
-    Object.freeze({ id: 'red', label: 'Đỏ', min: -Infinity, max: yellowFloor, tone: 'band-red' }),
+    Object.freeze({ id: 'yellow', label: 'Vàng', min: yellowFloor, max: greenFloor, tone: 'band-yellow' }),
+    Object.freeze({ id: 'pink', label: 'Hồng', min: pinkFloor, max: yellowFloor, tone: 'band-pink' }),
+    Object.freeze({ id: 'red', label: 'Đỏ', min: -Infinity, max: pinkFloor, tone: 'band-red' }),
   ]);
 }
 
 export const F13_HEATMAP_BANDS = Object.freeze([
-  Object.freeze({ id: 'green', label: 'Xanh', min: 70, max: Infinity, tone: 'band-green' }),
+  Object.freeze({ id: 'green', label: 'Xanh', min: 80, max: Infinity, tone: 'band-green' }),
+  Object.freeze({ id: 'yellow', label: 'Vàng', min: 70, max: 80, tone: 'band-yellow' }),
   Object.freeze({ id: 'pink', label: 'Hồng', min: 60, max: 70, tone: 'band-pink' }),
-  Object.freeze({ id: 'yellow', label: 'Vàng', min: 50, max: 60, tone: 'band-yellow' }),
-  Object.freeze({ id: 'red', label: 'Đỏ', min: -Infinity, max: 50, tone: 'band-red' }),
+  Object.freeze({ id: 'red', label: 'Đỏ', min: -Infinity, max: 60, tone: 'band-red' }),
 ]);
 
 /**
@@ -60,28 +60,28 @@ export const F13_HEATMAP_TONE_CLASS = Object.freeze({
   'band-green': 'border-emerald-300 bg-emerald-100 text-emerald-950 font-bold shadow-2xs hover:bg-emerald-200',
   'band-pink': 'border-pink-300 bg-pink-100 text-pink-950 font-bold shadow-2xs hover:bg-pink-200',
   'band-yellow': 'border-amber-300 bg-amber-100 text-amber-950 font-bold shadow-2xs hover:bg-amber-200',
-  'band-red': 'border-red-300 bg-red-100 text-red-950 font-bold shadow-2xs hover:bg-red-200',
+  'band-red': 'border-red-700 bg-red-600 text-white font-bold shadow-2xs hover:bg-red-700',
   unavailable: 'border-slate-200 bg-slate-50 text-slate-400 font-medium',
 });
 
 // Small dot/legend-swatch background classes, keyed by `tone`.
 export const F13_HEATMAP_DOT_CLASS = Object.freeze({
   'band-green': 'bg-emerald-600',
-  'band-pink': 'bg-pink-500',
+  'band-pink': 'bg-pink-400',
   'band-yellow': 'bg-amber-500',
-  'band-red': 'bg-red-600',
+  'band-red': 'bg-red-700',
   unavailable: 'bg-slate-300',
 });
 
 // Raw hex equivalents of F13_HEATMAP_DOT_CLASS, keyed by `tone`, for contexts that render
 // raw SVG (e.g. a recharts <Line> per-point dot `fill`) where a Tailwind `bg-*` utility
 // class has no effect — SVG `fill` is a different CSS property than `background-color`.
-// Values match Tailwind's emerald-600/pink-500/amber-500/red-600/slate-300 exactly.
+// Values match Tailwind's emerald-600/pink-400/amber-500/red-700/slate-300 exactly.
 export const F13_HEATMAP_HEX_COLOR = Object.freeze({
   'band-green': '#059669',
-  'band-pink': '#ec4899',
+  'band-pink': '#f472b6',
   'band-yellow': '#f59e0b',
-  'band-red': '#dc2626',
+  'band-red': '#b91c1c',
   unavailable: '#cbd5e1',
 });
 
@@ -89,10 +89,10 @@ export const F13_HEATMAP_HEX_COLOR = Object.freeze({
 // sites may render their own wording for a specific screen's legend heading, but the
 // band/description pairing itself is centralized here so it isn't duplicated ad hoc.
 export const F13_HEATMAP_LEGEND = Object.freeze([
-  Object.freeze({ tone: 'band-green', label: 'Xanh', description: 'KPI từ 70% trở lên' }),
+  Object.freeze({ tone: 'band-green', label: 'Xanh', description: 'KPI từ 80% trở lên' }),
+  Object.freeze({ tone: 'band-yellow', label: 'Vàng', description: 'KPI từ 70% đến dưới 80%' }),
   Object.freeze({ tone: 'band-pink', label: 'Hồng', description: 'KPI từ 60% đến dưới 70%' }),
-  Object.freeze({ tone: 'band-yellow', label: 'Vàng', description: 'KPI từ 50% đến dưới 60%' }),
-  Object.freeze({ tone: 'band-red', label: 'Đỏ', description: 'KPI dưới 50%' }),
+  Object.freeze({ tone: 'band-red', label: 'Đỏ', description: 'KPI dưới 60%' }),
   Object.freeze({ tone: 'unavailable', label: 'Xám', description: 'Chưa có dữ liệu' }),
 ]);
 

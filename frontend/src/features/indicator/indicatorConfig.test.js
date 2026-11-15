@@ -20,10 +20,10 @@ import {
 import { createIndicatorApi, getIndicatorApi, useIndicatorApi } from './useIndicatorApi.js';
 
 test('F1.3 is the default everywhere (defaults unchanged)', () => {
-  assert.equal(classifyF13HeatmapRate(70).id, 'green');
-  assert.equal(classifyF13HeatmapRate(69.9).id, 'pink');
-  assert.equal(classifyF13HeatmapRate(50).id, 'yellow');
-  assert.equal(classifyF13HeatmapRate(49.9).id, 'red');
+  assert.equal(classifyF13HeatmapRate(80).id, 'green');
+  assert.equal(classifyF13HeatmapRate(79.9).id, 'yellow');
+  assert.equal(classifyF13HeatmapRate(60).id, 'pink');
+  assert.equal(classifyF13HeatmapRate(59.9).id, 'red');
   assert.equal(classifyF13HeatmapRate(null).id, 'unavailable');
   assert.equal(indicatorLabel('Chất lượng F1.3'), 'Chất lượng F1.3');
   assert.equal(rewriteIndicatorUrl('/f13/ranking/bcvh/overview'), '/f13/ranking/bcvh/overview');
@@ -37,21 +37,22 @@ test('F4.1 colour bands are the F1.3 colours with every threshold +10 points (PO
   assert.deepEqual(F41_INDICATOR.heatmapFloors, [80, 70, 60]);
   const bands = F41_INDICATOR.heatmapBands;
   assert.equal(classifyF13HeatmapRate(80, bands).id, 'green');
-  assert.equal(classifyF13HeatmapRate(79.9, bands).id, 'pink');
-  assert.equal(classifyF13HeatmapRate(70, bands).id, 'pink');
-  assert.equal(classifyF13HeatmapRate(69.9, bands).id, 'yellow');
-  assert.equal(classifyF13HeatmapRate(60, bands).id, 'yellow');
+  assert.equal(classifyF13HeatmapRate(79.9, bands).id, 'yellow');
+  assert.equal(classifyF13HeatmapRate(70, bands).id, 'yellow');
+  assert.equal(classifyF13HeatmapRate(69.9, bands).id, 'pink');
+  assert.equal(classifyF13HeatmapRate(60, bands).id, 'pink');
   assert.equal(classifyF13HeatmapRate(59.9, bands).id, 'red');
-  assert.equal(classifyF13HeatmapRate(60.98, bands).tone, 'band-yellow');
+  assert.equal(classifyF13HeatmapRate(60.98, bands).tone, 'band-pink');
   assert.equal(bands[0].tone, 'band-green');
-  // the same rate under the default bands keeps its F1.3 colour
-  assert.equal(classifyF13HeatmapRate(75).id, 'green');
+  // PO 2026-11-12: F1.3 now uses the same 80/70/60 floors as F4.1
+  assert.equal(classifyF13HeatmapRate(75).id, 'yellow');
+  assert.deepEqual(F13_INDICATOR.heatmapFloors, F41_INDICATOR.heatmapFloors);
 });
 
 test('monthly heatmap cell colour follows the page indicator (T8-F41-B2)', () => {
-  assert.equal(getApprovedWeekdayBand(75).tone, 'band-green');
-  assert.equal(getApprovedWeekdayBand(75, null, F13_INDICATOR.heatmapBands).tone, 'band-green');
-  assert.equal(getApprovedWeekdayBand(75, null, F41_INDICATOR.heatmapBands).tone, 'band-pink');
+  assert.equal(getApprovedWeekdayBand(75).tone, 'band-yellow');
+  assert.equal(getApprovedWeekdayBand(75, null, F13_INDICATOR.heatmapBands).tone, 'band-yellow');
+  assert.equal(getApprovedWeekdayBand(75, null, F41_INDICATOR.heatmapBands).tone, 'band-yellow');
   assert.equal(getApprovedWeekdayBand(80, null, F41_INDICATOR.heatmapBands).tone, 'band-green');
   assert.equal(getApprovedWeekdayBand(null, null, F41_INDICATOR.heatmapBands).tone, 'unavailable');
 });
@@ -59,9 +60,9 @@ test('monthly heatmap cell colour follows the page indicator (T8-F41-B2)', () =>
 test('KPI status signal of the BCVH table follows the indicator passed in the mapper context', () => {
   const row = (rate) => ({ ma_bcvh: '533140', ten_bcvh: 'BCVH Thuận Hóa', sl_bg_ptc: 100, dat_kpi_2026: rate, kpi_2026: rate, rank: 1 });
   const signalOf = (context) => mapBcvhRankingResponse({ data: [row(75)], meta: {} }, { toDate: '2026-08-01', ...context }).rows[0].current_day.signal.id;
-  assert.equal(signalOf({}), 'green');
-  assert.equal(signalOf({ indicator: F13_INDICATOR }), 'green');
-  assert.equal(signalOf({ indicator: F41_INDICATOR }), 'pink');
+  assert.equal(signalOf({}), 'yellow');
+  assert.equal(signalOf({ indicator: F13_INDICATOR }), 'yellow');
+  assert.equal(signalOf({ indicator: F41_INDICATOR }), 'yellow');
 });
 
 test('rewriteIndicatorUrl maps only the shared report URLs and keeps the query string', () => {
@@ -114,10 +115,10 @@ test('indicatorLabel and the monthly legend use the given indicator wording', ()
     'Chưa có dữ liệu',
   ]);
   assert.deepEqual(buildMonthlyHeatmapLegend().map((entry) => entry.description).slice(0, 4), [
-    'Tỷ lệ từ 70% trở lên',
+    'Tỷ lệ từ 80% trở lên',
+    'Từ 70% đến dưới 80%',
     'Từ 60% đến dưới 70%',
-    'Từ 50% đến dưới 60%',
-    'Dưới 50%',
+    'Dưới 60%',
   ]);
 });
 
@@ -132,10 +133,10 @@ test('F4.2 colour bands (PO 2026-10-27: 90/80/70) and target 90%', () => {
   assert.deepEqual(F42_INDICATOR.heatmapFloors, [90, 80, 70]);
   const bands = F42_INDICATOR.heatmapBands;
   assert.equal(classifyF13HeatmapRate(90, bands).id, 'green');
-  assert.equal(classifyF13HeatmapRate(89.9, bands).id, 'pink');
-  assert.equal(classifyF13HeatmapRate(80, bands).id, 'pink');
-  assert.equal(classifyF13HeatmapRate(79.9, bands).id, 'yellow');
-  assert.equal(classifyF13HeatmapRate(70, bands).id, 'yellow');
+  assert.equal(classifyF13HeatmapRate(89.9, bands).id, 'yellow');
+  assert.equal(classifyF13HeatmapRate(80, bands).id, 'yellow');
+  assert.equal(classifyF13HeatmapRate(79.9, bands).id, 'pink');
+  assert.equal(classifyF13HeatmapRate(70, bands).id, 'pink');
   assert.equal(classifyF13HeatmapRate(69.9, bands).id, 'red');
   assert.equal(F42_INDICATOR.targetRate, 90);
   assert.deepEqual(buildMonthlyHeatmapLegend(F42_INDICATOR).map((e) => e.description), [
@@ -169,19 +170,19 @@ test('IndicatorProvider only carries a value: it holds no state, so a discarded 
   }
   assert.equal(
     renderToStaticMarkup(createElement(IndicatorProvider, { indicator: F41_INDICATOR }, createElement(Probe))),
-    '<span>f41|pink|scoped</span>',
+    '<span>f41|yellow|scoped</span>',
   );
   // a provider render that is never committed (React transition / error boundary / SSR) ...
   renderToString(createElement(IndicatorProvider, { indicator: F41_INDICATOR }, createElement(Probe)));
   // ... leaves nothing behind: a page rendered without a provider is plain F1.3
-  assert.equal(renderToStaticMarkup(createElement(Probe)), '<span>f13|green|shared</span>');
+  assert.equal(renderToStaticMarkup(createElement(Probe)), '<span>f13|yellow|shared</span>');
   assert.equal(
     renderToStaticMarkup(createElement(IndicatorProvider, { indicator: F13_INDICATOR }, createElement(Probe))),
-    '<span>f13|green|shared</span>',
+    '<span>f13|yellow|shared</span>',
   );
   assert.equal(
     renderToStaticMarkup(createElement(IndicatorProvider, { indicator: F42_INDICATOR }, createElement(Probe))),
-    '<span>f42|yellow|scoped</span>',
+    '<span>f42|pink|scoped</span>',
   );
 });
 

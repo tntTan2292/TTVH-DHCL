@@ -33,9 +33,9 @@ test('F12_INDICATOR has correct configuration, target 95%, teal theme, and colou
   assert.equal(indicatorTheme(F12_INDICATOR), INDICATOR_THEMES.teal);
   assert.equal(F12_INDICATOR.theme.primary, '#0D9488');
 
-  // Colour bands = F1.3 floors 70 / 60 / 50
-  assert.deepEqual(F12_INDICATOR.heatmapFloors, [70, 60, 50]);
-  assert.deepEqual(F12_INDICATOR.heatmapFloors, F13_INDICATOR.heatmapFloors);
+  // Colour bands = floors 90 / 80 / 70 (PO 2026-11-12: F1.1 and F1.2 raised by 20 points)
+  assert.deepEqual(F12_INDICATOR.heatmapFloors, [90, 80, 70]);
+  assert.notDeepEqual(F12_INDICATOR.heatmapFloors, F13_INDICATOR.heatmapFloors);
   assert.notDeepEqual(F12_INDICATOR.heatmapFloors, F41_INDICATOR.heatmapFloors);
 
   // Features: routes off, lateCash off, operatingPattern off, actionCenter off; cumulative12 on (no office / whole-BĐTP block: PO 2026-10-12)
@@ -122,16 +122,16 @@ test('Block B: F12Cumulative12Block is city level only: camera, 95% target line,
   assert.doesNotMatch(source, /#003E7E/i);
 });
 
-test('Rate band classification under F12: floors 70 / 60 / 50 matching F1.3 and F1.1', () => {
+test('Rate band classification under F12: floors 90 / 80 / 70 matching F1.1', () => {
   const bands = F12_INDICATOR.heatmapBands;
   assert.equal(classifyF13HeatmapRate(null, bands).tone, 'unavailable');
   assert.equal(classifyF13HeatmapRate(0, bands).tone, 'band-red');
-  assert.equal(classifyF13HeatmapRate(49.9, bands).tone, 'band-red');
-  assert.equal(classifyF13HeatmapRate(50, bands).tone, 'band-yellow');
-  assert.equal(classifyF13HeatmapRate(59.9, bands).tone, 'band-yellow');
-  assert.equal(classifyF13HeatmapRate(60, bands).tone, 'band-pink');
-  assert.equal(classifyF13HeatmapRate(69.9, bands).tone, 'band-pink');
-  assert.equal(classifyF13HeatmapRate(70, bands).tone, 'band-green');
+  assert.equal(classifyF13HeatmapRate(69.9, bands).tone, 'band-red');
+  assert.equal(classifyF13HeatmapRate(70, bands).tone, 'band-pink');
+  assert.equal(classifyF13HeatmapRate(79.9, bands).tone, 'band-pink');
+  assert.equal(classifyF13HeatmapRate(80, bands).tone, 'band-yellow');
+  assert.equal(classifyF13HeatmapRate(89.9, bands).tone, 'band-yellow');
+  assert.equal(classifyF13HeatmapRate(90, bands).tone, 'band-green');
   assert.equal(classifyF13HeatmapRate(95, bands).tone, 'band-green');
   assert.equal(classifyF13HeatmapRate(100, bands).tone, 'band-green');
 });

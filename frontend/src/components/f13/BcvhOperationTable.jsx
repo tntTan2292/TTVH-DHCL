@@ -31,6 +31,13 @@ function renderDeltaBadge(deltaValue) {
   return <span className={toneClass}>{display}</span>;
 }
 
+// Keep "(N-1)" / "(N-7)" together so a narrow column wraps before the bracket, never inside it.
+export function noBreakCompareHeader(text) {
+  const match = /^(.*?)(\(N-\d\))$/.exec(String(text));
+  if (!match) return text;
+  return <>{match[1]}<span className="whitespace-nowrap">{match[2]}</span></>;
+}
+
 function renderRateBadgeWithBands(rate, bands) {
   if (rate === null || rate === undefined || rate === '') {
     return <span className="text-slate-400 font-medium">{DASH}</span>;
@@ -130,6 +137,7 @@ export default function BcvhOperationTable({ globalFilter, anchorDate } = {}) {
   const [fitMode, setFitMode] = useState(true);
   const containerRef = useRef(null);
   const tableRef = useRef(null);
+  const scaleBoxRef = useRef(null);
   const cardRef = useRef(null);
   const [fitScale, setFitScale] = useState(1);
   const [scaledHeight, setScaledHeight] = useState(null);
@@ -142,11 +150,18 @@ export default function BcvhOperationTable({ globalFilter, anchorDate } = {}) {
     const updateScale = () => {
       if (!containerRef.current || !tableRef.current) return;
       const cWidth = containerRef.current.clientWidth;
+      // Measure the table at scale 1. Reading it while the wrapper is already widened to 100/scale % and
+      // scaled down compounds the shrink on every re-measure (data reload, sort), which made the picture
+      // smaller each time with blank margins around it.
+      const box = scaleBoxRef.current;
+      const prev = box ? { transform: box.style.transform, width: box.style.width } : null;
+      if (box) { box.style.transform = 'none'; box.style.width = '100%'; }
       const tWidth = tableRef.current.scrollWidth || 1400;
+      const tHeight = tableRef.current.scrollHeight;
+      if (box && prev) { box.style.transform = prev.transform; box.style.width = prev.width; }
       if (tWidth > 0 && cWidth > 0) {
         const scale = Math.min(1, cWidth / tWidth);
         setFitScale(scale);
-        const tHeight = tableRef.current.scrollHeight;
         setScaledHeight(tHeight * scale);
       }
     };
@@ -328,6 +343,7 @@ export default function BcvhOperationTable({ globalFilter, anchorDate } = {}) {
         style={!officeLevel && fitMode && scaledHeight ? { height: `${scaledHeight}px` } : undefined}
       >
         <div
+          ref={scaleBoxRef}
           style={
             fitMode && !officeLevel
               ? {
@@ -462,10 +478,10 @@ export default function BcvhOperationTable({ globalFilter, anchorDate } = {}) {
                 </>
               ) : null}
               <SortableTh field="daily_delta_rate" sort={headerSort} onSort={handleSort} activeClassName={theme.sortActive} className={`${headPy} px-1 text-center align-middle w-[10%] border-r border-slate-200 ${headLead}`}>
-                {HEADER_COMPARE_N1}
+                {noBreakCompareHeader(HEADER_COMPARE_N1)}
               </SortableTh>
               <SortableTh field="daily_week_delta_rate" sort={headerSort} onSort={handleSort} activeClassName={theme.sortActive} className={`${headPy} px-1 text-center align-middle w-[10%] ${headLead}`}>
-                {HEADER_COMPARE_N7}
+                {noBreakCompareHeader(HEADER_COMPARE_N7)}
               </SortableTh>
             </tr>
           </thead>

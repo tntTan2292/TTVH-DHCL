@@ -57,7 +57,7 @@ test('the F1.3 ranking mapper accepts the F4.1 ranking payload (no route / late-
   assert.equal(row.current_day.pass_count, 1494);
   assert.equal(row.current_day.fail_count, 690);
   assert.equal(row.current_day.rate, 68.4);
-  assert.equal(row.current_day.signal.id, 'yellow'); // 68.4 is in the F4.1 yellow band (60-70)
+  assert.equal(row.current_day.signal.id, 'pink'); // 68.4 is in the F4.1 pink band (60-70)
   assert.equal(row.comparisons.d1.rate_delta, 1.2);
   assert.equal(row.route_distribution.participating_postman_route_count, 0);
   assert.equal(mapped.total_row.current_day.volume, 4694);

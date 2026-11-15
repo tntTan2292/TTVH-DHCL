@@ -8,15 +8,15 @@ const MIDDLE_DOT = '\u00b7';
 
 const ROUTE_BAND_META = Object.freeze({
   green: { label: 'Tốt', color: '#22c55e', tone: 'success' },
-  pink: { label: 'Khá', color: '#ec4899', tone: 'info' },
-  yellow: { label: 'Trung bình', color: '#eab308', tone: 'warning' },
-  red: { label: 'Kém', color: '#ef4444', tone: 'danger' },
+  yellow: { label: 'Khá', color: '#eab308', tone: 'info' },
+  pink: { label: 'Trung bình', color: '#f472b6', tone: 'warning' },
+  red: { label: 'Kém', color: '#b91c1c', tone: 'danger' },
 });
 
 const KPI_STATUS_META = Object.freeze([
-  { min: 70, id: 'green', label: 'Tốt', tone: 'success' },
-  { min: 60, id: 'pink', label: 'Cần chú ý', tone: 'info' },
-  { min: 50, id: 'yellow', label: 'Cảnh báo', tone: 'warning' },
+  { min: 80, id: 'green', label: 'Tốt', tone: 'success' },
+  { min: 70, id: 'yellow', label: 'Cần chú ý', tone: 'info' },
+  { min: 60, id: 'pink', label: 'Cảnh báo', tone: 'warning' },
   { min: -Infinity, id: 'red', label: 'Rủi ro cao', tone: 'danger' },
 ]);
 
@@ -125,7 +125,7 @@ function buildAnalysisText(row, context = {}) {
   }
 
   if (indicator.features?.routes) {
-    parts.push(`Tuyến tham gia ${formatNumber(row.route_distribution.participating_postman_route_count, row.is_total)}: tốt ${formatNumber(row.route_distribution.counts.green, row.is_total)}, khá ${formatNumber(row.route_distribution.counts.pink, row.is_total)}, trung bình ${formatNumber(row.route_distribution.counts.yellow, row.is_total)}, kém ${formatNumber(row.route_distribution.counts.red, row.is_total)}`);
+    parts.push(`Tuyến tham gia ${formatNumber(row.route_distribution.participating_postman_route_count, row.is_total)}: tốt ${formatNumber(row.route_distribution.counts.green, row.is_total)}, khá ${formatNumber(row.route_distribution.counts.yellow, row.is_total)}, trung bình ${formatNumber(row.route_distribution.counts.pink, row.is_total)}, kém ${formatNumber(row.route_distribution.counts.red, row.is_total)}`);
   }
 
   const d1Movement = row.comparisons.d1.rank_movement.signal.label;

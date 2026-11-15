@@ -18,11 +18,19 @@ import {
 // against any average. This file is the catalog's own unit test.
 
 test('rate 100 classifies as band-green', () => {
-  assert.equal(classifyF13HeatmapRate(100).tone, 'band-green');
+  assert.equal(classifyF13HeatmapRate(110).tone, 'band-green');
 });
 
-test('rate 70 classifies as band-green', () => {
-  assert.equal(classifyF13HeatmapRate(70).tone, 'band-green');
+test('rate 80 classifies as band-green', () => {
+  assert.equal(classifyF13HeatmapRate(80).tone, 'band-green');
+});
+
+test('rate 79.99 classifies as band-yellow', () => {
+  assert.equal(classifyF13HeatmapRate(79.99).tone, 'band-yellow');
+});
+
+test('rate 70 classifies as band-yellow', () => {
+  assert.equal(classifyF13HeatmapRate(70).tone, 'band-yellow');
 });
 
 test('rate 69.99 classifies as band-pink', () => {
@@ -33,20 +41,12 @@ test('rate 60 classifies as band-pink', () => {
   assert.equal(classifyF13HeatmapRate(60).tone, 'band-pink');
 });
 
-test('rate 59.99 classifies as band-yellow', () => {
-  assert.equal(classifyF13HeatmapRate(59.99).tone, 'band-yellow');
-});
-
-test('rate 50 classifies as band-yellow', () => {
-  assert.equal(classifyF13HeatmapRate(50).tone, 'band-yellow');
-});
-
-test('rate 49.99 classifies as band-red', () => {
-  assert.equal(classifyF13HeatmapRate(49.99).tone, 'band-red');
+test('rate 59.99 classifies as band-red', () => {
+  assert.equal(classifyF13HeatmapRate(59.99).tone, 'band-red');
 });
 
 test('rate 0 classifies as band-red', () => {
-  assert.equal(classifyF13HeatmapRate(0).tone, 'band-red');
+  assert.equal(classifyF13HeatmapRate(10).tone, 'band-red');
 });
 
 test('null classifies as unavailable', () => {
@@ -62,7 +62,7 @@ test('NaN classifies as unavailable', () => {
 });
 
 test('a numeric string rate is still classified correctly (not silently unavailable)', () => {
-  assert.equal(classifyF13HeatmapRate('72').tone, 'band-green');
+  assert.equal(classifyF13HeatmapRate('82').tone, 'band-green');
 });
 
 test('classifyF13HeatmapRate returns the F13_HEATMAP_UNAVAILABLE_BAND object for unavailable rates', () => {
@@ -71,16 +71,16 @@ test('classifyF13HeatmapRate returns the F13_HEATMAP_UNAVAILABLE_BAND object for
   assert.equal(F13_HEATMAP_UNAVAILABLE_BAND.label, 'Xám');
 });
 
-test('F13_HEATMAP_BANDS is ordered green/pink/yellow/red with no gap or overlap at the boundaries', () => {
-  assert.deepEqual(F13_HEATMAP_BANDS.map((band) => band.id), ['green', 'pink', 'yellow', 'red']);
-  assert.deepEqual(F13_HEATMAP_BANDS.map((band) => band.label), ['Xanh', 'Hồng', 'Vàng', 'Đỏ']);
-  assert.equal(F13_HEATMAP_BANDS[0].min, 70);
-  assert.equal(F13_HEATMAP_BANDS[1].min, 60);
-  assert.equal(F13_HEATMAP_BANDS[1].max, 70);
-  assert.equal(F13_HEATMAP_BANDS[2].min, 50);
-  assert.equal(F13_HEATMAP_BANDS[2].max, 60);
-  assert.equal(F13_HEATMAP_BANDS[3].max, 50);
-  // pink and yellow must never map to the same tone/color.
+test('F13_HEATMAP_BANDS is ordered green/yellow/pink/red with no gap or overlap at the boundaries', () => {
+  assert.deepEqual(F13_HEATMAP_BANDS.map((band) => band.id), ['green', 'yellow', 'pink', 'red']);
+  assert.deepEqual(F13_HEATMAP_BANDS.map((band) => band.label), ['Xanh', 'Vàng', 'Hồng', 'Đỏ']);
+  assert.equal(F13_HEATMAP_BANDS[0].min, 80);
+  assert.equal(F13_HEATMAP_BANDS[1].min, 70);
+  assert.equal(F13_HEATMAP_BANDS[1].max, 80);
+  assert.equal(F13_HEATMAP_BANDS[2].min, 60);
+  assert.equal(F13_HEATMAP_BANDS[2].max, 70);
+  assert.equal(F13_HEATMAP_BANDS[3].max, 60);
+  // yellow and pink must never map to the same tone/color.
   assert.notEqual(F13_HEATMAP_BANDS[1].tone, F13_HEATMAP_BANDS[2].tone);
   assert.notEqual(F13_HEATMAP_TONE_CLASS[F13_HEATMAP_BANDS[1].tone], F13_HEATMAP_TONE_CLASS[F13_HEATMAP_BANDS[2].tone]);
   assert.notEqual(F13_HEATMAP_DOT_CLASS[F13_HEATMAP_BANDS[1].tone], F13_HEATMAP_DOT_CLASS[F13_HEATMAP_BANDS[2].tone]);
@@ -98,13 +98,13 @@ test('every band and the unavailable state has a tone class, dot class, and hex 
 test('F13_HEATMAP_LEGEND carries the exact Product Owner-approved Vietnamese wording', () => {
   const byTone = Object.fromEntries(F13_HEATMAP_LEGEND.map((entry) => [entry.tone, entry]));
   assert.equal(byTone['band-green'].label, 'Xanh');
-  assert.equal(byTone['band-green'].description, 'KPI từ 70% trở lên');
+  assert.equal(byTone['band-green'].description, 'KPI từ 80% trở lên');
+  assert.equal(byTone['band-yellow'].label, 'Vàng');
+  assert.equal(byTone['band-yellow'].description, 'KPI từ 70% đến dưới 80%');
   assert.equal(byTone['band-pink'].label, 'Hồng');
   assert.equal(byTone['band-pink'].description, 'KPI từ 60% đến dưới 70%');
-  assert.equal(byTone['band-yellow'].label, 'Vàng');
-  assert.equal(byTone['band-yellow'].description, 'KPI từ 50% đến dưới 60%');
   assert.equal(byTone['band-red'].label, 'Đỏ');
-  assert.equal(byTone['band-red'].description, 'KPI dưới 50%');
+  assert.equal(byTone['band-red'].description, 'KPI dưới 60%');
   assert.equal(byTone.unavailable.label, 'Xám');
   assert.equal(byTone.unavailable.description, 'Chưa có dữ liệu');
 });
@@ -115,13 +115,13 @@ test('classifyF13HeatmapRate accepts a custom bands override (Admin-readiness), 
     { id: 'red', label: 'Đỏ', min: -Infinity, max: 50, tone: 'band-red' },
   ];
 
-  // Under the custom bands, 55 is green (it would be yellow under the default catalog).
+  // Under the custom bands, 55 is green (it would be pink under the default catalog).
   assert.equal(classifyF13HeatmapRate(55, wideGreenBands).tone, 'band-green');
   assert.equal(classifyF13HeatmapRate(45, wideGreenBands).tone, 'band-red');
 
   // The default catalog is unaffected by having passed an override on another call.
-  assert.equal(classifyF13HeatmapRate(55).tone, 'band-yellow');
-  assert.deepEqual(F13_HEATMAP_BANDS.map((band) => band.min), [70, 60, 50, -Infinity]);
+  assert.equal(classifyF13HeatmapRate(65).tone, 'band-pink');
+  assert.deepEqual(F13_HEATMAP_BANDS.map((band) => band.min), [80, 70, 60, -Infinity]);
 });
 
 test('classifyF13HeatmapRate falls back to unavailable when a custom bands array does not cover the rate', () => {
@@ -140,10 +140,10 @@ test('the catalog itself is not a localStorage/config-persisted object — it is
 
 test('APPROVED_WEEKDAY_BANDS/getApprovedWeekdayBand (deprecated) stay consistent with the new catalog — one real source', () => {
   assert.equal(APPROVED_WEEKDAY_BANDS.length, 4);
-  assert.equal(getApprovedWeekdayBand(75).id, 'green');
+  assert.equal(getApprovedWeekdayBand(85).id, 'green');
+  assert.equal(getApprovedWeekdayBand(75).id, 'yellow');
   assert.equal(getApprovedWeekdayBand(65).id, 'pink');
-  assert.equal(getApprovedWeekdayBand(55).id, 'yellow');
-  assert.equal(getApprovedWeekdayBand(45).id, 'red');
+  assert.equal(getApprovedWeekdayBand(55).id, 'red');
   assert.equal(getApprovedWeekdayBand(null).tone, 'unavailable');
 
   for (const legacyBand of APPROVED_WEEKDAY_BANDS) {

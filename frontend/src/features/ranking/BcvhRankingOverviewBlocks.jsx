@@ -16,7 +16,7 @@ const MONTHLY_TREND_TOTAL_KEY = 'total';
 const MONTHLY_TREND_NAMES = { ...CANONICAL_NAMES, [MONTHLY_TREND_TOTAL_KEY]: 'Tổng cộng 6 BCVH' };
 const MONTHLY_TREND_COLORS = { ...BCVH_COLORS, [MONTHLY_TREND_TOTAL_KEY]: '#0f172a' };
 // Shared Heatmap SSOT with Operation Dashboard: the same absolute band classification
-// (green >=70 / pink 60-70 / yellow 50-60 / red <50 / unavailable) and its colors, so the
+// (green >=80 / yellow 70-80 / pink 60-70 / red <60 / unavailable) and its colors, so the
 // monthly heatmap below never re-declares the >=70/>=60/>=50 thresholds locally.
 import {
   getApprovedWeekdayBand,
@@ -33,10 +33,10 @@ import { nextSortState, sortRowsBy } from '../../components/common/tableSort';
 // tones; the wording here is this table's own legend text, not the SSOT's threshold logic.
 // F1.3 keeps this fixed copy; any other indicator derives it from its own thresholds.
 const MONTHLY_HEATMAP_LEGEND = [
-  { tone: 'band-green', label: 'Xanh', description: 'Tỷ lệ từ 70% trở lên' },
+  { tone: 'band-green', label: 'Xanh', description: 'Tỷ lệ từ 80% trở lên' },
+  { tone: 'band-yellow', label: 'Vàng', description: 'Từ 70% đến dưới 80%' },
   { tone: 'band-pink', label: 'Hồng', description: 'Từ 60% đến dưới 70%' },
-  { tone: 'band-yellow', label: 'Vàng', description: 'Từ 50% đến dưới 60%' },
-  { tone: 'band-red', label: 'Đỏ', description: 'Dưới 50%' },
+  { tone: 'band-red', label: 'Đỏ', description: 'Dưới 60%' },
   { tone: 'unavailable', label: 'Xám', description: 'Chưa có dữ liệu' },
 ];
 
@@ -305,10 +305,10 @@ export function BcvhRouteCapacityBlock({ data }) {
               <th className="px-3 py-2.5 text-right font-bold text-gray-800">
                 Tuyến có phát sinh trong kỳ
               </th>
-              <th className="px-3 py-2.5 text-right font-semibold text-emerald-600">Tốt (≥70%)</th>
-              <th className="px-3 py-2.5 text-right font-semibold text-pink-600">Khá (≥60%)</th>
-              <th className="px-3 py-2.5 text-right font-semibold text-amber-600">Trung bình (≥50%)</th>
-              <th className="px-3 py-2.5 text-right font-semibold text-rose-600">Kém (&lt;50%)</th>
+              <th className="px-3 py-2.5 text-right font-semibold text-emerald-600">Tốt (≥80%)</th>
+              <th className="px-3 py-2.5 text-right font-semibold text-amber-600">Khá (≥70%)</th>
+              <th className="px-3 py-2.5 text-right font-semibold text-pink-500">Trung bình (≥60%)</th>
+              <th className="px-3 py-2.5 text-right font-semibold text-rose-600">Kém (&lt;60%)</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
@@ -326,8 +326,8 @@ export function BcvhRouteCapacityBlock({ data }) {
                       {total > 0 ? (
                         <>
                           <div style={{ width: `${pct(row.green)}%` }} className="bg-emerald-500" title="Tốt" />
-                          <div style={{ width: `${pct(row.pink)}%` }} className="bg-pink-500" title="Khá" />
-                          <div style={{ width: `${pct(row.yellow)}%` }} className="bg-amber-500" title="Trung bình" />
+                          <div style={{ width: `${pct(row.yellow)}%` }} className="bg-amber-500" title="Khá" />
+                          <div style={{ width: `${pct(row.pink)}%` }} className="bg-pink-400" title="Trung bình" />
                           <div style={{ width: `${pct(row.red)}%` }} className="bg-rose-500" title="Kém" />
                         </>
                       ) : null}
@@ -339,11 +339,11 @@ export function BcvhRouteCapacityBlock({ data }) {
                   <td className="px-3 py-3 text-right font-semibold text-emerald-600 align-top pt-3.5">
                     {formatOverviewNumber(row.green)}
                   </td>
-                  <td className="px-3 py-3 text-right font-semibold text-pink-600 align-top pt-3.5">
-                    {formatOverviewNumber(row.pink)}
-                  </td>
                   <td className="px-3 py-3 text-right font-semibold text-amber-600 align-top pt-3.5">
                     {formatOverviewNumber(row.yellow)}
+                  </td>
+                  <td className="px-3 py-3 text-right font-semibold text-pink-500 align-top pt-3.5">
+                    {formatOverviewNumber(row.pink)}
                   </td>
                   <td className="px-3 py-3 text-right font-semibold text-rose-600 align-top pt-3.5">
                     {formatOverviewNumber(row.red)}
@@ -360,8 +360,8 @@ export function BcvhRouteCapacityBlock({ data }) {
                   {routeTotalRow.participating_route_count > 0 ? (
                     <>
                       <div style={{ width: `${(routeTotalRow.green / routeTotalRow.participating_route_count) * 100}%` }} className="bg-emerald-600" />
-                      <div style={{ width: `${(routeTotalRow.pink / routeTotalRow.participating_route_count) * 100}%` }} className="bg-pink-600" />
                       <div style={{ width: `${(routeTotalRow.yellow / routeTotalRow.participating_route_count) * 100}%` }} className="bg-amber-600" />
+                      <div style={{ width: `${(routeTotalRow.pink / routeTotalRow.participating_route_count) * 100}%` }} className="bg-pink-500" />
                       <div style={{ width: `${(routeTotalRow.red / routeTotalRow.participating_route_count) * 100}%` }} className="bg-rose-600" />
                     </>
                   ) : null}
@@ -373,11 +373,11 @@ export function BcvhRouteCapacityBlock({ data }) {
               <td className="px-3 py-4 text-right font-bold text-emerald-700 align-top">
                 {formatOverviewNumber(routeTotalRow.green)}
               </td>
-              <td className="px-3 py-4 text-right font-bold text-pink-700 align-top">
-                {formatOverviewNumber(routeTotalRow.pink)}
-              </td>
               <td className="px-3 py-4 text-right font-bold text-amber-700 align-top">
                 {formatOverviewNumber(routeTotalRow.yellow)}
+              </td>
+              <td className="px-3 py-4 text-right font-bold text-pink-600 align-top">
+                {formatOverviewNumber(routeTotalRow.pink)}
               </td>
               <td className="px-3 py-4 text-right font-bold text-rose-700 align-top">
                 {formatOverviewNumber(routeTotalRow.red)}

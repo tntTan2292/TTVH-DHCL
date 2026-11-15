@@ -289,7 +289,7 @@ export default function QualityTimelinePanel({ globalFilter }) {
         <h2 className="text-xl font-bold text-gray-800">Diễn biến và quy luật chất lượng</h2>
       </div>
 
-      <div className={`mb-6 flex items-start gap-3 rounded-lg border p-4 ${pulse.color === 'red' ? 'border-red-200 bg-red-50 text-red-800' : pulse.color === 'yellow' ? 'border-amber-200 bg-amber-50 text-amber-800' : pulse.color === 'green' ? 'border-green-200 bg-green-50 text-green-800' : 'border-gray-200 bg-gray-50 text-gray-800'}`}>
+      <div className={`mb-6 flex items-start gap-3 rounded-lg border p-4 ${pulse.color === 'red' ? 'border-red-200 bg-red-50 text-red-800' : (pulse.color === 'yellow' || pulse.color === 'pink') ? 'border-amber-200 bg-amber-50 text-amber-800' : pulse.color === 'green' ? 'border-green-200 bg-green-50 text-green-800' : 'border-gray-200 bg-gray-50 text-gray-800'}`}>
         <Activity className="mt-0.5" size={20} />
         <div>
           <h4 className="font-bold">Cảnh báo nhịp chất lượng</h4>

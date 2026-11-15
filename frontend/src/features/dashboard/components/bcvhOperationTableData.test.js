@@ -467,12 +467,12 @@ test('PO layout: 10-column table-fixed colgroup with 10% cols 4-10 and 2-line he
   );
   assert.match(
     tableSource,
-    /<(?:th|SortableTh)[^>]*?w-\[10%\][^>]*?>[\s\S]*?\{HEADER_COMPARE_N1\}[\s\S]*?<\/(?:th|SortableTh)>/,
+    /<(?:th|SortableTh)[^>]*?w-\[10%\][^>]*?>[\s\S]*?\{noBreakCompareHeader\(HEADER_COMPARE_N1\)\}[\s\S]*?<\/(?:th|SortableTh)>/,
     'Col 9 header explicitly split into 2 block lines'
   );
   assert.match(
     tableSource,
-    /<(?:th|SortableTh)[^>]*?w-\[10%\][^>]*?>[\s\S]*?\{HEADER_COMPARE_N7\}[\s\S]*?<\/(?:th|SortableTh)>/,
+    /<(?:th|SortableTh)[^>]*?w-\[10%\][^>]*?>[\s\S]*?\{noBreakCompareHeader\(HEADER_COMPARE_N7\)\}[\s\S]*?<\/(?:th|SortableTh)>/,
     'Col 10 header explicitly split into 2 block lines'
   );
 });
@@ -523,21 +523,21 @@ test('PO layout: rate columns apply shared F1.3 Heatmap SSOT uniformly to totalR
   );
 
   // 2. SSOT rate classifications verified
-  const greenClass = classifyF13HeatmapRate(75.5);
+  const greenClass = classifyF13HeatmapRate(85.5);
   assert.equal(greenClass.tone, 'band-green');
   assert.ok(F13_HEATMAP_TONE_CLASS[greenClass.tone].includes('bg-emerald-100'));
+
+  const yellowClass = classifyF13HeatmapRate(75.0);
+  assert.equal(yellowClass.tone, 'band-yellow');
+  assert.ok(F13_HEATMAP_TONE_CLASS[yellowClass.tone].includes('bg-amber-100'));
 
   const pinkClass = classifyF13HeatmapRate(65.0);
   assert.equal(pinkClass.tone, 'band-pink');
   assert.ok(F13_HEATMAP_TONE_CLASS[pinkClass.tone].includes('bg-pink-100'));
 
-  const yellowClass = classifyF13HeatmapRate(55.0);
-  assert.equal(yellowClass.tone, 'band-yellow');
-  assert.ok(F13_HEATMAP_TONE_CLASS[yellowClass.tone].includes('bg-amber-100'));
-
-  const redClass = classifyF13HeatmapRate(42.0);
+  const redClass = classifyF13HeatmapRate(52.0);
   assert.equal(redClass.tone, 'band-red');
-  assert.ok(F13_HEATMAP_TONE_CLASS[redClass.tone].includes('bg-red-100'));
+  assert.ok(F13_HEATMAP_TONE_CLASS[redClass.tone].includes('bg-red-600'));
 
   const missingClass = classifyF13HeatmapRate(null);
   assert.equal(missingClass.tone, 'unavailable');

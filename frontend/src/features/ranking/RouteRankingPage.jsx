@@ -67,9 +67,14 @@ const MOCK_ROUTES_BY_BCVH = {
 
 // ─── Rate Badge ───────────────────────────────────────────────────────────────
 function RateBadge({ rate }) {
-  if (rate >= 70) return (
+  if (rate >= 80) return (
     <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-green-50 text-green-700 border border-green-200">
       <span className="w-1.5 h-1.5 rounded-full bg-green-500 inline-block" />{rate.toFixed(1)}%
+    </span>
+  );
+  if (rate >= 70) return (
+    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-yellow-50 text-yellow-700 border border-yellow-200">
+      <span className="w-1.5 h-1.5 rounded-full bg-yellow-400 inline-block" />{rate.toFixed(1)}%
     </span>
   );
   if (rate >= 60) return (
@@ -77,14 +82,9 @@ function RateBadge({ rate }) {
       <span className="w-1.5 h-1.5 rounded-full bg-pink-400 inline-block" />{rate.toFixed(1)}%
     </span>
   );
-  if (rate >= 50) return (
-    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-yellow-50 text-yellow-700 border border-yellow-200">
-      <span className="w-1.5 h-1.5 rounded-full bg-yellow-400 inline-block" />{rate.toFixed(1)}%
-    </span>
-  );
   return (
-    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-red-50 text-red-700 border border-red-200">
-      <span className="w-1.5 h-1.5 rounded-full bg-red-500 inline-block" />{rate.toFixed(1)}%
+    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-red-600 text-white border border-red-700">
+      <span className="w-1.5 h-1.5 rounded-full bg-white inline-block" />{rate.toFixed(1)}%
     </span>
   );
 }

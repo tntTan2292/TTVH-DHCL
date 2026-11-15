@@ -804,7 +804,8 @@ export function SharedLayout({
             {title ? <h1 className="text-2xl font-bold text-slate-900">{title}</h1> : null}
             {toolbar ? <PageToolbar>{toolbar}</PageToolbar> : null}
             {globalFilters ? <div>{globalFilters}</div> : null}
-            <div className="min-h-0 flex-1">{children}</div>
+            {/* PO 2026-11-12: report pages read best at a 90 % browser zoom, so the content is drawn at 90 % when the browser is at 100 %. */}
+            <div className="min-h-0 flex-1" style={{ zoom: 0.9 }}>{children}</div>
           </div>
         </main>
       </div>

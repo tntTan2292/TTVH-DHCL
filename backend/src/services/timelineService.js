@@ -53,7 +53,7 @@ class TimelineService {
                 kpi_rate: parseFloat(d.kpi_rate.toFixed(2)),
                 dod: index > 0 && !heatmapRange[index-1].isEmpty && !d.isEmpty ? parseFloat((d.kpi_rate - heatmapRange[index-1].kpi_rate).toFixed(2)) : 0,
                 is_empty: Boolean(d.isEmpty),
-                color: d.isEmpty ? 'gray' : (d.kpi_rate >= 70 ? 'green' : (d.kpi_rate >= 60 ? 'pink' : (d.kpi_rate >= 50 ? 'yellow' : 'red')))
+                color: d.isEmpty ? 'gray' : (d.kpi_rate >= 80 ? 'green' : (d.kpi_rate >= 70 ? 'yellow' : (d.kpi_rate >= 60 ? 'pink' : 'red')))
             });
             if (currentWeek.length === 7) {
                 calendarData.push(currentWeek);
@@ -172,7 +172,7 @@ class TimelineService {
         const dailyTimeline = includeDaily ? fullData.slice(-30).map(d => ({
             date: d.date,
             kpi_rate: parseFloat(d.kpi_rate.toFixed(2)),
-            color: d.kpi_rate >= 70 ? 'green' : (d.kpi_rate >= 60 ? 'pink' : (d.kpi_rate >= 50 ? 'yellow' : 'red'))
+            color: d.kpi_rate >= 80 ? 'green' : (d.kpi_rate >= 70 ? 'yellow' : (d.kpi_rate >= 60 ? 'pink' : 'red'))
         })) : [];
 
         // 2. Weekly Pattern (Average by day of week over 90 days)
@@ -209,7 +209,7 @@ class TimelineService {
                 total_volume: w.total,
                 passed: w.passed,
                 pass_rate: w.total > 0 ? parseFloat(((w.passed / w.total) * 100).toFixed(2)) : 0,
-                color: avg >= 70 ? 'green' : (avg >= 60 ? 'pink' : (avg >= 50 ? 'yellow' : 'red'))
+                color: avg >= 80 ? 'green' : (avg >= 70 ? 'yellow' : (avg >= 60 ? 'pink' : 'red'))
             };
         }) : [];
         // Reorder so T2 is first, CN is last
@@ -236,7 +236,7 @@ class TimelineService {
             return {
                 day: `Ngày ${m.day}`,
                 avg_kpi: parseFloat(avg.toFixed(2)),
-                color: avg >= 70 ? '#22c55e' : (avg >= 60 ? '#ec4899' : (avg >= 50 ? '#eab308' : '#ef4444')) // Direct hex for Recharts Area
+                color: avg >= 80 ? '#22c55e' : (avg >= 70 ? '#eab308' : (avg >= 60 ? '#f472b6' : '#b91c1c')) // Direct hex for Recharts Area
             };
         });
 

@@ -15,8 +15,16 @@ const read = (path) => fs.readFileSync(new URL(path, import.meta.url), 'utf8');
 // classification (HEATMAP_RELATIVE_BANDS). This file verifies the shared helper's exact
 // boundaries and that Ranking never re-declares the thresholds or falls back to relative bands.
 
-test('rate 70 classifies as band-green', () => {
-  assert.equal(getApprovedWeekdayBand(70).tone, 'band-green');
+test('rate 80 classifies as band-green', () => {
+  assert.equal(getApprovedWeekdayBand(80).tone, 'band-green');
+});
+
+test('rate 79.99 classifies as band-yellow', () => {
+  assert.equal(getApprovedWeekdayBand(79.99).tone, 'band-yellow');
+});
+
+test('rate 70 classifies as band-yellow', () => {
+  assert.equal(getApprovedWeekdayBand(70).tone, 'band-yellow');
 });
 
 test('rate 69.99 classifies as band-pink', () => {
@@ -27,16 +35,8 @@ test('rate 60 classifies as band-pink', () => {
   assert.equal(getApprovedWeekdayBand(60).tone, 'band-pink');
 });
 
-test('rate 59.99 classifies as band-yellow', () => {
-  assert.equal(getApprovedWeekdayBand(59.99).tone, 'band-yellow');
-});
-
-test('rate 50 classifies as band-yellow', () => {
-  assert.equal(getApprovedWeekdayBand(50).tone, 'band-yellow');
-});
-
-test('rate 49.99 classifies as band-red', () => {
-  assert.equal(getApprovedWeekdayBand(49.99).tone, 'band-red');
+test('rate 59.99 classifies as band-red', () => {
+  assert.equal(getApprovedWeekdayBand(59.99).tone, 'band-red');
 });
 
 test('null rate classifies as unavailable', () => {
@@ -90,10 +90,10 @@ test('BCVH Ranking monthly heatmap cell renders the em dash for a null rate, not
 
 test('BCVH Ranking monthly heatmap legend uses the required Vietnamese band descriptions', () => {
   const rankingSource = read('./BcvhRankingOverviewBlocks.jsx');
-  assert.match(rankingSource, /label: 'Xanh', description: 'Tỷ lệ từ 70% trở lên'/);
+  assert.match(rankingSource, /label: 'Xanh', description: 'Tỷ lệ từ 80% trở lên'/);
+  assert.match(rankingSource, /label: 'Vàng', description: 'Từ 70% đến dưới 80%'/);
   assert.match(rankingSource, /label: 'Hồng', description: 'Từ 60% đến dưới 70%'/);
-  assert.match(rankingSource, /label: 'Vàng', description: 'Từ 50% đến dưới 60%'/);
-  assert.match(rankingSource, /label: 'Đỏ', description: 'Dưới 50%'/);
+  assert.match(rankingSource, /label: 'Đỏ', description: 'Dưới 60%'/);
   assert.match(rankingSource, /label: 'Xám', description: 'Chưa có dữ liệu'/);
 });
 
@@ -121,9 +121,9 @@ test('Operation Dashboard TONE_CLASS/TONE_BAR render the exact same class string
     'on-target': 'border-emerald-300 bg-emerald-100 text-emerald-950 font-bold shadow-2xs hover:bg-emerald-200',
     'below-target': 'border-amber-300 bg-amber-100 text-amber-950 font-bold shadow-2xs hover:bg-amber-200',
     'band-green': 'border-emerald-300 bg-emerald-100 text-emerald-950 font-bold shadow-2xs hover:bg-emerald-200',
-    'band-pink': 'border-pink-300 bg-pink-100 text-pink-950 font-bold shadow-2xs hover:bg-pink-200',
     'band-yellow': 'border-amber-300 bg-amber-100 text-amber-950 font-bold shadow-2xs hover:bg-amber-200',
-    'band-red': 'border-red-300 bg-red-100 text-red-950 font-bold shadow-2xs hover:bg-red-200',
+    'band-pink': 'border-pink-300 bg-pink-100 text-pink-950 font-bold shadow-2xs hover:bg-pink-200',
+    'band-red': 'border-red-700 bg-red-600 text-white font-bold shadow-2xs hover:bg-red-700',
     'relative-high': 'border-emerald-300 bg-emerald-100 text-emerald-950 font-bold shadow-2xs hover:bg-emerald-200',
     'relative-above': 'border-green-300 bg-green-100 text-green-950 font-bold shadow-2xs hover:bg-green-200',
     'relative-average': 'border-slate-300 bg-slate-100 text-slate-900 font-semibold shadow-2xs hover:bg-slate-200',
@@ -135,9 +135,9 @@ test('Operation Dashboard TONE_CLASS/TONE_BAR render the exact same class string
     'on-target': 'bg-emerald-600',
     'below-target': 'bg-amber-500',
     'band-green': 'bg-emerald-600',
-    'band-pink': 'bg-pink-500',
     'band-yellow': 'bg-amber-500',
-    'band-red': 'bg-red-600',
+    'band-pink': 'bg-pink-400',
+    'band-red': 'bg-red-700',
     'relative-high': 'bg-emerald-700',
     'relative-above': 'bg-green-600',
     'relative-average': 'bg-slate-500',

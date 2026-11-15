@@ -244,8 +244,8 @@ export function summarizeRiskEvidence(items = [], kpiData = null, pulse = null, 
   if (pulse?.text) {
     risks.push({
       id: 'quality-pulse',
-      severity: pulse.color === 'red' ? 'Rủi ro cao' : pulse.color === 'yellow' ? 'Cảnh báo' : 'Thông tin',
-      tone: pulse.color === 'red' ? 'danger' : pulse.color === 'yellow' ? 'warning' : 'info',
+      severity: pulse.color === 'red' ? 'Rủi ro cao' : pulse.color === 'pink' ? 'Cảnh báo' : 'Thông tin',
+      tone: pulse.color === 'red' ? 'danger' : pulse.color === 'pink' ? 'warning' : 'info',
       title: 'Nhịp chất lượng',
       unit: 'Quan sát hệ thống',
       evidence: pulse.text,

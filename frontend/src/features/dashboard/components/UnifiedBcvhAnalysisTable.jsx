@@ -51,8 +51,8 @@ const TEXT = {
   lateCashRate: 'Tỷ lệ chậm nộp tiền',
   routeCount: 'Số tuyến tham gia',
   routeGreen: 'Tốt',
-  routePink: 'Khá',
-  routeYellow: 'Trung bình',
+  routeYellow: 'Khá',
+  routePink: 'Trung bình',
   routeRed: 'Kém',
   doughnut: 'Doughnut',
   detailManagement: 'Xem chi tiết tuyến',
@@ -492,8 +492,8 @@ function Row({ row, columns, expandedRowId, onToggleAnalysis, onOpenDetail, hasR
           <>
         <td className="px-2 py-1.5 text-right">{formatNumber(row.route_distribution.participating_postman_route_count, isTotal)}</td>
         <td className="px-2 py-1.5 text-right">{formatNumber(row.route_distribution.counts.green, isTotal)}</td>
-        <td className="px-2 py-1.5 text-right">{formatNumber(row.route_distribution.counts.pink, isTotal)}</td>
         <td className="px-2 py-1.5 text-right">{formatNumber(row.route_distribution.counts.yellow, isTotal)}</td>
+        <td className="px-2 py-1.5 text-right">{formatNumber(row.route_distribution.counts.pink, isTotal)}</td>
         <td className="px-2 py-1.5 text-right">{formatNumber(row.route_distribution.counts.red, isTotal)}</td>
         <td className="border-r border-rose-200 px-2 py-1.5 text-center"><DoughnutCell routeDistribution={row.route_distribution} /></td>
 

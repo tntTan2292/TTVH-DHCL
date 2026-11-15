@@ -8,7 +8,7 @@
 // labels). There is deliberately no module-level "current indicator" (review T8-F41-B1).
 //
 // PO decisions (2026-10-08): F4.1 colour bands are the F1.3 colours with every threshold
-// +10 points (green >= 80, pink 70-80, yellow 60-70, red < 60); the chart target line stays
+// +10 points (green >= 80, yellow 70-80, pink 60-70, red < 60); PO 2026-11-12 raised F1.3 to the same 80/70/60 and F1.1/F1.2 to 90/80/70; the chart target line stays
 // 90% for both indicators. PO decision 2026-10-10: F1.1 targets 95%, so the target is now a setting of the
 // indicator (targetRate): F1.3 and F4.1 stay at 90, F1.1 uses 95.
 
@@ -32,8 +32,8 @@ const COMMON_ENDPOINTS = Object.freeze({
 function buildKpiStatusBands(floors) {
   return Object.freeze([
     Object.freeze({ min: floors[0], id: 'green', label: 'Tốt', tone: 'success' }),
-    Object.freeze({ min: floors[1], id: 'pink', label: 'Cần chú ý', tone: 'info' }),
-    Object.freeze({ min: floors[2], id: 'yellow', label: 'Cảnh báo', tone: 'warning' }),
+    Object.freeze({ min: floors[1], id: 'yellow', label: 'Cần chú ý', tone: 'info' }),
+    Object.freeze({ min: floors[2], id: 'pink', label: 'Cảnh báo', tone: 'warning' }),
     Object.freeze({ min: -Infinity, id: 'red', label: 'Rủi ro cao', tone: 'danger' }),
   ]);
 }
@@ -43,7 +43,7 @@ export const DEFAULT_TARGET_RATE = 90;
 // Colour theme per indicator (PO 2026-10-10): the three report families must be told apart at a glance without
 // reading the menu, so each has its own light accent: F1.3 blue, F4.1 orange, F1.1 green. The theme colours the
 // accents only (chart bars and lines, header bands, active buttons, the page accent bar). Status colours of the
-// rates (green / pink / yellow / red bands) keep their meaning in every family. Class names are written out in
+// rates (green / yellow / pink / red bands) keep their meaning in every family. Class names are written out in
 // full so Tailwind generates them; change a family's tone here, nowhere else.
 export const INDICATOR_THEMES = Object.freeze({
   blue: Object.freeze({
@@ -164,9 +164,9 @@ export const F13_INDICATOR = Object.freeze({
   endpoints: COMMON_ENDPOINTS,
   compactOperationTable: true,
   targetRate: 90,
-  heatmapFloors: Object.freeze([70, 60, 50]),
-  heatmapBands: buildHeatmapBands([70, 60, 50]),
-  kpiStatusBands: buildKpiStatusBands([70, 60, 50]),
+  heatmapFloors: Object.freeze([80, 70, 60]),
+  heatmapBands: buildHeatmapBands([80, 70, 60]),
+  kpiStatusBands: buildKpiStatusBands([80, 70, 60]),
   // lateCash off (PO 2026-11-03): since mid-September 2026 the handover time mostly equals the delivery time, so it is no longer measured.
   features: Object.freeze({ routes: true, lateCash: false, operatingPattern: true, actionCenter: true }),
 });
@@ -207,9 +207,9 @@ export const F11_INDICATOR = Object.freeze({
   }),
   compactOperationTable: true,
   targetRate: 95,
-  heatmapFloors: Object.freeze([70, 60, 50]),
-  heatmapBands: buildHeatmapBands([70, 60, 50]),
-  kpiStatusBands: buildKpiStatusBands([70, 60, 50]),
+  heatmapFloors: Object.freeze([90, 80, 70]),
+  heatmapBands: buildHeatmapBands([90, 80, 70]),
+  kpiStatusBands: buildKpiStatusBands([90, 80, 70]),
   features: Object.freeze({
     routes: false,
     lateCash: false,
@@ -255,9 +255,9 @@ export const F12_INDICATOR = Object.freeze({
   }),
   compactOperationTable: true,
   targetRate: 95,
-  heatmapFloors: Object.freeze([70, 60, 50]),
-  heatmapBands: buildHeatmapBands([70, 60, 50]),
-  kpiStatusBands: buildKpiStatusBands([70, 60, 50]),
+  heatmapFloors: Object.freeze([90, 80, 70]),
+  heatmapBands: buildHeatmapBands([90, 80, 70]),
+  kpiStatusBands: buildKpiStatusBands([90, 80, 70]),
   features: Object.freeze({
     routes: false,
     lateCash: false,
@@ -355,12 +355,12 @@ export function rewriteIndicatorUrl(url, indicator = F13_INDICATOR) {
 
 // Percent-threshold legend lines for the monthly heatmap ("Tỷ lệ từ 70% trở lên", ...).
 export function buildMonthlyHeatmapLegend(indicator = F13_INDICATOR) {
-  const [green, pink, yellow] = indicator.heatmapFloors;
+  const [green, yellow, pink] = indicator.heatmapFloors;
   return [
     { tone: 'band-green', label: 'Xanh', description: `Tỷ lệ từ ${green}% trở lên` },
-    { tone: 'band-pink', label: 'Hồng', description: `Từ ${pink}% đến dưới ${green}%` },
-    { tone: 'band-yellow', label: 'Vàng', description: `Từ ${yellow}% đến dưới ${pink}%` },
-    { tone: 'band-red', label: 'Đỏ', description: `Dưới ${yellow}%` },
+    { tone: 'band-yellow', label: 'Vàng', description: `Từ ${yellow}% đến dưới ${green}%` },
+    { tone: 'band-pink', label: 'Hồng', description: `Từ ${pink}% đến dưới ${yellow}%` },
+    { tone: 'band-red', label: 'Đỏ', description: `Dưới ${pink}%` },
     { tone: 'unavailable', label: 'Xám', description: 'Chưa có dữ liệu' },
   ];
 }

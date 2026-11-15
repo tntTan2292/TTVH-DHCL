@@ -330,12 +330,12 @@ class F13DashboardService {
 
             routeRows.forEach((route) => {
                 const rate = this._calculateRate(route.dat_kpi_2026, route.total_bg);
-                if (rate >= 70) {
+                if (rate >= 80) {
                     summary.green_route_count += 1;
+                } else if (rate >= 70) {
+                    summary.yellow_route_count += 1;
                 } else if (rate >= 60) {
                     summary.pink_route_count += 1;
-                } else if (rate >= 50) {
-                    summary.yellow_route_count += 1;
                 } else {
                     summary.red_route_count += 1;
                 }

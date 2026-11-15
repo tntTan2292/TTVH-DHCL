@@ -12,9 +12,9 @@ export default function BcvhTable({ data }) {
     }
 
     const getColorClass = (kpi) => {
-        if (kpi >= 70) return 'bg-green-100 text-green-800 font-bold';
+        if (kpi >= 80) return 'bg-green-100 text-green-800 font-bold';
+        if (kpi >= 70) return 'bg-yellow-100 text-yellow-800 font-bold';
         if (kpi >= 60) return 'bg-pink-100 text-pink-800 font-bold';
-        if (kpi >= 50) return 'bg-yellow-100 text-yellow-800 font-bold';
         return 'bg-red-100 text-red-800 font-bold';
     };
 

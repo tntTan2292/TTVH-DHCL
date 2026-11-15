@@ -381,7 +381,7 @@ test('integrated trend shows backend rank details without adding a rank line or 
 });
 
 test('risk panel uses confirmed values and labels unknown causes explicitly', () => {
-  const risks = summarizeRiskEvidence(sampleTrend, { total_failed: 1037, failed_rate: 28.2 }, { text: 'Nhịp chất lượng giảm so với kỳ trước.', color: 'yellow' });
+  const risks = summarizeRiskEvidence(sampleTrend, { total_failed: 1037, failed_rate: 28.2 }, { text: 'Nhịp chất lượng giảm so với kỳ trước.', color: 'pink' });
   assert.match(risks[0].evidence, /1\.037/);
   assert.match(risks[0].note, /chưa xác định/i);
   assert.ok(!risks.some((risk) => risk.evidence.includes('25%')));

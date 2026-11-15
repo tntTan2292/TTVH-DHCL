@@ -68,32 +68,36 @@ test('Defect 2: computeTrendYDomain never clips low data points (e.g. F4.1 22.2%
   assert.ok(domainNormal[0] >= 70 && domainNormal[0] <= 80);
 });
 
-test('Defect 3: Rate colours use shared catalogue with indicator-specific bands (F1.x: 70/60/50, F4.1: 80/70/60, F4.2: 90/80/70)', () => {
-  // F1.1, F1.2, F1.3 bands: 70 / 60 / 50
-  for (const ind of [F11_INDICATOR, F12_INDICATOR, F13_INDICATOR]) {
-    assert.equal(classifyF13HeatmapRate(75.0, ind.heatmapBands).tone, 'band-green');
-    assert.equal(classifyF13HeatmapRate(65.0, ind.heatmapBands).tone, 'band-pink');
-    assert.equal(classifyF13HeatmapRate(55.0, ind.heatmapBands).tone, 'band-yellow');
-    assert.equal(classifyF13HeatmapRate(45.0, ind.heatmapBands).tone, 'band-red');
+test('Defect 3: Rate colours use shared catalogue with indicator-specific bands (F1.1/F1.2: 90/80/70, F1.3 and F4.1: 80/70/60, F4.2: 90/80/70)', () => {
+  // F1.1, F1.2 bands: 90 / 80 / 70; F1.3 bands: 80 / 70 / 60 (PO 2026-11-12)
+  for (const ind of [F11_INDICATOR, F12_INDICATOR]) {
+    assert.equal(classifyF13HeatmapRate(95.0, ind.heatmapBands).tone, 'band-green');
+    assert.equal(classifyF13HeatmapRate(85.0, ind.heatmapBands).tone, 'band-yellow');
+    assert.equal(classifyF13HeatmapRate(75.0, ind.heatmapBands).tone, 'band-pink');
+    assert.equal(classifyF13HeatmapRate(65.0, ind.heatmapBands).tone, 'band-red');
     assert.equal(classifyF13HeatmapRate(null, ind.heatmapBands).tone, 'unavailable');
   }
+  assert.equal(classifyF13HeatmapRate(85.0, F13_INDICATOR.heatmapBands).tone, 'band-green');
+  assert.equal(classifyF13HeatmapRate(75.0, F13_INDICATOR.heatmapBands).tone, 'band-yellow');
+  assert.equal(classifyF13HeatmapRate(65.0, F13_INDICATOR.heatmapBands).tone, 'band-pink');
+  assert.equal(classifyF13HeatmapRate(55.0, F13_INDICATOR.heatmapBands).tone, 'band-red');
 
-  // F4.1 bands: 80 / 70 / 60 (75.0% is yellow/pink in F4.1 but green in F1.x!)
+  // F4.1 bands: 80 / 70 / 60 (75.0% is pink/yellow in F4.1 but green in F1.x!)
   assert.equal(classifyF13HeatmapRate(85.0, F41_INDICATOR.heatmapBands).tone, 'band-green');
-  assert.equal(classifyF13HeatmapRate(75.0, F41_INDICATOR.heatmapBands).tone, 'band-pink');
-  assert.equal(classifyF13HeatmapRate(65.0, F41_INDICATOR.heatmapBands).tone, 'band-yellow');
+  assert.equal(classifyF13HeatmapRate(75.0, F41_INDICATOR.heatmapBands).tone, 'band-yellow');
+  assert.equal(classifyF13HeatmapRate(65.0, F41_INDICATOR.heatmapBands).tone, 'band-pink');
   assert.equal(classifyF13HeatmapRate(55.0, F41_INDICATOR.heatmapBands).tone, 'band-red');
 
-  // F4.2 bands: 90 / 80 / 70 (85.0% is pink in F4.2, 75.0% is yellow, 65.0% is red)
+  // F4.2 bands: 90 / 80 / 70 (85.0% is yellow in F4.2, 75.0% is pink, 65.0% is red)
   assert.equal(classifyF13HeatmapRate(92.0, F42_INDICATOR.heatmapBands).tone, 'band-green');
-  assert.equal(classifyF13HeatmapRate(85.0, F42_INDICATOR.heatmapBands).tone, 'band-pink');
-  assert.equal(classifyF13HeatmapRate(75.0, F42_INDICATOR.heatmapBands).tone, 'band-yellow');
+  assert.equal(classifyF13HeatmapRate(85.0, F42_INDICATOR.heatmapBands).tone, 'band-yellow');
+  assert.equal(classifyF13HeatmapRate(75.0, F42_INDICATOR.heatmapBands).tone, 'band-pink');
   assert.equal(classifyF13HeatmapRate(65.0, F42_INDICATOR.heatmapBands).tone, 'band-red');
 
   // Verify tone class mappings exist in F13_HEATMAP_TONE_CLASS
   assert.ok(F13_HEATMAP_TONE_CLASS['band-green'].includes('emerald'));
-  assert.ok(F13_HEATMAP_TONE_CLASS['band-pink'].includes('pink'));
   assert.ok(F13_HEATMAP_TONE_CLASS['band-yellow'].includes('amber'));
+  assert.ok(F13_HEATMAP_TONE_CLASS['band-pink'].includes('pink'));
   assert.ok(F13_HEATMAP_TONE_CLASS['band-red'].includes('red'));
 });
 

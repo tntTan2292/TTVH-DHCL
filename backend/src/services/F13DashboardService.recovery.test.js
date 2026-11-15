@@ -594,21 +594,21 @@ test('BCVH ranking exposes Wave 1 comparison, delayed-cash, and route-distributi
     assert.equal(result.data[0].route_distribution.participating_postman_route_count, 2);
     assert.equal(result.data[0].route_distribution.green_route_count, 1);
     assert.equal(result.data[0].route_distribution.red_route_count, 1);
-    assert.equal(result.data[0].route_distribution.pink_route_count, 0);
+    assert.equal(result.data[0].route_distribution.yellow_route_count, 0);
     assert.equal(result.data[1].comparisons.d1.rank_movement.direction, 'declined');
     assert.equal(result.data[1].comparisons.d1.rank_movement.delta, -1);
     assert.equal(result.data[1].comparisons.d7.rank_movement.direction, 'unchanged');
     assert.equal(result.data[1].delayed_cash_handover_count, 1);
     assert.equal(result.data[1].route_distribution.participating_postman_route_count, 2);
-    assert.equal(result.data[1].route_distribution.yellow_route_count, 1);
-    assert.equal(result.data[1].route_distribution.red_route_count, 1);
+    assert.equal(result.data[1].route_distribution.pink_route_count, 0);
+    assert.equal(result.data[1].route_distribution.red_route_count, 2);
     assert.equal(result.meta.total_row.delayed_cash_handover_count, 2);
     assert.equal(result.meta.total_row.delayed_cash_handover_eligible_count, 4);
     assert.equal(result.meta.total_row.f13_303_rate, 50);
     assert.equal(result.meta.total_row.route_distribution.participating_postman_route_count, 4);
     assert.equal(result.meta.total_row.route_distribution.green_route_count, 1);
-    assert.equal(result.meta.total_row.route_distribution.yellow_route_count, 1);
-    assert.equal(result.meta.total_row.route_distribution.red_route_count, 2);
+    assert.equal(result.meta.total_row.route_distribution.pink_route_count, 0);
+    assert.equal(result.meta.total_row.route_distribution.red_route_count, 3);
   } finally {
     Object.assign(repo, originals);
   }

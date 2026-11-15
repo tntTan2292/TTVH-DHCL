@@ -216,54 +216,54 @@ test('monthly YTD combo data exposes management summary and current-month cutoff
 });
 
 test('weekday combo data preserves approved F1.3 warning bands and volume pass-rate fields', () => {
-  assert.equal(getApprovedWeekdayBand(75).id, 'green');
+  assert.equal(getApprovedWeekdayBand(85).id, 'green');
+  assert.equal(getApprovedWeekdayBand(75).id, 'yellow');
   assert.equal(getApprovedWeekdayBand(65).id, 'pink');
-  assert.equal(getApprovedWeekdayBand(55).id, 'yellow');
-  assert.equal(getApprovedWeekdayBand(49.99).id, 'red');
+  assert.equal(getApprovedWeekdayBand(59.99).id, 'red');
 
   const model = mapOperatingPatternResponse({
     weekly: [
-      { day: 'T2', avg_kpi: 75, pass_rate: 75, total_volume: 10, color: 'green' },
-      { day: 'T3', avg_kpi: 65, pass_rate: 65, total_volume: 10, color: 'pink' },
-      { day: 'T4', avg_kpi: 55, pass_rate: 55, total_volume: 10, color: 'yellow' },
-      { day: 'T5', avg_kpi: 45, pass_rate: 45, total_volume: 10, color: 'red' },
+      { day: 'T2', avg_kpi: 85, pass_rate: 85, total_volume: 10, color: 'green' },
+      { day: 'T3', avg_kpi: 75, pass_rate: 75, total_volume: 10, color: 'yellow' },
+      { day: 'T4', avg_kpi: 65, pass_rate: 65, total_volume: 10, color: 'pink' },
+      { day: 'T5', avg_kpi: 55, pass_rate: 55, total_volume: 10, color: 'red' },
     ],
   });
 
-  assert.deepEqual(model.weekday.map((row) => row.targetTone), ['band-green', 'band-pink', 'band-yellow', 'band-red']);
-  assert.deepEqual(model.weekday.map((row) => row.bandLabel), ['Xanh', 'Hồng', 'Vàng', 'Đỏ']);
+  assert.deepEqual(model.weekday.map((row) => row.targetTone), ['band-green', 'band-yellow', 'band-pink', 'band-red']);
+  assert.deepEqual(model.weekday.map((row) => row.bandLabel), ['Xanh', 'Vàng', 'Hồng', 'Đỏ']);
   assert.deepEqual(model.weekday.map((row) => row.totalVolume), [10, 10, 10, 10]);
 });
 
 test('heatmap month average is still computed for tooltips/stats, but day cell color uses the absolute classifier', () => {
   const heatmap = [[
-    { date: '2026-07-01', kpi_rate: 80 },
-    { date: '2026-07-02', kpi_rate: 74 },
-    { date: '2026-07-03', kpi_rate: 70 },
-    { date: '2026-07-04', kpi_rate: 66 },
-    { date: '2026-07-05', kpi_rate: 60 },
+    { date: '2026-07-01', kpi_rate: 90 },
+    { date: '2026-07-02', kpi_rate: 84 },
+    { date: '2026-07-03', kpi_rate: 80 },
+    { date: '2026-07-04', kpi_rate: 76 },
+    { date: '2026-07-05', kpi_rate: 70 },
   ]];
 
   // Analytical average/delta data (PO decision 2026-08-28: kept, no longer decides color).
   const stats = buildHeatmapMonthStats(heatmap, '2026-07');
-  assert.equal(stats.average, 70);
-  assert.deepEqual(stats.best, { date: '2026-07-01', rate: 80, deltaFromMonthAverage: 10 });
-  assert.deepEqual(stats.worst, { date: '2026-07-05', rate: 60, deltaFromMonthAverage: -10 });
+  assert.equal(stats.average, 80);
+  assert.deepEqual(stats.best, { date: '2026-07-01', rate: 90, deltaFromMonthAverage: 10 });
+  assert.deepEqual(stats.worst, { date: '2026-07-05', rate: 70, deltaFromMonthAverage: -10 });
   assert.equal(stats.aboveAverageCount, 2);
   assert.equal(stats.belowAverageCount, 2);
 
   const model = mapOperatingPatternResponse({ heatmap }, { toDate: '2026-07-05' });
 
-  // Cell color: absolute F1.3 Heatmap SSOT (green >=70 / pink 60-70 / yellow 50-60 / red <50),
+  // Cell color: absolute F1.3 Heatmap SSOT (green >=80 / yellow 70-80 / pink 60-70 / red <60),
   // classified from each day's own rate — 80/74/70 are all >=70 (green) even though 70 sits
-  // exactly at the monthly average; 66/60 are both in [60,70) (pink).
+  // exactly at the monthly average; 66/60 are both in [60,70) (yellow).
   assert.deepEqual(
     model.heatmap[0].days.map((day) => day.targetTone),
-    ['band-green', 'band-green', 'band-green', 'band-pink', 'band-pink'],
+    ['band-green', 'band-green', 'band-green', 'band-yellow', 'band-yellow'],
   );
   assert.deepEqual(
     model.heatmap[0].days.map((day) => day.bandLabel),
-    ['Xanh', 'Xanh', 'Xanh', 'Hồng', 'Hồng'],
+    ['Xanh', 'Xanh', 'Xanh', 'Vàng', 'Vàng'],
   );
 
   // deltaFromMonthAverage is still present on every day (for the tooltip), even though it no
@@ -280,7 +280,7 @@ test('heatmap month average is still computed for tooltips/stats, but day cell c
     ['significantly-above', 'above', 'near-average', 'below', 'significantly-below'],
   );
 
-  assert.equal(model.heatmap[0].days[0].valueLabel, '80.00%');
+  assert.equal(model.heatmap[0].days[0].valueLabel, '90.00%');
   assert.equal(model.heatmap[0].days[0].dayLabel, '01/07');
   assert.equal(model.heatmapMonths[0].label, 'Tháng 07/2026');
   assert.equal(model.heatmapMonths[0].rangeLabel, 'Từ 01/07/2026 đến 05/07/2026');
@@ -289,25 +289,25 @@ test('heatmap month average is still computed for tooltips/stats, but day cell c
 test('two days with the same rate get the same Heatmap color even when their monthly averages differ', () => {
   const lowAverageMonth = mapOperatingPatternResponse({
     heatmap: [[
-      { date: '2026-02-01', kpi_rate: 65 },
-      { date: '2026-02-02', kpi_rate: 40 },
+      { date: '2026-02-01', kpi_rate: 75 },
+      { date: '2026-02-02', kpi_rate: 50 },
     ]],
   }, { toDate: '2026-02-02' });
 
   const highAverageMonth = mapOperatingPatternResponse({
     heatmap: [[
-      { date: '2026-03-01', kpi_rate: 65 },
+      { date: '2026-03-01', kpi_rate: 75 },
       { date: '2026-03-02', kpi_rate: 95 },
     ]],
   }, { toDate: '2026-03-02' });
 
   const dayA = lowAverageMonth.heatmap[0].days[0]; // rate 65, month average 52.5
   const dayB = highAverageMonth.heatmap[0].days[0]; // rate 65, month average 80
-  assert.equal(dayA.rate, 65);
-  assert.equal(dayB.rate, 65);
+  assert.equal(dayA.rate, 75);
+  assert.equal(dayB.rate, 75);
   assert.notEqual(dayA.deltaFromMonthAverage, dayB.deltaFromMonthAverage);
   assert.equal(dayA.targetTone, dayB.targetTone);
-  assert.equal(dayA.targetTone, 'band-pink');
+  assert.equal(dayA.targetTone, 'band-yellow');
 });
 
 test('heatmap groups complete previous month and current month through cutoff with unknown days preserved', () => {
@@ -464,13 +464,13 @@ test('the weekday AND heatmap tabs both use the single absolute F1.3 Heatmap thr
     'utf8',
   );
 
-  // The 70/60/50 thresholds live in exactly one place: the shared catalog module. Neither
+  // The 80/70/60 thresholds live in exactly one place: the shared catalog module. Neither
   // this mapper nor the card re-declares them.
+  assert.match(catalogSource, /min: 80/);
   assert.match(catalogSource, /min: 70/);
   assert.match(catalogSource, /min: 60/);
-  assert.match(catalogSource, /min: 50/);
-  assert.doesNotMatch(mapperSource, /min:\s*70/);
-  assert.doesNotMatch(componentSource, /min:\s*70/);
+  assert.doesNotMatch(mapperSource, /min:\s*80/);
+  assert.doesNotMatch(componentSource, /min:\s*80/);
 
   // The old "relative to monthly average" heatmap legend heading is gone; both tabs now
   // read from the same absolute band legend body (AbsoluteBandLegendBody).

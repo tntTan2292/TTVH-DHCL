@@ -43,8 +43,8 @@ test('processOverviewData pivots monthly & daily data for 6 canonical BCVHs', ()
       { ma_bcvh: '535470', ten_bcvh: 'BCVH Hương Trà', volume: 800, passed: 560, failed: 240, rate: 70.0, rank: 2, previous_month_to_date: { volume: 750, passed: 525, rate: 70.0 } },
     ],
     routes: [
-      { ma_bcvh: '533140', ten_bcvh: 'BCVH Thuận Hóa', participating_route_count: 10, green: 4, pink: 3, yellow: 2, red: 1 },
-      { ma_bcvh: '535470', ten_bcvh: 'BCVH Hương Trà', participating_route_count: 8, green: 5, pink: 2, yellow: 1, red: 0 },
+      { ma_bcvh: '533140', ten_bcvh: 'BCVH Thuận Hóa', participating_route_count: 10, green: 4, yellow: 3, pink: 2, red: 1 },
+      { ma_bcvh: '535470', ten_bcvh: 'BCVH Hương Trà', participating_route_count: 8, green: 5, yellow: 2, pink: 1, red: 0 },
     ],
   };
 
@@ -73,8 +73,8 @@ test('processOverviewData pivots monthly & daily data for 6 canonical BCVHs', ()
   // Check Routes total row
   assert.equal(processed.routeTotalRow.participating_route_count, 18);
   assert.equal(processed.routeTotalRow.green, 9);
-  assert.equal(processed.routeTotalRow.pink, 5);
-  assert.equal(processed.routeTotalRow.yellow, 3);
+  assert.equal(processed.routeTotalRow.yellow, 5);
+  assert.equal(processed.routeTotalRow.pink, 3);
   assert.equal(processed.routeTotalRow.red, 1);
 });
 

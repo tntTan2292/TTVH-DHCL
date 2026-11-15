@@ -23,9 +23,9 @@ test('F11_INDICATOR has correct configuration and colour bands matching F1.3', (
   assert.equal(F11_INDICATOR.routes.dashboard, '/f11/dashboard');
   assert.equal(F11_INDICATOR.routes.ranking, '/f11/ranking/bcvh');
 
-  // Colour bands = F1.3 floors 70 / 60 / 50
-  assert.deepEqual(F11_INDICATOR.heatmapFloors, [70, 60, 50]);
-  assert.deepEqual(F11_INDICATOR.heatmapFloors, F13_INDICATOR.heatmapFloors);
+  // Colour bands = floors 90 / 80 / 70 (PO 2026-11-12: F1.1 and F1.2 raised by 20 points)
+  assert.deepEqual(F11_INDICATOR.heatmapFloors, [90, 80, 70]);
+  assert.notDeepEqual(F11_INDICATOR.heatmapFloors, F13_INDICATOR.heatmapFloors);
   assert.notDeepEqual(F11_INDICATOR.heatmapFloors, F41_INDICATOR.heatmapFloors);
 
   // Features: provinceRanking removed per PO Delta 2026-10-10, pairTable true
@@ -85,24 +85,24 @@ test('Block B: Pair table cell classification, legend, and camera button use dyn
   assert.equal(classifyF13HeatmapRate(undefined, F11_INDICATOR.heatmapBands).tone, 'unavailable');
   assert.equal(classifyF13HeatmapRate(0, F11_INDICATOR.heatmapBands).tone, 'band-red');
   assert.equal(classifyF13HeatmapRate(45.5, F11_INDICATOR.heatmapBands).tone, 'band-red');
-  assert.equal(classifyF13HeatmapRate(55, F11_INDICATOR.heatmapBands).tone, 'band-yellow');
-  assert.equal(classifyF13HeatmapRate(65, F11_INDICATOR.heatmapBands).tone, 'band-pink');
-  assert.equal(classifyF13HeatmapRate(85, F11_INDICATOR.heatmapBands).tone, 'band-green');
+  assert.equal(classifyF13HeatmapRate(75, F11_INDICATOR.heatmapBands).tone, 'band-pink');
+  assert.equal(classifyF13HeatmapRate(85, F11_INDICATOR.heatmapBands).tone, 'band-yellow');
+  assert.equal(classifyF13HeatmapRate(95, F11_INDICATOR.heatmapBands).tone, 'band-green');
 
   // Tone class lookup works as expected
   assert.ok(F13_HEATMAP_TONE_CLASS['band-green']);
-  assert.ok(F13_HEATMAP_TONE_CLASS['band-pink']);
   assert.ok(F13_HEATMAP_TONE_CLASS['band-yellow']);
+  assert.ok(F13_HEATMAP_TONE_CLASS['band-pink']);
   assert.ok(F13_HEATMAP_TONE_CLASS['band-red']);
 
-  // buildMonthlyHeatmapLegend dynamically uses indicator floors (70, 60, 50)
+  // buildMonthlyHeatmapLegend dynamically uses indicator floors (90, 80, 70)
   const legend = buildMonthlyHeatmapLegend(F11_INDICATOR);
   assert.equal(legend.length, 5);
   assert.deepEqual(legend.map((entry) => entry.description), [
-    'Tỷ lệ từ 70% trở lên',
-    'Từ 60% đến dưới 70%',
-    'Từ 50% đến dưới 60%',
-    'Dưới 50%',
+    'Tỷ lệ từ 90% trở lên',
+    'Từ 80% đến dưới 90%',
+    'Từ 70% đến dưới 80%',
+    'Dưới 70%',
     'Chưa có dữ liệu',
   ]);
 

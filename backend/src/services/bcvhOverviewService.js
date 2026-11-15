@@ -224,9 +224,9 @@ class BcvhOverviewService {
             const counts = { green: 0, pink: 0, yellow: 0, red: 0 };
             routeList.forEach((route) => {
                 const rate = nullableRate(route.dat_kpi_2026, route.total_bg) || 0;
-                if (rate >= 70) counts.green += 1;
+                if (rate >= 80) counts.green += 1;
+                else if (rate >= 70) counts.yellow += 1;
                 else if (rate >= 60) counts.pink += 1;
-                else if (rate >= 50) counts.yellow += 1;
                 else counts.red += 1;
             });
             return {

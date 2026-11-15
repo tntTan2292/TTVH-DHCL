@@ -30,10 +30,10 @@ function fixtureRows(anchorDate = '2026-08-27') {
         previous_volume: 80, previous_passed: 40, anchor_date: anchorDate,
     }));
     const routes = [
-        { ma_bcvh: CODES[0], ma_tuyen: '53579001', total_bg: 100, dat_kpi_2026: 70, anchor_date: anchorDate },
-        { ma_bcvh: CODES[0], ma_tuyen: '53579002', total_bg: 100, dat_kpi_2026: 60, anchor_date: anchorDate },
-        { ma_bcvh: CODES[0], ma_tuyen: '53579003', total_bg: 100, dat_kpi_2026: 50, anchor_date: anchorDate },
-        { ma_bcvh: CODES[0], ma_tuyen: '53579004', total_bg: 100, dat_kpi_2026: 49, anchor_date: anchorDate },
+        { ma_bcvh: CODES[0], ma_tuyen: '53579001', total_bg: 100, dat_kpi_2026: 80, anchor_date: anchorDate },
+        { ma_bcvh: CODES[0], ma_tuyen: '53579002', total_bg: 100, dat_kpi_2026: 70, anchor_date: anchorDate },
+        { ma_bcvh: CODES[0], ma_tuyen: '53579003', total_bg: 100, dat_kpi_2026: 60, anchor_date: anchorDate },
+        { ma_bcvh: CODES[0], ma_tuyen: '53579004', total_bg: 100, dat_kpi_2026: 59, anchor_date: anchorDate },
         { ma_bcvh: CODES[0], ma_tuyen: '53579027', total_bg: 100, dat_kpi_2026: 100, anchor_date: anchorDate },
         { ma_bcvh: '531600', ma_tuyen: '53160001', total_bg: 100, dat_kpi_2026: 100, anchor_date: anchorDate },
     ];
@@ -90,8 +90,8 @@ test('T1/T4/T5/T10/T11: overview returns canonical grids, coverage-aware rates, 
 
     const routeSummary = result.routes.find((row) => row.ma_bcvh === CODES[0]);
     assert.deepEqual(
-        { participating: routeSummary.participating_route_count, green: routeSummary.green, pink: routeSummary.pink, yellow: routeSummary.yellow, red: routeSummary.red },
-        { participating: 4, green: 1, pink: 1, yellow: 1, red: 1 },
+        { participating: routeSummary.participating_route_count, green: routeSummary.green, yellow: routeSummary.yellow, pink: routeSummary.pink, red: routeSummary.red },
+        { participating: 4, green: 1, yellow: 1, pink: 1, red: 1 },
     );
     const forbidden = ['alert', 'warning', 'risk'];
     const keys = collectObjectKeys(result);
