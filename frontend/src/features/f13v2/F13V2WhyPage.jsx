@@ -25,11 +25,12 @@ export default function F13V2WhyPage() {
   const [weeks, setWeeks] = useState([]);
   const [months, setMonths] = useState([]);
 
-  // URL parameters: from, to, week, month, bcvh
+  // URL parameters: from, to, week, month, bcvh, route
   const fromParam = searchParams.get('from') || '';
   const toParam = searchParams.get('to') || '';
   const weekParam = searchParams.get('week') || '';
   const monthParam = searchParams.get('month') || '';
+  const routeParam = searchParams.get('route') || '';
 
   // Determine periodMode from URL params
   const periodMode = useMemo(() => {
@@ -382,6 +383,7 @@ export default function F13V2WhyPage() {
               periodLabel={periodLabel}
               onSelectBcvh={handleBcvhChange}
               onOpenParcels={handleOpenParcels}
+              routeParam={routeParam}
             />
 
             {/* Step 2: Parcel Evidence Modal */}

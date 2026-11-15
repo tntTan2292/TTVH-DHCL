@@ -1,9 +1,16 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { isNavItemActive, translateLegacyEvidenceSearch, translateLegacyF13DashboardSearch, translateLegacyF13RouteSearch } from './urlPreservation.js';
+import {
+  isoWeekFromDate,
+  isNavItemActive,
+  translateLegacyEvidenceSearch,
+  translateLegacyF13BcvhSearch,
+  translateLegacyF13DashboardSearch,
+  translateLegacyF13RouteSearch,
+} from './urlPreservation.js';
 
 test('an old /f13/evidence link opens /f13/v2/evidence with the new parameter names', () => {
-  const parse = (search) => Object.fromEntries(new URLSearchParams(translateLegacyEvidenceSearch(search)));
+  const parse = (search) => Object.fromEntries(new globalThis.URLSearchParams(translateLegacyEvidenceSearch(search)));
   assert.deepEqual(
     parse('?from_date=2026-10-22&to_date=2026-10-28&bcvh_id=537015&bcvh_name=Thuan%20An&route_id=53701501&route_name=X&status=failed&shipment_id=ABC123&sort=delay_hours&page=3&reason=late&return_to=%2Ff13%2Franking%2Froute'),
     { from: '2026-10-22', to: '2026-10-28', bcvh: '537015', route: '53701501', verdict: 'Không đạt', search: 'ABC123' },
@@ -38,11 +45,24 @@ test('no date or only half a range: the page opens its latest day', () => {
   assert.equal(translateLegacyF13DashboardSearch('?from_date=2026-07-15'), '');
 });
 
-test('old /f13/ranking/bcvh opens /f13/v2/tuan keeping period and unit (App.jsx LegacyTimeAxisRedirect)', () => {
+test('old /f13/ranking/bcvh opens /f13/v2/tuan on the ISO week of from_date and keeps unit (P1.3)', () => {
+  assert.equal(isoWeekFromDate('2026-10-12'), '2026-W42');
+  assert.equal(isoWeekFromDate('2026-10-22'), '2026-W43');
+  assert.equal(isoWeekFromDate('2025-12-29'), '2026-W01');
+  assert.equal(isoWeekFromDate(''), '');
+  assert.equal(isoWeekFromDate('invalid'), '');
+
   assert.equal(
-    translateLegacyF13DashboardSearch('?from_date=2026-10-22&to_date=2026-10-28&interval=range&bcvh_id=537015&bcvh_name=Thuan%20An'),
-    '?from=2026-10-22&to=2026-10-28&bcvh=537015',
+    translateLegacyF13BcvhSearch('?bcvh_id=533140&from_date=2026-10-12&to_date=2026-10-18'),
+    '?week=2026-W42&bcvh=533140',
   );
+  assert.equal(
+    translateLegacyF13BcvhSearch('?from_date=2026-10-22&to_date=2026-10-28&interval=range&bcvh_id=537015&bcvh_name=Thuan%20An'),
+    '?week=2026-W43&bcvh=537015',
+  );
+  assert.equal(translateLegacyF13BcvhSearch('?bcvh_id=533140'), '?bcvh=533140');
+  assert.equal(translateLegacyF13BcvhSearch('?bcvh_id=all'), '');
+  assert.equal(translateLegacyF13BcvhSearch(''), '');
 });
 
 test('old /f13/ranking/route opens /f13/v2/why keeping period, unit and route (App.jsx LegacyF13RouteRedirect)', () => {

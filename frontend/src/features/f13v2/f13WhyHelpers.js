@@ -1266,3 +1266,91 @@ export function buildLotBatchQuery(lot, batch, extra = {}) {
   if (lot.period?.to) query.to = lot.period.to;
   return { ...query, ...extra };
 }
+
+// ============================================================================
+// F13-GOLIVE-CHECK-01 P1: Top-N route block camera & route query matching
+// ============================================================================
+
+export const WHY_CAPTURE_TOP_OPTIONS = Object.freeze([20, 50]);
+export const DEFAULT_WHY_CAPTURE_TOP = 20;
+
+export function whyRouteCaptureKey(route) {
+  if (!route) return '';
+  return route.key || `${route.ma_bcvh || ''}_${route.ma_tuyen || ''}`;
+}
+
+/**
+ * Selects the top N postman routes for a camera capture (20 / 50 / 'all', default 20),
+ * ordered by the current sort field and direction.
+ */
+export function selectWhyCaptureRoutes(
+  postmanRoutes = [],
+  { top = DEFAULT_WHY_CAPTURE_TOP, sortField = 'own_shortfall', sortDirection = 'desc' } = {}
+) {
+  const sorted = sortWhyRoutes(postmanRoutes, sortField, sortDirection);
+  const sliced = top === 'all' ? sorted : sorted.slice(0, Number(top) || DEFAULT_WHY_CAPTURE_TOP);
+  const keySet = new Set(sliced.map(whyRouteCaptureKey));
+  return { routes: sliced, keySet };
+}
+
+/**
+ * Computes the visible postman routes and bottom-group visibility for one BCVH block
+ * during normal view, whole-table camera capture, or BCVH-block camera capture.
+ */
+export function resolveWhyBcvhCaptureState(
+  bcvhGroup,
+  {
+    sortField = 'own_shortfall',
+    sortDirection = 'desc',
+    capturingAll = false,
+    topOverallSet = null,
+    capturingBcvh = false,
+    bcvhCaptureTop = DEFAULT_WHY_CAPTURE_TOP,
+  } = {}
+) {
+  const sortedPostman = sortWhyRoutes(bcvhGroup?.postmanRoutes || [], sortField, sortDirection);
+  let visiblePostmanRoutes = sortedPostman;
+  if (capturingAll && topOverallSet) {
+    visiblePostmanRoutes = sortedPostman.filter((r) => topOverallSet.has(whyRouteCaptureKey(r)));
+  } else if (capturingBcvh && bcvhCaptureTop !== 'all') {
+    visiblePostmanRoutes = sortedPostman.slice(0, Number(bcvhCaptureTop) || DEFAULT_WHY_CAPTURE_TOP);
+  }
+
+  const isCapturing = capturingAll || capturingBcvh;
+  const shouldRenderBottomGroups = !isCapturing || (capturingBcvh && bcvhCaptureTop === 'all');
+
+  return {
+    sortedPostman,
+    visiblePostmanRoutes,
+    isCapturing,
+    shouldRenderBottomGroups,
+  };
+}
+
+/**
+ * Checks whether a route row matches the `route` query parameter from `/f13/v2/why?route=...`.
+ */
+export function isWhyRouteMatch(route, routeParam) {
+  if (!route || !routeParam) return false;
+  const target = String(routeParam).trim();
+  if (!target || target === 'all') return false;
+  return (
+    route.ma_tuyen === target ||
+    route.key === target ||
+    route.filter?.route === target
+  );
+}
+
+/**
+ * Finds the route matching `routeParam` in a list of routes and returns its expansion key.
+ */
+export function findMatchingWhyRoute(routes = [], routeParam = '') {
+  if (!routeParam || !Array.isArray(routes) || routes.length === 0) return null;
+  const matched = routes.find((r) => isWhyRouteMatch(r, routeParam));
+  if (!matched) return null;
+  return {
+    route: matched,
+    routeKey: matched.key || matched.ma_tuyen,
+    ma_bcvh: matched.ma_bcvh || null,
+  };
+}

@@ -22,6 +22,12 @@ import {
   formatStoryLot,
   STORY_CONFIG,
   STORY_CAUSE_LABELS,
+  WHY_CAPTURE_TOP_OPTIONS,
+  DEFAULT_WHY_CAPTURE_TOP,
+  selectWhyCaptureRoutes,
+  resolveWhyBcvhCaptureState,
+  isWhyRouteMatch,
+  findMatchingWhyRoute,
 } from './f13WhyHelpers.js';
 
 test('formatShortfall formats integer and decimal values with Vietnamese locale', () => {
@@ -600,4 +606,75 @@ test('F13-WHY-NARRATIVE-02 review: no main cause keeps the mix sentence and stil
   assert.match(sentence.mainText, /2 BG đến BCVH còn ít giờ/);
   assert.ok(!sentence.mainText.startsWith(';'));
   assert.equal(sentence.hintText, '3 BG chưa có kết quả phát trong kỳ');
+});
+
+test('F13-GOLIVE-CHECK-01 P1.1: selectWhyCaptureRoutes and resolveWhyBcvhCaptureState support Top 20 / 50 / all (default 20)', () => {
+  assert.deepEqual(WHY_CAPTURE_TOP_OPTIONS, [20, 50]);
+  assert.equal(DEFAULT_WHY_CAPTURE_TOP, 20);
+
+  const routes = Array.from({ length: 60 }, (_, idx) => ({
+    key: `R_${idx + 1}`,
+    ma_bcvh: '533140',
+    ma_tuyen: `533140${String(idx + 1).padStart(2, '0')}`,
+    own_shortfall_x10: (60 - idx) * 10,
+    volume: 100,
+  }));
+
+  const top20 = selectWhyCaptureRoutes(routes);
+  assert.equal(top20.routes.length, 20);
+  assert.equal(top20.keySet.size, 20);
+  assert.ok(top20.keySet.has('R_1'));
+  assert.ok(top20.keySet.has('R_20'));
+  assert.ok(!top20.keySet.has('R_21'));
+
+  const top50 = selectWhyCaptureRoutes(routes, { top: 50 });
+  assert.equal(top50.routes.length, 50);
+
+  const allRoutes = selectWhyCaptureRoutes(routes, { top: 'all' });
+  assert.equal(allRoutes.routes.length, 60);
+
+  const bcvhGroup = { postmanRoutes: routes };
+  const normalState = resolveWhyBcvhCaptureState(bcvhGroup);
+  assert.equal(normalState.visiblePostmanRoutes.length, 60);
+  assert.equal(normalState.shouldRenderBottomGroups, true);
+
+  const wholeCaptureState = resolveWhyBcvhCaptureState(bcvhGroup, {
+    capturingAll: true,
+    topOverallSet: top20.keySet,
+  });
+  assert.equal(wholeCaptureState.visiblePostmanRoutes.length, 20);
+  assert.equal(wholeCaptureState.shouldRenderBottomGroups, false);
+
+  const bcvhTop20State = resolveWhyBcvhCaptureState(bcvhGroup, {
+    capturingBcvh: true,
+    bcvhCaptureTop: 20,
+  });
+  assert.equal(bcvhTop20State.visiblePostmanRoutes.length, 20);
+  assert.equal(bcvhTop20State.shouldRenderBottomGroups, false);
+
+  const bcvhAllState = resolveWhyBcvhCaptureState(bcvhGroup, {
+    capturingBcvh: true,
+    bcvhCaptureTop: 'all',
+  });
+  assert.equal(bcvhAllState.visiblePostmanRoutes.length, 60);
+  assert.equal(bcvhAllState.shouldRenderBottomGroups, true);
+});
+
+test('F13-GOLIVE-CHECK-01 P1.4: isWhyRouteMatch and findMatchingWhyRoute resolve route query param', () => {
+  const routes = [
+    { key: '533140_53314001', ma_bcvh: '533140', ma_tuyen: '53314001', filter: { route: '53314001' } },
+    { key: '533140_53314049', ma_bcvh: '533140', ma_tuyen: '53314049', filter: { route: '53314049' } },
+  ];
+
+  assert.equal(isWhyRouteMatch(routes[1], '53314049'), true);
+  assert.equal(isWhyRouteMatch(routes[1], '533140_53314049'), true);
+  assert.equal(isWhyRouteMatch(routes[0], '53314049'), false);
+  assert.equal(isWhyRouteMatch(routes[0], ''), false);
+  assert.equal(isWhyRouteMatch(routes[0], 'all'), false);
+
+  const matched = findMatchingWhyRoute(routes, '53314049');
+  assert.equal(matched?.routeKey, '533140_53314049');
+  assert.equal(matched?.ma_bcvh, '533140');
+  assert.equal(findMatchingWhyRoute(routes, '99999999'), null);
+  assert.equal(findMatchingWhyRoute(routes, ''), null);
 });

@@ -26,7 +26,12 @@ import F13V2EvidencePage from './features/f13v2/F13V2EvidencePage';
 import F13V2RuleProposalPage from './features/f13v2/F13V2RuleProposalPage';
 import HangTonPage from './features/hangton/HangTonPage';
 import { translateLegacyViolationsSearch } from './features/route/routeViolationEvidenceData';
-import { translateLegacyEvidenceSearch, translateLegacyF13DashboardSearch, translateLegacyF13RouteSearch } from './navigation/urlPreservation';
+import {
+  translateLegacyEvidenceSearch,
+  translateLegacyF13BcvhSearch,
+  translateLegacyF13DashboardSearch,
+  translateLegacyF13RouteSearch,
+} from './navigation/urlPreservation';
 import ServicePointsPage from './features/networkMap/ServicePointsPage';
 import Level2RoutesPage from './features/networkMap/Level2RoutesPage';
 import DeliveryRoutesPage from './features/networkMap/DeliveryRoutesPage';
@@ -95,10 +100,13 @@ function LegacyF13DashboardRedirect() {
   return <Navigate to={`/f13/v2/ngay${translateLegacyF13DashboardSearch(location.search)}`} replace />;
 }
 
-// The old Bảng điều hành and Phân tích pages of F1.1, F1.2, F4.1, F4.2 are retired (PO 2026-11-03): old links keep the day and unit.
+// The old Bảng điều hành and Phân tích pages of F1.1, F1.2, F4.1, F4.2 and /f13/ranking/bcvh are retired (PO 2026-11-03, G6): old links keep the period and unit.
 function LegacyTimeAxisRedirect({ to }) {
   const location = useLocation();
-  return <Navigate to={`${to}${translateLegacyF13DashboardSearch(location.search)}`} replace />;
+  const search = to.endsWith('/tuan')
+    ? translateLegacyF13BcvhSearch(location.search)
+    : translateLegacyF13DashboardSearch(location.search);
+  return <Navigate to={`${to}${search}`} replace />;
 }
 
 // The old F1.3 So sánh BCVH (/f13/ranking/bcvh) opens Theo tuần and Phân tích tuyến phát (/f13/ranking/route) opens Phân tích nguyên nhân (G6): old links keep period, unit and route.

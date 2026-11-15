@@ -1,6 +1,7 @@
-import { useMemo, useRef, useState, Fragment } from 'react';
+import { useEffect, useMemo, useRef, useState, Fragment } from 'react';
 import { Route, Layers, ChevronDown, ChevronRight, User, Package } from 'lucide-react';
 import BlockCaptureButton from '../../../components/common/BlockCaptureButton.jsx';
+import { waitForNextPaint } from '../../../components/common/blockCaptureHelper.js';
 import SortableTh from '../../../components/common/SortableTh.jsx';
 import { useIndicator } from '../../indicator/IndicatorContext.js';
 import { indicatorTheme, indicatorTargetRate } from '../../indicator/indicatorConfig.js';
@@ -10,8 +11,13 @@ import {
   formatSharePercent,
   separateRouteScopes,
   buildRouteStorySentence,
-  sortWhyRoutes,
   groupRoutesByBcvh,
+  WHY_CAPTURE_TOP_OPTIONS,
+  DEFAULT_WHY_CAPTURE_TOP,
+  selectWhyCaptureRoutes,
+  resolveWhyBcvhCaptureState,
+  isWhyRouteMatch,
+  findMatchingWhyRoute,
 } from '../f13WhyHelpers.js';
 import F13V2WhyPostmanSubTable from './F13V2WhyPostmanSubTable.jsx';
 
@@ -147,25 +153,74 @@ function SingleBcvhRoutesBlock({
   onSort,
   theme,
   targetRate,
+  periodLabel = '',
   onSelectBcvh,
   onOpenParcels,
   isCityWide = false,
+  capturingAll = false,
+  topOverallSet = null,
+  routeParam = '',
 }) {
-  const [expandedRouteKey, setExpandedRouteKey] = useState(null);
+  const bcvhRef = useRef(null);
+  const highlightedRowRef = useRef(null);
+  const matchedRoute = useMemo(
+    () => findMatchingWhyRoute(bcvhGroup.routes, routeParam),
+    [bcvhGroup.routes, routeParam]
+  );
+  const [manualExpanded, setManualExpanded] = useState(null);
+  const [bcvhCaptureTop, setBcvhCaptureTop] = useState(DEFAULT_WHY_CAPTURE_TOP);
+  const [capturingBcvh, setCapturingBcvh] = useState(false);
+
+  const expandedRouteKey =
+    manualExpanded && manualExpanded.routeParam === routeParam
+      ? manualExpanded.key
+      : matchedRoute?.routeKey || null;
+
+  useEffect(() => {
+    if (matchedRoute?.routeKey) {
+      highlightedRowRef.current?.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
+    }
+  }, [matchedRoute?.routeKey]);
 
   const toggleExpand = (key) => {
-    setExpandedRouteKey((cur) => (cur === key ? null : key));
+    setManualExpanded({
+      routeParam,
+      key: expandedRouteKey === key ? null : key,
+    });
   };
 
-  const sortedPostman = useMemo(() => {
-    return sortWhyRoutes(bcvhGroup.postmanRoutes, sort.field, sort.direction);
-  }, [bcvhGroup.postmanRoutes, sort.field, sort.direction]);
+  const {
+    visiblePostmanRoutes,
+    isCapturing,
+    shouldRenderBottomGroups,
+  } = useMemo(
+    () =>
+      resolveWhyBcvhCaptureState(bcvhGroup, {
+        sortField: sort.field,
+        sortDirection: sort.direction,
+        capturingAll,
+        topOverallSet,
+        capturingBcvh,
+        bcvhCaptureTop,
+      }),
+    [bcvhGroup, sort.field, sort.direction, capturingAll, topOverallSet, capturingBcvh, bcvhCaptureTop]
+  );
+
+  // During whole-table capture in city-wide mode, omit BCVHs with 0 matching rows in Top N overall
+  if (capturingAll && isCityWide && visiblePostmanRoutes.length === 0) {
+    return null;
+  }
 
   const bcvhRow = bcvhGroup.bcvhRow;
   const hasDeficit = (bcvhRow?.own_shortfall || 0) > 0;
 
   return (
-    <div className={`rounded-xl border border-slate-200 bg-white p-3.5 shadow-2xs ${isCityWide ? 'mb-4 last:mb-0' : ''}`}>
+    <div
+      ref={bcvhRef}
+      className={`rounded-xl border border-slate-200 bg-white p-3.5 shadow-2xs ${
+        isCityWide ? 'mb-4 last:mb-0' : ''
+      } ${isCapturing ? 'w-fit min-w-full overflow-visible' : ''}`}
+    >
       {/* Sub-header for this BCVH when in city-wide mode */}
       {isCityWide && (
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-2.5 mb-3">
@@ -186,20 +241,47 @@ function SingleBcvhRoutesBlock({
               </span>
             )}
           </div>
-          {onSelectBcvh && (
-            <button
-              type="button"
-              onClick={() => onSelectBcvh(bcvhGroup.ma_bcvh)}
-              className="rounded-lg border border-blue-200 bg-blue-50/70 px-2.5 py-1 text-xs font-bold text-blue-700 hover:bg-blue-100 transition-colors cursor-pointer"
-            >
-              Lọc riêng {bcvhGroup.ten_bcvh} &rarr;
-            </button>
-          )}
+          <div data-no-capture="true" className="flex flex-wrap items-center gap-2">
+            <label className="flex items-center gap-1 text-[11px] font-semibold text-slate-600">
+              <span>Ảnh BCVH lấy</span>
+              <select
+                value={bcvhCaptureTop}
+                onChange={(event) => setBcvhCaptureTop(event.target.value === 'all' ? 'all' : Number(event.target.value))}
+                className="cursor-pointer rounded-lg border border-slate-300 bg-white px-1.5 py-0.5 text-[11px] font-semibold text-slate-700"
+              >
+                {WHY_CAPTURE_TOP_OPTIONS.map((count) => (
+                  <option key={count} value={count}>
+                    Top {count}
+                  </option>
+                ))}
+                <option value="all">Tất cả</option>
+              </select>
+            </label>
+            <BlockCaptureButton
+              targetRef={bcvhRef}
+              blockTitle={`Danh sách tuyến phát cần chú ý - ${bcvhGroup.ten_bcvh}`}
+              dateOrPeriod={periodLabel}
+              beforeCapture={async () => {
+                setCapturingBcvh(true);
+                await waitForNextPaint();
+              }}
+              afterCapture={() => setCapturingBcvh(false)}
+            />
+            {onSelectBcvh && (
+              <button
+                type="button"
+                onClick={() => onSelectBcvh(bcvhGroup.ma_bcvh)}
+                className="rounded-lg border border-blue-200 bg-blue-50/70 px-2.5 py-1 text-xs font-bold text-blue-700 hover:bg-blue-100 transition-colors cursor-pointer"
+              >
+                Lọc riêng {bcvhGroup.ten_bcvh} &rarr;
+              </button>
+            )}
+          </div>
         </div>
       )}
 
       {/* Main Table: Postman Routes */}
-      <div className="overflow-x-auto">
+      <div className={isCapturing ? 'overflow-visible' : 'overflow-x-auto'}>
         <table className="w-full text-left text-xs border-collapse">
           <thead>
             <tr className="border-b border-slate-200 bg-slate-50/90 text-slate-700 font-bold">
@@ -288,24 +370,33 @@ function SingleBcvhRoutesBlock({
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
-            {sortedPostman.length === 0 ? (
+            {visiblePostmanRoutes.length === 0 ? (
               <tr>
                 <td colSpan={12} className="py-5 text-center text-slate-400">
                   BCVH này không có dữ liệu tuyến bưu tá cho kỳ báo cáo.
                 </td>
               </tr>
             ) : (
-              sortedPostman.map((route, idx) => {
+              visiblePostmanRoutes.map((route, idx) => {
                 const storySentence = buildRouteStorySentence(route);
                 const hasRouteDeficit = (route.own_shortfall || 0) > 0;
                 const routeName = route.ten_tuyen || `Tuyến ${route.ma_tuyen}`;
-                const isExpanded = expandedRouteKey === route.key;
+                const routeKey = route.key || route.ma_tuyen;
+                const isExpanded = expandedRouteKey === routeKey;
+                const isHighlighted = isWhyRouteMatch(route, routeParam);
 
                 return (
-                  <Fragment key={route.key || route.ma_tuyen}>
+                  <Fragment key={routeKey}>
                     <tr
+                      ref={isHighlighted ? highlightedRowRef : undefined}
+                      data-route-code={route.ma_tuyen || routeKey}
+                      data-highlighted={isHighlighted ? 'true' : undefined}
                       className={`transition-colors duration-100 ${
-                        hasRouteDeficit ? 'bg-amber-50/15' : ''
+                        isHighlighted
+                          ? 'bg-amber-50/90 ring-2 ring-amber-400/80'
+                          : hasRouteDeficit
+                          ? 'bg-amber-50/15'
+                          : ''
                       } ${isExpanded ? 'bg-blue-50/20' : 'hover:bg-blue-50/30'}`}
                     >
                     <td className="px-2 py-2 text-center font-semibold text-slate-500 border-r border-slate-100">
@@ -393,7 +484,7 @@ function SingleBcvhRoutesBlock({
                       <div className="flex items-center justify-center gap-1.5">
                         <button
                           type="button"
-                          onClick={() => toggleExpand(route.key)}
+                          onClick={() => toggleExpand(routeKey)}
                           className={`inline-flex items-center gap-1 rounded border px-2 py-1 text-[11px] font-bold transition-colors cursor-pointer ${
                             isExpanded
                               ? 'border-blue-400 bg-blue-100 text-blue-900'
@@ -426,7 +517,7 @@ function SingleBcvhRoutesBlock({
                     </td>
                   </tr>
                   {isExpanded && (
-                    <tr key={`${route.key}_postmen_sub`} className="bg-slate-50/80">
+                    <tr key={`${routeKey}_postmen_sub`} className="bg-slate-50/80">
                       <td colSpan={12} className="p-2 sm:p-3 border-b border-slate-200">
                         <F13V2WhyPostmanSubTable
                           route={route}
@@ -443,7 +534,7 @@ function SingleBcvhRoutesBlock({
       </div>
 
       {/* Routes outside the postman ranking, two groups (PO 2026-11-07): NON_POSTMAN = Phát tại quầy, OTHER = no / unknown route code */}
-      {[
+      {shouldRenderBottomGroups && [
         { key: 'NON_POSTMAN', title: 'Phát tại quầy (khách đến nhận)', list: bcvhGroup.otherRoutes.filter((r) => r.route_scope === 'NON_POSTMAN') },
         { key: 'OTHER', title: 'Tuyến chưa xác định', list: bcvhGroup.otherRoutes.filter((r) => r.route_scope !== 'NON_POSTMAN') },
       ].filter((group) => group.list.length > 0).map((group) => (
@@ -588,6 +679,7 @@ export default function F13V2WhyRouteTable({
   periodLabel = '',
   onSelectBcvh,
   onOpenParcels,
+  routeParam = '',
 }) {
   const tableRef = useRef(null);
   const indicator = useIndicator();
@@ -596,6 +688,8 @@ export default function F13V2WhyRouteTable({
 
   // Default sorting: own_shortfall descending (hot spots first per PO rule)
   const [sort, setSort] = useState({ field: 'own_shortfall', direction: 'desc' });
+  const [captureTop, setCaptureTop] = useState(DEFAULT_WHY_CAPTURE_TOP);
+  const [capturingAll, setCapturingAll] = useState(false);
 
   const handleSort = (field) => {
     setSort((current) => {
@@ -627,15 +721,28 @@ export default function F13V2WhyRouteTable({
     ];
   }, [isCityWide, routes, bcvhRows, bcvhParam, bcvhName]);
 
+  // Top N overall set for whole-table camera capture (P1.1)
+  const topOverallSet = useMemo(() => {
+    if (!capturingAll) return null;
+    const allPostmanRoutes = bcvhGroups.flatMap((g) => g.postmanRoutes || []);
+    return selectWhyCaptureRoutes(allPostmanRoutes, {
+      top: captureTop,
+      sortField: sort.field,
+      sortDirection: sort.direction,
+    }).keySet;
+  }, [capturingAll, bcvhGroups, captureTop, sort.field, sort.direction]);
+
   const periodText = periodLabel ? `Kỳ: ${periodLabel}` : '';
   const captureTitle = `Danh sách tuyến phát cần chú ý ${bcvhName}`;
 
   return (
     <section
       ref={tableRef}
-      className="w-full rounded-2xl border border-slate-200/90 bg-white p-4 sm:p-5 shadow-sm transition-[box-shadow,border-color] duration-150"
+      className={`${
+        capturingAll ? 'w-fit min-w-full' : 'w-full'
+      } rounded-2xl border border-slate-200/90 bg-white p-4 sm:p-5 shadow-sm transition-[box-shadow,border-color] duration-150`}
     >
-      {/* Header with Camera Button */}
+      {/* Header with Camera Button & Top N Choice */}
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3">
         <div className="flex items-center gap-2.5">
           <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-50 text-blue-700 shadow-2xs">
@@ -661,10 +768,30 @@ export default function F13V2WhyRouteTable({
         </div>
 
         <div className="flex items-center gap-2">
+          <label data-no-capture="true" className="flex items-center gap-1 text-[11px] font-semibold text-slate-600">
+            <span>Ảnh toàn bảng lấy</span>
+            <select
+              value={captureTop}
+              onChange={(event) => setCaptureTop(event.target.value === 'all' ? 'all' : Number(event.target.value))}
+              className="cursor-pointer rounded-lg border border-slate-300 bg-white px-1.5 py-1 text-[11px] font-semibold text-slate-700"
+            >
+              {WHY_CAPTURE_TOP_OPTIONS.map((count) => (
+                <option key={count} value={count}>
+                  Top {count}
+                </option>
+              ))}
+              <option value="all">Tất cả</option>
+            </select>
+          </label>
           <BlockCaptureButton
             targetRef={tableRef}
             blockTitle={captureTitle}
             dateOrPeriod={periodLabel}
+            beforeCapture={async () => {
+              setCapturingAll(true);
+              await waitForNextPaint();
+            }}
+            afterCapture={() => setCapturingAll(false)}
           />
         </div>
       </div>
@@ -679,9 +806,13 @@ export default function F13V2WhyRouteTable({
             onSort={handleSort}
             theme={theme}
             targetRate={targetRate}
+            periodLabel={periodLabel}
             onSelectBcvh={onSelectBcvh}
             onOpenParcels={onOpenParcels}
             isCityWide={isCityWide}
+            capturingAll={capturingAll}
+            topOverallSet={topOverallSet}
+            routeParam={routeParam}
           />
         ))}
       </div>

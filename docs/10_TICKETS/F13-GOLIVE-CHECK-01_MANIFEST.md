@@ -60,6 +60,24 @@ P1 and P2 touch different files and can run in parallel.
 
 - 2026-11-15: created by Claude Code / Opus 5.5 (PO: "Bắt đầu G7").
 
+## 6. P1 screen polish result (Antigravity, 2026-11-15)
+
+1. **Phân tích nguyên nhân route block camera (`F13V2WhyRouteTable.jsx`, `f13WhyHelpers.js`):**
+   - Added whole-table camera Top N selector (`20 / 50 / all`, default `20` via `WHY_CAPTURE_TOP_OPTIONS` and `DEFAULT_WHY_CAPTURE_TOP`) in the card header. During whole-table capture (`capturingAll`), only the Top N postman routes overall (ordered by current sort) are rendered, BCVH blocks with 0 matching routes in Top N are omitted, and the bottom `NON_POSTMAN` / `OTHER` groups are left out so the picture stays compact.
+   - Added per-BCVH camera and Top N selector (`20 / 50 / all`, default `20`) inside `SingleBcvhRoutesBlock` when in city-wide mode (`isCityWide`); bottom groups are included in a BCVH capture only when `"Tất cả"` is chosen.
+2. **Hành trình whole-table picture (`F13V2JourneyRouteTable.jsx`):**
+   - Expanded `cardRef` (`capturingAll ? 'w-fit min-w-full' : 'w-full'`) and `bcvhRef` (`isCapturing ? 'w-fit min-w-full overflow-visible' : ''`) during capture and added `min-w-[180px] max-w-[260px]` on `"Nguyên nhân chính"` so the right edge is never clipped by the viewport width.
+   - Changed `blockTitle` to words (`"Hành trình theo tuyến phát"` on the whole-table camera and `` `Hành trình theo tuyến phát - ${bcvhGroup.ten_bcvh}` `` on the BCVH block camera).
+3. **`/f13/ranking/bcvh` redirect with `from_date` (`urlPreservation.js`, `App.jsx`, `F13V2WeekPage.jsx`):**
+   - Added `isoWeekFromDate` and `translateLegacyF13BcvhSearch` so `/f13/ranking/bcvh` links carrying `from_date` redirect to `/f13/v2/tuan` on the ISO week of `from_date` (e.g., `from_date=2026-10-12` -> `week=2026-W42`) while keeping `bcvh`. Also added a `from_date` / `from` fallback in `F13V2WeekPage.jsx`.
+4. **`/f13/v2/why` reads `route` (`F13V2WhyPage.jsx`, `F13V2WhyRouteTable.jsx`, `f13WhyHelpers.js`):**
+   - `F13V2WhyPage` reads `route` from `searchParams` and passes `routeParam` to `F13V2WhyRouteTable`.
+   - `SingleBcvhRoutesBlock` matches the route via `findMatchingWhyRoute` / `isWhyRouteMatch`, automatically opens its postman sub-table (`F13V2WhyPostmanSubTable`), highlights the row (`bg-amber-50/90 ring-2 ring-amber-400/80`), and scrolls it into view (`scrollIntoView({ behavior: 'smooth', block: 'center' })`).
+5. **Checks:**
+   - `npx oxlint -D no-undef` on all 10 changed files: 0 errors.
+   - `node --test`: targeted F1.3 v2 + routing suite 119/119 pass; full frontend sweep (`frontend/src/**/*.test.js`) 819/819 pass (0 fail).
+   - `npm --prefix frontend run build`: built in 1.77s.
+
 ## 7. P2 backend result (Claude Code / Sonnet 5.5, 2026-11-15)
 
 **1. Speed of `/why/*`** (`CauseAggQueryService`). Cause: every call scanned the period 4 to 6 times (counters, cause mix, hints, then again for the BCVH parent and the city total, plus a group-by-parcel pass for the route stories).

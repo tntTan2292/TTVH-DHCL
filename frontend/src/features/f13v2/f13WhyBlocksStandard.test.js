@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
-const read = (path) => fs.readFileSync(new URL(path, import.meta.url), 'utf8');
+const read = (path) => fs.readFileSync(new globalThis.URL(path, import.meta.url), 'utf8');
 
 test('F13-WHY-UI-01: F13V2WhyDiagnosticCard complies with report block standard', () => {
   const source = read('./components/F13V2WhyDiagnosticCard.jsx');
@@ -112,4 +112,28 @@ test('F13-WHY-UI-01 Step 2: F13V2WhyParcelModal complies with report standards a
 
   // F13-PARCEL-CARD-01: opens F13V2ParcelCard
   assert.match(source, /F13V2ParcelCard/);
+});
+
+test('F13-GOLIVE-CHECK-01 P1: Why route camera Top N, Journey picture title/width, and Why route query highlight', () => {
+  const whyTableSource = read('./components/F13V2WhyRouteTable.jsx');
+  const whyPageSource = read('./F13V2WhyPage.jsx');
+  const journeyTableSource = read('./components/F13V2JourneyRouteTable.jsx');
+
+  // P1.1: Why route table has whole-table Top N camera + per-BCVH camera
+  assert.match(whyTableSource, /Ảnh toàn bảng lấy/);
+  assert.match(whyTableSource, /Ảnh BCVH lấy/);
+  assert.match(whyTableSource, /WHY_CAPTURE_TOP_OPTIONS/);
+  assert.match(whyTableSource, /DEFAULT_WHY_CAPTURE_TOP/);
+
+  // P1.2: Journey whole-table picture footer title in words and no right-edge clipping
+  assert.match(journeyTableSource, /blockTitle="Hành trình theo tuyến phát"/);
+  assert.doesNotMatch(journeyTableSource, /Hanh_trinh_theo_tuyen_phat/);
+  assert.match(journeyTableSource, /w-fit min-w-full/);
+
+  // P1.4: /f13/v2/why reads route, highlights it, scrolls to it, and opens its postman sub-table
+  assert.match(whyPageSource, /searchParams\.get\('route'\)/);
+  assert.match(whyPageSource, /routeParam=\{routeParam\}/);
+  assert.match(whyTableSource, /scrollIntoView/);
+  assert.match(whyTableSource, /data-highlighted/);
+  assert.match(whyTableSource, /findMatchingWhyRoute/);
 });

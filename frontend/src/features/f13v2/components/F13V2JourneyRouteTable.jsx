@@ -146,7 +146,12 @@ function F13V2JourneyBcvhBlock({
   );
 
   return (
-    <div ref={bcvhRef} className="mb-6 last:mb-0 rounded-xl border border-slate-200 bg-white p-3.5 shadow-2xs">
+    <div
+      ref={bcvhRef}
+      className={`mb-6 last:mb-0 rounded-xl border border-slate-200 bg-white p-3.5 shadow-2xs ${
+        isCapturing ? 'w-fit min-w-full overflow-visible' : ''
+      }`}
+    >
       {/* BCVH Sub-header with its own camera (J9) */}
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-2">
         <div className="flex flex-wrap items-center gap-2">
@@ -182,7 +187,7 @@ function F13V2JourneyBcvhBlock({
           </label>
           <BlockCaptureButton
             targetRef={bcvhRef}
-            blockTitle={`Hanh_trinh_tuyen_phat_${bcvhGroup.ma_bcvh}`}
+            blockTitle={`Hành trình theo tuyến phát - ${bcvhGroup.ten_bcvh}`}
             dateOrPeriod={periodLabel}
             beforeCapture={async () => { setCapturingBcvh(true); await waitForNextPaint(); }}
             afterCapture={() => setCapturingBcvh(false)}
@@ -192,7 +197,7 @@ function F13V2JourneyBcvhBlock({
 
       {/* Main Postman Routes Table (J7: One row per BCVH + route + postman) */}
       <div className={`w-full ${isCapturing ? 'overflow-visible' : 'overflow-x-auto'}`}>
-        <table className="w-full min-w-[1300px] border-collapse text-left text-sm">
+        <table className="w-full min-w-[1200px] border-collapse text-left text-sm">
           <thead>
             <tr className="border-b border-slate-200 bg-slate-50 text-slate-800 text-xs font-bold">
               <th rowSpan={2} className="w-10 px-2 py-2 text-center border-r border-slate-200">STT</th>
@@ -215,7 +220,7 @@ function F13V2JourneyBcvhBlock({
                 </th>
               ))}
 
-              {titleTh('main_cause', 'Nguyên nhân chính', 'min-w-[180px] text-left')}
+              {titleTh('main_cause', 'Nguyên nhân chính', 'min-w-[180px] max-w-[260px] text-left')}
             </tr>
 
             {/* Sub-header row for stages: K.đạt | Đạt */}
@@ -322,7 +327,7 @@ function F13V2JourneyBcvhBlock({
                       <StageHoursCell key={stage.key} row={row} stageKey={stage.key} />
                     ))}
 
-                    <td className="px-2.5 py-2 text-slate-800 font-medium whitespace-normal break-words leading-relaxed">
+                    <td className="min-w-[180px] max-w-[260px] px-2.5 py-2 text-slate-800 font-medium whitespace-normal break-words leading-relaxed">
                       {formatJourneyMainCause(row)}
                     </td>
                   </tr>
@@ -490,7 +495,12 @@ export default function F13V2JourneyRouteTable({ routes = [], meta, periodLabel 
   }, [capturingAll, captureTop, sortedAllPostman]);
 
   return (
-    <section ref={cardRef} className="w-full rounded-2xl border border-slate-300 bg-white p-3 shadow-sm sm:p-4">
+    <section
+      ref={cardRef}
+      className={`${
+        capturingAll ? 'w-fit min-w-full' : 'w-full'
+      } rounded-2xl border border-slate-300 bg-white p-3 shadow-sm sm:p-4`}
+    >
       {/* Header with Whole-Table Camera button (J9: Top N overall) */}
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 pb-2">
         <div>
@@ -515,7 +525,7 @@ export default function F13V2JourneyRouteTable({ routes = [], meta, periodLabel 
           </label>
           <BlockCaptureButton
             targetRef={cardRef}
-            blockTitle="Hanh_trinh_theo_tuyen_phat"
+            blockTitle="Hành trình theo tuyến phát"
             dateOrPeriod={periodLabel}
             beforeCapture={async () => { setCapturingAll(true); await waitForNextPaint(); }}
             afterCapture={() => setCapturingAll(false)}

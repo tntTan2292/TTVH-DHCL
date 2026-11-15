@@ -7,6 +7,7 @@ import { indicatorTheme, F13_INDICATOR } from '../indicator/indicatorConfig.js';
 import { BcvhUnitsProvider } from '../indicator/BcvhUnitsContext.js';
 import { fetchLayout, resolvePeriod } from './api/f13v2Api.js';
 import { isBlockVisible } from './f13v2Helpers.js';
+import { isoWeekFromDate } from '../../navigation/urlPreservation.js';
 import F13V2FilterBar from './components/F13V2FilterBar.jsx';
 
 import BcvhWeeklyComparisonBlock from '../ranking/BcvhWeeklyComparisonBlock.jsx';
@@ -26,8 +27,11 @@ export default function F13V2WeekPage() {
   const [latestDate, setLatestDate] = useState(null);
   const [metaUnits, setMetaUnits] = useState([]);
 
-  // URL parameters: week, bcvh
-  const weekParam = searchParams.get('week') || '';
+  // URL parameters: week, bcvh (also accepts from_date / from fallback to ISO week)
+  const rawWeekParam = searchParams.get('week') || '';
+  const fallbackFromDate = searchParams.get('from_date') || searchParams.get('from') || '';
+  const derivedWeekFromDate = useMemo(() => isoWeekFromDate(fallbackFromDate), [fallbackFromDate]);
+  const weekParam = rawWeekParam || derivedWeekFromDate;
   const bcvhParam = searchParams.get('bcvh') || 'all';
 
   useEffect(() => {
@@ -35,15 +39,15 @@ export default function F13V2WeekPage() {
 
     Promise.all([
       fetchLayout(indicator.apiBase).catch((e) => {
-        console.error('[F13V2WeekPage] fetchLayout error:', e);
+        globalThis.console?.error('[F13V2WeekPage] fetchLayout error:', e);
         return null;
       }),
       api.get('/f13/ranking/bcvh/weeks').catch((e) => {
-        console.error('[F13V2WeekPage] fetchWeeks error:', e);
+        globalThis.console?.error('[F13V2WeekPage] fetchWeeks error:', e);
         return null;
       }),
       api.get('/f13/dashboard/meta').catch((e) => {
-        console.error('[F13V2WeekPage] meta error:', e);
+        globalThis.console?.error('[F13V2WeekPage] meta error:', e);
         return null;
       }),
     ]).then(([layoutData, weeksRes, metaRes]) => {
@@ -64,12 +68,27 @@ export default function F13V2WeekPage() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [indicator.apiBase, api]);
 
   // Synchronize default week if missing from searchParams
   // PO Rule: if no week in URL, resolve default anchor via GET /api/f13/v2/period/resolve?kind=latest
   useEffect(() => {
-    if (weekParam) return;
+    if (rawWeekParam) return;
+    if (derivedWeekFromDate) {
+      setSearchParams(
+        (prev) => {
+          const next = new globalThis.URLSearchParams(prev);
+          next.set('week', derivedWeekFromDate);
+          next.delete('from');
+          next.delete('to');
+          next.delete('from_date');
+          next.delete('to_date');
+          return next;
+        },
+        { replace: true }
+      );
+      return undefined;
+    }
     let active = true;
 
     resolvePeriod({ kind: 'latest' }, indicator.apiBase)
@@ -77,7 +96,7 @@ export default function F13V2WeekPage() {
         if (!active || !res?.week?.week_id) return;
         setSearchParams(
           (prev) => {
-            const next = new URLSearchParams(prev);
+            const next = new globalThis.URLSearchParams(prev);
             if (!next.get('week')) {
               next.set('week', res.week.week_id);
             }
@@ -87,11 +106,11 @@ export default function F13V2WeekPage() {
         );
       })
       .catch((err) => {
-        console.warn('[F13V2WeekPage] resolvePeriod latest failed, fallback to weeks[0]:', err);
+        globalThis.console?.warn('[F13V2WeekPage] resolvePeriod latest failed, fallback to weeks[0]:', err);
         if (weeks.length > 0 && active) {
           setSearchParams(
             (prev) => {
-              const next = new URLSearchParams(prev);
+              const next = new globalThis.URLSearchParams(prev);
               if (!next.get('week')) {
                 next.set('week', weeks[0].week_id);
               }
@@ -105,7 +124,7 @@ export default function F13V2WeekPage() {
     return () => {
       active = false;
     };
-  }, [weekParam, weeks, setSearchParams]);
+  }, [rawWeekParam, derivedWeekFromDate, weeks, indicator.apiBase, setSearchParams]);
 
   const effectiveWeekId = weekParam || (weeks[0]?.week_id ?? '');
   const activeWeekObj = weeks.find((w) => w.week_id === effectiveWeekId) || weeks[0] || null;
