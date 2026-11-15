@@ -6,7 +6,7 @@
 - Name: `Retire the old F1.3 pages: redirect their links to the v2 pages and delete the dead code`
 - Owner: Claude Code / Opus 5.5 (scope, review, real render). **Executor: Claude Code / Sonnet 5.5** (frontend only). Does not change the Current Ticket.
 - Branch: `codex/da-impl-006`.
-- Status: `READY FOR PO CHECK` (executed 2026-11-15; was blocked until the other session committed, §4 start check passed). `PO UI Check Required = Yes` (the PO checks the redirects).
+- Status: `CLOSED - PO UI PASS 2026-11-15` (§8). `PO UI Check Required = Yes`.
 
 ## 2. Survey (Opus, 2026-11-15)
 
@@ -82,3 +82,8 @@ The shared working tree holds 30 uncommitted files from another session (F1.3 he
   - `/f13/v2/why` ignores `route`;
   - `shipmentPerformanceData.js` and `buildBackToRouteRankingLink` are unused.
 - Live: frontend only, served from the working tree, so it is live without a restart.
+
+## 8. Closed (2026-11-15)
+
+- PO UI PASS on the live site.
+- The low residuals of §7 go to G7 polishing: the week of `from_date` on the Tuần redirect, `route` on `/f13/v2/why`, and the unused `shipmentPerformanceData.js` / `buildBackToRouteRankingLink`.
