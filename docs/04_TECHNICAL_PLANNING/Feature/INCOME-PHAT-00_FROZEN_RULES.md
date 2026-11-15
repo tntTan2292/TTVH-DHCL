@@ -56,11 +56,12 @@ Dữ liệu: `hscl_f42` (bưu tá × tên BC: `sl_mau` = sản lượng GBT có 
 - Đơn vị: `phan_bcvh` (chỉ định) → đơn vị trên 8,6,11/nhân sự/tuyến → không khớp một trong 6 BCVH → **BCVH Thuận Hóa**. So khớp tên bỏ dấu khác biệt thủy/thuỷ, hóa/hoá.
 - Kết quả: `kq_phat` (mỗi HRM một dòng), `kq_phat_ct` (bưu tá × tuyến × nhóm × khoản: số lượng, tiền), `canh_bao`. Mỗi lần tính xóa kết quả cũ của kỳ.
 
-## 8. Điểm lạ / mâu thuẫn cần PO xác nhận (không tự quyết)
-1. **Giới hạn HSCL.** PMTL thực tế: T08 98–102 %, T09–T10 70–110 %. PO chọn 97–102 % cho kỳ chưa tính — khác cả hai; PO cần chốt kỳ áp dụng (kỳ đầu tiên "chưa tính" của QIS). Tài liệu README của PMTL ghi 98–102 % "từ 08/2026" nhưng `tham_so` đã đổi về 70–110 % từ 2026-09.
+## 8. Điểm lạ / mâu thuẫn, và quyết định của PO (cập nhật 2026-11-15, INC-PHAT-01)
+1. **Giới hạn HSCL.** PMTL thực tế: T08 98–102 %, T09–T10 70–110 %. **Quyết định PO/CTO:** 97 %–102 % áp cho **kỳ đầu tiên QIS tự tính** (T10 — xem mục 3); T08, T09 giữ nguyên số của PMTL (nhập nguyên, khóa kỳ, không tính lại). README của PMTL ghi 98–102 % "từ 08/2026" nhưng `tham_so` đã đổi về 70–110 % từ 2026-09 — chỉ để biết, không ảnh hưởng quyết định trên.
 2. **`PTC_SL_AM_TINH_DUONG = 1` từ T09 nhưng vô hiệu** vì `MOT_LAN = 1`; chỉ tác động nếu ai đó tắt `MOT_LAN`.
-3. **T10 F4.2 là bản sao của T09** (200 dòng, cùng tổng 161.007 / 128.580) và danh sách miễn lấy của T09; T10 chưa có 8,6,11, DHL, PHBC, BP thường → `kq_phat` T10 thiếu các khoản đó (không phải kỳ hoàn chỉnh).
+3. **T10: CHƯA nhập kết quả PMTL.** `kq_phat` T10 của PMTL thiếu DHL/BPT/PHBC, F4.2 là bản sao T09. QIS tự tính T10 (kỳ đầu tiên áp 97–102 %); kiểm tra chéo sau này bằng PMTL chạy cùng đầu vào và cùng 97–102 %.
 4. Trước T09 PMTL tính `quantity` có dấu (dòng −1 trừ đi); từ T09 mỗi số hiệu một lần. QIS không được áp quy tắc T09 cho T08.
+5. **Lệch 82 dòng mẫu số F4.2 (T09)** giữa `fact_f42` và biểu của PMTL: dung sai **có giải thích** của phép thử (biểu PMTL xuất 05/10, QIS nạp 27/10), không cần xuất lại biểu.
 
 ## 9. Điều kiện để coi bộ tính QIS "tái hiện đúng"
 - Chạy bằng đúng tham số/bảng giá/danh mục của PMTL từng kỳ (mục 2), không dùng 97–102 %.
