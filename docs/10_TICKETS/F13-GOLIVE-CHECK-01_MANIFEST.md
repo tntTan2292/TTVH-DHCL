@@ -6,7 +6,7 @@
 - Name: `F1.3 go-live check: real render of every F1.3 page, polish of the open residuals, PO final acceptance`
 - Owner: Claude Code / Opus 5.5. Polish: P1 Antigravity (screens), P2 Claude Code / Sonnet 5.5 (backend). Does not change the Current Ticket.
 - Branch: `codex/da-impl-006`.
-- Status: `OPEN - polish P1/P2 ready`. `PO UI Check Required = Yes`.
+- Status: `LIVE - READY FOR PO FINAL ACCEPTANCE` (§10). `PO UI Check Required = Yes`.
 
 ## 2. Already done for G7
 
@@ -128,3 +128,12 @@ Isolated render (B3 copy, leader), code `f49bd657`, no page error:
 4. `/f13/ranking/route?…&route_id=53314049` → `/f13/v2/why?…&route=53314049`: the row "53314049 533140 TMĐT 07" is highlighted and in view, and its postman sub-table is open.
 
 Rollout of P1 + P2: one backend restart (P2 is backend; P1 is live from the working tree). No rebuild (classifier unchanged). Then the PO final acceptance of F1.3.
+
+## 10. Rollout of P1 + P2 (2026-11-15 11:10, PO go-ahead)
+
+- Opus stopped the 5050 / 5178 listeners; the supervisor restarted them at 11:10:43 (log `backend-20261115-111043.out.log`). Code: HEAD `16f0c963`, working tree clean.
+- Startup cause refresh: run 186, 0 days built, 0 failed. Classifier unchanged, so no rebuild.
+- DKCL: HUE re-attached 04:10:52Z and TCT 04:11:07Z, both SESSION_VALID.
+- Realign dry run: 0 to change.
+- Frontend 200; backend answers 401 without a login, as expected.
+- Next: the PO final acceptance of F1.3 (all pages). It closes F13-GOLIVE-CHECK-01 and, with it, F13-JOURNEY-ROUTE-02, which has been live and waiting for its PO check since 2026-11-08.
