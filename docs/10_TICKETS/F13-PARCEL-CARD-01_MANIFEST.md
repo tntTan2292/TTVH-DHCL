@@ -659,3 +659,12 @@ Live state:
 - Rollout: restart, then rebuild 2026-01-01..today (new classifier version), then verify the last 5 weeks.
 
 **Blocker found before the restart:** the shared working tree holds 30 uncommitted files from another session, changed 2026-11-12. They include three backend services (`F13DashboardService.js`, `bcvhOverviewService.js`, `timelineService.js`) and the F1.3 heatmap / ranking screens. A restart would put those backend changes live. Opus does not touch them; the PO must say whether that work is finished.
+
+## 35. Rollout (2026-11-15) - live, READY FOR PO CHECK
+
+- No restart was needed. The supervisor had already restarted the live backend on 2026-11-13 15:08, after B3 and B3-FIX (committed 2026-11-11 17:23 and 17:26), so `evidence`, `lot` and the new classifier version `ceb4cf5fd7c1` were live from then.
+- Since then the refresh after imports had rebuilt 2026-09-29..2026-11-14; 2026-01-01..2026-09-28 still had `97890e76b613`.
+- The other session's backend changes of 2026-11-12, which the PO calls finished, are also live from that restart.
+- Rebuild 2026-01-01..2026-09-28: 269 days, 0 failed, 471.7 s (run 185). The whole table (316 days, 2026-01-01..2026-11-14) is now `ceb4cf5fd7c1`.
+- `verify 2026-10-11..2026-11-14`: OK, 35 days, 210 day x BCVH keys. 124 944 rows: Đạt 79 045, Không đạt 39 510, blank 6 389, equal in the table, `fact_f13` and `agg_f13_day`.
+- DKCL: the keepalive re-attached HUE and TCT on 2026-11-13 and 2026-11-14 (log `backend-20261113-150831.out.log`).
