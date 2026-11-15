@@ -103,3 +103,18 @@ P1 and P2 touch different files and can run in parallel.
 **3. Dead code:** deleted `frontend/src/features/shipment/shipmentPerformanceData.js` and its test, and `buildBackToRouteRankingLink` with its 3 tests (nothing imported them: grep over `frontend/src` and `backend/src`). `shipmentModel.retired.test.js` now asserts the file is gone; the comments in `backend/src/shared/evidenceSearchMatch.js` (+ test) that named the deleted file were updated. Left alone: `isValidReturnTo` and the rest of `routeViolationEvidenceData.js` have no importer either (only their own test); say if G7 wants them removed too.
 
 **Checks (one file at a time):** CauseAggQueryService 22, .story 7, .parity 4, RouteStory 8, CauseAggBuilder 21, JourneyPeriodService 16, f13v2Evidence 16, f13v2ParcelCard 8, f13v2ParcelCardEvidence 7, f13v2GbtBeforeArrive 4, f13v2Routes.scope 13, f13v2WhyRoutes.scope 5, f13v2RuleProposal 8, f13v2CapacityRoutes 5, evidenceSearchMatch 6: all pass. Frontend `node --test`: shipmentModel.retired 3, routeViolationEvidenceData 16: pass. No classifier file changed, so the classifier version is unchanged: no rebuild needed. Nothing built live, no restart.
+
+## 8. Opus review of P2 (2026-11-15) - accepted
+
+- `CauseAggQueryService.parity` 4/4 re-run.
+- Measured over HTTP on the B3 copy, the 4 calls the Phân tích nguyên nhân page sends at once (summary, bcvh, routes, postmen), leader account:
+
+  | Case | Page total |
+  |---|---|
+  | Month, first call | 3,0 s |
+  | Month, warm | **2,5 s** (each call 2,1-2,4 s), was 9,1-9,7 s in §3 |
+  | Week, warm | 0,55 s |
+
+- `lot.no_tms` is null without `allow_all`, and `no_tms_in_scope` was added. The dead shipment code is deleted.
+- Push incident reported by Sonnet: a failed `git add` let the chained `git push` send HEAD, which carried the income session's finished commit `8cab22f0` (INC-PHAT-03). That commit was complete and already on the branch, so pushing it changed nothing but its timing. No other file was touched.
+- Live needs a backend restart (P2 is backend). It waits for P1, so one restart covers both. The working tree holds P1 work in progress.
