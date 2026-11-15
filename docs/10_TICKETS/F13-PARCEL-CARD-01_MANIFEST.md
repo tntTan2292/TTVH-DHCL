@@ -639,3 +639,23 @@ Implemented all §30 requirements on the Nguyên nhân tab of `F13V2ParcelCard` 
 - The lot and batch totals are null without `allow_all`. `complete_at` is the last TMS scan, and `arrive_complete_at` was added. `f13v2ParcelCardEvidence` 6/6 re-run.
 - Low residual (fix with the next backend touch): `lot.no_tms` is still a whole-lot count for a BCVH account. It should be null there too, or counted in scope.
 - Rollout waits for U4: restart, rebuild 2026-01-01..today (new classifier version), verify the last 5 weeks. The PO's go-ahead is needed.
+
+## 34. Opus real render of U4 (2026-11-15) - passed; rollout waits for the PO
+
+Isolated render: B3 copy, leader, BCVH Thuận Hóa, code `074cff43`. One parcel per conclusion. All boxes read in words, with the numbers of the classifier and no page error:
+- Khai thác (CE374535845VN): quá hạn 87,4 giờ, hạn 12,0; 109,4 giờ đồng hồ / 99,4 giờ đã trừ đêm; khai thác 89,4 / vận chuyển 10,0, "Chặng khai thác dài hơn".
+- Vận chuyển (EE720576140VN): quá hạn 2,8 giờ, vận chuyển 16,8, "Chặng vận chuyển dài hơn".
+- Chưa phân biệt (CE373847444VN): "Thiếu mốc rời KTC1, chưa tách được".
+- Không trọn lô (CC820664955VN):
+  - lô C820011418408 về Huế trong 2 đợt, lô trọn lúc 10/10 05:01;
+  - Đợt 1: 09/10 11:08, 1 BG; Đợt 2 ← bưu gửi này: 10/10 05:01, 2 BG;
+  - clicking "2" opens a list of 2 parcels.
+- Chậm giao bưu tá (CA207019815VN): 16,8 giờ, quá hạn 2,8 giờ (hạn 14,0 giờ), còn 7,4 giờ khi đến.
+- Phát chậm sau giao (CA664656643VN): giao trong hạn 11/10 18:02; giao → phát 47,2 giờ; tổng quá hạn 34,2 giờ.
+- Phát không chi tiết (CE373872925VN) and Chờ CQ (CHAM_DEN_HAY_CHAM_GIAO, MOC_A_KHONG_HOP_LE, THIEU_MOC_G): reason, milestones with times, decisive stage.
+
+Live state:
+- The live frontend already shows U4. The live backend still has no `evidence` / `lot`, so the box stays empty until the rollout.
+- Rollout: restart, then rebuild 2026-01-01..today (new classifier version), then verify the last 5 weeks.
+
+**Blocker found before the restart:** the shared working tree holds 30 uncommitted files from another session, changed 2026-11-12. They include three backend services (`F13DashboardService.js`, `bcvhOverviewService.js`, `timelineService.js`) and the F1.3 heatmap / ranking screens. A restart would put those backend changes live. Opus does not touch them; the PO must say whether that work is finished.
