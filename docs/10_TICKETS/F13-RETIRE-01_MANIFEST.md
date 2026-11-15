@@ -63,3 +63,22 @@ The shared working tree holds 30 uncommitted files from another session (F1.3 he
 - Kept: `BcvhRankingPage.jsx`, F1.1/1.2/4.1/4.2 pages, all backend, `routeViolationEvidenceData.js`, `shipmentPerformanceData.js` (+test; now only test-referenced, not in the §2 list), `buildBackToRouteRankingLink` (no caller; its output still works through the redirect).
 - Tests: sweep 997 -> 841 (156 removed with the deleted files and the dead-Sidebar test), 0 fail. Edited tests: App.role-routing, appNavigation (Sidebar test removed), glassTheme, roles, shipmentModel.retired, indicatorConfig, unifiedActionCenterData, unifiedBcvhAnalysisTableData, f41Pages.
 - `npm run build` OK; `oxlint -D no-undef` on changed files: only browser globals (`window`, `URLSearchParams`), pre-existing.
+
+## 7. Opus review and real render (2026-11-15) - READY FOR PO CHECK
+
+- Code `3f296447` (+ `1e13b35b`):
+  - 22 dead files deleted;
+  - the redirects and links repointed as in §3;
+  - `BcvhRankingPage.jsx`, the F1.1 / F1.2 / F4.1 / F4.2 pages and the backend untouched.
+  - The 3 no-undef hits in `UnifiedBcvhAnalysisTable.jsx` (`window`, `URLSearchParams`) are browser globals in code from 2026-07 (blame `f32afc32`), not new and not a defect.
+- Isolated render (B3 copy, leader), no page error:
+  - `/f13/ranking/bcvh?bcvh_id=533140&from_date=2026-10-12&to_date=2026-10-18` → `/f13/v2/tuan?…&bcvh=533140&week=2026-W45`;
+  - `/f13/ranking/route?bcvh_id=533140&from_date=2026-10-12&to_date=2026-10-18&route_id=53314049` → `/f13/v2/why?from=2026-10-12&to=2026-10-18&bcvh=533140&route=53314049`;
+  - `/f13/ranking/route` → `/f13/v2/why`;
+  - `/f13/ranking/shipment?shipment_id=…` and `/f13/evidence` → `/f13/v2/evidence` (unchanged);
+  - no menu link to `/f13/ranking` is left.
+- Low residuals:
+  - an old Phân tích BCVH link with a date range lands on the newest week, not on the week of `from_date` (W45 instead of W42). The F1.1 / F1.2 / F4.1 / F4.2 redirects behave the same way;
+  - `/f13/v2/why` ignores `route`;
+  - `shipmentPerformanceData.js` and `buildBackToRouteRankingLink` are unused.
+- Live: frontend only, served from the working tree, so it is live without a restart.
