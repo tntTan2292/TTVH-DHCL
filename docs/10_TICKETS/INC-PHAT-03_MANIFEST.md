@@ -85,3 +85,4 @@ CTO review; chờ quyết định mục 6 điểm 4 (bưu tá không có mẫu) 
 1. Bưu tá không có mẫu F4.2: **không cần xử lý riêng** (không đặt mức tối thiểu; nguồn QIS cho hệ số 1,00 như đang làm).
 2. Các số chưa có (**DHL, PHBC, HSCL**; BP thường đi cùng nhóm 8,6,11) được **tách thành cột riêng, để rỗng (chưa có dữ liệu)** chờ PO nhập bằng Excel. Hệ quả cho INC-PHAT-04/05 (chưa làm ở đây): cột tương ứng của kết quả kỳ tự tính cho phép rỗng thay vì 0; nhập qua Excel; chưa tính HSCL từ `fact_f42` cho đến khi PO quyết lại (mục 4–6 giữ làm tham khảo).
 3. **Bỏ qua dữ liệu cũ**: không tìm nguyên nhân T08 lệch nguồn QIS; T08/T09 giữ số PMTL đã nhập, không dùng làm căn cứ thêm.
+4. Tổng tiền (`tong`) của kỳ tự tính khi DHL, PHBC, HSCL (và BP thường) còn rỗng: **chỉ cộng phần đã có**; khi PO nhập Excel thì tính lại cộng thêm. Cột rỗng không được tính như 0 đã chốt (cần cờ "chưa có dữ liệu" để phân biệt với 0 thật, thiết kế ở INC-PHAT-04/05).

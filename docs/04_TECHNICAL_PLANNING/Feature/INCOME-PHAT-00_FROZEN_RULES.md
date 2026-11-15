@@ -69,3 +69,4 @@ Dữ liệu: `hscl_f42` (bưu tá × tên BC: `sl_mau` = sản lượng GBT có 
 - T10 chỉ là phép thử phần bưu gửi/PH/CTV (không có DHL/BPT/PHBC trong PMTL).
 
 **PO 2026-11-15 (sau INC-PHAT-03):** bưu tá không có mẫu F4.2 không xử lý riêng; DHL, PHBC, HSCL tách cột riêng, để rỗng chờ PO nhập Excel; bỏ qua dữ liệu cũ (T08).
+**PO 2026-11-15:** `tong` của kỳ tự tính chỉ cộng phần đã có khi DHL, PHBC, HSCL còn rỗng.
