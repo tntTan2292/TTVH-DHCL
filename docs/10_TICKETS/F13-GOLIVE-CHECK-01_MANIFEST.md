@@ -6,7 +6,7 @@
 - Name: `F1.3 go-live check: real render of every F1.3 page, polish of the open residuals, PO final acceptance`
 - Owner: Claude Code / Opus 5.5. Polish: P1 Antigravity (screens), P2 Claude Code / Sonnet 5.5 (backend). Does not change the Current Ticket.
 - Branch: `codex/da-impl-006`.
-- Status: `LIVE - READY FOR PO FINAL ACCEPTANCE` (§10). `PO UI Check Required = Yes`.
+- Status: `CLOSED - PO UI PASS 2026-11-15` (§11; F1.3 go-live complete). `PO UI Check Required = Yes`.
 
 ## 2. Already done for G7
 
@@ -137,3 +137,9 @@ Rollout of P1 + P2: one backend restart (P2 is backend; P1 is live from the work
 - Realign dry run: 0 to change.
 - Frontend 200; backend answers 401 without a login, as expected.
 - Next: the PO final acceptance of F1.3 (all pages). It closes F13-GOLIVE-CHECK-01 and, with it, F13-JOURNEY-ROUTE-02, which has been live and waiting for its PO check since 2026-11-08.
+
+## 11. Closed (2026-11-15): F1.3 final acceptance
+
+- PO UI PASS for every F1.3 page on the live site: Kết quả chất lượng (Ngày / Tuần / Tháng), Phân tích nguyên nhân, Dữ liệu minh chứng, Hành trình bưu gửi, Phiếu bưu gửi, Đề xuất quy tắc, and the old-path redirects.
+- Closed with it: F13-JOURNEY-ROUTE-02.
+- **The F1.3 go-live plan G0-G7 is complete.** Next by the plan: F42-POSTMAN-NORM-01 (F4.2).

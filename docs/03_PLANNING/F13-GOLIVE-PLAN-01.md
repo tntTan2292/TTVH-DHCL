@@ -2,7 +2,7 @@
 
 - Written by: Claude Code / Opus 5.5 (CTO), 2026-11-07.
 - PO instruction (2026-11-07): the system goes to production soon; no item waits "1-2 weeks of use"; every function is built now, defects are fixed afterwards.
-- Status: `APPROVED by the PO 2026-11-07` (decisions of section 3: capacity as proposed, U1-R1 note yes, old pages deleted before the start). G5 done; G2 `F13-ROUTE-CAPACITY-01` and G3 `F13-RULE-PROPOSAL-01` ready for Sonnet.
+- Status: `COMPLETE 2026-11-15` (G0-G7 done; F1.3 final acceptance by the PO in F13-GOLIVE-CHECK-01 §11). Approved by the PO 2026-11-07 (decisions of section 3). Next: `F42-POSTMAN-NORM-01` (F4.2).
 
 ## 1. The PO problem statement (2026-11-05) and where each part stands
 

@@ -7,7 +7,7 @@
 - Programme: F1.3 Chuyên đề. Predecessor `F13-V2-JOURNEY-01` (page `/f13/v2/hanh-trinh`, day only).
 - Owner: Claude Code / Opus 5.5 (scope, reviews, real render). **B1 backend: Claude Code / Sonnet 5.5. U1 screen: Antigravity.** Does not change the Current Ticket of `PROJECT_SNAPSHOT.md`.
 - Branch: `codex/da-impl-006`.
-- **Status: `LIVE - READY FOR PO CHECK`** (rollout, section 22). `PO UI Check Required = Yes`.
+- **Status: `CLOSED - PO UI PASS 2026-11-15`** (closed with the F1.3 final acceptance, F13-GOLIVE-CHECK-01 §11). `PO UI Check Required = Yes`.
 
 ## 2. The problem (PO, 2026-11-07)
 
@@ -321,3 +321,7 @@ Residuals (Low, polish later, not blocking): the last column "Nguyên nhân chí
 ## 22. Rollout (2026-11-08 22:59, Claude Code / Opus 5.5, PO go-ahead in chat)
 
 Pre-check: no backfill job queued or running, no lease. Order of section 12: (1) listeners 5050/5178 stopped, supervisor restarted them (`logs/backend-20261108-225900.out.log`: startup cause refresh run 78, 0 days to build; DKCL HUE reattached, SESSION_VALID; `realign-handling-entries.js` dry run: 0 to change). (2) `f13_cause_tool.js rebuild --from 2026-01-01 --to 2026-11-08` on the live file: **309 days, 0 failed, 575.8 s** (run 79, classifier `97890e76b613`). (3) Check: 1 000 372 rows, milestone `ms_tms` on all, a leg on 952 314; days without milestones 0, days without legs 0; `verify 2026-10-01..2026-11-08` OK (138 424 rows, Đạt 85 750, Không đạt 45 505, blank 7 169 equal to `fact_f13` and `agg_f13_day`). B2-B4 and U2 are live.
+
+## 23. Closed (2026-11-15)
+
+- PO UI PASS within the F1.3 final acceptance (F13-GOLIVE-CHECK-01 §11). The page has been live since 2026-11-08, refined by F13-PARCEL-CARD-01 (shared parcel list and card, early handover in red) and by G7 P1 (whole-table picture complete, footer in words).
