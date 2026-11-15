@@ -6,7 +6,7 @@
 - Name: `F1.3 one parcel card and one parcel list (Nguyên nhân | Hành trình views)`
 - Owner: Claude Code / Opus 5.5 (scope, review, real render). **B1 backend: Claude Code / Sonnet 5.5. U1 screen: Antigravity** (after B1 is accepted). Does not change the Current Ticket.
 - Branch: `codex/da-impl-006`.
-- Status: `LIVE - READY FOR PO CHECK` (see §23). `PO UI Check Required = Yes`.
+- Status: `CLOSED - PO UI PASS 2026-11-15` (see §36). `PO UI Check Required = Yes`.
 
 ## 2. Why
 
@@ -668,3 +668,13 @@ Live state:
 - Rebuild 2026-01-01..2026-09-28: 269 days, 0 failed, 471.7 s (run 185). The whole table (316 days, 2026-01-01..2026-11-14) is now `ceb4cf5fd7c1`.
 - `verify 2026-10-11..2026-11-14`: OK, 35 days, 210 day x BCVH keys. 124 944 rows: Đạt 79 045, Không đạt 39 510, blank 6 389, equal in the table, `fact_f13` and `agg_f13_day`.
 - DKCL: the keepalive re-attached HUE and TCT on 2026-11-13 and 2026-11-14 (log `backend-20261113-150831.out.log`).
+
+## 36. Closed (2026-11-15)
+
+- PO UI PASS on the live site.
+- Delivered: one parcel card from every parcel number in F1.3 v2; one parcel list on Dữ liệu minh chứng with Nguyên nhân / Hành trình views; the Hành trình bottom table removed; "giao trước khi đến" shown in red with counts (C5); the "Vì sao kết luận" box with the classifier evidence, and the lot batch table with clickable counts (C6).
+- Residuals for later:
+  - `lot.no_tms` is a whole-lot count for a BCVH account (§33);
+  - the Đến–Giao title still sorts by leg hours, not by early handover (§23, acceptable);
+  - the two camera residuals of F13-JOURNEY-ROUTE-02 §21.
+- Two approved rule proposals are left at "Đã duyệt - chờ chuyển thành quy tắc". The PO waits for more Chuyên quản analyses before any rule ticket.
