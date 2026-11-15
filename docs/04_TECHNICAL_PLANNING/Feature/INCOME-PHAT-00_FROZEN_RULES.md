@@ -67,3 +67,5 @@ Dữ liệu: `hscl_f42` (bưu tá × tên BC: `sl_mau` = sản lượng GBT có 
 - Chạy bằng đúng tham số/bảng giá/danh mục của PMTL từng kỳ (mục 2), không dùng 97–102 %.
 - So khớp từng HRM với `kq_phat` fixture cho từng cột (`cp_buu_gui, cp_dhl, cp_bpt, cp_ph, cp_dieu_chinh, cp_phbc, bo_sung_ctv, cp_trai_giam, tong`) và `kq_phat_ct`; mọi chênh lệch phải giải thích được bằng nguồn (ví dụ F4.2 mẫu số lệch 82 — xem Manifest) hoặc thứ tự dòng mục 3.
 - T10 chỉ là phép thử phần bưu gửi/PH/CTV (không có DHL/BPT/PHBC trong PMTL).
+
+**PO 2026-11-15 (sau INC-PHAT-03):** bưu tá không có mẫu F4.2 không xử lý riêng; DHL, PHBC, HSCL tách cột riêng, để rỗng chờ PO nhập Excel; bỏ qua dữ liệu cũ (T08).

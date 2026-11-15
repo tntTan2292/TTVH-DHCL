@@ -79,3 +79,9 @@ Giả định (PMTL không có dòng T10): KH 0,9 và `TOAN_BO = 1` như T09; da
 ## 8. Next
 
 CTO review; chờ quyết định mục 6 điểm 4 (bưu tá không có mẫu) trước khi INC-PHAT-04/05 dùng nguồn QIS cho kỳ tự tính. INC-PHAT-04: 8,6,11/DHL.
+
+## 9. Quyết định PO sau INC-PHAT-03 (2026-11-15)
+
+1. Bưu tá không có mẫu F4.2: **không cần xử lý riêng** (không đặt mức tối thiểu; nguồn QIS cho hệ số 1,00 như đang làm).
+2. Các số chưa có (**DHL, PHBC, HSCL**; BP thường đi cùng nhóm 8,6,11) được **tách thành cột riêng, để rỗng (chưa có dữ liệu)** chờ PO nhập bằng Excel. Hệ quả cho INC-PHAT-04/05 (chưa làm ở đây): cột tương ứng của kết quả kỳ tự tính cho phép rỗng thay vì 0; nhập qua Excel; chưa tính HSCL từ `fact_f42` cho đến khi PO quyết lại (mục 4–6 giữ làm tham khảo).
+3. **Bỏ qua dữ liệu cũ**: không tìm nguyên nhân T08 lệch nguồn QIS; T08/T09 giữ số PMTL đã nhập, không dùng làm căn cứ thêm.
