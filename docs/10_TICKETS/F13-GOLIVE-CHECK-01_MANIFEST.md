@@ -59,3 +59,29 @@ P1 and P2 touch different files and can run in parallel.
 ## 5. Change log
 
 - 2026-11-15: created by Claude Code / Opus 5.5 (PO: "Bắt đầu G7").
+
+## 7. P2 backend result (Claude Code / Sonnet 5.5, 2026-11-15)
+
+**1. Speed of `/why/*`** (`CauseAggQueryService`). Cause: every call scanned the period 4 to 6 times (counters, cause mix, hints, then again for the BCVH parent and the city total, plus a group-by-parcel pass for the route stories).
+- Now one scan per level at a fine grain (keys x verdict x cause columns x hints x arrival source x basis x time-left bucket); the counters, cause mix, hints, arrival and basis counts are sums of those rows. The BCVH parent of `/routes` and `/postmen` and the city total of `/bcvh` fold from the same scan.
+- `distinct_bg` is not a sum: one check (`COUNT(*)` against `COUNT(DISTINCT ma_bg)`) tells whether any parcel repeats in the period; if none, distinct = rows; if some, the old grouped `COUNT(DISTINCT)` and the old route-story pass run as before, so the figures stay exact.
+- Route stories: parcels, stock and the "little time left" count come from the fine rows (no repeat); only the F4.2 returns need one grouped count.
+- Measured on the B3 copy, in process, warm (3 runs, old = HEAD code, same database), city scope:
+
+| Call | Month old | Month new | Week old | Week new |
+|---|---|---|---|---|
+| `/why/routes` | 1 862 / 1 779 / 1 776 ms | **997 / 971 / 956 ms** | 449 ms | 275 ms |
+| `/why/bcvh` | 845 / 834 / 924 ms | **426 / 419 / 425 ms** | 184 ms | 92 ms |
+| `/why/summary` | 465 ms | 381 ms | 101 ms | 78 ms |
+| `/why/postmen` | 903 ms | 484 ms | 206 ms | 111 ms |
+
+  A Chuyên quản (one unit): routes month 666 -> 368 ms, bcvh 205 -> 137 ms.
+- Output: `JSON` of all four calls, city and Chuyên quản, month and week, is **deep-equal** between the old and the new code on the B3 copy (16 comparisons, 0 differences).
+- The 6.3-6.7 s of §3 was measured over HTTP in a page load that fires several calls at once (the sqlite connection serializes them), so the page total is the sum of its calls; the two calls are now about 1 s and 0.4 s alone. I did not measure over HTTP (no login to a live backend); the page total should be re-measured in the G7 render.
+- Test `CauseAggQueryService.parity.test.js` (4): over a seeded month and week, every figure of every route, BCVH, the city total, the parents and the postmen equals an independent JS aggregation of the table rows; and the same data with a parcel repeated inside the period (the exact-distinct path) gives the same rows, stories and parents for the other units, with an exact city distinct count.
+
+**2. `lot.no_tms`** (`EvidenceService._lotOf`): null without `allow_all` (as `volume`), and new `lot.no_tms_in_scope`. Test added to `f13v2ParcelCardEvidence` (admin 2/2; Chuyên quản null / 1).
+
+**3. Dead code:** deleted `frontend/src/features/shipment/shipmentPerformanceData.js` and its test, and `buildBackToRouteRankingLink` with its 3 tests (nothing imported them: grep over `frontend/src` and `backend/src`). `shipmentModel.retired.test.js` now asserts the file is gone; the comments in `backend/src/shared/evidenceSearchMatch.js` (+ test) that named the deleted file were updated. Left alone: `isValidReturnTo` and the rest of `routeViolationEvidenceData.js` have no importer either (only their own test); say if G7 wants them removed too.
+
+**Checks (one file at a time):** CauseAggQueryService 22, .story 7, .parity 4, RouteStory 8, CauseAggBuilder 21, JourneyPeriodService 16, f13v2Evidence 16, f13v2ParcelCard 8, f13v2ParcelCardEvidence 7, f13v2GbtBeforeArrive 4, f13v2Routes.scope 13, f13v2WhyRoutes.scope 5, f13v2RuleProposal 8, f13v2CapacityRoutes 5, evidenceSearchMatch 6: all pass. Frontend `node --test`: shipmentModel.retired 3, routeViolationEvidenceData 16: pass. No classifier file changed, so the classifier version is unchanged: no rebuild needed. Nothing built live, no restart.

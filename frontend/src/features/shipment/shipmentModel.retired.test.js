@@ -3,7 +3,6 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import * as shipmentData from './shipmentPerformanceData.js';
 
 // F13-ROUTE-EVIDENCE-STATUS-02 (T-F01):
 // Client-side full-fetch model (fetchAllEvidenceRows, EVIDENCE_FETCH_PAGE_SIZE, EVIDENCE_FETCH_MAX_PAGES)
@@ -12,10 +11,8 @@ import * as shipmentData from './shipmentPerformanceData.js';
 const shipmentDir = path.dirname(fileURLToPath(import.meta.url));
 const srcDir = path.join(shipmentDir, '..', '..');
 
-test('T-F01: fetchAllEvidenceRows, EVIDENCE_FETCH_PAGE_SIZE, EVIDENCE_FETCH_MAX_PAGES are not exported by shipmentPerformanceData.js', () => {
-  assert.equal('fetchAllEvidenceRows' in shipmentData, false);
-  assert.equal('EVIDENCE_FETCH_PAGE_SIZE' in shipmentData, false);
-  assert.equal('EVIDENCE_FETCH_MAX_PAGES' in shipmentData, false);
+test('T-F01: shipmentPerformanceData.js (the home of the fetch-all model) is deleted (F13-GOLIVE-CHECK-01 P2)', () => {
+  assert.equal(fs.existsSync(path.join(shipmentDir, 'shipmentPerformanceData.js')), false);
 });
 
 test('T-F01: ShipmentPerformancePage.jsx is deleted (G6), so no page can use fetch-all logic', () => {

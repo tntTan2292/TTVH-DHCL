@@ -88,6 +88,13 @@ test.before(async () => {
             ms: { tms: at(`2026-10-20 ${time}`), depart: null, arrive: at('2026-10-21 08:00') + index * 60000, gbt: null, ptc: null },
         });
     }
+    // P2: a lot where some parcels have no TMS scan (A: one with, one without; B: one without)
+    for (const [bg, bcvh, time] of [['LN1', A, '10:00'], ['LN2', A, null], ['LN3', B, null]]) {
+        await insert({
+            bg: `BG-${bg}`, bcvh, danh_gia: 'Đạt', cause: null, status: 'KHONG_PHAN_TICH', detail: null, reason: null, lot: 'LOT-2', khongTron: false, limitMs: 12 * HOUR, source: 'F41',
+            ms: { tms: time ? at(`2026-10-20 ${time}`) : null, depart: null, arrive: null, gbt: null, ptc: null },
+        });
+    }
     await run('COMMIT');
     const app = express();
     app.use('/api/f13/v2', f13v2Routes);
@@ -235,4 +242,15 @@ test('a Chuyên quản gets null whole-lot totals, correct in-scope counts and o
     }
     assert.ok(!JSON.stringify(data).includes('BG-LB'), 'the card carries no parcel code of the other unit');
     assert.equal((await get_(cq, `/evidence/parcel?ngay_do_kiem=${DAY}&ma_bg=BG-LB1`)).status, 403);
+});
+
+test('lot.no_tms: whole-lot count with allow_all, null for a Chuyên quản, whose own count is no_tms_in_scope', async () => {
+    const admin = await card(session('ADMIN'), 'BG-LN1');
+    assert.equal(admin.lot.no_tms, 2);
+    assert.equal(admin.lot.no_tms_in_scope, 2);
+    const cq = await card(session('CHUYEN_QUAN', { bcvh: [A] }), 'BG-LN1');
+    assert.equal(cq.lot.no_tms, null);
+    assert.equal(cq.lot.no_tms_in_scope, 1); // LN2 only: LN3 belongs to the other unit
+    assert.equal(cq.lot.volume, null);
+    assert.equal(cq.lot.volume_in_scope, 2);
 });

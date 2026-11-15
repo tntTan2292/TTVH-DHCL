@@ -4,7 +4,7 @@ const { stripVietnameseDiacritics, matchesSearchQuery } = require('./evidenceSea
 
 // F13-ROUTE-EVIDENCE-STATUS-02 Phase B1 (Design of Record R0 §5.4/§5.5). Confirms this
 // server-side copy behaves exactly like the PO-accepted DEFECT A remediation
-// (frontend/src/features/shipment/shipmentPerformanceData.js) it mirrors: exact match first,
+// (the frontend shipmentPerformanceData.js it mirrored is deleted) it mirrors: exact match first,
 // diacritic-insensitive fallback second, never narrower than exact match.
 
 test('stripVietnameseDiacritics removes combining marks and normalizes đ/Đ', () => {

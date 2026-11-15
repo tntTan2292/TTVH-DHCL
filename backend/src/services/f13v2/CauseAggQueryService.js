@@ -396,62 +396,90 @@ class CauseAggQueryService {
         };
     }
 
-    /** All groups of one level with their counters, cause mix and hints. Returns Map key -> { keys, counts, mix, name }. */
-    async _groups(level, period, scope, filter) {
+    /**
+     * F13-GOLIVE-CHECK-01 P2: ONE scan of the period at the finest grain the figures need (the level keys x verdict x cause columns x hints x arrival
+     * source x basis x time-left bucket). Every counter, the cause mix, the hints, the arrival and basis counters of a group are sums of these rows,
+     * so a coarser level (BCVH, whole) folds from a finer one without another scan. `distinct_bg` is not a sum: when no parcel repeats in the period
+     * (checked once) it equals the row count, otherwise it is read by one grouped COUNT(DISTINCT) as before.
+     */
+    async _fine(level, period, scope, filter) {
         const spec = LEVELS[level];
         const where = this._where(period, scope, filter);
         const select = spec.select ? `${spec.select}, ` : '';
-        const groupBy = spec.groupBy ? `GROUP BY ${spec.groupBy}` : '';
-        const counters = await this.db.all(
-            `SELECT ${select}COUNT(*) AS n,
-                    SUM(CASE WHEN danh_gia = '${PASSED}' THEN 1 ELSE 0 END) AS passed,
-                    SUM(CASE WHEN danh_gia = '${FAILED}' THEN 1 ELSE 0 END) AS failed,
-                    SUM(CASE WHEN danh_gia IS NULL OR TRIM(danh_gia) = '' THEN 1 ELSE 0 END) AS unrated,
-                    COUNT(DISTINCT ma_bg) AS distinct_bg,
-                    SUM(CASE WHEN danh_gia = '${FAILED}' AND remaining_at_arrival_ms IS NOT NULL THEN 1 ELSE 0 END) AS ar_total,
-                    SUM(CASE WHEN danh_gia = '${FAILED}' AND remaining_at_arrival_ms < 0 THEN 1 ELSE 0 END) AS ar_over,
-                    SUM(CASE WHEN danh_gia = '${FAILED}' AND remaining_at_arrival_ms >= 0 AND remaining_at_arrival_ms < ${REMAINING_BUCKET_MS[0]} THEN 1 ELSE 0 END) AS ar_lt3,
-                    SUM(CASE WHEN danh_gia = '${FAILED}' AND remaining_at_arrival_ms >= ${REMAINING_BUCKET_MS[0]} AND remaining_at_arrival_ms < ${REMAINING_BUCKET_MS[1]} THEN 1 ELSE 0 END) AS ar_3to6,
-                    SUM(CASE WHEN danh_gia = '${FAILED}' AND remaining_at_arrival_ms >= ${REMAINING_BUCKET_MS[1]} THEN 1 ELSE 0 END) AS ar_ge6,
-                    SUM(CASE WHEN danh_gia = '${FAILED}' AND a_source = 'F41' THEN 1 ELSE 0 END) AS src_f41,
-                    SUM(CASE WHEN danh_gia = '${FAILED}' AND a_source = 'BF' THEN 1 ELSE 0 END) AS src_bf,
-                    SUM(CASE WHEN danh_gia = '${FAILED}' AND basis = 'INTERVAL' THEN 1 ELSE 0 END) AS basis_interval,
-                    SUM(CASE WHEN danh_gia = '${FAILED}' AND basis = 'MILESTONES' THEN 1 ELSE 0 END) AS basis_milestones${spec.nameSql}
-             FROM f13_cause_parcel WHERE ${where.sql} ${groupBy}`,
+        const groupBy = spec.groupBy ? `${spec.groupBy}, ` : '';
+        const rows = await this.db.all(
+            `SELECT ${select}danh_gia, cause_status, cause_code, cause_detail, cause_reason, cause_step, flags, hints, a_source, basis,
+                    CASE WHEN remaining_at_arrival_ms IS NULL THEN 0 WHEN remaining_at_arrival_ms < 0 THEN 1
+                         WHEN remaining_at_arrival_ms < ${REMAINING_BUCKET_MS[0]} THEN 2 WHEN remaining_at_arrival_ms < ${REMAINING_BUCKET_MS[1]} THEN 3 ELSE 4 END AS rb,
+                    COUNT(*) AS c${spec.nameSql}
+             FROM f13_cause_parcel WHERE ${where.sql}
+             GROUP BY ${groupBy}danh_gia, cause_status, cause_code, cause_detail, cause_reason, cause_step, flags, hints, a_source, basis, rb`,
             where.params,
         );
-        const causeRows = await this.db.all(
-            `SELECT ${select}cause_status, cause_code, cause_detail, cause_reason, cause_step, flags, COUNT(*) AS c
-             FROM f13_cause_parcel WHERE ${where.sql} AND danh_gia = '${FAILED}'
-             GROUP BY ${spec.groupBy ? `${spec.groupBy}, ` : ''}cause_status, cause_code, cause_detail, cause_reason, cause_step, flags`,
-            where.params,
-        );
-        const hintRows = await this.db.all(
-            `SELECT ${select}hints, COUNT(*) AS c FROM f13_cause_parcel WHERE ${where.sql} AND hints IS NOT NULL AND hints <> ''
-             GROUP BY ${spec.groupBy ? `${spec.groupBy}, ` : ''}hints`,
-            where.params,
-        );
-        // F13-EVIDENCE-01 (PO V2): analyses by the Chuyên quản, counted beside the system figures, which stay as they are.
-        const analysedRows = await this._analysedRows(select, spec, where);
+        const repeats = (await this.db.all(`SELECT COUNT(*) AS n, COUNT(DISTINCT ma_bg) AS d FROM f13_cause_parcel WHERE ${where.sql}`, where.params))[0];
+        const noRepeats = toNumber(repeats.n) === toNumber(repeats.d);
+        let distinct = null;
+        if (!noRepeats) {
+            distinct = spec.groupBy
+                ? await this.db.all(`SELECT ${select}COUNT(DISTINCT ma_bg) AS distinct_bg FROM f13_cause_parcel WHERE ${where.sql} GROUP BY ${spec.groupBy}`, where.params)
+                : [{ distinct_bg: repeats.d }];
+        }
+        return { level, rows, where, noRepeats, distinct };
+    }
+
+    /** Groups of `level` from the fine rows of `fine` (its own level or a finer one), then the analyst counts. Null when a fold would need distinct counts. */
+    async _groupsFrom(level, fine) {
+        const own = fine.level === level;
+        if (!own && !fine.noRepeats) return null;
+        const spec = LEVELS[level];
         const keyOf = (row) => spec.keys.map((key) => row[key]).join('|');
+        const distinctOf = new Map();
+        if (own && fine.distinct) for (const row of fine.distinct) distinctOf.set(keyOf(row), toNumber(row.distinct_bg));
         const groups = new Map();
-        for (const row of counters) {
-            const keys = Object.fromEntries(spec.keys.map((key) => [key, row[key]]));
-            groups.set(keyOf(row), {
-                keys,
-                name: row.postman_name ?? null,
-                counts: { n: row.n, passed: row.passed, failed: row.failed, unrated: row.unrated, distinct: row.distinct_bg },
-                extra: row,
-                mix: emptyMix(),
-            });
+        const newGroup = (row) => ({
+            keys: Object.fromEntries(spec.keys.map((key) => [key, row[key]])),
+            name: null,
+            counts: { n: 0, passed: 0, failed: 0, unrated: 0, distinct: 0 },
+            extra: { ar_total: 0, ar_over: 0, ar_lt3: 0, ar_3to6: 0, ar_ge6: 0, src_f41: 0, src_bf: 0, basis_interval: 0, basis_milestones: 0 },
+            mix: emptyMix(),
+        });
+        for (const row of fine.rows) {
+            const key = keyOf(row);
+            let group = groups.get(key);
+            if (!group) { group = newGroup(row); groups.set(key, group); }
+            const c = toNumber(row.c);
+            const verdict = row.danh_gia;
+            group.counts.n += c;
+            if (verdict === PASSED) group.counts.passed += c;
+            if (verdict === FAILED) group.counts.failed += c;
+            if (verdict === null || verdict === undefined || String(verdict).replace(/^ +| +$/g, '') === '') group.counts.unrated += c; // SQL TRIM: spaces only
+            if (row.postman_name !== null && row.postman_name !== undefined && (group.name === null || row.postman_name > group.name)) group.name = row.postman_name;
+            if (verdict === FAILED) {
+                const extra = group.extra;
+                if (row.rb > 0) extra.ar_total += c;
+                if (row.rb === 1) extra.ar_over += c;
+                else if (row.rb === 2) extra.ar_lt3 += c;
+                else if (row.rb === 3) extra.ar_3to6 += c;
+                else if (row.rb === 4) extra.ar_ge6 += c;
+                if (row.a_source === 'F41') extra.src_f41 += c;
+                if (row.a_source === 'BF') extra.src_bf += c;
+                if (row.basis === 'INTERVAL') extra.basis_interval += c;
+                if (row.basis === 'MILESTONES') extra.basis_milestones += c;
+                addCauseRow(group.mix, row);
+            }
+            if (row.hints) for (const hint of splitList(row.hints)) group.mix.hints[hint] = (group.mix.hints[hint] || 0) + c;
         }
-        for (const row of causeRows) addCauseRow(groups.get(keyOf(row)).mix, row);
-        for (const row of analysedRows) addAnalysedRow(groups.get(keyOf(row)), row);
-        for (const row of hintRows) {
-            const mix = groups.get(keyOf(row)).mix;
-            for (const hint of splitList(row.hints)) mix.hints[hint] = (mix.hints[hint] || 0) + toNumber(row.c);
-        }
+        if (!groups.size && level === 'summary') groups.set('', newGroup({}));
+        for (const [key, group] of groups) group.counts.distinct = fine.noRepeats ? group.counts.n : (distinctOf.get(key) || 0);
+        // F13-EVIDENCE-01 (PO V2): analyses by the Chuyên quản, counted beside the system figures, which stay as they are.
+        const select = spec.select ? `${spec.select}, ` : '';
+        for (const row of await this._analysedRows(select, spec, fine.where)) addAnalysedRow(groups.get(keyOf(row)), row);
         return groups;
+    }
+
+    /** All groups of one level with their counters, cause mix and hints. Returns Map key -> { keys, counts, mix, name }. */
+    async _groups(level, period, scope, filter) {
+        return this._groupsFrom(level, await this._fine(level, period, scope, filter));
     }
 
     /** Failed parcels with a current analysis, by analyst cause and the system's conclusion. [] when the log table does not exist (older database). */
@@ -523,7 +551,8 @@ class CauseAggQueryService {
 
     async bcvh(query, scope) {
         const period = resolvePeriod(query);
-        const groups = await this._groups('bcvh', period, scope, query);
+        const fine = await this._fine('bcvh', period, scope, query);
+        const groups = await this._groupsFrom('bcvh', fine);
         const rows = [...groups.values()].map((group) => ({
             key: String(group.keys.ma_bcvh),
             ma_bcvh: String(group.keys.ma_bcvh),
@@ -534,7 +563,7 @@ class CauseAggQueryService {
         const data = { rows: [], meta: await this._meta(period, scope, query) };
         if (scope.canSeeCity) {
             this._addShares(rows);
-            const whole = (await this._groups('summary', period, scope, query)).get('') || { counts: {}, mix: emptyMix() };
+            const whole = ((await this._groupsFrom('summary', fine)) || await this._groups('summary', period, scope, query)).get('') || { counts: {}, mix: emptyMix() };
             data.total = { ...this._finish(whole), filter: this._filterEcho(period, scope, query, {}) };
         } else {
             for (const row of rows) { row.share_of_parent_shortfall = null; row.share_of_parent_deficits = null; row.share_of_parent_failed = null; row.share_note = 'NGOAI_PHAM_VI'; }
@@ -559,9 +588,10 @@ class CauseAggQueryService {
 
     async routes(query, scope) {
         const period = resolvePeriod(query);
-        const groups = await this._groups('routes', period, scope, query);
+        const fine = await this._fine('routes', period, scope, query);
+        const groups = await this._groupsFrom('routes', fine);
         const names = await this._routeNames(period, [...new Set([...groups.values()].map((group) => String(group.keys.ma_bcvh)))]);
-        const stories = await this._routeStories(period, scope, query, groups);
+        const stories = await this._routeStories(period, scope, query, groups, fine);
         const rows = [...groups.values()].map((group) => {
             const { ma_bcvh: bcvh, route_scope: routeScope, route_key: routeKey } = group.keys;
             const isRoute = routeScope === 'POSTMAN';
@@ -576,7 +606,7 @@ class CauseAggQueryService {
                 filter: this._filterEcho(period, { ...scope, bcvhId: String(bcvh) }, { ...query, route: undefined, route_scope: undefined }, isRoute ? { route: routeKey } : { route_scope: routeScope }),
             };
         });
-        return this._siblingResult(rows, period, scope, query);
+        return this._siblingResult(rows, period, scope, query, fine);
     }
 
     /** A query that must not break the page when its source table is missing (older database): the answer is then empty. */
@@ -590,7 +620,7 @@ class CauseAggQueryService {
     }
 
     /** F13-WHY-NARRATIVE-02 B1: the story of every route row, from the same WHERE as the row (RouteStory.js assembles it). */
-    async _routeStories(period, scope, filter, groups) {
+    async _routeStories(period, scope, filter, groups, fine) {
         const spec = LEVELS.routes;
         const where = this._where(period, scope, filter);
         const failedSql = `danh_gia = '${FAILED}'`;
@@ -607,21 +637,50 @@ class CauseAggQueryService {
              GROUP BY ma_bcvh, route_scope, route_key`,
             withReturn ? [...f42Window, ...where.params] : where.params,
         );
-        const [lotRows, littleRows, passRows] = await Promise.all([
-            this.db.all(
-                `SELECT ${spec.select}, ma_lo, COUNT(*) AS c FROM f13_cause_parcel
-                 WHERE ${where.sql} AND ${failedSql} AND cause_code = 'KHONG_TRON_LO' AND ma_lo IS NOT NULL AND ma_lo <> ''
-                 GROUP BY ${spec.groupBy}, ma_lo`,
-                where.params,
-            ),
-            this.db.all(
-                `SELECT ${spec.select}, COUNT(*) AS c FROM f13_cause_parcel
-                 WHERE ${where.sql} AND ${failedSql} AND ',' || COALESCE(hints, '') || ',' LIKE '%,DEN_BCVH_CON_IT_GIO,%'
-                 GROUP BY ${spec.groupBy}`,
-                where.params,
-            ),
-            parcelPass(true).then((rows) => rows.length ? rows : parcelPass(false)),
-        ]);
+        const lotRowsPromise = this.db.all(
+            `SELECT ${spec.select}, ma_lo, COUNT(*) AS c FROM f13_cause_parcel
+             WHERE ${where.sql} AND ${failedSql} AND cause_code = 'KHONG_TRON_LO' AND ma_lo IS NOT NULL AND ma_lo <> ''
+             GROUP BY ${spec.groupBy}, ma_lo`,
+            where.params,
+        );
+        let lotRows;
+        let littleRows;
+        let passRows;
+        if (fine && fine.level === 'routes' && fine.noRepeats) {
+            // F13-GOLIVE-CHECK-01 P2: no parcel repeats in the period, so a parcel is a row: parcels, stock (not rated) and the little-time count are sums
+            // of the fine rows; only the F4.2 returns need a pass (one grouped count over the rows that match, instead of a group by parcel)
+            const acc = new Map();
+            const littleMap = new Map();
+            const rowKey = (row) => `${row.ma_bcvh}|${row.route_scope}|${row.route_key}`;
+            for (const row of fine.rows) {
+                const key = rowKey(row);
+                const entry = acc.get(key) || { ma_bcvh: row.ma_bcvh, route_scope: row.route_scope, route_key: row.route_key, parcels: 0, stock: 0, returned: 0 };
+                const c = toNumber(row.c);
+                entry.parcels += c;
+                if (row.danh_gia !== PASSED && row.danh_gia !== FAILED) entry.stock += c;
+                acc.set(key, entry);
+                if (row.danh_gia === FAILED && `,${row.hints || ''},`.includes(',DEN_BCVH_CON_IT_GIO,')) littleMap.set(key, (littleMap.get(key) || 0) + c);
+            }
+            const returnedRows = await this._optionalAll(
+                `SELECT ${spec.select}, COUNT(*) AS returned FROM f13_cause_parcel WHERE ${where.sql} AND ${returnedSql} GROUP BY ${spec.groupBy}`,
+                [...where.params, ...f42Window],
+            );
+            for (const row of returnedRows) { const entry = acc.get(rowKey(row)); if (entry) entry.returned = toNumber(row.returned); }
+            passRows = [...acc.values()];
+            littleRows = [...littleMap].map(([key, c]) => { const [ma_bcvh, route_scope, ...rest] = key.split('|'); return { ma_bcvh, route_scope, route_key: rest.join('|'), c }; });
+            lotRows = await lotRowsPromise;
+        } else {
+            [lotRows, littleRows, passRows] = await Promise.all([
+                lotRowsPromise,
+                this.db.all(
+                    `SELECT ${spec.select}, COUNT(*) AS c FROM f13_cause_parcel
+                     WHERE ${where.sql} AND ${failedSql} AND ',' || COALESCE(hints, '') || ',' LIKE '%,DEN_BCVH_CON_IT_GIO,%'
+                     GROUP BY ${spec.groupBy}`,
+                    where.params,
+                ),
+                parcelPass(true).then((rows) => rows.length ? rows : parcelPass(false)),
+            ]);
+        }
         const keyOf = (row) => `${row.ma_bcvh}|${row.route_scope}|${row.route_key}`;
         const little = new Map(littleRows.map((row) => [keyOf(row), toNumber(row.c)]));
         const returned = new Map(passRows.map((row) => [keyOf(row), toNumber(row.returned)]));
@@ -710,7 +769,8 @@ class CauseAggQueryService {
 
     async postmen(query, scope) {
         const period = resolvePeriod(query);
-        const groups = await this._groups('postmen', period, scope, query);
+        const fine = await this._fine('postmen', period, scope, query);
+        const groups = await this._groupsFrom('postmen', fine);
         const rows = [...groups.values()].map((group) => {
             const { ma_bcvh: bcvh, postman_key: postman } = group.keys;
             return {
@@ -722,14 +782,14 @@ class CauseAggQueryService {
                 filter: this._filterEcho(period, { ...scope, bcvhId: String(bcvh) }, { ...query, postman: undefined }, { postman }),
             };
         });
-        return this._siblingResult(rows, period, scope, query);
+        return this._siblingResult(rows, period, scope, query, fine);
     }
 
     /** Rows of one level plus, per BCVH, the parent totals (their own sums) and the shares inside that parent. */
-    async _siblingResult(rows, period, scope, query) {
+    async _siblingResult(rows, period, scope, query, fine) {
         const byBcvh = new Map();
         for (const row of rows) (byBcvh.get(row.ma_bcvh) || byBcvh.set(row.ma_bcvh, []).get(row.ma_bcvh)).push(row);
-        const parentGroups = await this._groups('bcvh', period, scope, query); // same filter: the parent of each BCVH's rows
+        const parentGroups = (await this._groupsFrom('bcvh', fine)) || await this._groups('bcvh', period, scope, query); // same filter: the parent of each BCVH's rows
         const parents = {};
         for (const [bcvh, siblings] of byBcvh) {
             this._addShares(siblings);

@@ -455,7 +455,7 @@ class EvidenceService {
         );
         const allowed = Array.isArray(scope?.allowedCodes) ? new Set(scope.allowedCodes.map(String)) : null;
         const batches = new Map();
-        const lot = { volume: 0, failed: 0, volume_in_scope: 0, failed_in_scope: 0, no_tms: 0 };
+        const lot = { volume: 0, failed: 0, volume_in_scope: 0, failed_in_scope: 0, no_tms: 0, no_tms_in_scope: 0 };
         let lastArrive = null;
         let lastTms = null;
         let first = null;
@@ -469,7 +469,7 @@ class EvidenceService {
             if (first === null || item.ngay_do_kiem < first) first = item.ngay_do_kiem;
             if (last === null || item.ngay_do_kiem > last) last = item.ngay_do_kiem;
             if (item.ms_arrive !== null && (lastArrive === null || item.ms_arrive > lastArrive)) lastArrive = item.ms_arrive;
-            if (item.ms_tms === null || item.ms_tms === undefined) { lot.no_tms += 1; continue; }
+            if (item.ms_tms === null || item.ms_tms === undefined) { lot.no_tms += 1; if (visible) lot.no_tms_in_scope += 1; continue; }
             if (lastTms === null || item.ms_tms > lastTms) lastTms = item.ms_tms;
             const batch = batches.get(item.ms_tms) || { tms: item.ms_tms, volume: 0, failed: 0, volume_in_scope: 0, failed_in_scope: 0, arrive_first: null, arrive_last: null };
             batch.volume += 1;
@@ -491,7 +491,8 @@ class EvidenceService {
             volume_in_scope: lot.volume_in_scope,
             failed_in_scope: lot.failed_in_scope,
             scope_hidden: lot.volume_in_scope < lot.volume,
-            no_tms: lot.no_tms,
+            no_tms: allowAll ? lot.no_tms : null, // P2: like volume, null without allow_all; no_tms_in_scope is the account's own
+            no_tms_in_scope: lot.no_tms_in_scope,
             tms_batches: ordered.length,
             incomplete: ordered.length > 1,
             complete_at: ordered.length > 1 ? timeText(lastTms) : null, // Q3: the last TMS scan of the lot ("TMS đợt cuối": the lot is whole from then)
