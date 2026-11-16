@@ -1404,9 +1404,14 @@ test('checks stopped on a login in progress do not spend the retries of a later 
             assert.equal(result.state, 'RETRY_WAIT', `call ${i + 1} must schedule a retry`);
             fixture.clockState.now = new Date(result.retryAt);
         }
-        // Real attempt 3 of 3 ends the job: the limit still holds for real attempts.
-        await fixture.service.processNext();
+        // Real attempt 3 of 3: the limit still holds for real attempts, but (AUTO-IMPORT-016 P4) a transient job gets
+        // one extra attempt three minutes later before the Product Owner is asked.
+        const third = await fixture.service.processNext();
         assert.equal(calls, 6);
+        assert.equal(third.state, 'RETRY_WAIT');
+        fixture.clockState.now = new Date(third.retryAt);
+        await fixture.service.processNext();
+        assert.equal(calls, 7);
         const persisted = await fixture.service.store.getRun(created.run.id);
         assert.equal(persisted.jobs[0].state, 'FAILED_TERMINAL');
         assert.match(persisted.jobs[0].action_required, /limit of 3 attempts/);

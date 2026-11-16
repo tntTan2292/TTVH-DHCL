@@ -5,8 +5,15 @@ const path = require('path');
 const { selectNewestGeneratedFile, generatedNameMatches } = require('./dkclHueF13SyncService');
 const processManager = require('./browserProcessManager');
 const { LEFTOVER_MIN_AGE_MS, LEFTOVER_MAX_FILES, LEFTOVER_TIME_BUDGET_MS, LEFTOVER_MAX_FAILURES, LEFTOVER_EXPORT_NAME } = require('./dkclLeftoverCleanup');
+const { captureDetailTimeoutEvidence, logDetailTableOk, resetLoopDelay } = require('./dkclDetailTimeoutEvidence');
 
 const DETAIL_METRIC_HEADER = 'SL bưu gửi phát thành công/Nộp tiền/CH';
+const F13_DETAIL_FORM_SELECTOR = 'form[action$="/export/sp_TT_Phat_LienTinh_ChiTiet/all"]';
+// AUTO-IMPORT-016 P3: the detail table gets 20 s after the first click; if it has not appeared and the page is still
+// on the F1.3 report, the cell is clicked once more; the whole wait is 60 s.
+const F13_DETAIL_FIRST_WAIT_MS = 20000;
+const F13_DETAIL_TOTAL_WAIT_MS = 60000;
+const F13_REPORT_PATH = '/kpi/chat-luong-phat-buu-gui-lien-tinh';
 const F41_REPORT_PATH = '/kpi/chat-luong-phat-thanh-cong-cua-buu-cuc';
 const F41_HUE_EXPORT_IDENTITY = 'sp_Phat_ChatLuong_PTC_BuuCuc_V2';
 const F41_HUE_EXPORT_ACTION = `/export/${F41_HUE_EXPORT_IDENTITY}/all`;
@@ -223,6 +230,12 @@ function loadPlaywright() {
     const localPath = path.resolve(process.cwd(), '../frontend/node_modules/playwright');
     if (fs.existsSync(localPath)) return require(localPath);
     return require('playwright');
+}
+
+// AUTO-IMPORT-016 P1: time left until a deadline, capped, never below 1 s for a call that is still allowed to start.
+function msUntil(deadlineAt, capMs) {
+    if (!Number.isFinite(deadlineAt)) return capMs;
+    return Math.max(1000, Math.min(capMs, deadlineAt - Date.now()));
 }
 
 function portalError(message, code) {
@@ -1436,12 +1449,38 @@ class DkclHueF13PortalClient {
             );
         }
 
-        const detailCell = this.page.locator('table tr').nth(2).locator('td.ajax_cell').nth(candidate.index);
-        if (await detailCell.count() !== 1 || !(await detailCell.isVisible())) {
-            throw portalError('Visible detail-total candidate was not confirmed before click.', 'DETAIL_TOTAL_CANDIDATE_NOT_CONFIRMED');
+        const clickDetailCell = async () => {
+            const detailCell = this.page.locator('table tr').nth(2).locator('td.ajax_cell').nth(candidate.index);
+            if (await detailCell.count() !== 1 || !(await detailCell.isVisible())) {
+                throw portalError('Visible detail-total candidate was not confirmed before click.', 'DETAIL_TOTAL_CANDIDATE_NOT_CONFIRMED');
+            }
+            await detailCell.click();
+        };
+        await clickDetailCell();
+        this.detailClickedAtMs = Date.now();
+        resetLoopDelay();
+        // The table opens by an ajax call after the click. Wait for it here (P3); the second click happens only when
+        // the page is still the F1.3 report, so a page that was navigated away is never clicked blindly.
+        let clicks = 1;
+        let opened = await this.waitForDetailForm(F13_DETAIL_FIRST_WAIT_MS);
+        if (!opened && this.isOnF13Report()) {
+            clicks = 2;
+            await clickDetailCell();
+            opened = await this.waitForDetailForm(F13_DETAIL_TOTAL_WAIT_MS - F13_DETAIL_FIRST_WAIT_MS);
         }
-        await detailCell.click();
-        await this.page.waitForTimeout(1000);
+        if (!opened) {
+            await captureDetailTimeoutEvidence(this.page, {
+                source: this.source,
+                clickedAtMs: this.detailClickedAtMs,
+                clicks,
+                detailFormSelector: F13_DETAIL_FORM_SELECTOR,
+                dir: this.detailEvidenceDir,
+                logger: this.logger,
+            });
+            throw portalError(`DKCL F1.3 detail table did not open within ${Math.round(F13_DETAIL_TOTAL_WAIT_MS / 1000)} seconds.`, 'F13_DETAIL_TABLE_TIMEOUT');
+        }
+        logDetailTableOk({ source: this.source, clickToFormMs: Date.now() - this.detailClickedAtMs, clicks, logger: this.logger });
+        await this.page.waitForTimeout(200);
         return {
             header: candidate.selected.header,
             value: candidate.selected.total,
@@ -1450,16 +1489,37 @@ class DkclHueF13PortalClient {
         };
     }
 
-    async readDetailTableTotal() {
-        const text = await this.page.locator('text=Tổng số:').last().innerText({ timeout: 30000 });
-        return Number(String(text).replace(/[^\d]/g, ''));
+    isOnF13Report() {
+        try {
+            return String(this.page.url() || '').includes(F13_REPORT_PATH);
+        } catch (error) {
+            return false;
+        }
+    }
+
+    // True once the detail table's export form is visible; false on a Playwright timeout, any other error is thrown.
+    async waitForDetailForm(timeoutMs) {
+        try {
+            await this.page.locator(F13_DETAIL_FORM_SELECTOR).waitFor({ timeout: timeoutMs });
+            return true;
+        } catch (error) {
+            if (!isPlaywrightTimeout(error)) throw error;
+            return false;
+        }
     }
 
     async readDetailTableTotal() {
-        await this.page.locator('form[action$="/export/sp_TT_Phat_LienTinh_ChiTiet/all"]').waitFor({ timeout: 30000 }).catch((error) => {
-            if (!isPlaywrightTimeout(error)) throw error;
-            throw portalError('DKCL F1.3 detail table did not open within 30 seconds.', 'F13_DETAIL_TABLE_TIMEOUT');
-        });
+        // openDetailTable() has already waited for the form (P3); a short look here only guards a caller that skipped it.
+        if (!await this.waitForDetailForm(5000)) {
+            await captureDetailTimeoutEvidence(this.page, {
+                source: this.source,
+                clickedAtMs: this.detailClickedAtMs ?? null,
+                detailFormSelector: F13_DETAIL_FORM_SELECTOR,
+                dir: this.detailEvidenceDir,
+                logger: this.logger,
+            });
+            throw portalError('DKCL F1.3 detail table did not open.', 'F13_DETAIL_TABLE_TIMEOUT');
+        }
         const text = await this.page.evaluate(() => {
             const isVisible = (element) => {
                 const rect = element.getBoundingClientRect();
@@ -1563,12 +1623,17 @@ class DkclHueF13PortalClient {
         return targetPath;
     }
 
-    async deleteGeneratedFile(file) {
+    // `deadlineAt` (ms epoch, optional) is the end of the caller's time budget: every wait below is cut to what is
+    // left of it, so the function ends by itself and the caller never has to abandon it mid-navigation.
+    async deleteGeneratedFile(file, { deadlineAt = null } = {}) {
         if (!file?.filename) {
             throw portalError('Generated file metadata is missing for cleanup.', 'CLEANUP_FILE_MISSING');
         }
+        if (Number.isFinite(deadlineAt) && Date.now() >= deadlineAt) {
+            throw portalError('Cleanup time budget is used up.', 'CLEANUP_DEADLINE');
+        }
 
-        await this.page.goto(`${this.baseUrl}/files`, { waitUntil: 'domcontentloaded', timeout: 60000 });
+        await this.page.goto(`${this.baseUrl}/files`, { waitUntil: 'domcontentloaded', timeout: msUntil(deadlineAt, 60000) });
         const rowIndexes = await this.page.evaluate((filename) => {
             const rows = Array.from(document.querySelectorAll('table tbody tr')).map((tr) => ({
                 cells: Array.from(tr.querySelectorAll('td')).map((td) => td.textContent.trim().replace(/\s+/g, ' '))
@@ -1637,7 +1702,7 @@ class DkclHueF13PortalClient {
                 Array.from(tr.querySelectorAll('td')).some((td) => td.textContent.trim().replace(/\s+/g, ' ') === filename)
             )),
             file.filename,
-            { timeout: 30000 }
+            { timeout: msUntil(deadlineAt, 30000) }
         ).then(() => true).catch(() => false);
         if (!disappeared) {
             throw portalError('Generated file row still appears after cleanup.', 'CLEANUP_ROW_STILL_PRESENT');
@@ -1657,8 +1722,11 @@ class DkclHueF13PortalClient {
     } = {}) {
         const outcome = { listed: 0, candidates: 0, deleted: 0, failed: 0, errors: [] };
         const startedAt = Date.now();
-        await this.page.goto(`${this.baseUrl}/files`, { waitUntil: 'domcontentloaded', timeout: 60000 });
-        await this.page.locator('table tbody tr').first().waitFor({ timeout: 10000 }).catch(() => {});
+        // AUTO-IMPORT-016 P1: the budget is enforced here, in the function that drives the page, so it always ends
+        // before the caller releases the source (the caller no longer races it and walks away).
+        const deadlineAt = startedAt + budgetMs;
+        await this.page.goto(`${this.baseUrl}/files`, { waitUntil: 'domcontentloaded', timeout: msUntil(deadlineAt, 60000) });
+        await this.page.locator('table tbody tr').first().waitFor({ timeout: msUntil(deadlineAt, 10000) }).catch(() => {});
         const rows = await this.page.evaluate(() => Array.from(document.querySelectorAll('table tbody tr')).map((tr) => {
             const cells = Array.from(tr.querySelectorAll('td')).map((td) => td.innerText.trim().replace(/\s+/g, ' '));
             return { filename: cells[1], createdAtText: cells[3] };
@@ -1672,9 +1740,9 @@ class DkclHueF13PortalClient {
             .sort((a, b) => a.createdAtMs - b.createdAtMs);
         outcome.candidates = candidates.length;
         for (const file of candidates.slice(0, maxFiles)) {
-            if (Date.now() - startedAt > budgetMs || outcome.failed >= LEFTOVER_MAX_FAILURES) break;
+            if (Date.now() >= deadlineAt || outcome.failed >= LEFTOVER_MAX_FAILURES) break;
             try {
-                await this.deleteGeneratedFile({ filename: file.filename });
+                await this.deleteGeneratedFile({ filename: file.filename }, { deadlineAt });
                 outcome.deleted += 1;
             } catch (error) {
                 outcome.failed += 1;

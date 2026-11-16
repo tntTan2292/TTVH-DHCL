@@ -111,7 +111,7 @@ test('the sweep gives up after three failed deletions and reports why', async ()
     assert.deepEqual(outcome.errors, ['CLEANUP_DELETE_NOT_FOUND', 'CLEANUP_DELETE_NOT_FOUND', 'CLEANUP_DELETE_NOT_FOUND']);
 });
 
-test('sweepLeftoverFiles never throws, logs a summary, and does not wait for a hung cleanup', async () => {
+test('sweepLeftoverFiles never throws and logs a summary', async () => {
     const lines = [];
     const logger = { log: (line) => lines.push(`log ${line}`), warn: (line) => lines.push(`warn ${line}`) };
 
@@ -127,10 +127,62 @@ test('sweepLeftoverFiles never throws, logs a summary, and does not wait for a h
 
     assert.equal(await sweepLeftoverFiles({ deleteLeftoverGeneratedFiles: async () => { throw new Error('page closed'); } }, { source: 'HUE', logger }), null);
     assert.match(lines.at(-1), /warn \[DKCL-LEFTOVER\] HUE cleanup failed: page closed/);
+});
 
-    const hung = await sweepLeftoverFiles({ deleteLeftoverGeneratedFiles: () => new Promise(() => {}) }, { source: 'HUE', logger, budgetMs: 20 });
-    assert.equal(hung.timedOut, true);
-    assert.match(lines.at(-1), /warn \[DKCL-LEFTOVER\] HUE cleanup did not finish within 20 ms/);
+// AUTO-IMPORT-016 P1: the cleanup is no longer raced against a timer and abandoned. The source is released only after
+// the page work has ended; the time budget is enforced inside the client function.
+test('AUTO-IMPORT-016 P1: a slow cleanup is awaited to the end and the source is released only after it', async () => {
+    const events = [];
+    let finish;
+    const client = { deleteLeftoverGeneratedFiles: () => new Promise((resolve) => { finish = () => { events.push('cleanup ended'); resolve({ listed: 1, candidates: 0, deleted: 0, failed: 0, errors: [] }); }; }) };
+    const entry = { activeOperation: null };
+    const service = {
+        async preflight() { return { status: 'SESSION_VALID' }; },
+        async withSourceLock(source, fn) { try { return await fn(); } finally { events.push('lock released'); } },
+        getRegistryState() { return entry; },
+        getInteractiveClient() { return client; },
+    };
+    const adapter = { async runOneDate() { return { status: 'SUCCESS' }; } };
+    const executor = new F42AutoBackfillExecutor({ identity: F42_EXECUTOR_IDENTITIES.TCT, adapter, sessionPreflightService: service });
+    const running = executor.execute({ indicator: 'F4.2', sourceLane: 'TCT', businessDate: '2026-10-27' });
+    await new Promise((resolve) => setTimeout(resolve, 150));
+    assert.deepEqual(events, [], 'a cleanup that has not ended keeps the source (no 75 s give-up any more)');
+    assert.equal(entry.activeOperation, 'AUTO_BACKFILL_F42_TCT');
+    finish();
+    await running;
+    assert.deepEqual(events, ['cleanup ended', 'lock released']);
+    assert.equal(entry.activeOperation, null);
+});
+
+test('AUTO-IMPORT-016 P1: the client cuts every goto and wait to the time left of its own budget', async () => {
+    const rows = Array.from({ length: 3 }, (_, index) => ({
+        filename: `25418_27-10-2026_10-00-0${index}_F1.2_CL_thu_gom_buu_giay_lien_tinh_01.xlsx`,
+        createdAtText: portalTime(1000 - index),
+    }));
+    const client = clientWithRows(rows);
+    const timeouts = [];
+    client.page.goto = async (url, options) => { timeouts.push(options.timeout); };
+    client.page.locator = () => ({ first() { return { async waitFor(options) { timeouts.push(options.timeout); } }; } });
+    const seenDeadlines = [];
+    client.deleteGeneratedFile = async (file, options) => { seenDeadlines.push(options?.deadlineAt); return { status: 'DELETED' }; };
+    const before = Date.now();
+    await client.deleteLeftoverGeneratedFiles({ now: NOW, budgetMs: 5000 });
+    assert.ok(timeouts.every((ms) => ms <= 5000), `waits ${timeouts} are within the 5 s budget`);
+    assert.equal(seenDeadlines.length, 3);
+    assert.ok(seenDeadlines.every((at) => at >= before + 4000 && at <= Date.now() + 5000), 'one shared deadline is passed to each deletion');
+    assert.equal(new Set(seenDeadlines).size, 1);
+});
+
+test('AUTO-IMPORT-016 P1: a deletion started after the deadline refuses to navigate', async () => {
+    const client = clientWithRows([]);
+    let navigated = false;
+    client.page.goto = async () => { navigated = true; };
+    const real = DkclHueF13PortalClient.prototype.deleteGeneratedFile;
+    await assert.rejects(
+        () => real.call(client, { filename: 'x_F1.2_CL_thu_gom_buu_giay_lien_tinh_01.xlsx' }, { deadlineAt: Date.now() - 1 }),
+        { code: 'CLEANUP_DEADLINE' },
+    );
+    assert.equal(navigated, false);
 });
 
 function executorHarness({ client }) {
@@ -209,7 +261,7 @@ test('an idle source is swept under the source lock with the marker set, and the
 test('the sweep after a job keeps the 10-file, 60-second limits', async () => {
     const seen = [];
     await sweepLeftoverFiles({ deleteLeftoverGeneratedFiles: async (limits) => { seen.push(limits); return { listed: 0, candidates: 0, deleted: 0, failed: 0, errors: [] }; } }, { source: 'TCT', logger: { log() {}, warn() {} } });
-    assert.deepEqual(seen, [{}], 'no override: the client method applies its own 10 files and 60 seconds');
+    assert.deepEqual(seen, [{ budgetMs: 60000 }], 'no override: the client method applies its own 10 files, and the 60-second budget is handed to it');
     assert.equal(LEFTOVER_MAX_FILES, 10);
 });
 

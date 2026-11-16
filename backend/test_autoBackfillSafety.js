@@ -181,7 +181,7 @@ test('Safety retries only an explicit transient error, at most three attempts, w
     }
 });
 
-test('Safety exhausts a transient job after exactly three attempts', async () => {
+test('Safety exhausts a transient job after three attempts plus the one extra attempt three minutes later (AUTO-IMPORT-016 P4)', async () => {
     const f = await fixture({ startDate: '2026-01-04', execute: async () => {
         throw error('PORTAL_TRANSIENT', null, 'temporary upstream timeout');
     } });
@@ -191,12 +191,63 @@ test('Safety exhausts a transient job after exactly three attempts', async () =>
         f.clockState.now = new Date(f.clockState.now.getTime() + 2000);
         assert.equal((await f.service.processNext()).state, 'RETRY_WAIT');
         f.clockState.now = new Date(f.clockState.now.getTime() + 4000);
-        assert.equal((await f.service.processNext()).state, 'FAILED_TERMINAL');
+        // the third failure no longer ends the job: one more attempt is queued three minutes later
+        const third = await f.service.processNext();
+        assert.equal(third.state, 'RETRY_WAIT');
+        assert.equal(third.retryAt, new Date(f.clockState.now.getTime() + 180000).toISOString());
+        let mid = await f.service.store.getRun(created.run.id);
+        assert.equal(mid.jobs[0].state, 'QUEUED');
+        assert.match(mid.jobs[0].action_required, /one last attempt is queued in 3 minutes/);
+        f.clockState.now = new Date(f.clockState.now.getTime() + 179000);
+        assert.equal(await f.service.processNext(), null, 'nothing runs before the three minutes are over');
+        f.clockState.now = new Date(f.clockState.now.getTime() + 1000);
+        assert.equal((await f.service.processNext()).state, 'FAILED_TERMINAL', 'the extra attempt fails too: terminal, once only');
         assert.equal(await f.service.processNext(), null);
         const run = await f.service.store.getRun(created.run.id);
-        assert.equal(run.attempts.length, 3);
+        assert.equal(run.attempts.length, 4);
         assert.equal(run.jobs[0].state, 'FAILED_TERMINAL');
         assert.match(run.jobs[0].action_required, /limit of 3 attempts/i);
+    } finally {
+        f.cleanup();
+    }
+});
+
+test('AUTO-IMPORT-016 P4: the extra attempt after exhaustion can succeed', async () => {
+    let calls = 0;
+    const f = await fixture({ startDate: '2026-01-04', execute: async (identity, { statuses }) => {
+        calls += 1;
+        if (calls <= 3) throw error('PORTAL_TRANSIENT', null, 'temporary upstream timeout');
+        statuses.set(`${identity.indicator}|${identity.sourceLane}|${identity.businessDate}`, 'SUCCESS');
+    } });
+    try {
+        const created = await f.service.createRun({ actor: 'admin', roles: ['admin'] });
+        let result = await f.service.processNext();
+        for (let i = 0; i < 2; i += 1) {
+            f.clockState.now = new Date(result.retryAt);
+            result = await f.service.processNext();
+        }
+        assert.equal(result.state, 'RETRY_WAIT');
+        f.clockState.now = new Date(result.retryAt);
+        assert.equal((await f.service.processNext()).state, 'SUCCESS');
+        const run = await f.service.store.getRun(created.run.id);
+        assert.equal(run.jobs[0].state, 'SUCCESS');
+        assert.equal(calls, 4);
+    } finally {
+        f.cleanup();
+    }
+});
+
+test('AUTO-IMPORT-016 P4: a non-transient error is not queued again', async () => {
+    const f = await fixture({ startDate: '2026-01-04', execute: async () => {
+        throw error('PORTAL_PERMISSION_DENIED', null, 'no permission');
+    } });
+    try {
+        const created = await f.service.createRun({ actor: 'admin', roles: ['admin'] });
+        const result = await f.service.processNext();
+        assert.notEqual(result.state, 'RETRY_WAIT');
+        const run = await f.service.store.getRun(created.run.id);
+        assert.equal(run.attempts.length, 1);
+        assert.equal(run.jobs[0].state, 'FAILED_TERMINAL');
     } finally {
         f.cleanup();
     }

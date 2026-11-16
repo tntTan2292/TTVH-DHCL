@@ -150,13 +150,14 @@ test('(1) a lock that never clears still ends after the attempt budget, and neve
     try {
         const created = await f.service.createRun({ indicator: 'F9.A', lane: 'HUE', fromDate: '2026-01-07', toDate: '2026-01-07', actor: 'x', roles: ['admin'] });
         for (let i = 0; i < 6; i += 1) {
-            f.advance(MIN_LOCK_RETRY_DELAY_MS + 1000);
+            // longer than the three-minute wait before the one extra attempt (AUTO-IMPORT-016 P4)
+            f.advance(Math.max(MIN_LOCK_RETRY_DELAY_MS + 1000, 181000));
             await f.service.processNext();
         }
         const { jobs, circuits } = await f.store.getRun(created.run.id);
         assert.equal(jobs[0].state, 'FAILED_TERMINAL');
         const log = await f.store.listJobs({ states: ['FAILED_TERMINAL'] });
-        assert.equal(log.items[0].attempt_count, 3, 'the bounded three-attempt budget');
+        assert.equal(log.items[0].attempt_count, 4, 'the bounded three-attempt budget plus the one extra attempt');
         assert.ok(!circuits.some((circuit) => circuit.state === 'OPEN'), 'local lock contention never stops the lane');
     } finally { f.cleanup(); }
 });

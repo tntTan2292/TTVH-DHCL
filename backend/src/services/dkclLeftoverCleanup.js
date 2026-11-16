@@ -27,26 +27,21 @@ const LEFTOVER_EXPORT_NAME = new RegExp(
     'i',
 );
 
-// Never throws and never keeps the lane waiting past the budget: it runs inside the job's critical section.
-async function sweepLeftoverFiles(portalClient, { source = '', logger = console, limits = {}, budgetMs = (limits.budgetMs ?? LEFTOVER_TIME_BUDGET_MS) + 15000 } = {}) {
+// Never throws. AUTO-IMPORT-016 P1: this used to race the cleanup against a timer and, when the timer won, release the
+// source while the cleanup kept driving the shared page (it then collided with the next job's navigation: "/files is
+// interrupted by another navigation"). The time budget now lives inside deleteLeftoverGeneratedFiles (every goto and
+// wait is cut to the time left), so this simply waits for it; the source is released only after the page work ended.
+async function sweepLeftoverFiles(portalClient, { source = '', logger = console, limits = {} } = {}) {
     if (typeof portalClient?.deleteLeftoverGeneratedFiles !== 'function') return null;
-    let timer;
     try {
-        const outcome = await Promise.race([
-            portalClient.deleteLeftoverGeneratedFiles(limits),
-            new Promise((resolve) => { timer = setTimeout(() => resolve({ timedOut: true }), budgetMs); }),
-        ]);
-        if (outcome?.timedOut) {
-            logger.warn?.(`[DKCL-LEFTOVER] ${source} cleanup did not finish within ${budgetMs} ms; the lane moves on`);
-        } else if (outcome && (outcome.candidates > 0 || outcome.failed > 0)) {
+        const outcome = await portalClient.deleteLeftoverGeneratedFiles({ budgetMs: LEFTOVER_TIME_BUDGET_MS, ...limits });
+        if (outcome && (outcome.candidates > 0 || outcome.failed > 0)) {
             logger.log?.(`[DKCL-LEFTOVER] ${source} listed=${outcome.listed} leftover=${outcome.candidates} deleted=${outcome.deleted} failed=${outcome.failed}${outcome.errors?.length ? ` errors=${JSON.stringify(outcome.errors)}` : ''}`);
         }
         return outcome || null;
     } catch (error) {
         logger.warn?.(`[DKCL-LEFTOVER] ${source} cleanup failed: ${error.message}`);
         return null;
-    } finally {
-        clearTimeout(timer);
     }
 }
 

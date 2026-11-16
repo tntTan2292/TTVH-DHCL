@@ -19,6 +19,13 @@ const TERMINAL_JOB_STATES = ['SUCCESS', 'SKIPPED_ALREADY_SUCCESS', 'FAILED_TERMI
 // this can never retry forever even though it is never counted as "exhausted".
 const SESSION_PENDING_RETRY_DELAY_MS = 15000;
 
+// AUTO-IMPORT-016 P4 (PO decision 2026-11-16): a job that used up its automatic attempts on a TRANSIENT error (not an
+// authentication / session error) is queued once more, three minutes later. Only one such extra attempt per job: it
+// is recognised by the attempt count (the extra attempt is number maxAttempts + 1), so no schema change is needed, and
+// when it fails too the job ends FAILED_TERMINAL with "Product Owner review is required" as before.
+const TRANSIENT_REQUEUE_DELAY_MS = 3 * 60 * 1000;
+const TRANSIENT_REQUEUE_EXCLUDED_CODE = /^(AUTHENTICATION|SESSION)/i;
+
 // AB-AUTH-03: the set of source lanes that are currently unable to make progress because a
 // job on that lane is waiting for a manual login, or is integrity-blocked. Derived from the
 // JOB, not from auto_backfill_run.requested_lane, which is nullable for unfiltered runs and
@@ -777,6 +784,18 @@ class AutoBackfillQueueStore {
                 outcome = 'RETRY_SCHEDULED';
                 actionRequired = `Automatic retry ${realAttemptNumber + 1}/${maxAttempts} is scheduled.`;
                 eventType = 'JOB_RETRY_SCHEDULED';
+            } else if (
+                failure.retryable
+                && failure.classification === 'TRANSIENT'
+                && realAttemptNumber === maxAttempts
+                && !TRANSIENT_REQUEUE_EXCLUDED_CODE.test(String(failure.code || ''))
+            ) {
+                jobState = 'QUEUED';
+                safetyState = 'RETRY_WAIT';
+                nextAttemptAt = new Date(this.clock().getTime() + TRANSIENT_REQUEUE_DELAY_MS).toISOString();
+                outcome = 'RETRY_SCHEDULED';
+                actionRequired = `Automatic retries (${maxAttempts}) were used up on a transient error; one last attempt is queued in ${Math.round(TRANSIENT_REQUEUE_DELAY_MS / 60000)} minutes.`;
+                eventType = 'JOB_RETRY_SCHEDULED';
             } else if (failure.retryable) {
                 actionRequired = `Automatic retry limit of ${maxAttempts} attempts was exhausted; Product Owner review is required.`;
             } else if (failure.classification === 'PERMISSION') {
@@ -1360,5 +1379,6 @@ module.exports = {
     AutoBackfillQueueStore,
     ACTIVE_JOB_STATES,
     TERMINAL_JOB_STATES,
+    TRANSIENT_REQUEUE_DELAY_MS,
     queueError,
 };

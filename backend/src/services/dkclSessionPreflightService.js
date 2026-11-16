@@ -89,13 +89,22 @@ function safeMessage(error, sourceLabel) {
 class SourceOperationLock {
     constructor() {
         this._tail = Promise.resolve();
+        this._pending = 0;
     }
 
     run(fn) {
+        this._pending += 1;
         const result = this._tail.then(fn, fn);
         // Keep the chain alive regardless of outcome, without leaking a rejection into it.
-        this._tail = result.then(() => undefined, () => undefined);
+        // The counter drops in the same step that ends the chain, before any caller awaiting `result` continues.
+        const done = () => { this._pending -= 1; };
+        this._tail = result.then(done, done);
         return result;
+    }
+
+    // AUTO-IMPORT-016 P2: true while any operation holds the lock or waits for it.
+    isBusy() {
+        return this._pending > 0;
     }
 }
 
@@ -198,6 +207,27 @@ class DkclSessionPreflightService {
      */
     withSourceLock(source, fn) {
         return getSourceLock(this.normalizeSource(source).source).run(fn);
+    }
+
+    // AUTO-IMPORT-016 P2: the source is busy when an operation owns it (activeOperation) or holds / waits for its lock.
+    // A probe must never navigate the shared page while that is true.
+    isSourceBusy(source) {
+        const key = this.normalizeSource(source).source;
+        const entry = globalRegistry.get(key);
+        return Boolean(entry?.activeOperation) || getSourceLock(key).isBusy();
+    }
+
+    // The answer a probe gives instead of touching the page: the session is the owning operation's to use.
+    buildSourceBusyResponse(sourceConfig, entry) {
+        return {
+            source: sourceConfig.source,
+            status: PREFLIGHT_STATUSES.SESSION_VALID,
+            interactive: true,
+            source_page_ready: true,
+            busy: true,
+            ...lifecyclePayload(entry),
+            message: `Phiên DKCL ${sourceConfig.displayName} đang được một thao tác khác sử dụng; không điều hướng trang.`
+        };
     }
 
     normalizeSource(source) {
@@ -572,7 +602,7 @@ class DkclSessionPreflightService {
         const today = new Date().toLocaleDateString('sv');
         const isDayRollover = Boolean(entry.lastValidatedDate && entry.lastValidatedDate !== today);
         const isIdleOverdue = Boolean(entry.lastValidatedAt && (Date.now() - entry.lastValidatedAt > this.idleRevalidateMs));
-        const requiresActiveRevalidation = (isDayRollover || isIdleOverdue) && !entry.activeOperation && typeof client.revalidateSession === 'function';
+        const requiresActiveRevalidation = (isDayRollover || isIdleOverdue) && !this.isSourceBusy(sourceConfig.source) && typeof client.revalidateSession === 'function';
 
         if (requiresActiveRevalidation) {
             const isValid = await client.revalidateSession().catch(() => false);
@@ -637,6 +667,8 @@ class DkclSessionPreflightService {
 
         let probe = await check();
         if (!probe.ready && probe.authenticated) {
+            // A job may have taken the source while the probe was reading it: do not navigate under it.
+            if (this.isSourceBusy(sourceConfig.source)) return this.buildSourceBusyResponse(sourceConfig, entry);
             this.transitionEntry(sourceConfig.source, entry, DKCL_LIFECYCLE_STATES.F13_OPENING, { authenticated: true, backgroundReady: false });
             await client.openF13Report?.().catch(() => {});
             return readyResponse();
@@ -652,6 +684,7 @@ class DkclSessionPreflightService {
         }
         probe = await check();
         if (!probe.ready && probe.authenticated) {
+            if (this.isSourceBusy(sourceConfig.source)) return this.buildSourceBusyResponse(sourceConfig, entry);
             this.transitionEntry(sourceConfig.source, entry, DKCL_LIFECYCLE_STATES.F13_OPENING, { authenticated: true, backgroundReady: false });
             await client.openF13Report?.().catch(() => {});
             return readyResponse();
@@ -662,7 +695,7 @@ class DkclSessionPreflightService {
 
         // An owning operation may have started while we were probing/retrying — defer to it,
         // never expire a session another operation now owns.
-        if (entry.activeOperation) {
+        if (this.isSourceBusy(sourceConfig.source)) {
             return this.buildInteractiveInProgressResponse(sourceConfig, entry);
         }
 
@@ -768,7 +801,9 @@ class DkclSessionPreflightService {
         // activeOperation value either source's worker sets) exempts this poll from ever
         // touching entry.client — the owning operation is the sole authority over the session
         // while it runs. This now protects TCT identically to HUE.
-        if (entry.activeOperation && entry.authenticated) {
+        // AUTO-IMPORT-016 P2: also when the source lock is held or awaited (a cleanup or job that has not yet set
+        // activeOperation) -- the probe below can navigate the shared page.
+        if (entry.authenticated && this.isSourceBusy(sourceConfig.source)) {
             return {
                 source: sourceConfig.source,
                 status: PREFLIGHT_STATUSES.SESSION_VALID,

@@ -1,3 +1,6 @@
+// AUTO-IMPORT-016 P0: every console line gets an ISO UTC time (must run before anything logs).
+require('./src/config/logTimestamp').install();
+
 const express = require('express');
 const cors = require('cors');
 const compression = require('compression');
