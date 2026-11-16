@@ -163,6 +163,7 @@ function buildDefaultAdapters(db = defaultDb) {
                         ma_bcvh: row.ma_bcvh,
                         ten_bcvh: row.ten_bcvh,
                         total_bg: row.total_bg,
+                        total_passed: row.total_passed,
                         total_failed: row.total_failed,
                         passed_rate: f13DashboardService._calculateRate(row.total_passed, row.total_bg),
                     })),
@@ -559,8 +560,8 @@ class HomeExecutiveService {
                         ten_bcvh: row.ten_bcvh,
                         rate: round1(row.passed_rate),
                         gap_to_target: gap(row.passed_rate),
-                        passed: Number(row.total_passed || 0),
-                        failed: Number(row.total_failed || 0),
+                        passed: Number(row.total_passed ?? row.dat_kpi_2026 ?? 0),
+                        failed: Number(row.total_failed ?? row.khong_dat_kpi_2026 ?? 0),
                         volume: Number(row.total_bg),
                     }));
                 return { kind, threshold, items: biggestBelow(items) };

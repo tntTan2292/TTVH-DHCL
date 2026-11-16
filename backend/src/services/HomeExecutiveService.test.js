@@ -120,6 +120,13 @@ test('previous day missing in the trend: change is null, not zero', async () => 
     assert.equal(out.indicators[0].rate_change, null);
 });
 
+test('BCVH rows without total_passed (F4.1-style) fall back to dat_kpi_2026 for the Đạt column', async () => {
+    const rows = CANONICAL_CODES.map((code, i) => ({ ma_bcvh: code, ten_bcvh: `Unit ${i}`, total_bg: 10, passed_rate: 70, dat_kpi_2026: 7 + i % 2, khong_dat_kpi_2026: 3 - i % 2 }));
+    const out = await service(all4(adapter({ rows }))).getExecutive();
+    const focus = out.indicators[3].focus_units;
+    assert.deepEqual(focus.items.map((u) => u.passed).sort(), CANONICAL_CODES.map((c, i) => 7 + i % 2).sort());
+});
+
 test('F1.3 / F4.1 list every BCVH, lowest rate first, with gap to target and failed count', async () => {
     const rows = [99, 50, 80, 91, 70, 60].map((r, i) => ({ ma_bcvh: CANONICAL_CODES[i], ten_bcvh: `Unit ${i}`, total_bg: 10, passed_rate: r, total_passed: Math.round(r / 10), total_failed: 10 - Math.round(r / 10) }));
     rows.push({ ma_bcvh: '531120', ten_bcvh: 'Khách hàng lớn', total_bg: 1, passed_rate: 0, total_failed: 1 }); // not a BCVH: left out
