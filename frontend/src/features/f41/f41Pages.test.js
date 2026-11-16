@@ -127,7 +127,9 @@ test('F41-TMS-COMPARE-01: ActionUnitsBlock, BcvhOperationTable, and UnifiedBcvhA
   assert.match(homeBlockSource, /isF41\s*=\s*selectedIndicator\s*===\s*'f41'\s*\|\|\s*indicatorData\?\.id\s*===\s*'f41'/);
   assert.match(homeBlockSource, /Tỷ lệ đạt \(không đo TMS\)/);
   assert.doesNotMatch(homeBlockSource, /rate_blank_tms|% chưa/);
-  assert.match(homeBlockSource, /\{!isF41 && \(\s*<SortableTh field="failed"/);
+  // PO 2026-11-16: every indicator, F4.1 included, shows "Đạt" instead of "Không đạt"
+  assert.match(homeBlockSource, /<SortableTh field="passed"/);
+  assert.doesNotMatch(homeBlockSource, /<SortableTh field="failed"/);
 
   // 2. BcvhOperationTable has the two columns in both MTD and Daily groups guarded by isF41
   assert.match(opTableSource, /isF41\s*=\s*indicator\?\.id\s*===\s*'f41'/);

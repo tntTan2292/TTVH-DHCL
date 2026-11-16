@@ -173,3 +173,13 @@ test('sortLowestUnits sorts lowest units correctly by rate', () => {
   assert.equal(sortedAsc[0].ma_bcvh, 'B2');
   assert.equal(sortedAsc[2].ma_bcvh, 'B3');
 });
+
+test('sortLowestUnits sorts by the passed count (Đạt column)', () => {
+  const units = [
+    { ma_bcvh: 'B1', rate: 75.0, passed: 80 },
+    { ma_bcvh: 'B2', rate: 60.5, passed: 50 },
+    { ma_bcvh: 'B3', rate: 82.0, passed: 90 },
+  ];
+  const sortedDesc = sortLowestUnits(units, { field: 'passed', direction: 'desc' });
+  assert.deepEqual(sortedDesc.map((u) => u.ma_bcvh), ['B3', 'B1', 'B2']);
+});

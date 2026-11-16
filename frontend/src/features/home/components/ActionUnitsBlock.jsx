@@ -168,12 +168,10 @@ export default function ActionUnitsBlock({
                       Không đo TMS
                     </SortableTh>
                   )}
-                  {/* PO 2026-10-29: the F4.1 Home block drops "Không đạt" (redundant beside the rates) */}
-                  {!isF41 && (
-                    <SortableTh field="failed" sort={sort} onSort={handleSort} className="px-2.5 py-2 text-right">
-                      Không đạt
-                    </SortableTh>
-                  )}
+                  {/* PO 2026-11-16: every indicator (F4.1 included) shows the passed count ("Đạt") instead of "Không đạt" */}
+                  <SortableTh field="passed" sort={sort} onSort={handleSort} className="px-2.5 py-2 text-right">
+                    Đạt
+                  </SortableTh>
                   <SortableTh field="volume" sort={sort} onSort={handleSort} className="px-2.5 py-2 text-right">
                     Sản lượng
                   </SortableTh>
@@ -221,11 +219,9 @@ export default function ActionUnitsBlock({
                             : '—'}
                         </td>
                       )}
-                      {!isF41 && (
-                        <td className="px-2.5 py-2 text-right font-black tabular-nums text-rose-600">
-                          {Number(u.failed || 0).toLocaleString('vi-VN')}
-                        </td>
-                      )}
+                      <td className="px-2.5 py-2 text-right font-black tabular-nums text-emerald-700">
+                        {Number(u.passed || 0).toLocaleString('vi-VN')}
+                      </td>
                       <td className="px-2.5 py-2 text-right font-semibold tabular-nums text-slate-700">
                         {Number(u.volume || 0).toLocaleString('vi-VN')}
                       </td>

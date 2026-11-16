@@ -121,7 +121,7 @@ test('previous day missing in the trend: change is null, not zero', async () => 
 });
 
 test('F1.3 / F4.1 list every BCVH, lowest rate first, with gap to target and failed count', async () => {
-    const rows = [99, 50, 80, 91, 70, 60].map((r, i) => ({ ma_bcvh: CANONICAL_CODES[i], ten_bcvh: `Unit ${i}`, total_bg: 10, passed_rate: r, total_failed: 10 - Math.round(r / 10) }));
+    const rows = [99, 50, 80, 91, 70, 60].map((r, i) => ({ ma_bcvh: CANONICAL_CODES[i], ten_bcvh: `Unit ${i}`, total_bg: 10, passed_rate: r, total_passed: Math.round(r / 10), total_failed: 10 - Math.round(r / 10) }));
     rows.push({ ma_bcvh: '531120', ten_bcvh: 'Khách hàng lớn', total_bg: 1, passed_rate: 0, total_failed: 1 }); // not a BCVH: left out
     const out = await service(all4(adapter({ rows }))).getExecutive();
     for (const index of [2, 3]) {
@@ -129,6 +129,7 @@ test('F1.3 / F4.1 list every BCVH, lowest rate first, with gap to target and fai
         assert.equal(focus.kind, 'bcvh');
         assert.deepEqual(focus.items.map((u) => u.rate), [50, 60, 70, 80, 91, 99]);
         assert.equal(focus.items[0].gap_to_target, -40);
+        assert.equal(focus.items[0].passed, 5);
     }
 });
 
@@ -171,6 +172,7 @@ test('F1.1 lists the accepting-office x delivering-BCVH pairs with the largest v
     assert.equal(focus.items[0].ten_bcvh, 'Office 1');
     assert.equal(focus.items[0].volume, 50);
     assert.equal(focus.items[0].failed, 30);
+    assert.equal(focus.items[0].passed, 20);
     assert.equal(focus.items[0].gap_to_target, -55);
 });
 

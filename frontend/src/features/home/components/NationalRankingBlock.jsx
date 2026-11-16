@@ -290,8 +290,8 @@ export default function NationalRankingBlock({
                   <SortableTh field="volume" sort={sort} onSort={handleSort} className="px-3 py-2 text-right w-24 whitespace-nowrap">
                     Sản lượng
                   </SortableTh>
-                  <SortableTh field="failed" sort={sort} onSort={handleSort} className="px-3 py-2 text-right w-24 whitespace-nowrap">
-                    Không đạt
+                  <SortableTh field="passed" sort={sort} onSort={handleSort} className="px-3 py-2 text-right w-24 whitespace-nowrap">
+                    Đạt
                   </SortableTh>
                   <SortableTh
                     field="movement"
@@ -371,9 +371,9 @@ export default function NationalRankingBlock({
                         {Number(item.volume || 0).toLocaleString('vi-VN')}
                       </td>
 
-                      {/* Failed */}
-                      <td className="px-3 py-2 text-right tabular-nums text-rose-600 font-bold">
-                        {Number(item.failed || 0).toLocaleString('vi-VN')}
+                      {/* Passed */}
+                      <td className="px-3 py-2 text-right tabular-nums text-emerald-700 font-bold">
+                        {Number(item.passed || 0).toLocaleString('vi-VN')}
                       </td>
 
                       {/* Rank Movement */}

@@ -541,6 +541,7 @@ class HomeExecutiveService {
                             ten_phat: column.ten_bcvh,
                             rate: round1(cell.rate),
                             gap_to_target: gap(cell.rate),
+                            passed: Number(cell.passed || 0),
                             failed: Number(cell.failed || 0),
                             volume: Number(cell.volume),
                         });
@@ -558,6 +559,7 @@ class HomeExecutiveService {
                         ten_bcvh: row.ten_bcvh,
                         rate: round1(row.passed_rate),
                         gap_to_target: gap(row.passed_rate),
+                        passed: Number(row.total_passed || 0),
                         failed: Number(row.total_failed || 0),
                         volume: Number(row.total_bg),
                     }));
@@ -573,6 +575,7 @@ class HomeExecutiveService {
                     ten_bcvh: row.ten_bcvh,
                     rate: round1(row.passed_rate),
                     gap_to_target: gap(row.passed_rate),
+                    passed: Number(row.total_passed ?? row.dat_kpi_2026 ?? 0),
                     failed: Number(row.total_failed ?? row.khong_dat_kpi_2026 ?? 0),
                     volume: Number(row.total_bg ?? row.sl_bg_ptc ?? 0),
                     // F41-TMS-COMPARE-01: only the F4.1 ranking rows carry these (other indicators: no extra keys)
@@ -677,6 +680,7 @@ class HomeExecutiveService {
             ten_tinh: item.ten_tinh,
             rate: item.rate,
             volume: item.volume,
+            passed: item.passed,
             failed: item.failed,
             previous_rank: movementBasis.ranks ? (movementBasis.ranks.get(String(item.ma_tinh)) || null) : item.previous_rank,
             movement: movementBasis.ranks
