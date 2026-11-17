@@ -45,6 +45,23 @@ function Set-Lock {
 
 function Clear-Lock { Remove-Item -LiteralPath $PauseFile -Force -ErrorAction SilentlyContinue }
 
+# Start-Process overwrites its redirect files, so each start used to wipe the log of the previous run (AUTO-IMPORT-016:
+# the 07:30 import log of 2026-11-17 was lost this way). Move the previous log to logs\ with its time first; keep 20.
+function Save-PreviousLog {
+    param([string]$Path, [string]$Prefix)
+    if (-not (Test-Path -LiteralPath $Path)) { return }
+    if ((Get-Item -LiteralPath $Path).Length -eq 0) { return }
+    New-Item -ItemType Directory -Force -Path "$RootPath\logs" | Out-Null
+    $stamp = (Get-Item -LiteralPath $Path).LastWriteTime.ToString('yyyyMMdd-HHmmss')
+    try {
+        Move-Item -LiteralPath $Path -Destination "$RootPath\logs\$Prefix-cc-$stamp.log" -Force -ErrorAction Stop
+    } catch {
+        Write-Host "Could not keep the previous log $Path ($($_.Exception.Message))" -ForegroundColor DarkYellow
+    }
+    Get-ChildItem -LiteralPath "$RootPath\logs" -Filter "$Prefix-cc-*.log" | Sort-Object LastWriteTime -Descending |
+        Select-Object -Skip 20 | Remove-Item -Force -ErrorAction SilentlyContinue
+}
+
 function Start-System {
     param([switch]$NoPrompt)
     # Keep the supervisor (scripts\qis-supervisor.ps1) paused while the system is being started, so it cannot start a
@@ -52,6 +69,8 @@ function Start-System {
     Set-Lock
     Write-Host "Starting Backend..." -ForegroundColor Yellow
     if (-not (Check-Port $BackendPort)) {
+        Save-PreviousLog -Path "$RootPath\backend\backend.log" -Prefix 'backend-out'
+        Save-PreviousLog -Path "$RootPath\backend\backend_err.log" -Prefix 'backend-err'
         Start-Process -FilePath "node" -ArgumentList "server.js" -WorkingDirectory "$RootPath\backend" -WindowStyle Hidden -RedirectStandardOutput "$RootPath\backend\backend.log" -RedirectStandardError "$RootPath\backend\backend_err.log"
         Start-Sleep -Seconds 2
     } else {
