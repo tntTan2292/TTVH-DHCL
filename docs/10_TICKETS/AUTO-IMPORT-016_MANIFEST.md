@@ -14,7 +14,7 @@
 - Ticket Name: F1.3 HUE detail-table timeout -- the shared DKCL page is navigated by something else mid-job
 - Level: `LEVEL 2` (touches three components that share the DKCL page / source lock). PO UI Check Required: `No`.
 - Owner: Claude Code / Sonnet 5.5 (executor). Opus reviews the diff before the backend is restarted. Parallel line; does not change Current Ticket.
-- Status: `READY FOR CTO REVIEW` (2026-11-16). Nothing restarted, nothing pushed to the live runtime.
+- Status: `CTO REVIEW PASSED` (2026-11-16, Opus review of e1e0fd33; ticket tests and touched suites green, no new failure in the backend sweep). Pending: backend restart after the queue drains, then two 07:30 slots with F1.3 HUE imported and click-to-form times in the log.
 - Required Reading: `docs/01_GOVERNANCE/PROJECT_SNAPSHOT.md`, `docs/10_TICKETS/AUTO-IMPORT-015_MANIFEST.md` (preflight and lock context).
 
 ## 2. Incident And Evidence
@@ -49,6 +49,6 @@ Not touched, as instructed: home warmup, agg-shadow, the number of days piled in
 
 - R1 (not fixed, outside the ticket's list): the manual Import path (`dkclHueF13SyncController` -> `DkclHueF13SyncService.run` -> `openF13Report`) is not wrapped in `withSourceLock`, so a manual Import can still navigate the page under a queue job.
 - R2: with the race removed, a cleanup call that hangs inside Playwright with no timeout (for example a `page.evaluate` on a frozen page) would now hold the lane instead of being abandoned. Every goto and wait is bounded, so this should not happen; there is no hard backstop by design (PO: no abandoned cleanup).
-- R3 (interpretation of P4): "một lượt" was implemented as one extra attempt, not another cycle of three. If another cycle was meant, change `realAttemptNumber === maxAttempts` in `recordLeasedFailure`.
+- R3 (interpretation of P4): "một lượt" was implemented as one extra attempt, not another cycle of three. If another cycle was meant, change `realAttemptNumber === maxAttempts` in `recordLeasedFailure`. **Closed by PO decision 2026-11-17: one extra attempt (as implemented).**
 - R4: the cause is not proven by a live run. The new log lines (P0) will show click-to-form times and event-loop delay at the next 07:30 slot; compare them before calling the incident closed.
 - R5: the two schedule-created runs (b54094ea, 85b01c4f) and the queued F1.3 HUE 13/11 job existed before this ticket; F1.3 HUE 15/11 is still missing from the database and needs a re-run after the CTO review and the backend restart.
