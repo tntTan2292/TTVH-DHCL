@@ -48,6 +48,14 @@ Ngoài DB, **cấm vào gói**: `User QIS.xlsx`, `.env`, hồ sơ trình duyệt
 
 **D6 — Không đổi SSOT/kiến trúc đóng băng.** Công thức 4F, ngưỡng, quy tắc nghiệp vụ giữ nguyên. Nếu S1 thấy quy tắc nào là riêng Huế (ví dụ quy tắc ngày N-1, giờ chốt, BCVH ngoại lệ), ghi thành câu hỏi PO, không tự quyết.
 
+**D7 — Bảo vệ gói khỏi bị sửa (PO đồng ý 2026-11-18).** Không chặn tuyệt đối được khi giao gói cài; mục tiêu là làm việc sửa rất khó và không đáng công. Năm lớp:
+1. Chỉ giao bản đóng gói: frontend bản build; backend gộp một khối, làm rối tên biến (obfuscate), đóng thành `.exe` nếu khả thi. Phần trình duyệt tự động DKCL nếu không gói được thì để ngoài khối nhưng vẫn làm rối. Huế giữ bản gốc và source map riêng (không vào gói) để đọc log lỗi.
+2. Không giao tài liệu/“bản đồ” cho AI: bỏ `docs/`, `CLAUDE.md`, `README_AI.md`, `.claude/`, test, script dev, chú thích trong mã.
+3. Kiểm tra nguyên vẹn khi khởi động: so hash các file của gói với danh sách đã ký; file bị đổi thì báo “bản cài đã bị thay đổi” và không chạy. DB và `.env` không nằm trong danh sách.
+4. Bản mới cài đè toàn bộ phần chương trình, giữ DB và `.env`.
+5. Thỏa thuận sử dụng bằng văn bản (không sửa, không phân phối lại, thay đổi phải qua Huế): **việc của PO**, không thuộc kỹ thuật.
+Thiết kế ở S2, làm ở S5, Opus review độc lập lớp 1–3; S6 phải chứng minh gói đã làm rối vẫn tải được DKCL.
+
 ## 4. Câu hỏi PO — ĐÃ CHỐT 2026-11-18: PO đồng ý cả bốn mặc định của CTO (giá trị trong ngoặc là quyết định)
 
 - **Q1.** Máy cài ở tỉnh: máy Windows có Internet vào DKCL, dùng trong mạng LAN như Huế? (Mặc định: có; HTTPS LAN tự ký như Huế là tùy chọn.)
@@ -60,10 +68,10 @@ Ngoài DB, **cấm vào gói**: `User QIS.xlsx`, `.env`, hồ sơ trình duyệt
 | Bước | Nội dung | Executor / model | Đầu ra | Cổng |
 |---|---|---|---|---|
 | S1 | Khảo sát chỉ đọc: (a) mọi điểm gắn cứng `53`/`HUE`/“Huế”/`Thừa Thiên` ở backend, frontend, script, scheduler — phân loại *giá trị chạy* / *chuỗi hiển thị* / *tên nội bộ*; (b) đồ thị phụ thuộc module: route, service, job, menu cho từng module ngoài phạm vi, chỗ Trang chủ/4F gọi sang module bị bỏ; (c) kiểm chứng bảng D2 (cột mã tỉnh, nguồn ghi, `agg_*`); (d) nguồn danh mục BCVH của Huế; (e) dữ liệu nhạy cảm và file cấm; (f) parser Excel theo vị trí cột: có phụ thuộc tỉnh không | Claude Code / **Sonnet** (một phiên; gồm cả frontend để có một báo cáo) | `docs/06_REVIEWS/Province/PROV-PKG-01_SURVEY_001.md` + bảng CSV điểm gắn cứng | CTO đọc |
-| S2 | Thiết kế (Design of Record): module cấu hình tỉnh, cờ `QIS_EDITION`, danh mục BCVH, script xuất gói, trình cài, danh sách test hồi quy Huế | Claude Code / **Opus** | `docs/04_TECHNICAL_PLANNING/Feature/PROV-PKG-01_DESIGN_OF_RECORD.md` | PO duyệt DoR (Q1–Q4 đã chốt) |
+| S2 | Thiết kế (Design of Record): module cấu hình tỉnh, cờ `QIS_EDITION`, danh mục BCVH, script xuất gói, lớp bảo vệ D7, trình cài, danh sách test hồi quy Huế | Claude Code / **Opus** | `docs/04_TECHNICAL_PLANNING/Feature/PROV-PKG-01_DESIGN_OF_RECORD.md` | PO duyệt DoR (Q1–Q4 đã chốt) |
 | S3 | Cấu hình tỉnh: thay giá trị gắn cứng bằng module cấu hình, mặc định 53 | Claude Code / Sonnet; review độc lập **Opus** (rủi ro Huế) | commit + test: chạy toàn bộ test hiện có, kết quả Huế 4F một ngày mẫu trước/sau giống từng số | Opus review PASS |
 | S4 | Cắt module bằng `QIS_EDITION=province`: backend/scheduler (Claude Code / Sonnet), menu/route/chữ “Huế” trên giao diện (Antigravity, không mở browser) | Claude Code + Antigravity | commit; `full` không đổi | CTO |
-| S5 | Script xuất gói + DB hạt giống + quét nhạy cảm + `install.cmd` | Claude Code / Sonnet; Opus review riêng bước quét nhạy cảm | gói zip + báo cáo quét | Opus review PASS |
+| S5 | Script xuất gói + DB hạt giống + quét nhạy cảm + lớp bảo vệ D7 (1–4) + `install.cmd` | Claude Code / Sonnet; Opus review riêng bước quét nhạy cảm | gói zip + báo cáo quét | Opus review PASS |
 | S6 | Cài sạch trên thư mục/máy sạch với một mã tỉnh khác 53 (bằng chứng PID/log Windows) | Antigravity | bằng chứng cài | PO UI check |
 
 Quy tắc: không cùng model vừa làm vừa tự duyệt S3, S5. Không tạo thư mục clone/worktree anh em: mọi bước làm trong workspace này; gói xuất ra thư mục `dist-province/` (thêm vào `.gitignore`).
@@ -75,6 +83,7 @@ Quy tắc: không cùng model vừa làm vừa tự duyệt S3, S5. Không tạo
 3. Xếp hạng/so sánh toàn quốc hiện đủ lịch sử ngay sau khi cài, không phải tải.
 4. Bấm tải dữ liệu một ngày → có chi tiết 4F của tỉnh đó, danh sách bưu cục/BCVH của tỉnh đó.
 5. Gói không chứa dữ liệu bưu gửi, tên bưu tá, tài khoản hay file cấm của Huế (báo cáo quét kèm theo).
+5b. Gói không có mã nguồn đọc được, không có tài liệu/AI files; sửa một file chương trình thì QIS báo bị thay đổi và không chạy (D7).
 6. QIS Huế sau S3–S5 vẫn chạy như cũ (CTO xác nhận bằng test; PO chỉ xem nhanh Trang chủ Huế).
 
 ## 7. Required Reading
@@ -86,3 +95,5 @@ Quy tắc: không cùng model vừa làm vừa tự duyệt S3, S5. Không tạo
 - 2026-11-18: CTO mở ticket, ghi D1–D6, Q1–Q4, giao S1 cho Claude Code / Sonnet.
 - 2026-11-18: PO chốt Q1–Q4 theo đề xuất CTO: máy Windows có Internet, dùng trong LAN (HTTPS tự ký tùy chọn); tải bù chi tiết tháng hiện tại và tháng trước; Trang chủ giữ khối xếp hạng toàn quốc; PO gửi zip, bản sau cài đè giữ DB. Cổng PO của S2 chỉ còn duyệt Design of Record.
 - 2026-11-18: S1 khảo sát chỉ đọc xong, READY FOR CTO REVIEW: `docs/06_REVIEWS/Province/PROV-PKG-01_SURVEY_001.md` + CSV điểm gắn cứng; mâu thuẫn D2 M1–M4 và câu hỏi PO Q1–Q7 trong báo cáo.
+
+- 2026-11-18: PO đồng ý D7 (bảo vệ gói khỏi bị sửa: đóng gói/làm rối, bỏ tài liệu AI, kiểm hash khi khởi động, cài đè, thỏa thuận do PO lo).
