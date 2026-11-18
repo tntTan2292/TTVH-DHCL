@@ -126,3 +126,13 @@ Data BF Phat/
 
 # OPS-JOURNAL-01: evidence files attached to reports (real operational files)
 backend/storage/
+
+# PROV-PKG-01 S3a: sensitive/local files never tracked
+User QIS.xlsx
+graphify-out/
+backend/uploads/
+dist-province/
+2026.09.17 - DB Buu ta.xls
+Ban_do_mang_diem_phuc_vu_BDTP_Hue.html
+Ban_do_mang_diem_phuc_vu_tich_hop_Duong_thu_cap_2.html
+ban_do_duong_giao_thong_bcvh_postman_06_2026.html
