@@ -5,7 +5,7 @@
 - Ticket ID: `PROV-PKG-01` (chương trình; các bước `PROV-PKG-01-S1` … `-S6` ở mục 5).
 - Tên: `Gói QIS V2 cho tỉnh khác: 4 module (Trang chủ, F1.1, F1.2, F1.3, F4.1), đổi mã tỉnh là chạy, dữ liệu toàn quốc đóng sẵn`
 - Người viết: CTO (Claude Code / Opus 5.5), 2026-11-18, theo yêu cầu PO.
-- Status: `ACTIVE — S2 DoR TECH PASS có điều kiện C1–C3 (CTO 2026-11-18); DoR PO APPROVED 2026-11-18; S3a–S3c giao Claude Code / Sonnet`. Chạy song song, **không** thay Current Ticket của phiên F13.
+- Status: `ACTIVE — S2 DoR TECH PASS có điều kiện C1–C3 (CTO 2026-11-18); S3a–S3c CTO ACCEPTED 2026-11-18; S3d–S3e giao Claude Code / Sonnet`. Chạy song song, **không** thay Current Ticket của phiên F13.
 - PO UI Check Required: `Yes` ở S6 (cài sạch). S1–S5: `No`.
 - Validation: S1 `LEVEL 1` (chỉ đọc); S3–S5 `LEVEL 2` (đụng mã đang chạy cho Huế: phải chứng minh Huế không đổi).
 
@@ -129,3 +129,4 @@ Quy tắc: không cùng model vừa làm vừa tự duyệt S3, S5. Không tạo
 - 2026-11-18: S3a xong (Claude Code / Sonnet): .gitignore += User QIS.xlsx, graphify-out/, backend/uploads/, dist-province/ và 4 file gỡ khỏi git (DB Buu ta .xls + 3 bản đồ HTML; file trên máy còn).
 - 2026-11-18: S3b xong (Claude Code / Sonnet): backend/src/config/provinceConfig.js (getter đồng bộ, load() trong startServer sau migration), mặc định Huế gom một file backend/src/config/hueDefaults.js (C1: S4 thay bằng stub rỗng trong khối bản tỉnh), migrate_prov_pkg_01_system_config_keys.js, QIS_DB_PATH trong config/db.js, backend/scripts/prov-pkg-golden.js (T5). Test T1/T2/P2/P3 + migration: 13 pass; sweep backend cùng tập 28 lỗi sẵn có như mã gốc.
 - 2026-11-18: S3c xong (Claude Code / Sonnet): giá trị mã tỉnh đọc từ provinceConfig (4 contract reportIdentity lane tỉnh bằng getter + importIndicatorRegistry giữ getter qua liveAdapter, tham số cổng F1.1/F1.2/F1.3/F4.1, mặc định mã tỉnh F11/F41/F13, tiền tố tuyến thành tham số ràng buộc LIKE ?, TCT rank, kpiController, 6+1 chuỗi hiển thị backend). Huế không đổi: T1 byte-exact, T2, T3, T5 golden 127 payload hash trùng trước/sau, T7 cùng 28 lỗi sẵn có; P1/P4/P5 mã 46 pass. Giá trị mặc định Huế duy nhất nằm ở backend/src/config/hueDefaults.js (C1). Chưa làm S3d/S3e.
+- 2026-11-18: CTO kiểm S3a–S3c (`6351b06b`, `c2033606`, `fce24589`): đọc mã `provinceConfig`, getter `reportIdentity`, `liveAdapter`, tham số cổng F1.2; T1/T2/T3/T5/T7 và P1–P5 theo báo cáo — ACCEPTED. Residual chuyển tiếp: registry đọc `reportIdentity` lúc `require` (S4a nạp cấu hình trước hoặc làm lazy); `ChangePasswordPage.jsx:88` “Bưu điện TP Huế” cần khóa riêng ở S4b (giữ đúng chuỗi Huế). Giao S3d–S3e.
