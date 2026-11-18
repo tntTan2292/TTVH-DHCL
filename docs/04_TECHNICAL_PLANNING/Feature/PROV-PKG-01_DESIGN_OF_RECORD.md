@@ -373,3 +373,14 @@ Mỗi commit kèm cập nhật tài liệu theo quy định (snapshot/progress/m
 - **Q13 (đơn vị lạ ở F1.1/F4.1).** Ở tỉnh khác, nếu F1.1/F4.1 có mã bưu cục phát không có trong danh mục đơn vị (danh mục tự điền từ F1.3), QIS xử lý thế nào? *Mặc định CTO đề xuất:* vẫn hiện số và tính vào tổng tỉnh, không xếp hạng (như đơn vị phụ Q6), tự thêm vào danh mục với nhãn “cần xác nhận” để quản trị viên tỉnh phân loại. Bản Huế không đổi (không bật tự điền).
 
 Không có quy tắc nghiệp vụ mới nào khác: các lựa chọn còn lại trong tài liệu là kỹ thuật (nguồn cấu hình, cách đóng gói, cách kiểm).
+
+## 9. CTO review (2026-11-18): TECH PASS có điều kiện
+
+Thiết kế được chấp nhận. Ba điều kiện bắt buộc, S3–S5 phải làm theo:
+
+- **C1 — Không có dữ liệu Huế trong khối bản tỉnh.** Mục 1.1 (mặc định Huế khi chưa `load()`), mục 2.2 (migration seed 6 BCVH, màu, `535710`, ngoại lệ tuyến) và mọi giá trị mặc định Huế ở frontend nếu nằm trong khối/`dist` bản tỉnh sẽ làm quét 5.2 thất bại (`Huế`, `53\d{4}`) và lộ danh mục Huế. Do đó: seed Huế và mặc định Huế chỉ nằm trong `fullModules` (backend) / nhánh `VITE_QIS_EDITION !== 'province'` (frontend); bản tỉnh không có giá trị mặc định nào (khối province thiếu cấu hình thì dừng, đúng 1.1). S5 chứng minh bằng chính quét 5.2, không thêm ngoại lệ cho các chuỗi này.
+- **C2 — Thông báo trung tính.** Thông báo lỗi nguyên vẹn (5.3 lớp 3) và mọi chuỗi trong khối bản tỉnh không nêu tên Huế: dùng “Liên hệ đơn vị phát hành để cài lại.”
+- **C3 — Danh sách ngoại lệ của quét là một file** (`scripts/package-province/scan-allowlist.json`), mỗi mục có lý do; Opus review bước quét (S5b) duyệt từng mục. Không có ngoại lệ theo cả file.
+
+Ghi chú không bắt buộc: regex mã tuyến `53\d{2,6}` có thể khớp nhầm số ngẫu nhiên trong mã đã minify; nếu khớp nhầm thì thu hẹp regex, không thêm ngoại lệ (C3).
+
