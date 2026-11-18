@@ -7,6 +7,7 @@ const {
     classifyRoute,
 } = require('../config/f13RouteClassificationCatalog');
 const { all, get } = require('../config/db');
+const provinceConfig = require('../config/provinceConfig');
 const { resolvePostmenForRoutes } = require('./postmanRankingService');
 
 const canonicalBcvhCodes = new Set(CANONICAL_BCVH_UNITS.map((unit) => unit.ma_bcvh));
@@ -346,9 +347,9 @@ class F13DashboardService {
         }, {});
     }
 
+    // PROV-PKG-01: the province code comes from provinceConfig (loaded from system_config at start-up).
     async _getDefaultProvinceCode() {
-        const row = await get("SELECT config_value FROM system_config WHERE config_key = 'default_province_code'");
-        return row?.config_value || '53';
+        return provinceConfig.getProvinceCode();
     }
 
     async _getNationalRankForDate(dateStr, provinceCode) {
@@ -432,7 +433,7 @@ class F13DashboardService {
 
     _buildUnavailableNationalRank(dateStr, provinceCode, reason = 'missing_date') {
         const message = reason === 'missing_province'
-            ? `Chưa có dữ liệu xếp hạng của Huế trong bảng toàn quốc ngày ${dateStr}`
+            ? `Chưa có dữ liệu xếp hạng của ${provinceConfig.getDisplay().shortName} trong bảng toàn quốc ngày ${dateStr}`
             : `Chưa có dữ liệu xếp hạng toàn quốc cho ngày ${dateStr}`;
 
         return {
@@ -449,7 +450,7 @@ class F13DashboardService {
     _buildUnavailableMonthlyNationalRank(period, provinceCode, reason = 'missing_month') {
         const label = period?.label || period?.month || 'tháng';
         const message = reason === 'missing_province'
-            ? `Chưa có dữ liệu xếp hạng tháng của Huế trong bảng toàn quốc ${label}`
+            ? `Chưa có dữ liệu xếp hạng tháng của ${provinceConfig.getDisplay().shortName} trong bảng toàn quốc ${label}`
             : `Chưa có dữ liệu xếp hạng tháng ${label}`;
 
         return {
@@ -1171,7 +1172,7 @@ class F13DashboardService {
                         },
                     },
                     route_scope: {
-                        hue_prefix: '53',
+                        hue_prefix: provinceConfig.getRoutePrefix(),
                         excluded_non_hue: true,
                     },
                     route_classification: {

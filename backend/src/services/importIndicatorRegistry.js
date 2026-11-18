@@ -80,6 +80,15 @@ const DEFAULT_PERMISSIONS = Object.freeze({
     auditReadRoles: Object.freeze(['admin']),
 });
 
+// PROV-PKG-01: the HUE (province) identity carries a getter (reportIdentity reads the province code from provinceConfig).
+// A plain spread would freeze the value at require time, so the descriptors are copied instead and the getter stays live.
+function liveAdapter(identity) {
+    return Object.defineProperties({}, {
+        ...Object.getOwnPropertyDescriptors(identity),
+        verified: { value: true, enumerable: true, writable: true, configurable: true },
+    });
+}
+
 function createFilenameDateRule({ id, prefix, parse }) {
     return Object.freeze({
         id,
@@ -188,10 +197,7 @@ const INDICATORS = {
                 targetTable: 'fact_f13',
                 distinctColumn: 'ma_bg',
                 automationMode: 'AUTOMATED',
-                portalAdapter: {
-                    ...F13_EXECUTOR_IDENTITIES.HUE,
-                    verified: true,
-                },
+                portalAdapter: liveAdapter(F13_EXECUTOR_IDENTITIES.HUE),
             }),
             TCT: createLane({
                 code: 'TCT',
@@ -238,10 +244,7 @@ const INDICATORS = {
                 targetTable: 'fact_f41',
                 distinctColumn: 'ma_bg',
                 automationMode: 'AUTOMATED',
-                portalAdapter: {
-                    ...F41_EXECUTOR_IDENTITIES.HUE,
-                    verified: true,
-                },
+                portalAdapter: liveAdapter(F41_EXECUTOR_IDENTITIES.HUE),
             }),
             TCT: createLane({
                 code: 'TCT',
@@ -294,10 +297,7 @@ INDICATORS['F1.1'] = {
             targetTable: 'fact_f11',
             distinctColumn: 'ma_bg',
             automationMode: 'AUTOMATED',
-            portalAdapter: {
-                ...F11_EXECUTOR_IDENTITIES.HUE,
-                verified: true,
-            },
+            portalAdapter: liveAdapter(F11_EXECUTOR_IDENTITIES.HUE),
         }),
         TCT: createLane({
             code: 'TCT',
@@ -349,10 +349,7 @@ INDICATORS['F1.2'] = {
             targetTable: 'fact_f12',
             distinctColumn: 'ma_bg',
             automationMode: 'AUTOMATED',
-            portalAdapter: {
-                ...F12_EXECUTOR_IDENTITIES.HUE,
-                verified: true,
-            },
+            portalAdapter: liveAdapter(F12_EXECUTOR_IDENTITIES.HUE),
         }),
         TCT: createLane({
             code: 'TCT',

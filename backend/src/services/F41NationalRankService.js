@@ -13,11 +13,11 @@
 // weekly services consume it unchanged (they read available, rank, total).
 
 const defaultDb = require('../config/db').db;
+const provinceConfig = require('../config/provinceConfig');
 
 const METRIC = 'tl_ptc_8h_co_tms';
 const METRIC_LABEL = 'Tỷ lệ PTC 8 giờ (Có TMS) theo báo cáo toàn quốc';
 const TIE_BEHAVIOR = 'Thứ tự theo tỷ lệ giảm dần, sau đó theo sản lượng giảm dần; không gộp đồng hạng.';
-const DEFAULT_PROVINCE_CODE = '53';
 
 function isIsoDate(value) {
     if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
@@ -47,20 +47,16 @@ class F41NationalRankService {
         });
     }
 
+    // PROV-PKG-01: the province code comes from provinceConfig (loaded from system_config at start-up).
     async _provinceCode() {
-        try {
-            const row = await this._get("SELECT config_value FROM system_config WHERE config_key = 'default_province_code'");
-            return row?.config_value || DEFAULT_PROVINCE_CODE;
-        } catch {
-            return DEFAULT_PROVINCE_CODE;
-        }
+        return provinceConfig.getProvinceCode();
     }
 
     _unavailableForDate(dateStr, provinceCode, reason = 'missing_date') {
         return {
             available: false,
             message: reason === 'missing_province'
-                ? `Chưa có dữ liệu xếp hạng của Huế trong bảng toàn quốc ngày ${dateStr}`
+                ? `Chưa có dữ liệu xếp hạng của ${provinceConfig.getDisplay().shortName} trong bảng toàn quốc ngày ${dateStr}`
                 : `Chưa có dữ liệu xếp hạng toàn quốc cho ngày ${dateStr}`,
             province_code: provinceCode,
             period: dateStr,

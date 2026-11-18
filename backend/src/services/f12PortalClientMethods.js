@@ -1,5 +1,7 @@
 'use strict';
 
+const provinceConfig = require('../config/provinceConfig'); // PROV-PKG-01
+
 // F12-PHASE-3 - F1.2 (thu gom buu gui lien tinh) portal operations for DkclHueF13PortalClient.
 //
 // Everything here is built from evidence observed on the real DKCL portal on 2026-10-11 (Claude in
@@ -33,7 +35,10 @@ const F12_TCT_EXPORT_ACTION = `/export/${F12_TCT_EXPORT_IDENTITY}/all`;
 
 // Observed request profiles. HUE = group by BC, accepting province 53; TCT = group by Tinh, ALL.
 const F12_LANE_FILTERS = Object.freeze({
-    HUE: Object.freeze({ TuyChonGR: 'BC', stMaTinhNhan: '53' }),
+    // PROV-PKG-01: the province lane reads its province code from provinceConfig (53 in the Hue edition).
+    get HUE() {
+        return Object.freeze({ TuyChonGR: 'BC', stMaTinhNhan: provinceConfig.formatForPortal('plain') });
+    },
     TCT: Object.freeze({ TuyChonGR: 'TINH', stMaTinhNhan: 'ALL' }),
 });
 
@@ -115,7 +120,7 @@ function buildF12HueDetailQuery(businessDate, total) {
         throw portalError('F1.2 HUE detail request requires a positive summary total.', 'F12_DETAIL_TOTAL_INVALID');
     }
     return new URLSearchParams([
-        ['stMaTinhNhan', "N'53'"],
+        ['stMaTinhNhan', provinceConfig.formatForPortal('nquoted')],
         ['stMaBuuCucNhan', 'NULL'],
         ['iFrom', date],
         ['iTo', date],

@@ -4,6 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const xlsx = require('xlsx');
 const { DkclHueF13PortalClient } = require('./dkclHueF13PortalClient');
+const provinceConfig = require('../config/provinceConfig'); // PROV-PKG-01
 const { DkclSessionPreflightService } = require('./dkclSessionPreflightService');
 const {
     parseF13NationalExcel,
@@ -1027,7 +1028,7 @@ class TctF13BackfillService {
              ORDER BY tl_ptc_dung_qd_ct DESC, sl_bg_ptc DESC`,
             [measurementDate]
         );
-        const index = rows.findIndex((row) => row.ma_tinh_phat === '53');
+        const index = rows.findIndex((row) => row.ma_tinh_phat === provinceConfig.getProvinceCode());
         const hue = index >= 0 ? rows[index] : null;
         return {
             volume: hue ? Number(hue.sl_bg_ptc || 0) : null,

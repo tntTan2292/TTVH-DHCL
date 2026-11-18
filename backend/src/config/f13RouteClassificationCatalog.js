@@ -1,3 +1,5 @@
+const provinceConfig = require('./provinceConfig'); // PROV-PKG-01
+
 const CONFIRMED_NON_POSTMAN_ROUTES = [
     {
         ma_bcvh: '533140',
@@ -76,7 +78,7 @@ const CONFIRMED_NON_POSTMAN_ROUTE_CODES = new Set(
 );
 
 function isHueRouteCode(routeCode) {
-    return String(routeCode || '').trim().startsWith('53');
+    return String(routeCode || '').trim().startsWith(provinceConfig.getRoutePrefix());
 }
 
 function isConfirmedNonPostmanRoute(routeCode) {

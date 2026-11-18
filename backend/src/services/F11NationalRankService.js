@@ -13,12 +13,12 @@
 // the Hue dashboard figure, which counts blank evaluations as 0 Dat (PD-9).
 
 const defaultDb = require('../config/db').db;
+const provinceConfig = require('../config/provinceConfig');
 const { NATIONAL_RANKED_PROVINCE_CODES } = require('./nationalExcelParser');
 
 const METRIC = 'tl_dung_chi_tieu';
 const METRIC_LABEL = 'Tỷ lệ KPI 2026 theo báo cáo toàn quốc';
 const TIE_BEHAVIOR = 'Thứ tự theo tỷ lệ giảm dần, sau đó theo sản lượng giảm dần; không gộp đồng hạng.';
-const DEFAULT_PROVINCE_CODE = '53';
 const RANKED_PLACEHOLDERS = NATIONAL_RANKED_PROVINCE_CODES.map(() => '?').join(', ');
 
 // Where the national rows live and which columns rank them. F1.1 is the default; F1.2 passes its own
@@ -62,20 +62,16 @@ class F11NationalRankService {
         });
     }
 
+    // PROV-PKG-01: the province code comes from provinceConfig (loaded from system_config at start-up).
     async _provinceCode() {
-        try {
-            const row = await this._get("SELECT config_value FROM system_config WHERE config_key = 'default_province_code'");
-            return row?.config_value || DEFAULT_PROVINCE_CODE;
-        } catch {
-            return DEFAULT_PROVINCE_CODE;
-        }
+        return provinceConfig.getProvinceCode();
     }
 
     _unavailableForDate(dateStr, provinceCode, reason = 'missing_date') {
         return {
             available: false,
             message: reason === 'missing_province'
-                ? `Chưa có dữ liệu xếp hạng của Huế trong bảng toàn quốc ngày ${dateStr}`
+                ? `Chưa có dữ liệu xếp hạng của ${provinceConfig.getDisplay().shortName} trong bảng toàn quốc ngày ${dateStr}`
                 : `Chưa có dữ liệu xếp hạng toàn quốc cho ngày ${dateStr}`,
             province_code: provinceCode,
             period: dateStr,

@@ -1,5 +1,7 @@
 'use strict';
 
+const provinceConfig = require('../config/provinceConfig'); // PROV-PKG-01
+
 const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
@@ -307,7 +309,7 @@ class DkclHueF13SyncService {
             await portalClient.openF13Report();
             await portalClient.submitFilters({
                 groupBy: 'BC',
-                provinceCode: '53',
+                provinceCode: provinceConfig.formatForPortal('plain'),
                 fromDate: run.measurementDate,
                 toDate: run.measurementDate
             });

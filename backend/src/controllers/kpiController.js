@@ -1,4 +1,5 @@
 const { get, all } = require('../config/db');
+const provinceConfig = require('../config/provinceConfig'); // PROV-PKG-01
 const ruleEngineService = require('../services/ruleEngineService');
 const timelineService = require('../services/timelineService');
 const messageGenerationService = require('../services/messageGenerationService');
@@ -81,11 +82,12 @@ async function getDashboardKpi(req, res) {
         // Fetch rank if ma_bcvh is provided
         let currentRank = 1, yesterdayRank = 1, swcRank = 1;
         
+        // PROV-PKG-01: the province code comes from provinceConfig. Once loaded, a system_config without the key
+        // still ends in the 500 below (as before); before load() (tests, full edition) the Hue default applies.
         let defaultProvinceCode = null;
         try {
-            const row = await get("SELECT config_value FROM system_config WHERE config_key = 'default_province_code'");
-            if (row && row.config_value) {
-                defaultProvinceCode = row.config_value;
+            if (!provinceConfig.isLoaded() || provinceConfig.hasConfiguredProvinceCode()) {
+                defaultProvinceCode = provinceConfig.getProvinceCode();
             }
         } catch (e) {
             console.error('[getDashboardKpi] Error loading default_province_code:', e.message);

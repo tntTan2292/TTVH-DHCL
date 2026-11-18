@@ -28,7 +28,8 @@ test('route ranking SQL selects total_returned additively and keeps the Hue/post
     assert.equal(observedDataSql.length, 1);
     assert.match(observedDataSql[0], /total_returned/);
     assert.match(observedDataSql[0], /MAX\(ten_bcvh\) as ten_bcvh/);
-    assert.match(observedDataSql[0], /ma_tuyen LIKE '53%'/);
+    // PROV-PKG-01: the province prefix is a bound parameter ('53%' for Hue), never text in the SQL.
+    assert.match(observedDataSql[0], /ma_tuyen LIKE \?/);
     assert.match(observedDataSql[0], /GROUP BY ma_tuyen/);
     assert.equal(result.data[0].total_returned, 84);
   } finally {
@@ -87,11 +88,11 @@ test('getRouteRankingFacts mirrors getRouteRanking\'s WHERE clause (same date/BC
     });
 
     assert.equal(observedSql.length, 1);
-    assert.match(observedSql[0], /ma_tuyen LIKE '53%'/);
+    assert.match(observedSql[0], /ma_tuyen LIKE \?/);
     assert.match(observedSql[0], /ma_tuyen NOT IN \(\?\)/);
     assert.doesNotMatch(observedSql[0], /LIMIT/);
     assert.doesNotMatch(observedSql[0], /GROUP BY/);
-    assert.deepEqual(observedParams[0], ['2026-08-02', '533140', '53314018']);
+    assert.deepEqual(observedParams[0], ['2026-08-02', '533140', '53%', '53314018']);
     assert.equal(rows.length, 1);
     assert.equal(rows[0].ma_tuyen, '53100001');
   } finally {

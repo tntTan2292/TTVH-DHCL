@@ -1,5 +1,7 @@
 'use strict';
 
+const provinceConfig = require('../config/provinceConfig'); // PROV-PKG-01
+
 // F11-PHASE-3 - F1.1 (toan trinh noi tinh) portal operations for DkclHueF13PortalClient.
 //
 // Everything here is built from evidence observed on the real DKCL portal on 2026-10-09 (Claude in
@@ -26,7 +28,11 @@ const F11_TCT_EXPORT_ACTION = `/export/${F11_TCT_EXPORT_IDENTITY}/all`;
 // Observed request profiles. HUE = group by BC, accepting and delivering province 53; TCT = group by
 // Tinh, both provinces ALL. Every other filter is exactly the value the PO's own request carried.
 const F11_LANE_FILTERS = Object.freeze({
-    HUE: Object.freeze({ TuyChonGR: 'BC', stMaTinhChapNhan: '53', stMaTinhPhat: '53' }),
+    // PROV-PKG-01: the province lane reads its province code from provinceConfig (53 in the Hue edition).
+    get HUE() {
+        const code = provinceConfig.formatForPortal('plain');
+        return Object.freeze({ TuyChonGR: 'BC', stMaTinhChapNhan: code, stMaTinhPhat: code });
+    },
     TCT: Object.freeze({ TuyChonGR: 'TINH', stMaTinhChapNhan: 'ALL', stMaTinhPhat: 'ALL' }),
 });
 
@@ -111,9 +117,9 @@ function buildF11HueDetailQuery(businessDate, total) {
         throw portalError('F1.1 HUE detail request requires a positive summary total.', 'F11_DETAIL_TOTAL_INVALID');
     }
     return new URLSearchParams([
-        ['stMaTinhPhat', '53'],
+        ['stMaTinhPhat', provinceConfig.formatForPortal('plain')],
         ['stMaBuuCucPhat', 'NULL'],
-        ['stMaTinhChapNhan', '53'],
+        ['stMaTinhChapNhan', provinceConfig.formatForPortal('plain')],
         ['stMaBuuCucNhan', 'NULL'],
         ['stMaBCKTTinhPhat', 'NULL'],
         ['stMaLoaiBCKT', 'NULL'],
