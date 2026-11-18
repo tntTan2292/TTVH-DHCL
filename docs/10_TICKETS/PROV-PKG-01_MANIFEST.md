@@ -5,7 +5,7 @@
 - Ticket ID: `PROV-PKG-01` (chương trình; các bước `PROV-PKG-01-S1` … `-S6` ở mục 5).
 - Tên: `Gói QIS V2 cho tỉnh khác: 4 module (Trang chủ, F1.1, F1.2, F1.3, F4.1), đổi mã tỉnh là chạy, dữ liệu toàn quốc đóng sẵn`
 - Người viết: CTO (Claude Code / Opus 5.5), 2026-11-18, theo yêu cầu PO.
-- Status: `ACTIVE — S2 DoR TECH PASS có điều kiện C1–C3 (CTO 2026-11-18); S3a–S3c CTO ACCEPTED 2026-11-18; S3d–S3e giao Claude Code / Sonnet`. Chạy song song, **không** thay Current Ticket của phiên F13.
+- Status: `ACTIVE — S2 DoR TECH PASS có điều kiện C1–C3 (CTO 2026-11-18); CHUYỂN SANG DỰ ÁN QIS-Tinh (D10, 2026-11-18); trong dự án Huế ticket chỉ còn là hồ sơ`. Chạy song song, **không** thay Current Ticket của phiên F13.
 - PO UI Check Required: `Yes` ở S6 (cài sạch). S1–S5: `No`.
 - Validation: S1 `LEVEL 1` (chỉ đọc); S3–S5 `LEVEL 2` (đụng mã đang chạy cho Huế: phải chứng minh Huế không đổi).
 
@@ -69,6 +69,8 @@ Thiết kế ở S2, làm ở S5, Opus review độc lập lớp 1–3; S6 phả
 
 **D9 — Danh mục đơn vị của tỉnh (thay 6 BCVH gắn cứng ở 8 file).** Một bảng cấu hình đơn vị trong DB (mã, tên, loại: BCVH xếp hạng / đơn vị phụ không xếp hạng / KHL, thứ tự, màu), backend và frontend đọc qua một API. Bản Huế seed đúng 6 BCVH và các ngoại lệ hiện có (kết quả Huế không đổi). Bản tỉnh tự điền lần đầu từ dữ liệu F1.3 chi tiết (`ma_bcvh`/`ten_bcvh`) và cho quản trị viên sửa. Chi tiết theo câu trả lời Q5–Q8.
 
+**D10 — Tách thành dự án riêng (PO quyết định 2026-11-18; thay một phần D1).** Yêu cầu gốc của PO là bản sao riêng, không sửa dự án Huế; D1 (“một bộ mã chung”) đã sửa thẳng vào mã Huế mà không hỏi PO — lỗi của CTO. Từ nay: gói tỉnh là dự án **QIS-Tinh** ở `D:\Antigravity - Project\QIS-Tinh` (chép từ repo Huế kèm lịch sử tại `e8d83154`, nhánh `main`, kho GitHub private riêng; remote `hue` chỉ để lấy bản sửa lỗi, đẩy bị chặn). Trong dự án Huế, mã S3b–S3c đã được đưa về trạng thái trước S3b (commit `b6a003d2`; tài liệu và dòng tiến độ giữ nguyên); S3a giữ. Phần còn lại của D1 vẫn áp dụng **bên trong QIS-Tinh** (cấu hình tỉnh, cờ `QIS_EDITION`, script xuất gói). Sửa lỗi Huế mà bản tỉnh cũng cần: `git cherry-pick` từ remote `hue` sang QIS-Tinh. S3d trở đi chỉ làm trong QIS-Tinh.
+
 ## 4. Câu hỏi PO — ĐÃ CHỐT 2026-11-18: PO đồng ý cả bốn mặc định của CTO (giá trị trong ngoặc là quyết định)
 
 - **Q1.** Máy cài ở tỉnh: máy Windows có Internet vào DKCL, dùng trong mạng LAN như Huế? (Mặc định: có; HTTPS LAN tự ký như Huế là tùy chọn.)
@@ -130,3 +132,4 @@ Quy tắc: không cùng model vừa làm vừa tự duyệt S3, S5. Không tạo
 - 2026-11-18: S3b xong (Claude Code / Sonnet): backend/src/config/provinceConfig.js (getter đồng bộ, load() trong startServer sau migration), mặc định Huế gom một file backend/src/config/hueDefaults.js (C1: S4 thay bằng stub rỗng trong khối bản tỉnh), migrate_prov_pkg_01_system_config_keys.js, QIS_DB_PATH trong config/db.js, backend/scripts/prov-pkg-golden.js (T5). Test T1/T2/P2/P3 + migration: 13 pass; sweep backend cùng tập 28 lỗi sẵn có như mã gốc.
 - 2026-11-18: S3c xong (Claude Code / Sonnet): giá trị mã tỉnh đọc từ provinceConfig (4 contract reportIdentity lane tỉnh bằng getter + importIndicatorRegistry giữ getter qua liveAdapter, tham số cổng F1.1/F1.2/F1.3/F4.1, mặc định mã tỉnh F11/F41/F13, tiền tố tuyến thành tham số ràng buộc LIKE ?, TCT rank, kpiController, 6+1 chuỗi hiển thị backend). Huế không đổi: T1 byte-exact, T2, T3, T5 golden 127 payload hash trùng trước/sau, T7 cùng 28 lỗi sẵn có; P1/P4/P5 mã 46 pass. Giá trị mặc định Huế duy nhất nằm ở backend/src/config/hueDefaults.js (C1). Chưa làm S3d/S3e.
 - 2026-11-18: CTO kiểm S3a–S3c (`6351b06b`, `c2033606`, `fce24589`): đọc mã `provinceConfig`, getter `reportIdentity`, `liveAdapter`, tham số cổng F1.2; T1/T2/T3/T5/T7 và P1–P5 theo báo cáo — ACCEPTED. Residual chuyển tiếp: registry đọc `reportIdentity` lúc `require` (S4a nạp cấu hình trước hoặc làm lazy); `ChangePasswordPage.jsx:88` “Bưu điện TP Huế” cần khóa riêng ở S4b (giữ đúng chuỗi Huế). Giao S3d–S3e.
+- 2026-11-18: PO quyết định tách gói tỉnh thành dự án riêng QIS-Tinh (D10). CTO chép repo Huế kèm lịch sử sang `D:\Antigravity - Project\QIS-Tinh`; mã S3b–S3c rút khỏi Huế (`b6a003d2`, backend giống hệt `6351b06b`; test hợp đồng/executor/adapter chạy lại: chỉ 2 lỗi dữ liệu thật sẵn có ở `test_f11PortalAdapter.js`). S3d–S3e chưa bắt đầu; làm tiếp trong QIS-Tinh.
