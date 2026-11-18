@@ -1,5 +1,4 @@
 const db = require('../config/db').db;
-const provinceConfig = require('../config/provinceConfig'); // PROV-PKG-01: route prefix = province code, bound as `LIKE ?`
 const aggReadPolicy = require('../services/aggReadPolicy');
 const { makeSources } = require('./aggSqlSource');
 
@@ -549,11 +548,10 @@ class FactBuuGuiRepository {
                 'ma_bcvh = ?',
                 'ma_tuyen IS NOT NULL',
                 "TRIM(ma_tuyen) != ''",
-                'ma_tuyen LIKE ?',
+                "ma_tuyen LIKE '53%'",
             ];
-            const routeLikePattern = provinceConfig.getRouteLikePattern();
-            const countParams = [date, bcvh, routeLikePattern];
-            const dataParams = [date, bcvh, routeLikePattern];
+            const countParams = [date, bcvh];
+            const dataParams = [date, bcvh];
 
             if (routeType === 'postman' && confirmedNonPostmanRouteCodes.length) {
                 routeFilters.push(`ma_tuyen NOT IN (${nonPostmanPlaceholders})`);
@@ -609,9 +607,9 @@ class FactBuuGuiRepository {
                 'ma_bcvh = ?',
                 'ma_tuyen IS NOT NULL',
                 "TRIM(ma_tuyen) != ''",
-                'ma_tuyen LIKE ?',
+                "ma_tuyen LIKE '53%'",
             ];
-            const params = [date, bcvh, provinceConfig.getRouteLikePattern()];
+            const params = [date, bcvh];
 
             if (routeType === 'postman' && confirmedNonPostmanRouteCodes.length) {
                 routeFilters.push(`ma_tuyen NOT IN (${nonPostmanPlaceholders})`);
@@ -652,9 +650,9 @@ class FactBuuGuiRepository {
                 'ma_bcvh = ?',
                 'ma_tuyen IS NOT NULL',
                 "TRIM(ma_tuyen) != ''",
-                'ma_tuyen LIKE ?',
+                "ma_tuyen LIKE '53%'",
             ];
-            const params = [monthStart, anchorDate, bcvh, provinceConfig.getRouteLikePattern()];
+            const params = [monthStart, anchorDate, bcvh];
 
             if (routeType === 'postman' && confirmedNonPostmanRouteCodes.length) {
                 filters.push(`ma_tuyen NOT IN (${nonPostmanPlaceholders})`);
@@ -706,9 +704,9 @@ class FactBuuGuiRepository {
                 AND f.ma_bcvh = ?
                 AND f.ma_tuyen IS NOT NULL
                 AND TRIM(f.ma_tuyen) != ''
-                AND f.ma_tuyen LIKE ?
+                AND f.ma_tuyen LIKE '53%'
             `;
-            const params = [anchorDate, anchorDate, anchorDate, anchorDate, bcvh, provinceConfig.getRouteLikePattern()];
+            const params = [anchorDate, anchorDate, anchorDate, anchorDate, bcvh];
 
             if (routeType === 'postman' && confirmedNonPostmanRouteCodes.length) {
                 joinFilter += ` AND f.ma_tuyen NOT IN (${nonPostmanPlaceholders})`;
@@ -762,10 +760,9 @@ class FactBuuGuiRepository {
         return new Promise((resolve, reject) => {
             const codes = confirmedNonPostmanRouteCodes.map(String);
             const placeholders = codes.map(() => '?').join(', ');
-            const likePattern = provinceConfig.getRouteLikePattern();
             const rankedScopeSql = codes.length
-                ? `ma_tuyen LIKE ? AND ma_tuyen NOT IN (${placeholders})`
-                : `ma_tuyen LIKE ?`;
+                ? `ma_tuyen LIKE '53%' AND ma_tuyen NOT IN (${placeholders})`
+                : `ma_tuyen LIKE '53%'`;
             const pickupScopeSql = codes.length ? `ma_tuyen IN (${placeholders})` : '0';
 
             const sql = `
@@ -773,29 +770,25 @@ class FactBuuGuiRepository {
                     SUM(CASE WHEN ngay_do_kiem = ? THEN 1 ELSE 0 END) as day_bcvh_total,
                     SUM(CASE WHEN ngay_do_kiem = ? AND ${rankedScopeSql} THEN 1 ELSE 0 END) as day_ranked,
                     SUM(CASE WHEN ngay_do_kiem = ? AND ${pickupScopeSql} THEN 1 ELSE 0 END) as day_pickup_at_office,
-                    SUM(CASE WHEN ngay_do_kiem = ? AND ma_tuyen IS NOT NULL AND TRIM(ma_tuyen) != '' AND ma_tuyen NOT LIKE ? THEN 1 ELSE 0 END) as day_non_hue,
+                    SUM(CASE WHEN ngay_do_kiem = ? AND ma_tuyen IS NOT NULL AND TRIM(ma_tuyen) != '' AND ma_tuyen NOT LIKE '53%' THEN 1 ELSE 0 END) as day_non_hue,
                     SUM(CASE WHEN ngay_do_kiem = ? AND (ma_tuyen IS NULL OR TRIM(ma_tuyen) = '') THEN 1 ELSE 0 END) as day_no_route,
                     COUNT(*) as month_bcvh_total,
                     SUM(CASE WHEN ${rankedScopeSql} THEN 1 ELSE 0 END) as month_ranked,
                     SUM(CASE WHEN ${pickupScopeSql} THEN 1 ELSE 0 END) as month_pickup_at_office,
-                    SUM(CASE WHEN ma_tuyen IS NOT NULL AND TRIM(ma_tuyen) != '' AND ma_tuyen NOT LIKE ? THEN 1 ELSE 0 END) as month_non_hue,
+                    SUM(CASE WHEN ma_tuyen IS NOT NULL AND TRIM(ma_tuyen) != '' AND ma_tuyen NOT LIKE '53%' THEN 1 ELSE 0 END) as month_non_hue,
                     SUM(CASE WHEN ma_tuyen IS NULL OR TRIM(ma_tuyen) = '' THEN 1 ELSE 0 END) as month_no_route
                 FROM fact_f13
                 WHERE ma_bcvh = ? AND ngay_do_kiem BETWEEN ? AND ?
             `;
 
-            // Placeholder order = order of the `?` in the SQL above: day_bcvh_total, day_ranked (scope: pattern, codes),
-            // day_pickup (codes), day_non_hue (pattern), day_no_route, month_ranked (pattern, codes), month_pickup (codes),
-            // month_non_hue (pattern), then the WHERE.
             const params = [
                 dayDate,
-                dayDate, likePattern, ...codes,
                 dayDate, ...codes,
-                dayDate, likePattern,
+                dayDate, ...codes,
                 dayDate,
-                likePattern, ...codes,
+                dayDate,
                 ...codes,
-                likePattern,
+                ...codes,
                 bcvh, monthStart, monthEnd,
             ];
 

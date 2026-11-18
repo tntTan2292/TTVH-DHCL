@@ -1,11 +1,7 @@
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 
-// PROV-PKG-01: QIS_DB_PATH lets an installed package keep its database outside the program folder; unset = the
-// historical location, so the Hue edition does not change.
-const operationalDbPath = process.env.QIS_DB_PATH
-    ? path.resolve(process.env.QIS_DB_PATH)
-    : path.resolve(__dirname, '../db/database.sqlite');
+const operationalDbPath = path.resolve(__dirname, '../db/database.sqlite');
 const configuredTestDbPath = process.env.QIS_TEST_DB_PATH
     ? path.resolve(process.env.QIS_TEST_DB_PATH)
     : null;

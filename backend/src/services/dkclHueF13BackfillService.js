@@ -1,7 +1,5 @@
 'use strict';
 
-const provinceConfig = require('../config/provinceConfig'); // PROV-PKG-01
-
 const {
     DkclHueF13SyncService,
     standardizedFilename
@@ -393,7 +391,7 @@ class DkclHueF13BackfillService {
         }
         const preflight = await this.sessionPreflightService.preflight('HUE');
         if (preflight.status !== 'SESSION_VALID') {
-            const authError = new Error(`Không thể tạo hàng đợi ${provinceConfig.getDisplay().shortName} F1.3 vì phiên đăng nhập DKCL không hợp lệ. Vui lòng đăng nhập/cập nhật phiên DKCL trước khi chạy bù dữ liệu.`);
+            const authError = new Error('Không thể tạo hàng đợi Huế F1.3 vì phiên đăng nhập DKCL không hợp lệ. Vui lòng đăng nhập/cập nhật phiên DKCL trước khi chạy bù dữ liệu.');
             authError.code = 'AUTHENTICATION_REQUIRED';
             throw authError;
         }

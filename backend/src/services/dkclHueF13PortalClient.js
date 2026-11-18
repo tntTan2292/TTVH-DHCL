@@ -1,7 +1,5 @@
 'use strict';
 
-const provinceConfig = require('../config/provinceConfig'); // PROV-PKG-01
-
 const fs = require('fs');
 const path = require('path');
 const { selectNewestGeneratedFile, generatedNameMatches } = require('./dkclHueF13SyncService');
@@ -92,10 +90,7 @@ const F41_DETAIL_UNQUOTED_PARAM_KEYS = Object.freeze([
 // filter VALUE is the one this system already used, never the extension's where the two differ
 // (notably stMaBuuCucPhat stays NULL for HUE, where the extension sends ALL).
 const F41_LANE_QUERY_FILTERS = Object.freeze({
-    // PROV-PKG-01: the province lane reads its province code from provinceConfig (53 in the Hue edition).
-    get HUE() {
-        return Object.freeze({ TuyChonGR: 'BC', stMaTinhPhat: provinceConfig.formatForPortal('plain') });
-    },
+    HUE: Object.freeze({ TuyChonGR: 'BC', stMaTinhPhat: '53' }),
     TCT: Object.freeze({ TuyChonGR: 'TINH', stMaTinhPhat: 'ALL' })
 });
 

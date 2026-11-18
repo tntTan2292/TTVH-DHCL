@@ -1,7 +1,5 @@
 'use strict';
 
-const provinceConfig = require('../config/provinceConfig'); // PROV-PKG-01
-
 const path = require('path');
 const { DkclHueF13PortalClient } = require('./dkclHueF13PortalClient');
 const processManager = require('./browserProcessManager');
@@ -50,8 +48,7 @@ function selectExactProfileRootPids(matchingProcesses = []) {
 const SOURCE_CONFIG = Object.freeze({
     HUE: {
         source: 'HUE',
-        // PROV-PKG-01: the province lane is shown under the configured short name ('Huế' in the Hue edition).
-        get displayName() { return provinceConfig.getDisplay().shortName; },
+        displayName: 'Huế',
         profileDirEnv: 'DKCL_HUE_PROFILE_DIR',
         defaultProfileDir: () => path.join(REPO_ROOT, 'Data DKCL', 'BrowserProfiles', 'HUE')
     },
@@ -1314,7 +1311,7 @@ class DkclSessionPreflightService {
                 disconnected: true,
                 disconnected_at: this.disconnectFlags.get(sourceConfig.source),
                 cookies_cleared: false,
-                note: `Chế độ broker ${provinceConfig.getDisplay().shortName}: đã đóng trình duyệt broker, chưa xoá được cookie đã lưu.`
+                note: 'Chế độ broker Huế: đã đóng trình duyệt broker, chưa xoá được cookie đã lưu.'
             };
         }
 

@@ -1,9 +1,5 @@
 'use strict';
 
-// PROV-PKG-01: the province code of the HUE (province) lane comes from provinceConfig; with code 53 the string is
-// byte-identical to what the queue stored before. The TCT lane (ALL) is not province-specific.
-const provinceConfig = require('../config/provinceConfig');
-
 // F11-PHASE-3 - executor identities for F1.1 (toan trinh noi tinh) Auto Backfill.
 //
 // Every value below was OBSERVED on the real DKCL portal on 2026-10-09 (docs/10_TICKETS/
@@ -26,10 +22,7 @@ const F11_EXECUTOR_IDENTITIES = Object.freeze({
         id: 'DKCL_F11_HUE_SINGLE_DATE_V1',
         indicator: 'F1.1',
         sourceLane: 'HUE',
-        get reportIdentity() {
-            const code = provinceConfig.formatForPortal('plain');
-            return `DKCL:/kpi/chat-luong-toan-trinh-buu-gui-noi-tinh|sp_TT_NoiTinh_ChiTiet|GR=BC|TINH_CHAP_NHAN=${code}|TINH_PHAT=${code}`;
-        },
+        reportIdentity: 'DKCL:/kpi/chat-luong-toan-trinh-buu-gui-noi-tinh|sp_TT_NoiTinh_ChiTiet|GR=BC|TINH_CHAP_NHAN=53|TINH_PHAT=53',
         resourceIdentity: 'sp_TT_NoiTinh_ChiTiet',
         exportAction: '/export/sp_TT_NoiTinh_ChiTiet/all',
         detailEndpoint: '/kpi/chat-luong-toan-trinh-buu-gui-noi-tinh-chi-tiet',

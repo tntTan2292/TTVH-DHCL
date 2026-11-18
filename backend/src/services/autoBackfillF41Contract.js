@@ -1,17 +1,11 @@
 'use strict';
 
-// PROV-PKG-01: the province code of the HUE (province) lane comes from provinceConfig; with code 53 the string is
-// byte-identical to what the queue stored before. The TCT lane (ALL) is not province-specific.
-const provinceConfig = require('../config/provinceConfig');
-
 const F41_EXECUTOR_IDENTITIES = Object.freeze({
     HUE: Object.freeze({
         id: 'DKCL_F41_HUE_SINGLE_DATE_V1',
         indicator: 'F4.1',
         sourceLane: 'HUE',
-        get reportIdentity() {
-            return `DKCL:/kpi/chat-luong-phat-thanh-cong-cua-buu-cuc|sp_Phat_ChatLuong_PTC_BuuCuc_V2|GR=BC|TINH_PHAT=${provinceConfig.formatForPortal('plain')}`;
-        },
+        reportIdentity: 'DKCL:/kpi/chat-luong-phat-thanh-cong-cua-buu-cuc|sp_Phat_ChatLuong_PTC_BuuCuc_V2|GR=BC|TINH_PHAT=53',
         resourceIdentity: 'sp_Phat_ChatLuong_PTC_BuuCuc_V2',
         exportAction: '/export/sp_Phat_ChatLuong_PTC_BuuCuc_V2/all',
         detailEndpoint: '/kpi/chat-luong-phat-thanh-cong-cua-buu-cuc-chi-tiet',
