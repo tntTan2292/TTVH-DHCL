@@ -85,3 +85,4 @@ Quy tắc: không cùng model vừa làm vừa tự duyệt S3, S5. Không tạo
 
 - 2026-11-18: CTO mở ticket, ghi D1–D6, Q1–Q4, giao S1 cho Claude Code / Sonnet.
 - 2026-11-18: PO chốt Q1–Q4 theo đề xuất CTO: máy Windows có Internet, dùng trong LAN (HTTPS tự ký tùy chọn); tải bù chi tiết tháng hiện tại và tháng trước; Trang chủ giữ khối xếp hạng toàn quốc; PO gửi zip, bản sau cài đè giữ DB. Cổng PO của S2 chỉ còn duyệt Design of Record.
+- 2026-11-18: S1 khảo sát chỉ đọc xong, READY FOR CTO REVIEW: `docs/06_REVIEWS/Province/PROV-PKG-01_SURVEY_001.md` + CSV điểm gắn cứng; mâu thuẫn D2 M1–M4 và câu hỏi PO Q1–Q7 trong báo cáo.
