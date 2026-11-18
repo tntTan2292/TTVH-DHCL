@@ -5,7 +5,7 @@
 - Ticket ID: `PROV-PKG-01` (chương trình; các bước `PROV-PKG-01-S1` … `-S6` ở mục 5).
 - Tên: `Gói QIS V2 cho tỉnh khác: 4 module (Trang chủ, F1.1, F1.2, F1.3, F4.1), đổi mã tỉnh là chạy, dữ liệu toàn quốc đóng sẵn`
 - Người viết: CTO (Claude Code / Opus 5.5), 2026-11-18, theo yêu cầu PO.
-- Status: `ACTIVE — S2 DoR TECH PASS có điều kiện C1–C3 (CTO 2026-11-18); Q13 đã chốt; chờ PO duyệt DoR`. Chạy song song, **không** thay Current Ticket của phiên F13.
+- Status: `ACTIVE — S2 DoR TECH PASS có điều kiện C1–C3 (CTO 2026-11-18); DoR PO APPROVED 2026-11-18; S3a–S3c giao Claude Code / Sonnet`. Chạy song song, **không** thay Current Ticket của phiên F13.
 - PO UI Check Required: `Yes` ở S6 (cài sạch). S1–S5: `No`.
 - Validation: S1 `LEVEL 1` (chỉ đọc); S3–S5 `LEVEL 2` (đụng mã đang chạy cho Huế: phải chứng minh Huế không đổi).
 
@@ -125,3 +125,4 @@ Quy tắc: không cùng model vừa làm vừa tự duyệt S3, S5. Không tạo
 - 2026-11-18: S2 Design of Record xong (Claude Code / Opus): `docs/04_TECHNICAL_PLANNING/Feature/PROV-PKG-01_DESIGN_OF_RECORD.md`. Chờ PO duyệt DoR; câu hỏi PO mới Q13 (mã bưu cục F1.1/F4.1 không có trong danh mục đơn vị), mặc định CTO đề xuất trong DoR mục 8.
 - 2026-11-18: S2 Design of Record (`27c0d2e1`, `b0a29961`): CTO TECH PASS với điều kiện C1 (không dữ liệu/mặc định Huế trong khối bản tỉnh), C2 (thông báo trung tính), C3 (ngoại lệ quét là một file, Opus duyệt) — DoR mục 9. Câu hỏi PO mới Q13 (mã đơn vị lạ ở F1.1/F4.1). Chờ PO duyệt DoR.
 - 2026-11-18: PO chốt Q13 (2026-11-18): mã bưu cục phát ở F1.1/F4.1 không có trong danh mục được **tự thêm vào danh mục với nhãn “cần xác nhận”** để quản trị viên tỉnh phân loại; trong khi chưa phân loại: hiện số, tính vào tổng tỉnh, không xếp hạng. Bản Huế không bật tự điền.
+- 2026-11-18: PO duyệt Design of Record S2 (kèm điều kiện CTO C1–C3 và Q13). Giao S3a–S3c cho Claude Code / Sonnet; S3d–S3e sau khi CTO kiểm S3a–S3c; Opus review độc lập toàn bộ S3 ở phiên khác.
