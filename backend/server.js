@@ -48,6 +48,8 @@ const { applyImportBulkReimportAll01Schema } = require('./migrate_import_bulk_re
 const { applyImportLogAudit01Schema } = require('./migrate_import_log_audit_01_schema');
 const { applyBfPhat01Schema } = require('./migrate_bf_phat_01_schema');
 const { applyPerfLoad01AggSchema } = require('./migrate_perf_load_01_agg_schema');
+const { applyProvPkg01SystemConfigKeysSchema } = require('./migrate_prov_pkg_01_system_config_keys');
+const provinceConfig = require('./src/config/provinceConfig');
 const { applyF13WhyAgg01Schema } = require('./migrate_f13_why_agg_01_schema');
 const { applyF13Evidence01Schema } = require('./migrate_f13_evidence_01_schema');
 const { applyF13RuleProposal01Schema } = require('./migrate_f13_rule_proposal_01_schema');
@@ -199,6 +201,7 @@ async function ensureStartupSchemaMigrations(dbPath = activeDbPath) {
     await applyF13WhyAgg01Schema(dbPath);
     await applyF13Evidence01Schema(dbPath);
     await applyF13RuleProposal01Schema(dbPath);
+    await applyProvPkg01SystemConfigKeysSchema(dbPath);
 }
 
 // HANGTON-INVENTORY-01: three daily stock snapshots (07:30, 11:30, 21:00). Off in tests, with
@@ -298,6 +301,8 @@ function startAutoImportSchedule() {
 function startServer() {
     return ensureStartupSchemaMigrations(activeDbPath)
         .then(async () => {
+            // PROV-PKG-01: province code and display names, read once; before anything that talks to DKCL or the queue.
+            await provinceConfig.load(require('./src/config/db').db);
             // RBAC-01: persistent sessions survive a restart.
             const authSessionStore = require('./src/services/auth/AuthSessionStore');
             authSessionStore.attachPersistence(require('./src/services/auth/sessionPersistence'));
