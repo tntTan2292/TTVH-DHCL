@@ -122,3 +122,4 @@ Quy tắc: không cùng model vừa làm vừa tự duyệt S3, S5. Không tạo
 
 - 2026-11-18: CTO chấp nhận S1 (`a239a5c8`; chạy trên Opus thay Sonnet, chấp nhận vì chỉ đọc). Ghi D8 (M1–M4, allowlist, test `reportIdentity`), D9 (bảng đơn vị cấu hình được), câu hỏi PO Q5–Q12. S2 chờ PO trả lời.
 - 2026-11-18: PO đồng ý Q5–Q12 theo mặc định CTO. Giao S2 (Design of Record) cho Claude Code / Opus.
+- 2026-11-18: S2 Design of Record xong (Claude Code / Opus): `docs/04_TECHNICAL_PLANNING/Feature/PROV-PKG-01_DESIGN_OF_RECORD.md`. Chờ PO duyệt DoR; câu hỏi PO mới Q13 (mã bưu cục F1.1/F4.1 không có trong danh mục đơn vị), mặc định CTO đề xuất trong DoR mục 8.
