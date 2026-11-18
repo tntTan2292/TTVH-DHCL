@@ -5,7 +5,7 @@
 - Ticket ID: `PROV-PKG-01` (chương trình; các bước `PROV-PKG-01-S1` … `-S6` ở mục 5).
 - Tên: `Gói QIS V2 cho tỉnh khác: 4 module (Trang chủ, F1.1, F1.2, F1.3, F4.1), đổi mã tỉnh là chạy, dữ liệu toàn quốc đóng sẵn`
 - Người viết: CTO (Claude Code / Opus 5.5), 2026-11-18, theo yêu cầu PO.
-- Status: `ACTIVE — S1 (khảo sát chỉ đọc) được giao`. Chạy song song, **không** thay Current Ticket của phiên F13.
+- Status: `ACTIVE — S1 ACCEPTED by CTO (2026-11-18); S2 chờ PO trả lời Q5–Q12`. Chạy song song, **không** thay Current Ticket của phiên F13.
 - PO UI Check Required: `Yes` ở S6 (cài sạch). S1–S5: `No`.
 - Validation: S1 `LEVEL 1` (chỉ đọc); S3–S5 `LEVEL 2` (đụng mã đang chạy cho Huế: phải chứng minh Huế không đổi).
 
@@ -56,6 +56,19 @@ Ngoài DB, **cấm vào gói**: `User QIS.xlsx`, `.env`, hồ sơ trình duyệt
 5. Thỏa thuận sử dụng bằng văn bản (không sửa, không phân phối lại, thay đổi phải qua Huế): **việc của PO**, không thuộc kỹ thuật.
 Thiết kế ở S2, làm ở S5, Opus review độc lập lớp 1–3; S6 phải chứng minh gói đã làm rối vẫn tải được DKCL.
 
+**D8 — Quyết định sau khảo sát S1 (`docs/06_REVIEWS/Province/PROV-PKG-01_SURVEY_001.md`, CTO chấp nhận 2026-11-18; CTO đã kiểm lại M1, M2 và file nhạy cảm).**
+- M1 (khóa ngoại `import_log_id`): DB hạt giống đặt `import_log_id = NULL` cho các bảng `*_national`, không chép `import_log`. S5 phải chạy quét độ phủ trên DB hạt giống và chứng minh không ngày toàn quốc nào bị xếp lại để tải; nếu có thì chuyển sang chép các dòng `import_log` lane TCT (sau khi rà cột `actor`).
+- M2: `dim_buu_cuc_toan_quoc` là bảng mồ côi (không mã nào đọc/ghi; CTO đã kiểm) → **bỏ khỏi D2 và D4**. Danh mục bưu cục/BCVH của tỉnh lấy theo D9.
+- M3: `fact_f42_national` → Không (F4.2 bị bỏ).
+- M4: DB hạt giống = `src/db/schema.sql` + danh sách migration S2 chốt (loại `inc_*`, `fact_f13_new` và bảng ngoài phạm vi nếu tách được) + dữ liệu bảng “Có”. `sys_kpi_thresholds` bị nhân ba: S2 xác định còn được đọc không; nếu còn thì seed 4 dòng, nếu không thì bỏ.
+- Gói lắp từ **danh sách cho phép (allowlist)** đường dẫn, không dùng `git archive` hay copy thư mục, vì repo đang track file nhạy cảm/rác (danh bạ bưu tá `.xls`, 3 bản đồ HTML, log, patch). File ngoài phạm vi có họ tên thật (`pl06Document.js`, `opsJournal*`) phải **không vào gói**, không chỉ tắt bằng cờ.
+- S3 thêm `User QIS.xlsx`, `graphify-out/`, `backend/uploads/` vào `.gitignore`.
+- `reportIdentity` với mã `53` phải ra đúng từng byte chuỗi cũ (hàng đợi đang lưu) — test bắt buộc ở S3. Tham số tỉnh có ba dạng (`'53'`, `N'53'`, `53`): module cấu hình cấp đủ ba.
+- Tuyến bưu tá `LIKE '<mã tỉnh>%'`: giữ quy ước, kiểm ở S6 (không hỏi PO).
+- 120 file test/fixture chứa 53/HUE/Huế: giữ nguyên (chúng kiểm bản Huế); S3 thêm test riêng cho một mã tỉnh khác.
+
+**D9 — Danh mục đơn vị của tỉnh (thay 6 BCVH gắn cứng ở 8 file).** Một bảng cấu hình đơn vị trong DB (mã, tên, loại: BCVH xếp hạng / đơn vị phụ không xếp hạng / KHL, thứ tự, màu), backend và frontend đọc qua một API. Bản Huế seed đúng 6 BCVH và các ngoại lệ hiện có (kết quả Huế không đổi). Bản tỉnh tự điền lần đầu từ dữ liệu F1.3 chi tiết (`ma_bcvh`/`ten_bcvh`) và cho quản trị viên sửa. Chi tiết theo câu trả lời Q5–Q8.
+
 ## 4. Câu hỏi PO — ĐÃ CHỐT 2026-11-18: PO đồng ý cả bốn mặc định của CTO (giá trị trong ngoặc là quyết định)
 
 - **Q1.** Máy cài ở tỉnh: máy Windows có Internet vào DKCL, dùng trong mạng LAN như Huế? (Mặc định: có; HTTPS LAN tự ký như Huế là tùy chọn.)
@@ -63,12 +76,22 @@ Thiết kế ở S2, làm ở S5, Opus review độc lập lớp 1–3; S6 phả
 - **Q3.** Trang chủ của tỉnh có giữ các khối so sánh toàn quốc (xếp hạng tỉnh) như Huế không? (Mặc định: giữ.)
 - **Q4.** Ai phát hành gói và cập nhật bản mới cho tỉnh (PO gửi zip, hay đặt trên GitHub riêng)? (Mặc định: PO gửi zip; bản sau cài đè giữ DB.)
 
+**Câu hỏi PO đợt 2 (từ khảo sát S1, số Q5–Q12; mặc định CTO đề xuất trong ngoặc) — CHỜ PO:**
+- Q5. Ở tỉnh khác, đơn vị xếp hạng luôn là BCVH như Huế? (Danh sách BCVH tự lấy từ dữ liệu DKCL F1.3, quản trị viên tỉnh sửa được.)
+- Q6. Đơn vị phụ kiểu Trần Hưng Đạo, TT Hành chính công ở Huế: ở tỉnh khác xử lý sao? (Vẫn hiện số và tính vào tổng tỉnh, nhưng không xếp hạng; tỉnh tự đánh dấu.)
+- Q7. Bưu cục Khách hàng lớn “tính vào tổng, không xếp hạng” (PD-F12-8) áp dụng cho tỉnh khác? (Có, mỗi tỉnh tự đánh dấu bưu cục KHL của mình.)
+- Q8. Danh sách tuyến “phát tại quầy” không tính là tuyến bưu tá: tỉnh khác thế nào? (Để trống, tỉnh tự khai báo sau.)
+- Q9. Lịch nghỉ: gói mang theo những ngày nào? (Chỉ ngày nghỉ toàn quốc như Tết; bỏ dòng “Test”; tỉnh tự thêm ngày riêng.)
+- Q10. Tên đơn vị trên giao diện? (Tỉnh nhập lúc cài, gợi ý sẵn tên theo TCT “Bưu điện tỉnh …”.)
+- Q11. Chữ “BĐTP”/vai trò “Lãnh đạo BĐTP” ở bản tỉnh? (Hiện thành “Lãnh đạo đơn vị”; mã vai trò nội bộ giữ nguyên.)
+- Q12. Gỡ danh bạ bưu tá `.xls` và 3 bản đồ HTML khỏi git (vẫn giữ file trên máy; không viết lại lịch sử git)? (Có.)
+
 ## 5. Các bước, executor và model
 
 | Bước | Nội dung | Executor / model | Đầu ra | Cổng |
 |---|---|---|---|---|
 | S1 | Khảo sát chỉ đọc: (a) mọi điểm gắn cứng `53`/`HUE`/“Huế”/`Thừa Thiên` ở backend, frontend, script, scheduler — phân loại *giá trị chạy* / *chuỗi hiển thị* / *tên nội bộ*; (b) đồ thị phụ thuộc module: route, service, job, menu cho từng module ngoài phạm vi, chỗ Trang chủ/4F gọi sang module bị bỏ; (c) kiểm chứng bảng D2 (cột mã tỉnh, nguồn ghi, `agg_*`); (d) nguồn danh mục BCVH của Huế; (e) dữ liệu nhạy cảm và file cấm; (f) parser Excel theo vị trí cột: có phụ thuộc tỉnh không | Claude Code / **Sonnet** (một phiên; gồm cả frontend để có một báo cáo) | `docs/06_REVIEWS/Province/PROV-PKG-01_SURVEY_001.md` + bảng CSV điểm gắn cứng | CTO đọc |
-| S2 | Thiết kế (Design of Record): module cấu hình tỉnh, cờ `QIS_EDITION`, danh mục BCVH, script xuất gói, lớp bảo vệ D7, trình cài, danh sách test hồi quy Huế | Claude Code / **Opus** | `docs/04_TECHNICAL_PLANNING/Feature/PROV-PKG-01_DESIGN_OF_RECORD.md` | PO duyệt DoR (Q1–Q4 đã chốt) |
+| S2 | Thiết kế (Design of Record): module cấu hình tỉnh, cờ `QIS_EDITION`, danh mục BCVH, script xuất gói, lớp bảo vệ D7, trình cài, danh sách test hồi quy Huế | Claude Code / **Opus** | `docs/04_TECHNICAL_PLANNING/Feature/PROV-PKG-01_DESIGN_OF_RECORD.md` | PO trả lời Q5–Q12, rồi duyệt DoR |
 | S3 | Cấu hình tỉnh: thay giá trị gắn cứng bằng module cấu hình, mặc định 53 | Claude Code / Sonnet; review độc lập **Opus** (rủi ro Huế) | commit + test: chạy toàn bộ test hiện có, kết quả Huế 4F một ngày mẫu trước/sau giống từng số | Opus review PASS |
 | S4 | Cắt module bằng `QIS_EDITION=province`: backend/scheduler (Claude Code / Sonnet), menu/route/chữ “Huế” trên giao diện (Antigravity, không mở browser) | Claude Code + Antigravity | commit; `full` không đổi | CTO |
 | S5 | Script xuất gói + DB hạt giống + quét nhạy cảm + lớp bảo vệ D7 (1–4) + `install.cmd` | Claude Code / Sonnet; Opus review riêng bước quét nhạy cảm | gói zip + báo cáo quét | Opus review PASS |
@@ -95,5 +118,6 @@ Quy tắc: không cùng model vừa làm vừa tự duyệt S3, S5. Không tạo
 - 2026-11-18: CTO mở ticket, ghi D1–D6, Q1–Q4, giao S1 cho Claude Code / Sonnet.
 - 2026-11-18: PO chốt Q1–Q4 theo đề xuất CTO: máy Windows có Internet, dùng trong LAN (HTTPS tự ký tùy chọn); tải bù chi tiết tháng hiện tại và tháng trước; Trang chủ giữ khối xếp hạng toàn quốc; PO gửi zip, bản sau cài đè giữ DB. Cổng PO của S2 chỉ còn duyệt Design of Record.
 - 2026-11-18: S1 khảo sát chỉ đọc xong, READY FOR CTO REVIEW: `docs/06_REVIEWS/Province/PROV-PKG-01_SURVEY_001.md` + CSV điểm gắn cứng; mâu thuẫn D2 M1–M4 và câu hỏi PO Q1–Q7 trong báo cáo.
-
 - 2026-11-18: PO đồng ý D7 (bảo vệ gói khỏi bị sửa: đóng gói/làm rối, bỏ tài liệu AI, kiểm hash khi khởi động, cài đè, thỏa thuận do PO lo).
+
+- 2026-11-18: CTO chấp nhận S1 (`a239a5c8`; chạy trên Opus thay Sonnet, chấp nhận vì chỉ đọc). Ghi D8 (M1–M4, allowlist, test `reportIdentity`), D9 (bảng đơn vị cấu hình được), câu hỏi PO Q5–Q12. S2 chờ PO trả lời.
