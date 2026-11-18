@@ -384,3 +384,4 @@ Thiết kế được chấp nhận. Ba điều kiện bắt buộc, S3–S5 ph�
 
 Ghi chú không bắt buộc: regex mã tuyến `53\d{2,6}` có thể khớp nhầm số ngẫu nhiên trong mã đã minify; nếu khớp nhầm thì thu hẹp regex, không thêm ngoại lệ (C3).
 
+- PO chốt Q13 (2026-11-18): mã bưu cục phát ở F1.1/F4.1 không có trong danh mục được **tự thêm vào danh mục với nhãn “cần xác nhận”** để quản trị viên tỉnh phân loại; trong khi chưa phân loại: hiện số, tính vào tổng tỉnh, không xếp hạng. Bản Huế không bật tự điền.
